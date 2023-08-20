@@ -293,7 +293,7 @@ class mapOptimization : public ParamServer
 
     Eigen::Affine3f transCur = pcl::getTransformation(transformIn->x, transformIn->y, transformIn->z, transformIn->roll, transformIn->pitch, transformIn->yaw);
 
-#pragma omp parallel for num_threads(numberOfCores)
+// #pragma omp parallel for num_threads(numberOfCores)
     for (int i = 0; i < cloudSize; ++i)
     {
       const auto &pointFrom = cloudIn->points[i];
@@ -976,7 +976,7 @@ class mapOptimization : public ParamServer
   {
     updatePointAssociateToMap();
 
-#pragma omp parallel for num_threads(numberOfCores)
+//#pragma omp parallel for num_threads(numberOfCores)
     for (int i = 0; i < laserCloudCornerLastDSNum; i++)
     {
       PointType pointOri, pointSel, coeff;
@@ -1068,7 +1068,7 @@ class mapOptimization : public ParamServer
   {
     updatePointAssociateToMap();
 
-#pragma omp parallel for num_threads(numberOfCores)
+//#pragma omp parallel for num_threads(numberOfCores)
     for (int i = 0; i < laserCloudSurfLastDSNum; i++)
     {
       PointType pointOri, pointSel, coeff;

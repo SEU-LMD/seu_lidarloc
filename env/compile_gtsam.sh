@@ -10,6 +10,8 @@ cmake ../../gtsam-4.0.3/ -DCMAKE_BUILD_TYPE=Release \
                            -DGTSAM_BUILD_WITH_MARCH_NATIVE=OFF \
                            -DGTSAM_USE_SYSTEM_EIGEN=OFF \
                            -DBUILD_SHARED_LIBS=OFF \
+                           -DGTSAM_BUILD_EXAMPLES_ALWAYS=OFF \
+                           -DGTSAM_BUILD_UNSTABLE=OFF \
                            -DEigen3_DIR=${dir_abs_path}/eigen-3.4.0-install-x86/share/eigen3/cmake
 make -j10                         
-sudo make install
+make install

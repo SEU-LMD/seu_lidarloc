@@ -1,6 +1,6 @@
 <launch>
     <arg name="project" default="lio_sam_6axis"/>
-    <arg name="bag_path" default="/media/sy/home1/M2DGR/gate_03.bag"/>
+    <arg name="bag_path" default="/media/fyy/home1/M2DGR/gate_03.bag"/>
     <arg name="sequence" default="hkust_campus"/>
 
     <!--set your own Parameters -->
@@ -29,6 +29,6 @@
     <node pkg="rviz" type="rviz" name="$(arg project)_rviz"
           args="-d $(find lio_sam_6axis)/launch/include/config/vlp.rviz"/>
 
-    <node pkg="rosbag" type="play" name="bag_play" args="$(arg bag_path) --clock -d 5 -r 2.0"/>
+    <node pkg="rosbag" type="play" name="bag_play" args="$(arg bag_path) --clock -d 5 -r 0.5"/>
 
 </launch>

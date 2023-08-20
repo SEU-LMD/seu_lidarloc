@@ -5,21 +5,14 @@ set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-std=c++14")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -pthread")
-#set(CMAKE_SOURCE_DIR  "/home/wxy/thirdparty")
-set(Eigen3_DIR ${CMAKE_SOURCE_DIR}/../env/eigen-3.4.0-install-x86/share/eigen3/cmake)
-find_package(Eigen3 REQUIRED)
-set(GTSAM_DIR ${CMAKE_SOURCE_DIR}/../env/gtsam-4.0.3-install/lib/cmake/GTSAM)
-find_package(GTSAM REQUIRED)
-set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/../env/opencv-3.4.16-install/share/OpenCV)
-
 
 
 find_package(Boost REQUIRED COMPONENTS timer)
+
 find_package(catkin REQUIRED COMPONENTS
         tf
         roscpp
         rospy
-#        cv_bridge
         pcl_conversions
         std_msgs
         sensor_msgs
@@ -30,18 +23,24 @@ find_package(catkin REQUIRED COMPONENTS
         rosbag
         )
 
-find_package(OpenMP REQUIRED)
+
+set(Eigen3_DIR ${CMAKE_SOURCE_DIR}/../env/eigen-3.4.0-install-x86/share/eigen3/cmake)
+find_package(Eigen3 REQUIRED)
+MESSAGE(STATUS "EIGEN3_INCLUDE_DIR------------${EIGEN3_INCLUDE_DIR}------------------")
+
+set(GTSAM_DIR ${CMAKE_SOURCE_DIR}/../env/gtsam-4.0.3-install/lib/cmake/GTSAM)
+find_package(GTSAM REQUIRED)
+
+
+set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/../env/opencv-3.4.16-install/share/OpenCV)
+find_package(OpenCV REQUIRED)
+       
 
 set(PCL_DIR "/usr/lib/x86_64-linux-gnu/cmake/pcl")
-find_package(PCL 1.10 REQUIRED)
-find_package(OpenCV REQUIRED)
+# find_package(PCL 1.10 REQUIRED)
+find_package(PCL REQUIRED)
 
-#find_package(libxml2 QUIET)
 
-#if (NOT LIBXML2_FOUND)
-#    find_package(PkgConfig REQUIRED)
-#    pkg_check_modules(Y REQUIRED libxml-2.0)
-#endif ()
 
 add_message_files(
         DIRECTORY msg
@@ -62,9 +61,6 @@ generate_messages(
         nav_msgs
         sensor_msgs
 )
-
-add_subdirectory(./ThirdParty/GeographicLib/)
-
 catkin_package(
         INCLUDE_DIRS include
         DEPENDS PCL GTSAM
@@ -79,15 +75,16 @@ catkin_package(
         visualization_msgs
 )
 
-# include directories
+add_subdirectory(./ThirdParty/GeographicLib/)
+
+
+
 include_directories(
         include
         ${catkin_INCLUDE_DIRS}
         ${PCL_INCLUDE_DIRS}
         ${OpenCV_INCLUDE_DIRS}
         ${GTSAM_INCLUDE_DIR}
-#        ${Y_INCLUDE_DIRS}
-#        ${LIBXML2_INCLUDE_DIRS}
         ${EIGEN3_INCLUDE_DIR}
         ./ThirdParty/GeographicLib/
 )
@@ -126,4 +123,4 @@ add_executable(${PROJECT_NAME}_imuPreintegration src/imuPreintegration.cpp)
 target_link_libraries(${PROJECT_NAME}_imuPreintegration ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam )
 
 #  add_executable(main main.cpp)
-#  target_link_libraries(main ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+#  target_link_libraries(main gtsam)

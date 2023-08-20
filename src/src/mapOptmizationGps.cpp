@@ -418,7 +418,7 @@ public:
                 transformIn->x, transformIn->y, transformIn->z, transformIn->roll,
                 transformIn->pitch, transformIn->yaw);
 
-#pragma omp parallel for num_threads(numberOfCores)
+//#pragma omp parallel for num_threads(numberOfCores)
         for (int i = 0; i < cloudSize; ++i) {
             const auto &pointFrom = cloudIn->points[i];
             cloudOut->points[i].x = transCur(0, 0) * pointFrom.x +
@@ -1404,7 +1404,7 @@ public:
     void cornerOptimization() {
         updatePointAssociateToMap();
 
-#pragma omp parallel for num_threads(numberOfCores)
+//#pragma omp parallel for num_threads(numberOfCores)
         for (int i = 0; i < laserCloudCornerLastDSNum; i++) {
             PointType pointOri, pointSel, coeff;
             std::vector<int> pointSearchInd;
@@ -1524,7 +1524,7 @@ public:
     void surfOptimization() {
         updatePointAssociateToMap();
 // long startTime= System.currentTimeMillis();
-#pragma omp parallel for num_threads(numberOfCores)
+//#pragma omp parallel for num_threads(numberOfCores)
         for (int i = 0; i < laserCloudSurfLastDSNum; i++) {
             PointType pointOri, pointSel, coeff;
             std::vector<int> pointSearchInd;

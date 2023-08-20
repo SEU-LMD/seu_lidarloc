@@ -14,6 +14,15 @@ cmake ../../opencv-3.4.16/ -DCMAKE_BUILD_TYPE=Release \
                            -DBUILD_TESTS=false  \
                            -DBUILD_SHARED_LIBS=OFF \
                            -DWITH_EIGEN=OFF \
-                           -DBUILD_SHARED_LIBS=OFF
+                           -DBUILD_SHARED_LIBS=OFF \
+                           -DBUILD_PROTOBUF=OFF \
+                           -DBUILD_opencv_python2=OFF \
+                           -DBUILD_opencv_python_bindings_generator=OFF \
+                           -DBUILD_opencv_python_tests=OFF \
+                           -DBUILD_TESTS=OFF \
+                           -DBUILD_PERF_TESTS=OFF\
+                           -DBUILD_opencv_dnn=OFF
+
+
 make -j8
-sudo make install
+make install

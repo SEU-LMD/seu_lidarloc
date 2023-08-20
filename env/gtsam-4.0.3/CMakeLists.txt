@@ -303,7 +303,6 @@ if(GTSAM_USE_SYSTEM_EIGEN)
 else()
 	# Use bundled Eigen include path.
 	# Clear any variables set by FindEigen3
-	set(Eigen3_DIR ${CMAKE_SOURCE_DIR}/../eigen-3.4.0-install-x86/share/eigen3/cmake)
 	if(EIGEN3_INCLUDE_DIR)
 		set(EIGEN3_INCLUDE_DIR NOTFOUND CACHE STRING "" FORCE)
 	endif()
