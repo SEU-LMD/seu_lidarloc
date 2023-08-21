@@ -1,6 +1,5 @@
 
   #  velodyne16 and stim300(6 axis)
-
   # Topics
   pointCloudTopic: "velodyne_points"               # Point cloud data
   imuTopic: "handsfree/imu"                         # IMU data

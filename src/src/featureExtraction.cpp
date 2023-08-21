@@ -13,8 +13,10 @@ struct by_value {
   }
 };
 
-class FeatureExtraction : public ParamServer {
+class FeatureExtraction {
+
  public:
+  ros::NodeHandle nh;
   ros::Subscriber subLaserCloudInfo;
 
   ros::Publisher pubLaserCloudInfo;
@@ -263,9 +265,10 @@ class FeatureExtraction : public ParamServer {
 };
 
 int main(int argc, char **argv) {
+  Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+
   ros::init(argc, argv, "lio_sam_6axis");
 
-  Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
 
 
   FeatureExtraction FE;

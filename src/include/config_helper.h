@@ -36,7 +36,7 @@ class Config{
     static std::string  mapFrame;   
 
     //GPS Setting
-    static bool  useGPS; //没有使用
+    static bool  useGPS; 
     static bool   updateOrigin;//没有使用
     static int  gpsFrequence;//notuse
     static bool  useImuHeadingInitialization;
@@ -71,9 +71,12 @@ class Config{
 
     //Extrinsics (lidar -> IMU)
     static int imu_type;//meiyong buyiyang********
-    static Eigen::Vector3d  extrinsicTrans;
-    static Eigen::Matrix3d extrinsicRot;
+    static Eigen::Vector3d  extrinsicTrans;//
+    static Eigen::Matrix3d extrinsicRot;//
     static Eigen::Matrix3d extrinsicRPY;//  **meiyong 
+    static Eigen::Quaterniond extrinsicQRPY;//not
+    static Eigen::Vector3d t_body_sensor;
+    static Eigen::Quaterniond q_body_sensor;
 
     // LOAM feature threshold
     static float  edgeThreshold;
@@ -172,7 +175,9 @@ int Config::imu_type=-1;
 Eigen::Vector3d Config::extrinsicTrans;
 Eigen::Matrix3d Config::extrinsicRot;
 Eigen::Matrix3d Config::extrinsicRPY;
-
+Eigen::Quaterniond Config::extrinsicQRPY;
+Eigen::Vector3d Config::t_body_sensor;
+Eigen::Quaterniond Config::q_body_sensor;
 // LOAM feature threshold
 float  Config::edgeThreshold=-1;
 float Config::surfThreshold=-1;
@@ -296,6 +301,11 @@ void Load_YAML(std::string path)
                                                 config["extrinsicRPY"][3].as<double >(),config["extrinsicRPY"][4].as<double >(),config["extrinsicRPY"][5].as<double >(),
                                                 config["extrinsicRPY"][6].as<double >(),config["extrinsicRPY"][7].as<double >(),config["extrinsicRPY"][8].as<double >();
 
+    Config::extrinsicQRPY = Eigen::Quaterniond(Config::extrinsicRPY);
+    Eigen::Quaterniond q_sensor_body(Config::extrinsicRPY);
+    Eigen::Vector3d t_sensor_body = Config::extrinsicTrans;
+    Config::q_body_sensor = q_sensor_body.inverse();
+    Config::t_body_sensor = -(q_sensor_body.inverse() * t_sensor_body);
     std::cout<<Config::extrinsicRot(4)<<std::endl;
 
 

@@ -49,11 +49,11 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (PointXYZIRPYT,
 typedef PointXYZIRPYT  PointTypePose;
 
 
-class mapOptimization : public ParamServer
+class mapOptimization 
 {
 
  public:
-
+  ros::NodeHandle nh;
   // gtsam
   NonlinearFactorGraph gtSAMgraph;
   Values initialEstimate;
@@ -251,7 +251,7 @@ class mapOptimization : public ParamServer
     std::lock_guard<std::mutex> lock(mtx);
 
     static double timeLastProcessing = -1;
-    if (timeLaserInfoCur - timeLastProcessing >= mappingProcessInterval)
+    if (timeLaserInfoCur - timeLastProcessing >= Config::mappingProcessInterval)
     {
       timeLastProcessing = timeLaserInfoCur;
 
@@ -1367,7 +1367,7 @@ class mapOptimization : public ParamServer
     if (abs(roll)  < Config::surroundingkeyframeAddingAngleThreshold &&
         abs(pitch) < Config::surroundingkeyframeAddingAngleThreshold &&
         abs(yaw)   < Config::surroundingkeyframeAddingAngleThreshold &&
-        sqrt(x*x + y*y + z*z) < Config::surroundingkeyframeAddingDistThreshold)
+        sqrt(x*x + y*y + z*z) < Config::Config::surroundingkeyframeAddingDistThreshold)
       return false;
 
     return true;

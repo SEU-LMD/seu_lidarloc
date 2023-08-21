@@ -55,8 +55,9 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(
 
 typedef PointXYZIRPYT PointTypePose;
 
-class mapOptimization : public ParamServer {
+class mapOptimization {
 public:
+    ros::NodeHandle nh;
     NonlinearFactorGraph gtSAMgraph;
     Values initialEstimate;
     Values optimizedEstimate;
@@ -215,7 +216,7 @@ public:
         parameters.relinearizeSkip = 1;
         isam = new ISAM2(parameters);
 
-        if (useGPS) {
+        if (Config::useGPS) {
             pubGPSOdometry = nh.advertise<sensor_msgs::NavSatFix>("lio_sam_6axis/mapping/odometry_gps", 1);
         }
 
@@ -265,14 +266,14 @@ public:
                 "lio_sam_6axis/mapping/slam_info", 1);
 
         downSizeFilterCorner.setLeafSize(
-                mappingCornerLeafSize, mappingCornerLeafSize, mappingCornerLeafSize);
-        downSizeFilterSurf.setLeafSize(mappingSurfLeafSize, mappingSurfLeafSize,
-                                       mappingSurfLeafSize);
-        downSizeFilterICP.setLeafSize(mappingSurfLeafSize, mappingSurfLeafSize,
-                                      mappingSurfLeafSize);
+                Config::mappingCornerLeafSize, Config::mappingCornerLeafSize, Config::mappingCornerLeafSize);
+        downSizeFilterSurf.setLeafSize(Config::mappingSurfLeafSize, Config::mappingSurfLeafSize,
+                                       Config::mappingSurfLeafSize);
+        downSizeFilterICP.setLeafSize(Config::mappingSurfLeafSize, Config::mappingSurfLeafSize,
+                                      Config::mappingSurfLeafSize);
         downSizeFilterSurroundingKeyPoses.setLeafSize(
-                surroundingKeyframeDensity, surroundingKeyframeDensity,
-                surroundingKeyframeDensity);  // for surrounding key poses of
+                Config::surroundingKeyframeDensity, Config::surroundingKeyframeDensity,
+                Config::surroundingKeyframeDensity);  // for surrounding key poses of
         // scan-to-map optimization
 
         const float rawMapFilterSize = 0.5;  // giseop
@@ -280,13 +281,16 @@ public:
                                       rawMapFilterSize);  // giseop
 
         // set log dir
+        std::string saveDirectory = "/Downloads/LOAM/";
+        std::string sequence = "map";
         dataSaverPtr = std::make_unique<DataSaver>(saveDirectory, sequence);
         // use imu frame when saving map
-        dataSaverPtr->setExtrinc(true, t_body_sensor, q_body_sensor);
+        dataSaverPtr->setExtrinc(true, Config::t_body_sensor, Config::q_body_sensor);
+        std::string configDirectory = "map";
         dataSaverPtr->setConfigDir(configDirectory);
 
         allocateMemory();
-        std::cout << savePCDDirectory << std::endl;
+        std::cout << Config::savePCDDirectory << std::endl;
         std::cout << sequence << std::endl;
     }
 
@@ -320,12 +324,12 @@ public:
         laserCloudOri.reset(new pcl::PointCloud<PointType>());
         coeffSel.reset(new pcl::PointCloud<PointType>());
 
-        laserCloudOriCornerVec.resize(N_SCAN * Horizon_SCAN);
-        coeffSelCornerVec.resize(N_SCAN * Horizon_SCAN);
-        laserCloudOriCornerFlag.resize(N_SCAN * Horizon_SCAN);
-        laserCloudOriSurfVec.resize(N_SCAN * Horizon_SCAN);
-        coeffSelSurfVec.resize(N_SCAN * Horizon_SCAN);
-        laserCloudOriSurfFlag.resize(N_SCAN * Horizon_SCAN);
+        laserCloudOriCornerVec.resize(Config::N_SCAN * Config::Horizon_SCAN);
+        coeffSelCornerVec.resize(Config::N_SCAN * Config::Horizon_SCAN);
+        laserCloudOriCornerFlag.resize(Config::N_SCAN * Config::Horizon_SCAN);
+        laserCloudOriSurfVec.resize(Config::N_SCAN * Config::Horizon_SCAN);
+        coeffSelSurfVec.resize(Config::N_SCAN * Config::Horizon_SCAN);
+        laserCloudOriSurfFlag.resize(Config::N_SCAN * Config::Horizon_SCAN);
 
         std::fill(laserCloudOriCornerFlag.begin(), laserCloudOriCornerFlag.end(),
                   false);
@@ -361,7 +365,7 @@ public:
         std::lock_guard<std::mutex> lock(mtx);
 
         static double timeLastProcessing = -1;
-        if (timeLaserInfoCur - timeLastProcessing >= mappingProcessInterval) {
+        if (timeLaserInfoCur - timeLastProcessing >= Config::mappingProcessInterval) {
             timeLastProcessing = timeLaserInfoCur;
 
             updateInitialGuess();
@@ -385,7 +389,7 @@ public:
     }
 
     void gpsHandler(const nav_msgs::Odometry::ConstPtr &gpsMsg) {
-        if (useGPS) {
+        if (Config::useGPS) {
             mtxGpsInfo.lock();
             gpsQueue.push_back(*gpsMsg);
             mtxGpsInfo.unlock();
@@ -512,7 +516,7 @@ public:
         }
 
         Eigen::Vector3d optimized_lla;
-        if (useGPS) {
+        if (Config::useGPS) {
             Eigen::Vector3d first_point(cloudKeyPoses6D->at(0).x,
                                         cloudKeyPoses6D->at(0).y,
                                         cloudKeyPoses6D->at(0).z);
@@ -549,8 +553,8 @@ public:
 
             nav_msgs::Odometry laserOdometryROS;
             laserOdometryROS.header.stamp = ros::Time().fromSec(p.time);
-            laserOdometryROS.header.frame_id = odometryFrame;
-            laserOdometryROS.child_frame_id = lidarFrame;
+            laserOdometryROS.header.frame_id = Config::odometryFrame;
+            laserOdometryROS.child_frame_id = Config::lidarFrame;
             laserOdometryROS.pose.pose.position.x = p.x;
             laserOdometryROS.pose.pose.position.y = p.y;
             laserOdometryROS.pose.pose.position.z = p.z;
@@ -565,8 +569,8 @@ public:
 
             geometry_msgs::TransformStamped transform_msg;
             transform_msg.header.stamp = ros::Time().fromSec(p.time);
-            transform_msg.header.frame_id = odometryFrame;
-            transform_msg.child_frame_id = lidarFrame;
+            transform_msg.header.frame_id = Config::odometryFrame;
+            transform_msg.child_frame_id = Config::lidarFrame;
             transform_msg.transform.translation.x = p.x;
             transform_msg.transform.translation.y = p.y;
             transform_msg.transform.translation.z = p.z;
@@ -574,7 +578,7 @@ public:
                     tf::createQuaternionMsgFromRollPitchYaw(p.roll, p.pitch, p.yaw);
             transform_vec.push_back(transform_msg);
 
-            if (useGPS) {
+            if (Config::useGPS) {
                 // we save optimized origin gps point, maybe the altitude value need to
                 // be fixes
                 Eigen::Vector3d first_point(p.x, p.y, p.z);
@@ -590,7 +594,7 @@ public:
         //dataSaverPtr->saveOptimizedVerticesKITTI(isamCurrentEstimate);
         dataSaverPtr->saveOdometryVerticesTUM(keyframeRawOdom);
         // dataSaverPtr->saveResultBag(keyframePosesOdom, keyframeCloudDeskewed, transform_vec);
-        if (useGPS) dataSaverPtr->saveKMLTrajectory(lla_vec);
+        if (Config::useGPS) dataSaverPtr->saveKMLTrajectory(lla_vec);
 
         /** always remember do not call this service if your databag do not play over!!!!!!!!*/
         mtxGraph.lock();
@@ -635,11 +639,11 @@ public:
         }
 
         downSizeFilterCorner.setInputCloud(globalCornerCloud);
-        downSizeFilterCorner.setLeafSize(globalMapLeafSize, globalMapLeafSize, globalMapLeafSize);
+        downSizeFilterCorner.setLeafSize(Config::globalMapLeafSize, Config::globalMapLeafSize, Config::globalMapLeafSize);
         downSizeFilterCorner.filter(*globalCornerCloudDS);
 
         downSizeFilterSurf.setInputCloud(globalSurfCloud);
-        downSizeFilterSurf.setLeafSize(globalMapLeafSize, globalMapLeafSize, globalMapLeafSize);
+        downSizeFilterSurf.setLeafSize(Config::globalMapLeafSize,Config::globalMapLeafSize, Config::globalMapLeafSize);
         downSizeFilterSurf.filter(*globalSurfCloudDS);
 
         // save global point cloud map
@@ -654,7 +658,7 @@ public:
 
         /** if you need to downsample the final map, 0.5m is ok*/
         downSizeFilterSurf.setInputCloud(globalMapCloud);
-        downSizeFilterSurf.setLeafSize(globalMapLeafSize, globalMapLeafSize, globalMapLeafSize);
+        downSizeFilterSurf.setLeafSize(Config::globalMapLeafSize, Config::globalMapLeafSize, Config::globalMapLeafSize);
         downSizeFilterSurf.filter(*globalMapCloud);
 
 
@@ -700,7 +704,7 @@ public:
         mtx.lock();
         kdtreeGlobalMap->setInputCloud(cloudKeyPoses3D);
         kdtreeGlobalMap->radiusSearch(
-                cloudKeyPoses3D->back(), globalMapVisualizationSearchRadius,
+                cloudKeyPoses3D->back(), Config::globalMapVisualizationSearchRadius,
                 pointSearchIndGlobalMap, pointSearchSqDisGlobalMap, 0);
         mtx.unlock();
 
@@ -711,8 +715,8 @@ public:
         pcl::VoxelGrid<PointType>
                 downSizeFilterGlobalMapKeyPoses;  // for global map visualization
         downSizeFilterGlobalMapKeyPoses.setLeafSize(
-                globalMapVisualizationPoseDensity, globalMapVisualizationPoseDensity,
-                globalMapVisualizationPoseDensity);  // for global map visualization
+                Config::globalMapVisualizationPoseDensity, Config::globalMapVisualizationPoseDensity,
+                Config::globalMapVisualizationPoseDensity);  // for global map visualization
         downSizeFilterGlobalMapKeyPoses.setInputCloud(globalMapKeyPoses);
         downSizeFilterGlobalMapKeyPoses.filter(*globalMapKeyPosesDS);
         for (auto &pt : globalMapKeyPosesDS->points) {
@@ -726,7 +730,7 @@ public:
         for (int i = 0; i < (int) globalMapKeyPosesDS->size(); ++i) {
             if (pointDistance(globalMapKeyPosesDS->points[i],
                               cloudKeyPoses3D->back()) >
-                globalMapVisualizationSearchRadius)
+                Config::globalMapVisualizationSearchRadius)
                 continue;
             int thisKeyInd = (int) globalMapKeyPosesDS->points[i].intensity;
             *globalMapKeyFrames +=
@@ -739,25 +743,25 @@ public:
         pcl::VoxelGrid<PointType>
                 downSizeFilterGlobalMapKeyFrames;  // for global map visualization
         downSizeFilterGlobalMapKeyFrames.setLeafSize(
-                globalMapVisualizationLeafSize, globalMapVisualizationLeafSize,
-                globalMapVisualizationLeafSize);  // for global map visualization
+                Config::globalMapVisualizationLeafSize, Config::globalMapVisualizationLeafSize,
+                Config::globalMapVisualizationLeafSize);  // for global map visualization
         downSizeFilterGlobalMapKeyFrames.setInputCloud(globalMapKeyFrames);
         downSizeFilterGlobalMapKeyFrames.filter(*globalMapKeyFramesDS);
         publishCloud(pubLaserCloudSurround, globalMapKeyFramesDS,
-                     timeLaserInfoStamp, odometryFrame);
+                     timeLaserInfoStamp, Config::odometryFrame);
     }
 
     void loopClosureThread() {
-        if (loopClosureEnableFlag == false) return;
+        if (Config::loopClosureEnableFlag == false) return;
 
-        ros::Rate rate(loopClosureFrequency);
+        ros::Rate rate(Config::loopClosureFrequency);
         while (ros::ok()) {
             ros::spinOnce();
 
             performLoopClosure();
             visualizeLoopClosure();
 
-            if (useGPS) visualGPSConstraint();
+            if (Config::useGPS) visualGPSConstraint();
 
             rate.sleep();
         }
@@ -795,17 +799,17 @@ public:
         {
             loopFindNearKeyframes(cureKeyframeCloud, loopKeyCur, 0);
             loopFindNearKeyframes(prevKeyframeCloud, loopKeyPre,
-                                  historyKeyframeSearchNum);
+                                  Config::historyKeyframeSearchNum);
             if (cureKeyframeCloud->size() < 300 || prevKeyframeCloud->size() < 1000)
                 return;
             if (pubHistoryKeyFrames.getNumSubscribers() != 0)
                 publishCloud(pubHistoryKeyFrames, prevKeyframeCloud, timeLaserInfoStamp,
-                             odometryFrame);
+                             Config::odometryFrame);
         }
 
         // ICP Settings
         static pcl::IterativeClosestPoint<PointType, PointType> icp;
-        icp.setMaxCorrespondenceDistance(historyKeyframeSearchRadius * 2);
+        icp.setMaxCorrespondenceDistance(Config::historyKeyframeSearchRadius * 2);
         icp.setMaximumIterations(100);
         icp.setTransformationEpsilon(1e-6);
         icp.setEuclideanFitnessEpsilon(1e-6);
@@ -819,7 +823,7 @@ public:
         icp.align(*unused_result);
 
         if (icp.hasConverged() == false ||
-            icp.getFitnessScore() > historyKeyframeFitnessScore)
+            icp.getFitnessScore() > Config::historyKeyframeFitnessScore)
             return;
 
         // publish corrected cloud
@@ -829,7 +833,7 @@ public:
             pcl::transformPointCloud(*cureKeyframeCloud, *closed_cloud,
                                      icp.getFinalTransformation());
             publishCloud(pubIcpKeyFrames, closed_cloud, timeLaserInfoStamp,
-                         odometryFrame);
+                         Config::odometryFrame);
         }
 
         // Get pose transformation
@@ -895,13 +899,13 @@ public:
         std::vector<float> pointSearchSqDisLoop;
         kdtreeHistoryKeyPoses->setInputCloud(copy_cloudKeyPoses2D);
         kdtreeHistoryKeyPoses->radiusSearch(
-                copy_cloudKeyPoses2D->back(), historyKeyframeSearchRadius,
+                copy_cloudKeyPoses2D->back(), Config::historyKeyframeSearchRadius,
                 pointSearchIndLoop, pointSearchSqDisLoop, 0);
 
         for (int i = 0; i < (int) pointSearchIndLoop.size(); ++i) {
             int id = pointSearchIndLoop[i];
             if (abs(copy_cloudKeyPoses6D->points[id].time - timeLaserInfoCur) >
-                historyKeyframeSearchTimeDiff) {
+                Config::historyKeyframeSearchTimeDiff) {
                 loopKeyPre = id;
                 break;
             }
@@ -943,7 +947,7 @@ public:
         double loopTimePre = loopInfoVec.front().data[1];
         loopInfoVec.pop_front();
 
-        if (abs(loopTimeCur - loopTimePre) < historyKeyframeSearchTimeDiff)
+        if (abs(loopTimeCur - loopTimePre) < Config::historyKeyframeSearchTimeDiff)
             return false;
 
         int cloudSize = copy_cloudKeyPoses6D->size();
@@ -1011,7 +1015,7 @@ public:
         visualization_msgs::MarkerArray markerArray;
         // loop nodes
         visualization_msgs::Marker markerNode;
-        markerNode.header.frame_id = odometryFrame;
+        markerNode.header.frame_id = Config::odometryFrame;
         markerNode.header.stamp = timeLaserInfoStamp;
         markerNode.action = visualization_msgs::Marker::ADD;
         markerNode.type = visualization_msgs::Marker::SPHERE_LIST;
@@ -1027,7 +1031,7 @@ public:
         markerNode.color.a = 1;
         // loop edges
         visualization_msgs::Marker markerEdge;
-        markerEdge.header.frame_id = odometryFrame;
+        markerEdge.header.frame_id = Config::odometryFrame;
         markerEdge.header.stamp = timeLaserInfoStamp;
         markerEdge.action = visualization_msgs::Marker::ADD;
         markerEdge.type = visualization_msgs::Marker::LINE_LIST;
@@ -1068,7 +1072,7 @@ public:
         visualization_msgs::MarkerArray markerArray;
         // gps nodes
         visualization_msgs::Marker markerNode;
-        markerNode.header.frame_id = odometryFrame;
+        markerNode.header.frame_id = Config::odometryFrame;
         markerNode.header.stamp = timeLaserInfoStamp;
         markerNode.action = visualization_msgs::Marker::ADD;
         markerNode.type = visualization_msgs::Marker::SPHERE_LIST;
@@ -1085,7 +1089,7 @@ public:
 
         // loop edges
         visualization_msgs::Marker markerEdge;
-        markerEdge.header.frame_id = odometryFrame;
+        markerEdge.header.frame_id = Config::odometryFrame;
         markerEdge.header.stamp = timeLaserInfoStamp;
         markerEdge.action = visualization_msgs::Marker::ADD;
         markerEdge.type = visualization_msgs::Marker::LINE_LIST;
@@ -1130,7 +1134,7 @@ public:
         // initialization the first frame
         if (cloudKeyPoses3D->points.empty()) {
             systemInitialized = false;
-            if (useGPS) {
+            if (Config::useGPS) {
                 ROS_INFO("GPS use to init pose");
                 /** when you align gnss and lidar timestamp, make sure (1.0/gpsFrequence) is small encougn
                  *  no need to care about the real gnss frquency. time alignment fail will cause
@@ -1138,7 +1142,7 @@ public:
                  * */
                 nav_msgs::Odometry alignedGPS;
                 if (syncGPS(gpsQueue, alignedGPS, timeLaserInfoCur,
-                            1.0 / gpsFrequence)) {
+                            1.0 / Config::gpsFrequence)) {
                     /** we store the origin wgs84 coordinate points in covariance[1]-[3] */
                     originLLA.setIdentity();
                     originLLA = Eigen::Vector3d(alignedGPS.pose.covariance[1],
@@ -1150,7 +1154,7 @@ public:
                     Eigen::Vector3d enu;
                     geo_converter.Forward(originLLA[0], originLLA[1], originLLA[2], enu[0], enu[1], enu[2]);
 
-                    if (debugGps) {
+                    if (Config::debugGps) {
                         double roll, pitch, yaw;
                         tf::Matrix3x3(tf::Quaternion(alignedGPS.pose.pose.orientation.x,
                                                      alignedGPS.pose.pose.orientation.y,
@@ -1173,7 +1177,7 @@ public:
                     float noise_z = alignedGPS.pose.covariance[14];
 
                     /** if we get reliable origin point, we adjust the weight of this gps factor */
-                    if (!updateOrigin) {
+                    if (!Config::updateOrigin) {
                         noise_x *= 1e-4;
                         noise_y *= 1e-4;
                         noise_z *= 1e-4;
@@ -1191,7 +1195,7 @@ public:
                     transformTobeMapped[0] = cloudInfo.imuRollInit;
                     transformTobeMapped[1] = cloudInfo.imuPitchInit;
                     transformTobeMapped[2] = cloudInfo.imuYawInit;
-                    if (!useImuHeadingInitialization) transformTobeMapped[2] = 0;
+                    if (!Config::useImuHeadingInitialization) transformTobeMapped[2] = 0;
                     lastImuTransformation = pcl::getTransformation(
                             0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
                             cloudInfo.imuYawInit);
@@ -1203,7 +1207,7 @@ public:
                 transformTobeMapped[1] = cloudInfo.imuPitchInit;
                 transformTobeMapped[2] = cloudInfo.imuYawInit;
 
-                if (!useImuHeadingInitialization) transformTobeMapped[2] = 0;
+                if (!Config::useImuHeadingInitialization) transformTobeMapped[2] = 0;
 
                 lastImuTransformation = pcl::getTransformation(
                         0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
@@ -1277,7 +1281,7 @@ public:
                 new pcl::PointCloud<PointType>());
         int numPoses = cloudKeyPoses3D->size();
         for (int i = numPoses - 1; i >= 0; --i) {
-            if (cloudToExtract->size() <= surroundingKeyframeSize)
+            if (cloudToExtract->size() <= Config::surroundingKeyframeSize)
                 cloudToExtract->push_back(cloudKeyPoses3D->points[i]);
             else
                 break;
@@ -1298,7 +1302,7 @@ public:
         kdtreeSurroundingKeyPoses->setInputCloud(
                 cloudKeyPoses3D);  // create kd-tree
         kdtreeSurroundingKeyPoses->radiusSearch(
-                cloudKeyPoses3D->back(), (double) surroundingKeyframeSearchRadius,
+                cloudKeyPoses3D->back(), (double) Config::surroundingKeyframeSearchRadius,
                 pointSearchInd, pointSearchSqDis);
         for (int i = 0; i < (int) pointSearchInd.size(); ++i) {
             int id = pointSearchInd[i];
@@ -1331,7 +1335,7 @@ public:
         laserCloudSurfFromMap->clear();
         for (int i = 0; i < (int) cloudToExtract->size(); ++i) {
             if (pointDistance(cloudToExtract->points[i], cloudKeyPoses3D->back()) >
-                surroundingKeyframeSearchRadius)
+                Config::surroundingKeyframeSearchRadius)
                 continue;
 
             int thisKeyInd = (int) cloudToExtract->points[i].intensity;
@@ -1754,8 +1758,8 @@ public:
     void scan2MapOptimization() {
         if (cloudKeyPoses3D->points.empty()) return;
 
-        if (laserCloudCornerLastDSNum > edgeFeatureMinValidNum &&
-            laserCloudSurfLastDSNum > surfFeatureMinValidNum) {
+        if (laserCloudCornerLastDSNum > Config::edgeFeatureMinValidNum &&
+            laserCloudSurfLastDSNum > Config::surfFeatureMinValidNum) {
             kdtreeCornerFromMap->setInputCloud(laserCloudCornerFromMapDS);
             kdtreeSurfFromMap->setInputCloud(laserCloudSurfFromMapDS);
 
@@ -1782,7 +1786,7 @@ public:
     void transformUpdate() {
         if (cloudInfo.imuAvailable == true) {
             if (std::abs(cloudInfo.imuPitchInit) < 1.4) {
-                double imuWeight = imuRPYWeight;
+                double imuWeight = Config::imuRPYWeight;
                 tf::Quaternion imuQuaternion;
                 tf::Quaternion transformQuaternion;
                 double rollMid, pitchMid, yawMid;
@@ -1804,11 +1808,11 @@ public:
         }
 
         transformTobeMapped[0] =
-                constraintTransformation(transformTobeMapped[0], rotation_tollerance);
+                constraintTransformation(transformTobeMapped[0], Config::rotation_tollerance);
         transformTobeMapped[1] =
-                constraintTransformation(transformTobeMapped[1], rotation_tollerance);
+                constraintTransformation(transformTobeMapped[1], Config::rotation_tollerance);
         transformTobeMapped[5] =
-                constraintTransformation(transformTobeMapped[5], z_tollerance);
+                constraintTransformation(transformTobeMapped[5], Config::z_tollerance);
 
         incrementalOdometryAffineBack = trans2Affine3f(transformTobeMapped);
     }
@@ -1823,7 +1827,8 @@ public:
     bool saveFrame() {
         if (cloudKeyPoses3D->points.empty()) return true;
 
-        if (sensor == SensorType::LIVOX) {
+        // if (sensor == SensorType::LIVOX) {
+        if (Config::sensor == LidarType::LIVOX) {
             if (timeLaserInfoCur - cloudKeyPoses6D->back().time > 1.0) return true;
         }
 
@@ -1835,10 +1840,10 @@ public:
         float x, y, z, roll, pitch, yaw;
         pcl::getTranslationAndEulerAngles(transBetween, x, y, z, roll, pitch, yaw);
 
-        if (abs(roll) < surroundingkeyframeAddingAngleThreshold &&
-            abs(pitch) < surroundingkeyframeAddingAngleThreshold &&
-            abs(yaw) < surroundingkeyframeAddingAngleThreshold &&
-            sqrt(x * x + y * y + z * z) < surroundingkeyframeAddingDistThreshold)
+        if (abs(roll) < Config::surroundingkeyframeAddingAngleThreshold &&
+            abs(pitch) < Config::surroundingkeyframeAddingAngleThreshold &&
+            abs(yaw) < Config::surroundingkeyframeAddingAngleThreshold &&
+            sqrt(x * x + y * y + z * z) < Config::surroundingkeyframeAddingDistThreshold)
             return false;
 
         // std::cout << "distance gap: " << sqrt(x * x + y * y) << std::endl;
@@ -1894,14 +1899,14 @@ public:
         // last gps position
         static PointType lastGPSPoint;
         nav_msgs::Odometry thisGPS;
-        if (syncGPS(gpsQueue, thisGPS, timeLaserInfoCur, 1.0 / gpsFrequence)) {
+        if (syncGPS(gpsQueue, thisGPS, timeLaserInfoCur, 1.0 / Config::gpsFrequence)) {
             // GPS too noisy, skip
             float noise_x = thisGPS.pose.covariance[0];
             float noise_y = thisGPS.pose.covariance[7];
             float noise_z = thisGPS.pose.covariance[14];
 
             // make sure the gps data is stable encough
-            if (abs(noise_x) > gpsCovThreshold || abs(noise_y) > gpsCovThreshold)
+            if (abs(noise_x) > Config::gpsCovThreshold || abs(noise_y) > Config::gpsCovThreshold)
                 return;
 
 //            float gps_x = thisGPS.pose.pose.position.x;
@@ -1911,7 +1916,7 @@ public:
             Eigen::Vector3d LLA(thisGPS.pose.covariance[1], thisGPS.pose.covariance[2], thisGPS.pose.covariance[3]);
             geo_converter.Forward(LLA[0], LLA[1], LLA[2], gps_x, gps_y, gps_z);
 
-            if (!useGpsElevation) {
+            if (!Config::useGpsElevation) {
                 gps_z = transformTobeMapped[5];
                 noise_z = 0.01;
             }
@@ -1923,12 +1928,12 @@ public:
             curGPSPoint.x = gps_x;
             curGPSPoint.y = gps_y;
             curGPSPoint.z = gps_z;
-            if (pointDistance(curGPSPoint, lastGPSPoint) < GPSDISTANCE)
+            if (pointDistance(curGPSPoint, lastGPSPoint) < Config::gpsDistance)
                 return;
             else
                 lastGPSPoint = curGPSPoint;
 
-            if (debugGps) {
+            if (Config::debugGps) {
                 ROS_INFO("curr gps pose: %f, %f , %f", gps_x, gps_y, gps_z);
                 ROS_INFO("curr gps cov: %f, %f , %f", thisGPS.pose.covariance[0],
                          thisGPS.pose.covariance[7], thisGPS.pose.covariance[14]);
@@ -2019,7 +2024,7 @@ public:
         addOdomFactor();
 
         // gps factor
-        if (useGPS) addGPSFactor();
+        if (Config::useGPS) addGPSFactor();
 
         // loop factor
         addLoopFactor();
@@ -2188,7 +2193,7 @@ public:
         /*----------------------------------------------------------*/
 
         pose_stamped.header.stamp = ros::Time().fromSec(pose_in.time);
-        pose_stamped.header.frame_id = odometryFrame;
+        pose_stamped.header.frame_id = Config::odometryFrame;
         pose_stamped.pose.position.x = pose_in.x;
         pose_stamped.pose.position.y = pose_in.y;
         pose_stamped.pose.position.z = pose_in.z;
@@ -2206,7 +2211,7 @@ public:
                              nav_msgs::Odometry &laserOdometryROS,
                              float transform[6]) {
         laserOdometryROS.header.stamp = ros::Time().fromSec(timestamp);
-        laserOdometryROS.header.frame_id = odometryFrame;
+        laserOdometryROS.header.frame_id = Config::odometryFrame;
         laserOdometryROS.child_frame_id = "odom_mapping";
         laserOdometryROS.pose.pose.position.x = transform[3];
         laserOdometryROS.pose.pose.position.y = transform[4];
@@ -2242,11 +2247,11 @@ public:
                 tf::Vector3(transformTobeMapped[3], transformTobeMapped[4],
                             transformTobeMapped[5]));
         tf::StampedTransform trans_odom_to_lidar = tf::StampedTransform(
-                t_odom_to_lidar, timeLaserInfoStamp, odometryFrame, "lidar_link");
+                t_odom_to_lidar, timeLaserInfoStamp, Config::odometryFrame, "lidar_link");
         br.sendTransform(trans_odom_to_lidar);
 
-        if (useGPS) {
-            if (gpsTransfromInit && updateOrigin) {
+        if (Config::useGPS) {
+            if (gpsTransfromInit && Config::updateOrigin) {
                 /** we first update the initial GPS origin points since it may not fix here */
                 Eigen::Vector3d origin_point(cloudKeyPoses6D->at(0).x,
                                              cloudKeyPoses6D->at(0).y,
@@ -2260,7 +2265,7 @@ public:
                 std::cout << " origin points: " << originLLA.transpose() << std::endl;
                 std::cout << " update origin points: " << update_origin_lla.transpose() << std::endl;
                 originLLA = update_origin_lla;
-                updateOrigin = false;
+                Config::updateOrigin = false;
                 ROS_WARN("UPDATE MAP ORIGIN SUCCESS!");
             }
 
@@ -2278,7 +2283,7 @@ public:
             //                          << "update LLA: " << curr_lla.transpose() << std::endl;
             sensor_msgs::NavSatFix fix_msgs;
             fix_msgs.header.stamp = ros::Time().fromSec(timeLaserInfoCur);
-            fix_msgs.header.frame_id = odometryFrame;
+            fix_msgs.header.frame_id = Config::odometryFrame;
             fix_msgs.latitude = curr_lla[0];
             fix_msgs.longitude = curr_lla[1];
             fix_msgs.altitude = curr_lla[2];
@@ -2323,7 +2328,7 @@ public:
                 }
             }
             laserOdomIncremental.header.stamp = timeLaserInfoStamp;
-            laserOdomIncremental.header.frame_id = odometryFrame;
+            laserOdomIncremental.header.frame_id = Config::odometryFrame;
             laserOdomIncremental.child_frame_id = "odom_mapping";
             laserOdomIncremental.pose.pose.position.x = x;
             laserOdomIncremental.pose.pose.position.y = y;
@@ -2342,10 +2347,10 @@ public:
         if (cloudKeyPoses3D->points.empty()) return;
         // publish key poses
         publishCloud(pubKeyPoses, cloudKeyPoses3D, timeLaserInfoStamp,
-                     odometryFrame);
+                     Config::odometryFrame);
         // Publish surrounding key frames
         publishCloud(pubRecentKeyFrames, laserCloudSurfFromMapDS,
-                     timeLaserInfoStamp, odometryFrame);
+                     timeLaserInfoStamp, Config::odometryFrame);
         // publish registered key frame
         if (pubRecentKeyFrame.getNumSubscribers() != 0) {
             pcl::PointCloud<PointType>::Ptr cloudOut(
@@ -2354,7 +2359,7 @@ public:
             *cloudOut += *transformPointCloud(laserCloudCornerLastDS, &thisPose6D);
             *cloudOut += *transformPointCloud(laserCloudSurfLastDS, &thisPose6D);
             publishCloud(pubRecentKeyFrame, cloudOut, timeLaserInfoStamp,
-                         odometryFrame);
+                         Config::odometryFrame);
         }
         // publish registered high-res raw cloud
         if (pubCloudRegisteredRaw.getNumSubscribers() != 0) {
@@ -2364,19 +2369,19 @@ public:
             PointTypePose thisPose6D = trans2PointTypePose(transformTobeMapped);
             *cloudOut = *transformPointCloud(cloudOut, &thisPose6D);
             publishCloud(pubCloudRegisteredRaw, cloudOut, timeLaserInfoStamp,
-                         odometryFrame);
+                         Config::odometryFrame);
         }
         if (pubCloudRaw.getNumSubscribers() != 0) {
             pcl::PointCloud<PointType>::Ptr cloudOut(
                     new pcl::PointCloud<PointType>());
             pcl::fromROSMsg(cloudInfo.cloud_deskewed, *cloudOut);
-            publishCloud(pubCloudRaw, cloudOut, timeLaserInfoStamp, lidarFrame);
+            publishCloud(pubCloudRaw, cloudOut, timeLaserInfoStamp, Config::lidarFrame);
         }
 
         // publish path
         if (pubPath.getNumSubscribers() != 0) {
             globalPath.header.stamp = timeLaserInfoStamp;
-            globalPath.header.frame_id = odometryFrame;
+            globalPath.header.frame_id = Config::odometryFrame;
             pubPath.publish(globalPath);
         }
         // publish SLAM infomation for 3rd-party usage
@@ -2390,16 +2395,16 @@ public:
                 *cloudOut += *laserCloudCornerLastDS;
                 *cloudOut += *laserCloudSurfLastDS;
                 slamInfo.key_frame_cloud = publishCloud(ros::Publisher(), cloudOut,
-                                                        timeLaserInfoStamp, lidarFrame);
+                                                        timeLaserInfoStamp, Config::lidarFrame);
                 slamInfo.key_frame_poses =
                         publishCloud(ros::Publisher(), cloudKeyPoses6D, timeLaserInfoStamp,
-                                     odometryFrame);
+                                     Config::odometryFrame);
                 pcl::PointCloud<PointType>::Ptr localMapOut(
                         new pcl::PointCloud<PointType>());
                 *localMapOut += *laserCloudCornerFromMapDS;
                 *localMapOut += *laserCloudSurfFromMapDS;
                 slamInfo.key_frame_map = publishCloud(
-                        ros::Publisher(), localMapOut, timeLaserInfoStamp, odometryFrame);
+                        ros::Publisher(), localMapOut, timeLaserInfoStamp, Config::odometryFrame);
                 pubSLAMInfo.publish(slamInfo);
                 lastSLAMInfoPubSize = cloudKeyPoses6D->size();
             }

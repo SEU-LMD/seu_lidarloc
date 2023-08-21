@@ -22,8 +22,9 @@ using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz)
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
 
-class TransformFusion : public ParamServer {
+class TransformFusion  {
 public:
+    ros::NodeHandle nh;
     std::mutex mtx;
 
     ros::Subscriber subImuOdometry;
@@ -132,7 +133,7 @@ public:
                 tCur, odomMsg->header.stamp, Config::odometryFrame, Config::baselinkFrame);
         tfOdom2BaseLink.sendTransform(odom_2_baselink);
 
-        std::cout<<"********************************"<<useImuHeadingInitialization<<std::endl;
+        // std::cout<<"********************************"<<useImuHeadingInitialization<<std::endl;
         std::cout<<"********************************"<<Config::useImuHeadingInitialization<<std::endl;
 
         // publish IMU path
@@ -158,8 +159,10 @@ public:
     }
 };
 
-class IMUPreintegration : public ParamServer {
+class IMUPreintegration  {
 public:
+    ros::NodeHandle nh;
+
     std::mutex mtx;
 
     ros::Subscriber subImu;
@@ -203,10 +206,10 @@ public:
 
     gtsam::Pose3 imu2Lidar =
             gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0),
-                         gtsam::Point3(-extTrans.x(), -extTrans.y(), -extTrans.z()));
+                         gtsam::Point3(-Config::extrinsicTrans.x(), -Config::extrinsicTrans.y(), -Config::extrinsicTrans.z()));
     gtsam::Pose3 lidar2Imu =
             gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0),
-                         gtsam::Point3(extTrans.x(), extTrans.y(), extTrans.z()));
+                         gtsam::Point3(Config::extrinsicTrans.x(), Config::extrinsicTrans.y(), Config::extrinsicTrans.z()));
 
     IMUPreintegration() {
         subImu = nh.subscribe<sensor_msgs::Imu>(

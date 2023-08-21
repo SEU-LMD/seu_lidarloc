@@ -1,4 +1,5 @@
-
+#include <deque>
+#include <mutex>
 
 #include "ros/ros.h"
 #include <nav_msgs/Odometry.h>
@@ -9,18 +10,18 @@
 #include "GeoGraphicLibInclude/Geocentric.hpp"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "GeoGraphicLibInclude/Geoid.hpp"
-#include <deque>
-#include <mutex>
+
 
 #include "utility.h"
 #include "config_helper.h"
 
 
-class GNSSOdom : public ParamServer {
+class GNSSOdom  {
 public:
+
     GNSSOdom(ros::NodeHandle &_nh) {
         nh = _nh;
-        gpsSub = nh.subscribe(gpsTopic, 100, &GNSSOdom::GNSSCB, this,
+        gpsSub = nh.subscribe(Config::gpsTopic, 100, &GNSSOdom::GNSSCB, this,
                               ros::TransportHints().tcpNoDelay());
         left_odom_pub = nh.advertise<nav_msgs::Odometry>("/gps_odom", 100, false);
         init_origin_pub = nh.advertise<nav_msgs::Odometry>("/init_odom", 10000, false);
@@ -45,7 +46,7 @@ private:
             /** publish initial pose from GNSS ENU Frame*/
             nav_msgs::Odometry init_msg;
             init_msg.header.stamp = msg->header.stamp;
-            init_msg.header.frame_id = odometryFrame;
+            init_msg.header.frame_id = Config::odometryFrame;
             init_msg.child_frame_id = "gps";
             init_msg.pose.pose.position.x = lla[0];
             init_msg.pose.pose.position.y = lla[1];
@@ -85,7 +86,7 @@ private:
         // pub gps odometry
         nav_msgs::Odometry odom_msg;
         odom_msg.header.stamp = msg->header.stamp;
-        odom_msg.header.frame_id = odometryFrame;
+        odom_msg.header.frame_id = Config::odometryFrame;
         odom_msg.child_frame_id = "gps";
 
         // ----------------- 1. use utm -----------------------
@@ -112,7 +113,7 @@ private:
 
         /** just for gnss visualization */
         // publish path
-        left_path.header.frame_id = odometryFrame;
+        left_path.header.frame_id = Config::odometryFrame;
         left_path.header.stamp = msg->header.stamp;
         geometry_msgs::PoseStamped pose;
         pose.header = left_path.header;
@@ -144,7 +145,7 @@ private:
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "lio_sam_6axis");
-      Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+    Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
 
     ros::NodeHandle nh;
     GNSSOdom gps(nh);

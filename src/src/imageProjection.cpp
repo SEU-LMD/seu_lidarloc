@@ -90,7 +90,7 @@ using PointXYZIRT = VelodynePointXYZIRT;
 
 const int queueLength = 2000;
 
-class ImageProjection : public ParamServer {
+class ImageProjection {
 private:
 
     std::mutex imuLock;
@@ -143,6 +143,7 @@ private:
     vector<int> columnIdnCountVec;
 
 public:
+    ros::NodeHandle nh;
     ImageProjection() :
             deskewFlag(0) {
         subImu = nh.subscribe<sensor_msgs::Imu>(Config::imuTopic,
@@ -310,7 +311,7 @@ public:
                 dst.time = src.timestamp - time_begin; // s
             }
         } else {
-            ROS_ERROR_STREAM("Unknown sensor type: " << int(sensor));
+            ROS_ERROR_STREAM("Unknown sensor type: " << Config::sensor);
             ros::shutdown();
         }
 
@@ -683,7 +684,7 @@ public:
 
     void publishClouds() {
         cloudInfo.header = cloudHeader;
-        cloudInfo.cloud_deskewed = publishCloud(pubExtractedCloud, extractedCloud, cloudHeader.stamp, lidarFrame);
+        cloudInfo.cloud_deskewed = publishCloud(pubExtractedCloud, extractedCloud, cloudHeader.stamp, Config::lidarFrame);
         pubLaserCloudInfo.publish(cloudInfo);
 
         publishCloud(pubFullCloud, fullCloud, cloudHeader.stamp, Config::lidarFrame);
