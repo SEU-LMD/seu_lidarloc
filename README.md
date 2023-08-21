@@ -1,16 +1,20 @@
 # SEU_LIDAR_LOC
 
-For the old king
+
 
 ## 0.Develop Dairy
 
 8-20 
 
-compile bug : eigen3.4.0 comflict with gtsam, move eigen3.4.0 into the gtsam
+> compile bug : eigen3.4.0 comflict with gtsam, move eigen3.4.0 into the gtsam
+>
+> compile bug: geolib miss the geolib.hpp, download it from github
+>
+> compile bug: opencv miss file---
+>
+> compile warning: pcl version may cause bug.
 
-compile bug: geolib miss the geolib.hpp, download it from github
 
-compile warning: pcl version may cause bug.
 
 
 ## 1. envLib compile and requirements
@@ -26,7 +30,27 @@ sh compile_opencv.sh
 sh compile_yaml_cpp.sh
 ```
 
-Then, enter into the `src` folder to compile the code: ./build.sh
+> In addition, if opencv **miss ippicv** while compiling. copy the ippicv into the opencv.
+>
+> in the `seu_lidarloc/env/opencv-3.4.16/3rdparty/ippicv/ippicv.cmake` find :
+>
+> `"https://raw.githubusercontent.com/opencv/opencv_3rdparty/${IPPICV_COMMIT}/ippicv/"`
+>
+> change it to your **ippicv PATH**
+>
+> for example: `/home/sy/SEU_WS/seu_lidarloc/env/ippicv_lnx`
+
+
+
+Then, enter into the `src` folder to compile the code.
+
+```shell
+cd src
+mkdir build
+cd build
+cmake ..
+make -j10
+```
 
 
 ## 2. How to run
