@@ -1,5 +1,7 @@
 #include "utility.h"
 #include "lio_sam_6axis/cloud_info.h"
+#include "config_helper.h"
+
 
 struct VelodynePointXYZIRT {
     PCL_ADD_POINT4D
@@ -143,17 +145,17 @@ private:
 public:
     ImageProjection() :
             deskewFlag(0) {
-        subImu = nh.subscribe<sensor_msgs::Imu>(imuTopic,
+        subImu = nh.subscribe<sensor_msgs::Imu>(Config::imuTopic,
                                                 2000,
                                                 &ImageProjection::imuHandler,
                                                 this,
                                                 ros::TransportHints().tcpNoDelay());
-        subOdom = nh.subscribe<nav_msgs::Odometry>(odomTopic + "_incremental",
+        subOdom = nh.subscribe<nav_msgs::Odometry>(Config::odomTopic + "_incremental",
                                                    2000,
                                                    &ImageProjection::odometryHandler,
                                                    this,
                                                    ros::TransportHints().tcpNoDelay());
-        subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>(pointCloudTopic,
+        subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>(Config::pointCloudTopic,
                                                                5,
                                                                &ImageProjection::cloudHandler,
                                                                this,
@@ -176,13 +178,13 @@ public:
         fullCloud.reset(new pcl::PointCloud<PointType>());
         extractedCloud.reset(new pcl::PointCloud<PointType>());
 
-        fullCloud->points.resize(N_SCAN * Horizon_SCAN);
+        fullCloud->points.resize(Config::N_SCAN * Config::Horizon_SCAN);
 
-        cloudInfo.startRingIndex.assign(N_SCAN, 0);
-        cloudInfo.endRingIndex.assign(N_SCAN, 0);
+        cloudInfo.startRingIndex.assign(Config::N_SCAN, 0);
+        cloudInfo.endRingIndex.assign(Config::N_SCAN, 0);
 
-        cloudInfo.pointColInd.assign(N_SCAN * Horizon_SCAN, 0);
-        cloudInfo.pointRange.assign(N_SCAN * Horizon_SCAN, 0);
+        cloudInfo.pointColInd.assign(Config::N_SCAN * Config::Horizon_SCAN, 0);
+        cloudInfo.pointRange.assign(Config::N_SCAN * Config::Horizon_SCAN, 0);
 
         resetParameters();
     }
@@ -191,7 +193,7 @@ public:
         laserCloudIn->clear();
         extractedCloud->clear();
         // reset range matrix for range image projection
-        rangeMat = cv::Mat(N_SCAN, Horizon_SCAN, CV_32F, cv::Scalar::all(FLT_MAX));
+        rangeMat = cv::Mat(Config::N_SCAN, Config::Horizon_SCAN, CV_32F, cv::Scalar::all(FLT_MAX));
 
         imuPointerCur = 0;
         firstPointFlag = true;
@@ -204,7 +206,7 @@ public:
             imuRotZ[i] = 0;
         }
 
-        columnIdnCountVec.assign(N_SCAN, 0);
+        columnIdnCountVec.assign(Config::N_SCAN, 0);
     }
 
     ~ImageProjection() {}
@@ -215,7 +217,7 @@ public:
         std::lock_guard<std::mutex> lock1(imuLock);
         imuQueue.push_back(thisImu);
 
-        if (debugImu) {
+        if (Config::debugImu) {
             // debug IMU data
             cout << std::setprecision(6);
             cout << "IMU acc: " << endl;
@@ -265,9 +267,11 @@ public:
         // convert cloud
         currentCloudMsg = std::move(cloudQueue.front());
         cloudQueue.pop_front();
-        if (sensor == SensorType::VELODYNE || sensor == SensorType::LIVOX) {
+        // if (sensor == SensorType::VELODYNE || sensor == SensorType::LIVOX) {
+        if (Config::sensor == LidarType::VELODYNE || Config::sensor == LidarType::LIVOX) {    
             pcl::moveFromROSMsg(currentCloudMsg, *laserCloudIn);
-        } else if (sensor == SensorType::OUSTER) {
+        // } else if (sensor == SensorType::OUSTER) {
+        } else if (Config::sensor == LidarType::OUSTER) {   
             // Convert to Velodyne format
             pcl::moveFromROSMsg(currentCloudMsg, *tmpOusterCloudIn);
             laserCloudIn->points.resize(tmpOusterCloudIn->size());
@@ -285,7 +289,8 @@ public:
                 dst.time = src.time;
 //                dst.time = (i % 2048) / 20480.0;
             }
-        } else if (sensor == SensorType::HESAI) {
+        // } else if (sensor == SensorType::HESAI) {
+        } else if (Config::sensor == LidarType::HESAI) {
             // Convert to Velodyne format
             pcl::moveFromROSMsg(currentCloudMsg, *tmpPandarCloudIn);
             laserCloudIn->points.resize(tmpPandarCloudIn->size());
@@ -315,7 +320,7 @@ public:
         // timeScanEnd = timeScanCur + laserCloudIn->points.back().time;
         timeScanEnd = timeScanCur + laserCloudIn->points.back().time;
 
-        if (debugLidarTimestamp) {
+        if (Config::debugLidarTimestamp) {
             std::cout << std::fixed << std::setprecision(12) << "end time from pcd and size: "
                       << laserCloudIn->points.back().time
                       << ", " << laserCloudIn->points.size() << std::endl;
@@ -615,29 +620,31 @@ public:
             thisPoint.intensity = laserCloudIn->points[i].intensity;
 
             float range = pointDistance(thisPoint);
-            if (range < lidarMinRange || range > lidarMaxRange)
+            if (range < Config::lidarMinRange || range > Config::lidarMaxRange)
                 continue;
 
             int rowIdn = laserCloudIn->points[i].ring;
-            if (rowIdn < 0 || rowIdn >= N_SCAN)
+            if (rowIdn < 0 || rowIdn >= Config::N_SCAN)
                 continue;
 
-            if (rowIdn % downsampleRate != 0)
+            if (rowIdn % Config::downsampleRate != 0)
                 continue;
 
             int columnIdn = -1;
-            if (sensor == SensorType::VELODYNE || sensor == SensorType::OUSTER || sensor == SensorType::HESAI) {
+            // if (sensor == SensorType::VELODYNE || sensor == SensorType::OUSTER || sensor == SensorType::HESAI) {
+            if (Config::sensor == LidarType::VELODYNE || Config::sensor == LidarType::OUSTER || Config::sensor == LidarType::HESAI) {    
                 float horizonAngle = atan2(thisPoint.x, thisPoint.y) * 180 / M_PI;
-                static float ang_res_x = 360.0 / float(Horizon_SCAN);
-                columnIdn = -round((horizonAngle - 90.0) / ang_res_x) + Horizon_SCAN / 2;
-                if (columnIdn >= Horizon_SCAN)
-                    columnIdn -= Horizon_SCAN;
-            } else if (sensor == SensorType::LIVOX) {
+                static float ang_res_x = 360.0 / float(Config::Horizon_SCAN);
+                columnIdn = -round((horizonAngle - 90.0) / ang_res_x) + Config::Horizon_SCAN / 2;
+                if (columnIdn >= Config::Horizon_SCAN)
+                    columnIdn -= Config::Horizon_SCAN;
+            // } else if (sensor == SensorType::LIVOX) {
+            } else if (Config::sensor == LidarType::LIVOX) {
                 columnIdn = columnIdnCountVec[rowIdn];
                 columnIdnCountVec[rowIdn] += 1;
             }
 
-            if (columnIdn < 0 || columnIdn >= Horizon_SCAN)
+            if (columnIdn < 0 || columnIdn >= Config::Horizon_SCAN)
                 continue;
 
             if (rangeMat.at<float>(rowIdn, columnIdn) != FLT_MAX)
@@ -647,7 +654,7 @@ public:
 
             rangeMat.at<float>(rowIdn, columnIdn) = range;
 
-            int index = columnIdn + rowIdn * Horizon_SCAN;
+            int index = columnIdn + rowIdn * Config::Horizon_SCAN;
             fullCloud->points[index] = thisPoint;
         }
     }
@@ -655,17 +662,17 @@ public:
     void cloudExtraction() {
         int count = 0;
         // extract segmented cloud for lidar odometry
-        for (int i = 0; i < N_SCAN; ++i) {
+        for (int i = 0; i < Config::N_SCAN; ++i) {
             cloudInfo.startRingIndex[i] = count - 1 + 5;
 
-            for (int j = 0; j < Horizon_SCAN; ++j) {
+            for (int j = 0; j < Config::Horizon_SCAN; ++j) {
                 if (rangeMat.at<float>(i, j) != FLT_MAX) {
                     // mark the points' column index for marking occlusion later
                     cloudInfo.pointColInd[count] = j;
                     // save range info
                     cloudInfo.pointRange[count] = rangeMat.at<float>(i, j);
                     // save extracted cloud
-                    extractedCloud->push_back(fullCloud->points[j + i * Horizon_SCAN]);
+                    extractedCloud->push_back(fullCloud->points[j + i * Config::Horizon_SCAN]);
                     // size of extracted cloud
                     ++count;
                 }
@@ -679,12 +686,16 @@ public:
         cloudInfo.cloud_deskewed = publishCloud(pubExtractedCloud, extractedCloud, cloudHeader.stamp, lidarFrame);
         pubLaserCloudInfo.publish(cloudInfo);
 
-        publishCloud(pubFullCloud, fullCloud, cloudHeader.stamp, lidarFrame);
+        publishCloud(pubFullCloud, fullCloud, cloudHeader.stamp, Config::lidarFrame);
     }
 };
 
 int main(int argc, char **argv) {
+    Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+    //std::cout<<"------------------------------------------"<<lidarFrame<<std::endl;
+
     ros::init(argc, argv, "lio_sam_6axis");
+    
 
     ImageProjection IP;
 

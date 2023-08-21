@@ -22,6 +22,7 @@
 #include "lio_sam_6axis/cloud_info.h"
 #include "lio_sam_6axis/save_map.h"
 #include "utility.h"
+#include "config_helper.h"
 
 using namespace gtsam;
 
@@ -2408,6 +2409,9 @@ public:
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "lio_sam_6axis");
+
+      Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+
     mapOptimization MO;
     ROS_INFO("\033[1;32m----> Map Optimization Started.\033[0m");
 

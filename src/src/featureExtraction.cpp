@@ -1,5 +1,6 @@
 #include "lio_sam_6axis/cloud_info.h"
 #include "utility.h"
+#include "config_helper.h"
 
 struct smoothness_t {
   float value;
@@ -51,18 +52,18 @@ class FeatureExtraction : public ParamServer {
   }
 
   void initializationValue() {
-    cloudSmoothness.resize(N_SCAN * Horizon_SCAN);
+    cloudSmoothness.resize(Config::N_SCAN * Config::Horizon_SCAN);
 
-    downSizeFilter.setLeafSize(odometrySurfLeafSize, odometrySurfLeafSize,
-                               odometrySurfLeafSize);
+    downSizeFilter.setLeafSize(Config::odometrySurfLeafSize, Config::odometrySurfLeafSize,
+                               Config::odometrySurfLeafSize);
 
     extractedCloud.reset(new pcl::PointCloud<PointType>());
     cornerCloud.reset(new pcl::PointCloud<PointType>());
     surfaceCloud.reset(new pcl::PointCloud<PointType>());
 
-    cloudCurvature = new float[N_SCAN * Horizon_SCAN];
-    cloudNeighborPicked = new int[N_SCAN * Horizon_SCAN];
-    cloudLabel = new int[N_SCAN * Horizon_SCAN];
+    cloudCurvature = new float[Config::N_SCAN * Config::Horizon_SCAN];
+    cloudNeighborPicked = new int[Config::N_SCAN * Config::Horizon_SCAN];
+    cloudLabel = new int[Config::N_SCAN * Config::Horizon_SCAN];
   }
 
   void laserCloudInfoHandler(const lio_sam_6axis::cloud_infoConstPtr &msgIn) {
@@ -152,7 +153,7 @@ class FeatureExtraction : public ParamServer {
     pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS(
         new pcl::PointCloud<PointType>());
 
-    for (int i = 0; i < N_SCAN; i++) {
+    for (int i = 0; i < Config::N_SCAN; i++) {
       surfaceCloudScan->clear();
 
       for (int j = 0; j < 6; j++) {
@@ -173,7 +174,7 @@ class FeatureExtraction : public ParamServer {
         for (int k = ep; k >= sp; k--) {
           int ind = cloudSmoothness[k].ind;
           if (cloudNeighborPicked[ind] == 0 &&
-              cloudCurvature[ind] > edgeThreshold) {
+              cloudCurvature[ind] > Config::edgeThreshold) {
             largestPickedNum++;
             if (largestPickedNum <= 20) {
               cloudLabel[ind] = 1;
@@ -203,7 +204,7 @@ class FeatureExtraction : public ParamServer {
         for (int k = sp; k <= ep; k++) {
           int ind = cloudSmoothness[k].ind;
           if (cloudNeighborPicked[ind] == 0 &&
-              cloudCurvature[ind] < surfThreshold) {
+              cloudCurvature[ind] < Config::surfThreshold) {
             cloudLabel[ind] = -1;
             cloudNeighborPicked[ind] = 1;
 
@@ -253,9 +254,9 @@ class FeatureExtraction : public ParamServer {
     freeCloudInfoMemory();
     // save newly extracted features
     cloudInfo.cloud_corner = publishCloud(pubCornerPoints, cornerCloud,
-                                          cloudHeader.stamp, lidarFrame);
+                                          cloudHeader.stamp, Config::lidarFrame);
     cloudInfo.cloud_surface = publishCloud(pubSurfacePoints, surfaceCloud,
-                                           cloudHeader.stamp, lidarFrame);
+                                           cloudHeader.stamp, Config::lidarFrame);
     // publish to mapOptimization
     pubLaserCloudInfo.publish(cloudInfo);
   }
@@ -263,6 +264,9 @@ class FeatureExtraction : public ParamServer {
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, "lio_sam_6axis");
+
+  Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+
 
   FeatureExtraction FE;
 

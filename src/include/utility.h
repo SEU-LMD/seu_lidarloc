@@ -55,6 +55,7 @@
 #include <thread>
 #include <mutex>
 
+#include "config_helper.h"
 using namespace std;
 
 typedef pcl::PointXYZI PointType;
@@ -188,7 +189,11 @@ public:
         nh.param<std::string>("/robot_id", robot_id, "roboat");
 
         nh.param<std::string>("lio_sam_6axis/pointCloudTopic", pointCloudTopic, "points_raw");
+        // pointCloudTopic = CONFIG::pointCloudTopic;
+
         nh.param<std::string>("lio_sam_6axis/imuTopic", imuTopic, "imu_correct");
+        // imuTopic = Config::imuTopic;
+
         nh.param<std::string>("lio_sam_6axis/odomTopic", odomTopic, "odometry/imu");
         nh.param<std::string>("lio_sam_6axis/gpsTopic", gpsTopic, "fix");
 

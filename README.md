@@ -26,15 +26,7 @@ sh compile_opencv.sh
 sh compile_yaml_cpp.sh
 ```
 
-Then, enter into the `src` folder to compile the code.
-
-```shell
-cd src
-mkdir build
-cd build
-cmake ..
-make -j10
-```
+Then, enter into the `src` folder to compile the code: ./build.sh
 
 
 ## 2. How to run
