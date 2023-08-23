@@ -15,8 +15,11 @@
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 
+#include "./utility.h"
+
 struct CloudInfo{
-    pcl::PointCloud<pcl::PointXYZ> pcl_cloud;
+    pcl::PointCloud<PointType> corner_cloud;
+    pcl::PointCloud<PointType> surf_cloud;
     int frame_id;
 };
 
@@ -27,7 +30,8 @@ public:
     std::deque<CloudInfo> pts_deque;
 
     void SaveToDisk(const CloudInfo& cloud_info){
-        pcl::io::savePCDFileASCII(sav_root_path+std::to_string(cloud_info.frame_id)+".pcd", cloud_info.pcl_cloud);
+        pcl::io::savePCDFileASCII(sav_root_path+std::to_string(cloud_info.frame_id)+"_corner.pcd", cloud_info.corner_cloud);
+        pcl::io::savePCDFileASCII(sav_root_path+std::to_string(cloud_info.frame_id)+"_surf.pcd", cloud_info.surf_cloud);
     }
 
     void do_work(){
@@ -35,6 +39,7 @@ public:
             if(pts_deque.size()!=0){
                 data_mutex.lock();
                 auto cloud_info = pts_deque.front();
+                pts_deque.pop_front();
                 data_mutex.unlock();
                 SaveToDisk(cloud_info);
             }

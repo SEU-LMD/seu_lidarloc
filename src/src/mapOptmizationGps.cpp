@@ -58,8 +58,10 @@ typedef PointXYZIRPYT PointTypePose;
 
 class mapOptimization {
 public:
+    int frame_id = -1;
     ros::NodeHandle nh;
     TicToc timer;
+    SaveMap map_saver;
     NonlinearFactorGraph gtSAMgraph;
     Values initialEstimate;
     Values optimizedEstimate;
@@ -213,6 +215,12 @@ public:
     //  string scene_name;
 
     mapOptimization() {
+        std::cout<<"init mapOptimization function"<<std::endl;
+        map_saver.Init(Config::save_map_path);
+        std::thread saveMapThread(&SaveMap::do_work, &map_saver);//comment fyy
+        std::cout<<"after start map thread"<<std::endl;
+
+
         ISAM2Params parameters;
         parameters.relinearizeThreshold = 0.1;
         parameters.relinearizeSkip = 1;
@@ -292,7 +300,7 @@ public:
         dataSaverPtr->setConfigDir(configDirectory);
 
         allocateMemory();
-        std::cout << Config::savePCDDirectory << std::endl;
+        std::cout << "******************"<<Config::savePCDDirectory << std::endl;
         std::cout << sequence << std::endl;
     }
 
@@ -511,6 +519,7 @@ public:
             return false;
     }
 
+    //保存地图 服务函数
     bool saveMapService(std_srvs::Empty::Request &req,
                         std_srvs::Empty::Response &res) {
         if (cloudKeyPoses6D->size() < 1) {
@@ -590,13 +599,14 @@ public:
                                       lla_point[2]);
                 lla_vec.push_back(lla_point);
             }
-        }
+        }//end function  for (int i = 0; i < cloudKeyPoses6D->size(); ++i) {
+
 
         dataSaverPtr->saveTimes(keyframeTimes);
         dataSaverPtr->saveOptimizedVerticesTUM(isamCurrentEstimate);
         //dataSaverPtr->saveOptimizedVerticesKITTI(isamCurrentEstimate);
         dataSaverPtr->saveOdometryVerticesTUM(keyframeRawOdom);
-        // dataSaverPtr->saveResultBag(keyframePosesOdom, keyframeCloudDeskewed, transform_vec);
+        // dataSaverPtr->saveResultBag(keyframePosesOdom, keyframeCloudDeskewed, transform_vec);//保存原始点
         if (Config::useGPS) dataSaverPtr->saveKMLTrajectory(lla_vec);
 
         /** always remember do not call this service if your databag do not play over!!!!!!!!*/
@@ -2113,6 +2123,14 @@ public:
         // save key frame cloud
         cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
         surfCloudKeyFrames.push_back(thisSurfKeyFrame);
+
+        //add by fyy
+        std::cout<<"start push cloud to map saver"<<std::endl;
+        CloudInfo cloud_info;
+        cloud_info.frame_id = ++frame_id;
+        cloud_info.corner_cloud = *thisCornerKeyFrame;
+        cloud_info.surf_cloud = *thisSurfKeyFrame;
+        map_saver.addToSave(cloud_info);
         // if you want to save raw cloud
 //        laserCloudRawKeyFrames.push_back(thislaserCloudRawKeyFrame);
         keyframeCloudDeskewed.push_back(cloudInfo.cloud_deskewed);
@@ -2164,6 +2182,7 @@ public:
         }
     }
 
+    //just for show
     void updatePath(const PointTypePose &pose_in) {
         geometry_msgs::PoseStamped pose_stamped;
 
@@ -2427,9 +2446,6 @@ int main(int argc, char **argv) {
     std::thread visualizeMapThread(&mapOptimization::visualizeGlobalMapThread,
                                    &MO);
     //启动每帧点云数据线程
-    SaveMap map_saver;
-    map_saver.Init(Config::save_map_path);
-    std::thread saveMapThread(&SaveMap::do_work, &map_saver);//comment fyy
     ros::spin();
 
     loopthread.join();
