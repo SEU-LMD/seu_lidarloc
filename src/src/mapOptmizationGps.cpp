@@ -217,7 +217,7 @@ public:
     mapOptimization() {
         std::cout<<"init mapOptimization function"<<std::endl;
         map_saver.Init(Config::save_map_path);
-        std::thread saveMapThread(&SaveMap::do_work, &map_saver);//comment fyy
+//        std::thread saveMapThread(&SaveMap::do_work, &map_saver);//comment fyy
         std::cout<<"after start map thread"<<std::endl;
 
 
@@ -2133,6 +2133,8 @@ public:
         map_saver.addToSave(cloud_info);
         // if you want to save raw cloud
 //        laserCloudRawKeyFrames.push_back(thislaserCloudRawKeyFrame);
+
+
         keyframeCloudDeskewed.push_back(cloudInfo.cloud_deskewed);
         keyframeTimes.push_back(timeLaserInfoStamp.toSec());
 
@@ -2445,6 +2447,7 @@ int main(int argc, char **argv) {
     std::thread loopthread(&mapOptimization::loopClosureThread, &MO);
     std::thread visualizeMapThread(&mapOptimization::visualizeGlobalMapThread,
                                    &MO);
+    std::thread saveMapThread(&SaveMap::do_work, &(MO.map_saver));//comment fyy
     //启动每帧点云数据线程
     ros::spin();
 
