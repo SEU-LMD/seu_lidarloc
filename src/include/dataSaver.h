@@ -1,6 +1,3 @@
-//
-// Created by xchu on 2022/5/19.
-//
 
 #ifndef FAST_LIO_SRC_PGO_SRC_DATASAVER_H_
 #define FAST_LIO_SRC_PGO_SRC_DATASAVER_H_

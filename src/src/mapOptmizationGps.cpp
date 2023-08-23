@@ -1,17 +1,17 @@
-#include <gtsam/geometry/Pose3.h>
-#include <gtsam/geometry/Rot3.h>
-#include <gtsam/inference/Symbol.h>
-#include <gtsam/navigation/CombinedImuFactor.h>
-#include <gtsam/navigation/GPSFactor.h>
-#include <gtsam/navigation/ImuFactor.h>
-#include <gtsam/nonlinear/ISAM2.h>
-#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
-#include <gtsam/nonlinear/Marginals.h>
-#include <gtsam/nonlinear/NonlinearFactorGraph.h>
-#include <gtsam/nonlinear/Values.h>
-#include <gtsam/slam/BetweenFactor.h>
-#include <gtsam/slam/PriorFactor.h>
-#include <gtsam/slam/dataset.h>  // gtsam
+#include "gtsam/geometry/Pose3.h"
+#include "gtsam/geometry/Rot3.h"
+#include "gtsam/inference/Symbol.h"
+#include "gtsam/navigation/CombinedImuFactor.h"
+#include "gtsam/navigation/GPSFactor.h"
+#include "gtsam/navigation/ImuFactor.h"
+#include "gtsam/nonlinear/ISAM2.h"
+#include "gtsam/nonlinear/LevenbergMarquardtOptimizer.h"
+#include "gtsam/nonlinear/Marginals.h"
+#include "gtsam/nonlinear/NonlinearFactorGraph.h"
+#include "gtsam/nonlinear/Values.h"
+#include "gtsam/slam/BetweenFactor.h"
+#include "gtsam/slam/PriorFactor.h"
+#include "gtsam/slam/dataset.h"  // gtsam
 #include <std_srvs/Empty.h>
 #include "GeoGraphicLibInclude/Geocentric.hpp"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
@@ -58,6 +58,7 @@ typedef PointXYZIRPYT PointTypePose;
 class mapOptimization {
 public:
     ros::NodeHandle nh;
+    TicToc timer;
     NonlinearFactorGraph gtSAMgraph;
     Values initialEstimate;
     Values optimizedEstimate;
@@ -350,6 +351,7 @@ public:
 
         matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
     }
+
 
     void laserCloudInfoHandler(const lio_sam_6axis::cloud_infoConstPtr &msgIn) {
         // extract time stamp
@@ -2415,7 +2417,7 @@ public:
 int main(int argc, char **argv) {
     ros::init(argc, argv, "lio_sam_6axis");
 
-      Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+    Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
 
     mapOptimization MO;
     ROS_INFO("\033[1;32m----> Map Optimization Started.\033[0m");
