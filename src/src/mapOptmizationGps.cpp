@@ -23,6 +23,7 @@
 #include "lio_sam_6axis/save_map.h"
 #include "utility.h"
 #include "config_helper.h"
+#include "MapSaver.h"
 
 using namespace gtsam;
 
@@ -2425,7 +2426,10 @@ int main(int argc, char **argv) {
     std::thread loopthread(&mapOptimization::loopClosureThread, &MO);
     std::thread visualizeMapThread(&mapOptimization::visualizeGlobalMapThread,
                                    &MO);
-
+    //启动每帧点云数据线程
+    SaveMap map_saver;
+    map_saver.Init(Config::save_map_path);
+    std::thread saveMapThread(&SaveMap::do_work, &map_saver);//comment fyy
     ros::spin();
 
     loopthread.join();

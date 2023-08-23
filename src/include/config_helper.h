@@ -24,6 +24,7 @@ namespace LidarType{
 class Config{
     public:
     //Topics
+    static std::string save_map_path;
     static std::string pointCloudTopic;
     static std::string imuTopic;
     static  std::string  odomTopic;
@@ -125,6 +126,7 @@ class Config{
 };
 
 std::string Config::pointCloudTopic = "";
+std::string Config::save_map_path = "";
 std::string Config::imuTopic = "";
 std::string  Config::odomTopic = "";
 std::string  Config::gpsTopic = "";
@@ -231,6 +233,9 @@ void Load_YAML(std::string path)
         exit(1);
     }
     std::cout<<"success load"<<std::endl;
+
+
+    Config::save_map_path = config["save_map_path"].as<std::string>();
     Config::pointCloudTopic = config["pointCloudTopic"].as<std::string>();
     std::cout<<"1111111 load"<<std::endl;
     Config::imuTopic = config["imuTopic"].as<std::string>();
