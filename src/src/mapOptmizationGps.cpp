@@ -22,7 +22,6 @@
 #include "lio_sam_6axis/cloud_info.h"
 #include "lio_sam_6axis/save_map.h"
 #include "utility.h"
-#include "config_helper.h"
 #include "MapSaver.h"
 
 using namespace gtsam;
@@ -535,13 +534,21 @@ public:
             // we save optimized origin gps point
             geo_converter.Reverse(first_point[0], first_point[1], first_point[2], optimized_lla[0], optimized_lla[1],
                                   optimized_lla[2]);
+            //Eigen::Vector3d enu;
+            geo_converter.Forward(originLLA[0], originLLA[1], originLLA[2], optimized_lla[0], optimized_lla[1], optimized_lla[2]);
+            //geo_converter.Forward(originLLA[0], originLLA[1], originLLA[2], enu[0], enu[1], enu[2]);
 
             std::cout << std::setprecision(9)
                       << "origin LLA: " << originLLA.transpose() << std::endl;
-            std::cout << std::setprecision(9)
+            std::cout << std::setprecision(6)
                       << "optimized LLA: " << optimized_lla.transpose() << std::endl;
-            dataSaverPtr->saveOriginGPS(optimized_lla);
+            //dataSaverPtr->saveOriginGPS(optimized_lla);
+           // std::cout << std::setprecision(6)
+               //     << "optimized LLA: " << enu.transpose() << std::endl;
+           dataSaverPtr->saveOriginGPS(optimized_lla);
         }
+
+
         geo_converter.Reset(optimized_lla[0], optimized_lla[1], optimized_lla[2]);
 
         vector<pcl::PointCloud<PointType>::Ptr> keyframePc;
@@ -602,16 +609,16 @@ public:
         }//end function  for (int i = 0; i < cloudKeyPoses6D->size(); ++i) {
 
 
-        dataSaverPtr->saveTimes(keyframeTimes);
+        //dataSaverPtr->saveTimes(keyframeTimes);
         dataSaverPtr->saveOptimizedVerticesTUM(isamCurrentEstimate);
         //dataSaverPtr->saveOptimizedVerticesKITTI(isamCurrentEstimate);
         dataSaverPtr->saveOdometryVerticesTUM(keyframeRawOdom);
         // dataSaverPtr->saveResultBag(keyframePosesOdom, keyframeCloudDeskewed, transform_vec);//保存原始点
-        if (Config::useGPS) dataSaverPtr->saveKMLTrajectory(lla_vec);
+       // if (Config::useGPS) dataSaverPtr->saveKMLTrajectory(lla_vec);
 
         /** always remember do not call this service if your databag do not play over!!!!!!!!*/
         mtxGraph.lock();
-        dataSaverPtr->saveGraphGtsam(gtSAMgraph, isam, isamCurrentEstimate);
+       // dataSaverPtr->saveGraphGtsam(gtSAMgraph, isam, isamCurrentEstimate);
         mtxGraph.unlock();
 
         std::cout << "Times, isam, raw_odom, pose_odom, pose3D, pose6D: "
@@ -676,7 +683,7 @@ public:
 
 
         std::cout << "global map size: " << globalMapCloud->size() << " " << globalRawCloudDS->size() << std::endl;
-        dataSaverPtr->savePointCloudMap(*globalMapCloud);
+        //dataSaverPtr->savePointCloudMap(*globalMapCloud);
 //         dataSaverPtr->savePointCloudMap(keyframePosesOdom,
 //         laserCloudRawKeyFrames);
 
@@ -2439,7 +2446,7 @@ public:
 int main(int argc, char **argv) {
     ros::init(argc, argv, "lio_sam_6axis");
 
-    Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+    Load_YAML("/home/wxy/seu_lidarloc/src/config/config.yaml");
 
     mapOptimization MO;
     ROS_INFO("\033[1;32m----> Map Optimization Started.\033[0m");

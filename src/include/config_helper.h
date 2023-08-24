@@ -1,18 +1,16 @@
 
 //created by rongxuan && xiaoqiang at 2023.0819 peaceful night
-#ifndef CONFIG_HELPER
-#define CONFIG_HELPER
+#ifndef SEU_CONFIG_HELPER
+#define SEU_CONFIG_HELPER
 
 
 #include <iostream>
 #include <fstream>
-#include<vector>
+#include <vector>
 #include <Eigen/Dense>
 #include <string>
 
-
 #include "yaml-cpp/yaml.h"
-
 
 namespace LidarType{
     std::string HESAI = "hesai";

@@ -1,11 +1,11 @@
 
   #  velodyne16 and stim300(6 axis)
   # Topics
-  save_map_path: "/home/fyy/"
+  save_map_path: "/home/wxy/seu_lidarloc/src/result/"
   pointCloudTopic: "velodyne_points"               # Point cloud data
   imuTopic: "handsfree/imu"                         # IMU data
   odomTopic: "odometry/imu"                   # IMU pre-preintegration odometry, same frequency as IMU
-  gpsTopic: "fix"                   # GPS odometry topic from navsat, see module_navsat.launch file
+  gpsTopic: "/ublox/fix"                   # GPS odometry topic from navsat, see module_navsat.launch file
 
   # Frames
   lidarFrame: "base_link"
@@ -14,7 +14,7 @@
   mapFrame: "map"
 
   # GPS Settings
-  useGPS: false
+  useGPS: true
   updateOrigin: true                          # when you can not get a reliable gps origin points(RTK fixed)
   gpsFrequence: 10                            # set proper gps frequence to align gps and lidar timestamp
   useImuHeadingInitialization: false         # if using GPS data, set to "false"

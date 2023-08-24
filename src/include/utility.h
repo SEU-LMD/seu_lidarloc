@@ -15,7 +15,6 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include "opencv2/opencv.hpp"   // for opencv4
-#include "./utility.h"
 //#include <opencv/cv.h>
 
 #include <pcl/point_cloud.h>

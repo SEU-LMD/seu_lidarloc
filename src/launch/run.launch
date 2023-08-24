@@ -1,6 +1,6 @@
 <launch>
     <arg name="project" default="lio_sam_6axis"/>
-    <arg name="bag_path" default="/media/fyy/Data/gate_03.bag"/>
+    <arg name="bag_path" default="/media/wxy/home1/M2DGR/gate_03.bag"/>
     <arg name="sequence" default="hkust_campus"/>
 
     <!--set your own Parameters -->
