@@ -290,17 +290,10 @@ public:
                                       rawMapFilterSize);  // giseop
 
         // set log dir
-        std::string saveDirectory = "/Downloads/LOAM/";
-        std::string sequence = "map";
-        dataSaverPtr = std::make_unique<DataSaver>(saveDirectory, sequence);
-        // use imu frame when saving map
-        dataSaverPtr->setExtrinc(true, Config::t_body_sensor, Config::q_body_sensor);
-        std::string configDirectory = "map";
-        dataSaverPtr->setConfigDir(configDirectory);
+        dataSaverPtr = std::make_unique<DataSaver>();
 
         allocateMemory();
         std::cout << "******************"<<Config::savePCDDirectory << std::endl;
-        std::cout << sequence << std::endl;
     }
 
     void allocateMemory() {
@@ -612,7 +605,7 @@ public:
         //dataSaverPtr->saveTimes(keyframeTimes);
         dataSaverPtr->saveOptimizedVerticesTUM(isamCurrentEstimate);
         //dataSaverPtr->saveOptimizedVerticesKITTI(isamCurrentEstimate);
-        dataSaverPtr->saveOdometryVerticesTUM(keyframeRawOdom);
+//        dataSaverPtr->saveOdometryVerticesTUM(keyframeRawOdom);
         // dataSaverPtr->saveResultBag(keyframePosesOdom, keyframeCloudDeskewed, transform_vec);//保存原始点
        // if (Config::useGPS) dataSaverPtr->saveKMLTrajectory(lla_vec);
 
@@ -2446,7 +2439,7 @@ public:
 int main(int argc, char **argv) {
     ros::init(argc, argv, "lio_sam_6axis");
 
-    Load_YAML("/home/wxy/seu_lidarloc/src/config/config.yaml");
+    Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
 
     mapOptimization MO;
     ROS_INFO("\033[1;32m----> Map Optimization Started.\033[0m");
