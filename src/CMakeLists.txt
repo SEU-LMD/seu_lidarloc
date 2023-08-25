@@ -96,7 +96,7 @@ include_directories(
         ${EIGEN3_INCLUDE_DIR}
         ./ThirdParty/GeographicLib/
         ${YAML_CPP_INCLUDE_DIR}
-
+        ./map_engine
 )
 
 MESSAGE(STATUS "------------${EIGEN3_INCLUDE_DIR}------------------")
@@ -107,6 +107,10 @@ MESSAGE(STATUS "------------${PCL_LIBRARY_DIRS}------------------")
 ###########
 ## Build ##
 ###########
+
+#mapping related executabel
+add_executable(serialize map_engine/serialize.cpp)
+target_link_libraries(serialize ${PCL_LIBRARIES})
 
 ## Gps odometry
 add_executable(${PROJECT_NAME}_gpsOdometry src/simpleGpsOdom.cpp)
