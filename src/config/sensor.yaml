@@ -1,0 +1,53 @@
+
+# Topics
+  pointCloudTopic: "velodyne_points"               # Point cloud data
+  imuTopic: "handsfree/imu"                         # IMU data
+  odomTopic: "odometry/imu"                   # IMU pre-preintegration odometry, same frequency as IMU
+  gpsTopic: "/ublox/fix"                   # GPS odometry topic from navsat, see module_navsat.launch file
+
+# Frames
+  lidarFrame: "base_link"
+  baselinkFrame: "base_link"
+  odometryFrame: "odom"
+  mapFrame: "map"
+
+  # GPS Settings
+  useGPS: true
+  updateOrigin: true                          # when you can not get a reliable gps origin points(RTK fixed)
+  gpsFrequence: 10                            # set proper gps frequence to align gps and lidar timestamp
+  useImuHeadingInitialization: false         # if using GPS data, set to "false"
+  useGpsElevation: true                      # if GPS elevation is bad, set to "false"
+  gpsCovThreshold: 8                        # m^2, threshold for using GPS data
+  poseCovThreshold: 25.0                      # m^2, threshold for using GPS data
+  gpsDistance: 0.5                           # the distance between two gps point used for optimization
+
+  # debug setting
+  debugLidarTimestamp: false
+  debugImu: false
+  debugGps: true
+
+  # lidar Settings
+  sensor: velodyne                            # lidar sensor type, 'velodyne' or 'ouster' or 'livox' or 'hesai'
+  N_SCAN: 32                                  # number of lidar channel (i.e., Velodyne/Ouster: 16, 32, 64, 128, Livox Horizon: 6)
+  Horizon_SCAN: 1800                          # lidar horizontal resolution (Velodyne:1800, Ouster:512,1024,2048, Livox Horizon: 4000)
+  downsampleRate: 1                           # default: 1. Downsample your data if too many points. i.e., 16 = 64 / 4, 16 = 16 / 1
+  lidarMinRange: 1.5                          # default: 1.0, minimum lidar range to be used
+  lidarMaxRange: 1000.0
+
+  # IMU Settings
+  imuAccNoise: 3.7686306102624571e-02
+  imuGyrNoise: 2.3417543020438883e-03
+  imuAccBiasN: 1.1416642385952368e-03
+  imuGyrBiasN: 1.4428407712885209e-05
+  imuGravity: 9.805
+  imuRPYWeight: 0.01
+
+  # Extrinsics (lidar -> IMU)
+  imu_type: 0   # 0: 6axis, 1:9 axis
+  extrinsicTrans: [ 0.27255, -0.00053, 0.17954 ]
+  extrinsicRot: [ 1, 0, 0,
+                  0, 1, 0,
+                  0, 0, 1 ]
+  extrinsicRPY: [ 1, 0, 0,
+                  0, 1, 0,
+                  0, 0, 1 ]
