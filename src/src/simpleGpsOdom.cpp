@@ -144,8 +144,8 @@ private:
 };
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "lio_sam_6axis");
-    Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+    ros::init(argc, argv, "gps_convert");
+    Load_YAML("./config/config.yaml");
 
     ros::NodeHandle nh;
     GNSSOdom gps(nh);

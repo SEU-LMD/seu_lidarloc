@@ -587,8 +587,8 @@ public:
 
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "roboat_loam");
-      Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+    ros::init(argc, argv, "imu_pre");
+    Load_YAML("./config/config.yaml");
 
 
     IMUPreintegration ImuP;

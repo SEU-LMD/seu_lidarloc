@@ -2437,9 +2437,9 @@ public:
 };
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "lio_sam_6axis");
+    ros::init(argc, argv, "map_opt");
 
-    Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+    Load_YAML("./config/config.yaml");
 
     mapOptimization MO;
     ROS_INFO("\033[1;32m----> Map Optimization Started.\033[0m");

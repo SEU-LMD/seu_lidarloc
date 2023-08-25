@@ -58,9 +58,9 @@ make -j10
 Firstly, correct **bag's path** and **ROS Node topics, if necessary** ,in `run.launch`. Then enter into `src/build` folder, please run those commands:
 
 ```shell
-source devel/setup.bash
-roslaunch lio_sam_6axis run.launch
-
+roscore
+./run_all.sh
+rosbag play your_bag.bag
 rosservice call /lio_sam_6axis/save_map #Please run these codes to save the map.
 
 ```

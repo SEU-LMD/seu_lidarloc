@@ -692,10 +692,10 @@ public:
 };
 
 int main(int argc, char **argv) {
-    Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+    Load_YAML("./config/config.yaml");
     //std::cout<<"------------------------------------------"<<lidarFrame<<std::endl;
 
-    ros::init(argc, argv, "lio_sam_6axis");
+    ros::init(argc, argv, "img_pro");
     
 
     ImageProjection IP;
