@@ -2,11 +2,12 @@ cmake_minimum_required(VERSION 2.8.3)
 project(lio_sam_6axis)
 
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-std=c++11")
+set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -pthread")
 
 add_definitions(-w)
+
 
 find_package(Boost REQUIRED COMPONENTS timer)
 
@@ -38,7 +39,6 @@ find_package(OpenCV REQUIRED)
        
 
 set(PCL_DIR "/usr/lib/x86_64-linux-gnu/cmake/pcl")
-# find_package(PCL 1.10 REQUIRED)
 find_package(PCL REQUIRED)
 
 
@@ -46,8 +46,12 @@ set(YAML_CPP_DIR "${CMAKE_SOURCE_DIR}/../env/yaml-cpp-install/lib/cmake/yaml-cpp
 find_package(YAML_CPP REQUIRED) 
 set(YAML_LIB "${CMAKE_SOURCE_DIR}/../env/yaml-cpp-install/lib/libyaml-cpp.a")
 
-MESSAGE(STATUS "---YAML_CPP_INCLUDE_DIR---------${YAML_CPP_INCLUDE_DIR}------------------")
-MESSAGE(STATUS "---YAML_CPP_LIBRARIES---------${YAML_CPP_LIBRARIES}------------------")
+
+add_definitions(-DELPP_THREAD_SAFE)
+#add_definitions(-DELPP_FORCE_USE_STD_THREAD)
+add_definitions(-DELPP_NO_DEFAULT_LOG_FILE)
+#set(EASYLOG_LIB "${CMAKE_SOURCE_DIR}/../env/easylog-9.97.1-install/lib/libeasyloggingpp.a")
+#set(EASYLOG_INCLUD_DIR "${CMAKE_SOURCE_DIR}/../env/easylog-9.97.1-install/include/")
 
 
 add_message_files(
@@ -95,6 +99,7 @@ include_directories(
         ${GTSAM_INCLUDE_DIR}
         ${EIGEN3_INCLUDE_DIR}
         ./ThirdParty/GeographicLib/
+        ./ThirdParty/easylog-9.89/src/
         ${YAML_CPP_INCLUDE_DIR}
         ./map_engine
 )
@@ -114,7 +119,7 @@ target_link_libraries(serialize ${PCL_LIBRARIES})
 
 ## Gps odometry
 add_executable(${PROJECT_NAME}_gpsOdometry src/simpleGpsOdom.cpp)
-target_link_libraries(${PROJECT_NAME}_gpsOdometry ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic ${YAML_LIB})
+target_link_libraries(${PROJECT_NAME}_gpsOdometry ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic ${YAML_LIB} )
 #
 ## # # Range Image Projection
 add_executable(${PROJECT_NAME}_imageProjection src/imageProjection.cpp)
@@ -136,5 +141,3 @@ target_link_libraries(${PROJECT_NAME}_mapOptmization ${catkin_LIBRARIES} ${PCL_L
 add_executable(${PROJECT_NAME}_imuPreintegration src/imuPreintegration.cpp)
 target_link_libraries(${PROJECT_NAME}_imuPreintegration ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam  ${YAML_LIB})
 
-  #add_executable(main main.cpp)
-  #target_link_libraries(main gtsam)

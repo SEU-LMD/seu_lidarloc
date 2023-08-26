@@ -2,7 +2,8 @@
 #include "lio_sam_6axis/cloud_info.h"
 #include "config_helper.h"
 
-
+#include "easylogging++.h"
+INITIALIZE_EASYLOGGINGPP
 struct VelodynePointXYZIRT {
     PCL_ADD_POINT4D
 
@@ -692,6 +693,13 @@ public:
 };
 
 int main(int argc, char **argv) {
+    el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Format, "%level %file %line : %msg");
+#ifdef ELPP_THREAD_SAFE
+    EZLOG(INFO) << "easylogging++ thread safe!";
+#else
+    EZLOG(INFO) << "easylogging++ thread unsafe";
+#endif
+
     Load_YAML("./config/config.yaml");
     //std::cout<<"------------------------------------------"<<lidarFrame<<std::endl;
 

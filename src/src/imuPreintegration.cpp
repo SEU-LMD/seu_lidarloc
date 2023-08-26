@@ -17,7 +17,8 @@
 // #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
 
 #include "utility.h"
-
+#include "easylogging++.h"
+INITIALIZE_EASYLOGGINGPP
 using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz)
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
@@ -587,6 +588,13 @@ public:
 
 
 int main(int argc, char **argv) {
+    el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Format, "%level %file %line : %msg");
+#ifdef ELPP_THREAD_SAFE
+    EZLOG(INFO) << "easylogging++ thread safe!";
+#else
+    EZLOG(INFO) << "easylogging++ thread unsafe";
+#endif
+
     ros::init(argc, argv, "imu_pre");
     Load_YAML("./config/config.yaml");
 

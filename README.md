@@ -63,5 +63,5 @@ cd src
 ./run_all.sh
 rosbag play your_bag.bag
 rosservice call /lio_sam_6axis/save_map #Please run these codes to save the map.
-
+The logs will be saved in log directory with time
 ```

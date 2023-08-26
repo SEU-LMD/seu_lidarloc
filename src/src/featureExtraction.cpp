@@ -1,7 +1,8 @@
 #include "lio_sam_6axis/cloud_info.h"
 #include "utility.h"
 #include "config_helper.h"
-
+#include "easylogging++.h"
+INITIALIZE_EASYLOGGINGPP
 struct smoothness_t {
   float value;
   size_t ind;
@@ -265,6 +266,13 @@ class FeatureExtraction {
 };
 
 int main(int argc, char **argv) {
+    el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Format, "%level %file %line : %msg");
+#ifdef ELPP_THREAD_SAFE
+    EZLOG(INFO) << "easylogging++ thread safe!";
+#else
+    EZLOG(INFO) << "easylogging++ thread unsafe";
+#endif
+
   Load_YAML("./config/config.yaml");
 
   ros::init(argc, argv, "ft_ext");
