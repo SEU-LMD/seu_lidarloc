@@ -4,9 +4,12 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
         - /links1/base_link1
-      Splitter Ratio: 0.560000002
-    Tree Height: 367
+        - /Point Cloud1
+        - /Point Cloud1/Velodyne1
+      Splitter Ratio: 0.5600000023841858
+    Tree Height: 886
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Views
@@ -25,7 +28,9 @@ Panels:
       Expanded:
         - /Point Cloud1/Velodyne1
       Splitter Ratio: 0.5
-    Tree Height: 299
+    Tree Height: 303
+Preferences:
+  PromptSaveOnExit: true
 Toolbars:
   toolButtonStyle: 2
 Visualization Manager:
@@ -35,64 +40,44 @@ Visualization Manager:
       Displays:
         - Class: rviz/TF
           Enabled: true
+          Filter (blacklist): ""
+          Filter (whitelist): ""
           Frame Timeout: 999
           Frames:
             All Enabled: false
-            base_link:
-              Value: true
-            chassis_link:
-              Value: true
-            imu_link:
-              Value: true
-            lidar_link:
-              Value: true
-            map:
-              Value: true
-            navsat_link:
-              Value: true
-            odom:
-              Value: true
-            velodyne:
-              Value: true
+          Marker Alpha: 1
           Marker Scale: 5
           Name: TF
           Show Arrows: true
           Show Axes: true
           Show Names: true
           Tree:
-            map:
-              odom:
-                base_link:
-                  chassis_link:
-                    imu_link:
-                      {}
-                    navsat_link:
-                      {}
-                    velodyne:
-                      {}
-                lidar_link:
-                  {}
+            {}
           Update Interval: 0
           Value: true
-        - Class: rviz/Axes
+        - Alpha: 1
+          Class: rviz/Axes
           Enabled: true
           Length: 10
           Name: map
           Radius: 0.5
           Reference Frame: map
+          Show Trail: false
           Value: true
-        - Class: rviz/Axes
+        - Alpha: 1
+          Class: rviz/Axes
           Enabled: true
           Length: 5
           Name: base_link
           Radius: 0.5
           Reference Frame: base_link
+          Show Trail: false
           Value: true
       Enabled: true
       Name: links
     - Class: rviz/Group
       Displays:
-        - Angle Tolerance: 0.100000001
+        - Angle Tolerance: 0.10000000149011612
           Class: rviz/Odometry
           Covariance:
             Orientation:
@@ -104,7 +89,7 @@ Visualization Manager:
               Scale: 1
               Value: true
             Position:
-              Alpha: 0.300000012
+              Alpha: 0.30000001192092896
               Color: 204; 51; 204
               Scale: 1
               Value: true
@@ -112,21 +97,22 @@ Visualization Manager:
           Enabled: false
           Keep: 300
           Name: Odom IMU
-          Position Tolerance: 0.100000001
+          Position Tolerance: 0.10000000149011612
+          Queue Size: 10
           Shape:
             Alpha: 1
             Axes Length: 0.5
-            Axes Radius: 0.100000001
+            Axes Radius: 0.10000000149011612
             Color: 255; 25; 0
-            Head Length: 0.300000012
-            Head Radius: 0.100000001
+            Head Length: 0.30000001192092896
+            Head Radius: 0.10000000149011612
             Shaft Length: 1
-            Shaft Radius: 0.0500000007
+            Shaft Radius: 0.05000000074505806
             Value: Axes
           Topic: /odometry/imu
           Unreliable: false
           Value: false
-        - Angle Tolerance: 0.100000001
+        - Angle Tolerance: 0.10000000149011612
           Class: rviz/Odometry
           Covariance:
             Orientation:
@@ -138,7 +124,7 @@ Visualization Manager:
               Scale: 1
               Value: true
             Position:
-              Alpha: 0.300000012
+              Alpha: 0.30000001192092896
               Color: 204; 51; 204
               Scale: 1
               Value: true
@@ -146,21 +132,22 @@ Visualization Manager:
           Enabled: false
           Keep: 300
           Name: Odom GPS
-          Position Tolerance: 0.100000001
+          Position Tolerance: 0.10000000149011612
+          Queue Size: 10
           Shape:
             Alpha: 1
             Axes Length: 1
-            Axes Radius: 0.300000012
+            Axes Radius: 0.30000001192092896
             Color: 255; 25; 0
-            Head Length: 0.300000012
-            Head Radius: 0.100000001
+            Head Length: 0.30000001192092896
+            Head Radius: 0.10000000149011612
             Shaft Length: 1
-            Shaft Radius: 0.0500000007
+            Shaft Radius: 0.05000000074505806
             Value: Axes
           Topic: /odometry/gps
           Unreliable: false
           Value: false
-        - Angle Tolerance: 0.100000001
+        - Angle Tolerance: 0.10000000149011612
           Class: rviz/Odometry
           Covariance:
             Orientation:
@@ -172,7 +159,7 @@ Visualization Manager:
               Scale: 1
               Value: true
             Position:
-              Alpha: 0.300000012
+              Alpha: 0.30000001192092896
               Color: 204; 51; 204
               Scale: 1
               Value: true
@@ -180,16 +167,17 @@ Visualization Manager:
           Enabled: false
           Keep: 300
           Name: Odom lidar
-          Position Tolerance: 0.100000001
+          Position Tolerance: 0.10000000149011612
+          Queue Size: 10
           Shape:
             Alpha: 1
             Axes Length: 0.25
-            Axes Radius: 0.100000001
+            Axes Radius: 0.10000000149011612
             Color: 255; 25; 0
-            Head Length: 0.300000012
-            Head Radius: 0.100000001
+            Head Length: 0.30000001192092896
+            Head Radius: 0.10000000149011612
             Shaft Length: 1
-            Shaft Radius: 0.0500000007
+            Shaft Radius: 0.05000000074505806
             Value: Axes
           Topic: /lio_sam/mapping/odometry
           Unreliable: false
@@ -220,10 +208,10 @@ Visualization Manager:
           Position Transformer: XYZ
           Queue Size: 10
           Selectable: false
-          Size (Pixels): 10
-          Size (m): 0.00999999978
+          Size (Pixels): 1
+          Size (m): 0.009999999776482582
           Style: Points
-          Topic: /lio_sam_6axis/deskew/cloud_deskewed
+          Topic: /middle
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
@@ -243,15 +231,13 @@ Visualization Manager:
           Enabled: false
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 4096
           Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: Reg Cloud
           Position Transformer: XYZ
           Queue Size: 10
           Selectable: true
           Size (Pixels): 3
-          Size (m): 0.00999999978
+          Size (m): 0.009999999776482582
           Style: Points
           Topic: /lio_sam/mapping/cloud_registered
           Unreliable: false
@@ -277,15 +263,13 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 4096
           Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: Edge Feature
           Position Transformer: XYZ
           Queue Size: 10
           Selectable: true
           Size (Pixels): 5
-          Size (m): 0.00999999978
+          Size (m): 0.009999999776482582
           Style: Points
           Topic: /lio_sam_6axis/feature/cloud_corner
           Unreliable: false
@@ -307,15 +291,13 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 4096
           Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: Plannar Feature
           Position Transformer: XYZ
           Queue Size: 10
           Selectable: true
           Size (Pixels): 3
-          Size (m): 0.00999999978
+          Size (m): 0.009999999776482582
           Style: Points
           Topic: /lio_sam_6axis/feature/cloud_surface
           Unreliable: false
@@ -329,8 +311,8 @@ Visualization Manager:
         - Alpha: 0.5
           Autocompute Intensity Bounds: false
           Autocompute Value Bounds:
-            Max Value: 7.48585749
-            Min Value: -1.23093987
+            Max Value: 7.4858574867248535
+            Min Value: -1.2309398651123047
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -349,7 +331,7 @@ Visualization Manager:
           Queue Size: 10
           Selectable: false
           Size (Pixels): 1
-          Size (m): 0.00999999978
+          Size (m): 0.009999999776482582
           Style: Points
           Topic: /lio_sam_6axis/mapping/cloud_registered
           Unreliable: false
@@ -359,8 +341,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 42.4887848
-            Min Value: -2.97308159
+            Max Value: 42.48878479003906
+            Min Value: -2.973081588745117
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -371,15 +353,13 @@ Visualization Manager:
           Enabled: false
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 4096
           Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: Map (local)
           Position Transformer: XYZ
           Queue Size: 10
           Selectable: true
           Size (Pixels): 2
-          Size (m): 0.100000001
+          Size (m): 0.10000000149011612
           Style: Flat Squares
           Topic: /lio_sam_6axis/mapping/map_local
           Unreliable: false
@@ -389,8 +369,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 19.2903442
-            Min Value: -5.03944731
+            Max Value: 19.29034423828125
+            Min Value: -5.03944730758667
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -401,15 +381,13 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 118
           Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: Map (global)
           Position Transformer: XYZ
           Queue Size: 10
           Selectable: true
           Size (Pixels): 2
-          Size (m): 0.00999999978
+          Size (m): 0.009999999776482582
           Style: Points
           Topic: /lio_sam_6axis/mapping/map_global
           Unreliable: false
@@ -421,11 +399,11 @@ Visualization Manager:
           Class: rviz/Path
           Color: 85; 255; 255
           Enabled: true
-          Head Diameter: 0.300000012
-          Head Length: 0.200000003
-          Length: 0.300000012
+          Head Diameter: 0.30000001192092896
+          Head Length: 0.20000000298023224
+          Length: 0.30000001192092896
           Line Style: Billboards
-          Line Width: 0.100000001
+          Line Width: 0.10000000149011612
           Name: Path (global)
           Offset:
             X: 0
@@ -433,9 +411,10 @@ Visualization Manager:
             Z: 0
           Pose Color: 255; 85; 255
           Pose Style: None
-          Radius: 0.0299999993
-          Shaft Diameter: 0.100000001
-          Shaft Length: 0.100000001
+          Queue Size: 10
+          Radius: 0.029999999329447746
+          Shaft Diameter: 0.10000000149011612
+          Shaft Length: 0.10000000149011612
           Topic: /path
           Unreliable: false
           Value: true
@@ -444,11 +423,11 @@ Visualization Manager:
           Class: rviz/Path
           Color: 255; 85; 255
           Enabled: true
-          Head Diameter: 0.300000012
-          Head Length: 0.200000003
-          Length: 0.300000012
+          Head Diameter: 0.30000001192092896
+          Head Length: 0.20000000298023224
+          Length: 0.30000001192092896
           Line Style: Billboards
-          Line Width: 0.100000001
+          Line Width: 0.10000000149011612
           Name: Path (local)
           Offset:
             X: 0
@@ -456,17 +435,18 @@ Visualization Manager:
             Z: 0
           Pose Color: 255; 85; 255
           Pose Style: None
-          Radius: 0.0299999993
-          Shaft Diameter: 0.100000001
-          Shaft Length: 0.100000001
+          Queue Size: 10
+          Radius: 0.029999999329447746
+          Shaft Diameter: 0.10000000149011612
+          Shaft Length: 0.10000000149011612
           Topic: /lio_sam_6axis/imu/path
           Unreliable: false
           Value: true
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 20.8028374
-            Min Value: -0.0393450707
+            Max Value: 20.802837371826172
+            Min Value: -0.03934507071971893
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -477,15 +457,13 @@ Visualization Manager:
           Enabled: false
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 4096
           Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: Loop closure
           Position Transformer: XYZ
           Queue Size: 10
           Selectable: true
           Size (Pixels): 2
-          Size (m): 0.300000012
+          Size (m): 0.30000001192092896
           Style: Flat Squares
           Topic: /lio_sam_6axis/mapping/icp_loop_closure_corrected_cloud
           Unreliable: false
@@ -513,11 +491,11 @@ Visualization Manager:
           Class: rviz/Path
           Color: 25; 255; 0
           Enabled: true
-          Head Diameter: 0.300000012
-          Head Length: 0.200000003
-          Length: 0.300000012
+          Head Diameter: 0.30000001192092896
+          Head Length: 0.20000000298023224
+          Length: 0.30000001192092896
           Line Style: Billboards
-          Line Width: 0.899999976
+          Line Width: 0.8999999761581421
           Name: GpsPath
           Offset:
             X: 0
@@ -525,9 +503,10 @@ Visualization Manager:
             Z: 0
           Pose Color: 255; 85; 255
           Pose Style: None
-          Radius: 0.0299999993
-          Shaft Diameter: 0.100000001
-          Shaft Length: 0.100000001
+          Queue Size: 10
+          Radius: 0.029999999329447746
+          Shaft Diameter: 0.10000000149011612
+          Shaft Length: 0.10000000149011612
           Topic: /fused_gps_path
           Unreliable: false
           Value: true
@@ -538,11 +517,11 @@ Visualization Manager:
       Class: rviz/Path
       Color: 25; 255; 0
       Enabled: true
-      Head Diameter: 0.300000012
-      Head Length: 0.200000003
-      Length: 0.300000012
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
       Line Style: Billboards
-      Line Width: 0.200000003
+      Line Width: 0.20000000298023224
       Name: gps_Path
       Offset:
         X: 0
@@ -550,9 +529,10 @@ Visualization Manager:
         Z: 0
       Pose Color: 255; 85; 255
       Pose Style: None
-      Radius: 0.0299999993
-      Shaft Diameter: 0.100000001
-      Shaft Length: 0.100000001
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
       Topic: /gps_path
       Unreliable: false
       Value: true
@@ -565,7 +545,7 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Image
-      Enabled: true
+      Enabled: false
       Image Topic: /stereo/left/image_color
       Max Value: 1
       Median window: 5
@@ -575,7 +555,7 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: compressed
       Unreliable: false
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /lio_sam_6axis/mapping/gps_constraints
@@ -584,9 +564,19 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
-    - Class: rviz_plugins/AerialMapDisplay
+    - Alpha: 0.699999988079071
+      Blocks: 3
+      Class: rviz_plugins/AerialMapDisplay
+      Draw Behind: false
+      Dynamically reload: true
       Enabled: true
+      Frame Convention: XYZ -> ENU
       Name: AerialMapDisplay
+      Object URI: http://otile1.mqcdn.com/tiles/1.0.0/sat/{z}/{x}/{y}.jpg
+      Robot frame: world
+      Topic: ""
+      Value: true
+      Zoom: 16
     - Class: rviz/Image
       Enabled: false
       Image Topic: /stereo/frame_left/image_raw
@@ -603,7 +593,7 @@ Visualization Manager:
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: map
+    Fixed Frame: rslidar
     Frame Rate: 30
   Name: root
   Tools:
@@ -615,25 +605,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 34.7854996
+      Distance: 86.1491470336914
       Enable Stereo Rendering:
-        Stereo Eye Separation: 0.0599999987
+        Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
+      Field of View: 0.7853981852531433
       Focal Point:
         X: 0
         Y: 0
         Z: 0
       Focal Shape Fixed Size: true
-      Focal Shape Size: 0.0500000007
+      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
-      Near Clip Distance: 0.00999999978
-      Pitch: 0.785398185
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.5703985095024109
       Target Frame: map
-      Value: ThirdPersonFollower (rviz)
-      Yaw: 0.785398185
+      Yaw: 3.135401964187622
     Saved: ~
 Window Geometry:
   Displays:
@@ -643,7 +633,7 @@ Window Geometry:
   Hide Right Dock: false
   Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000028f000003c8fc0200000013fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006100fffffffb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000000a0049006d0061006700650000000016000001090000001600fffffffb0000000a0049006d0061006700650100000000000002120000001600fffffffb000000100044006900730070006c0061007900730100000218000001b0000000d700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000286000000a70000006100fffffffc00000027000007330000000000fffffffa000000000100000001fb0000000a0049006d0061006700650000000000000001f90000000000000000fb0000000a0049006d0061006700650000000027000002c90000000000000000fb0000000a0049006d0061006700650100000305000004550000000000000000fb0000000a0049006d00610067006500000002d1000001130000000000000000fb0000000a0049006d00610067006500000003880000005c0000000000000000fb0000000a0049006d0061006700650100000333000000cc0000000000000000fb0000000a0049006d0061006700650100000229000001bb0000000000000000fb0000000a0049006d00610067006501000001f8000001e30000000000000000fb000000100044006900730070006c00610079007300000003c700000393000000d700ffffff0000000100000160000003c8fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730100000000000003c8000000ad00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000f000000011efc0100000004fb0000000a0049006d0061006700650200001280000002bb000004c3000003bdfb0000000a0049006d00610067006501000000000000063b0000000000000000fb0000000a0049006d0061006700650100000647000008290000000000000000fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004b000000040fc0100000002fb0000000800540069006d00650000000000000004b00000000000000000fb0000000800540069006d006501000000000000045000000000000000000000033d000003c800000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730000000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001c5000003b3fc0200000013fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000000a0049006d0061006700650000000016000001090000001600fffffffb0000000a0049006d0061006700650000000016000002060000001600fffffffb000000100044006900730070006c0061007900730100000016000003b3000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730000000286000000a70000005c00fffffffc00000027000007330000000000fffffffa000000000100000001fb0000000a0049006d0061006700650000000000000001f90000000000000000fb0000000a0049006d0061006700650000000027000002c90000000000000000fb0000000a0049006d0061006700650100000305000004550000000000000000fb0000000a0049006d00610067006500000002d1000001130000000000000000fb0000000a0049006d00610067006500000003880000005c0000000000000000fb0000000a0049006d0061006700650100000333000000cc0000000000000000fb0000000a0049006d0061006700650100000229000001bb0000000000000000fb0000000a0049006d00610067006501000001f8000001e30000000000000000fb000000100044006900730070006c00610079007300000003c700000393000000c900ffffff0000000100000160000003b3fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730100000016000003b3000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000f000000011efc0100000004fb0000000a0049006d0061006700650200001280000002bb000004c3000003bdfb0000000a0049006d00610067006501000000000000063b0000000000000000fb0000000a0049006d0061006700650100000647000008290000000000000000fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004b000000040fc0100000002fb0000000800540069006d00650000000000000004b00000000000000000fb0000000800540069006d0065010000000000000450000000000000000000000407000003b300000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730000000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
@@ -651,5 +641,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1848
-  X: 189
-  Y: 1145
+  X: 345
+  Y: 157

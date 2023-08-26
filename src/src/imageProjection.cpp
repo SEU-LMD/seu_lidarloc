@@ -1,89 +1,21 @@
 #include "utility.h"
 #include "lio_sam_6axis/cloud_info.h"
 #include "config_helper.h"
+#include "ivsensorgps.h"
 
 
 struct VelodynePointXYZIRT {
     PCL_ADD_POINT4D
-
-    PCL_ADD_INTENSITY;
+    uint8_t intensity;
     uint16_t ring;
-    float time;
-
+    double latency;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 } EIGEN_ALIGN16;
 POINT_CLOUD_REGISTER_POINT_STRUCT (VelodynePointXYZIRT,
-                                   (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
-                                           (uint16_t, ring, ring)(float, time, time)
+                                   (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
+                                           (uint16_t, ring, ring)(double, latency, latency)
 )
 
-struct PandarPointXYZIRT {
-    PCL_ADD_POINT4D
-
-    float intensity;
-    double timestamp;
-    uint16_t ring;                      ///< laser ring number
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW // make sure our new allocators are aligned
-} EIGEN_ALIGN16;
-
-POINT_CLOUD_REGISTER_POINT_STRUCT(PandarPointXYZIRT,
-                                  (float, x, x)
-                                          (float, y, y)
-                                          (float, z, z)
-                                          (float, intensity, intensity)
-                                          (double, timestamp, timestamp)
-                                          (uint16_t, ring, ring)
-)
-
-struct OusterPointXYZIRT {
-    PCL_ADD_POINT4D;
-    float intensity;
-//  uint32_t time;
-    uint16_t reflectivity;
-    uint8_t ring;
-    std::uint16_t ambient;  // additional property of p.ouster
-    float time;
-    uint16_t noise;
-    uint32_t range;
-
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-} EIGEN_ALIGN16;
-
-POINT_CLOUD_REGISTER_POINT_STRUCT(OusterPointXYZIRT,
-                                  (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
-                                          (uint16_t, reflectivity, reflectivity)
-                                          (uint8_t, ring, ring)
-                                          (std::uint16_t, ambient, ambient)
-                                          (float, time, time)
-                                          (uint16_t, noise, noise)
-                                          (uint32_t, range, range)
-)
-
-
-
-//struct OusterPointXYZIRT {
-//    PCL_ADD_POINT4D;
-//    float intensity;
-//    uint32_t t;
-//    uint16_t reflectivity;
-//    uint8_t ring;
-//    uint16_t ambient;
-//    uint32_t range;
-//    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-//} EIGEN_ALIGN16;
-//
-//POINT_CLOUD_REGISTER_POINT_STRUCT(OusterPointXYZIRT,
-//                                  (float, x, x)
-//                                          (float, y, y)
-//                                          (float, z, z)
-//                                          (float, intensity, intensity)
-//                                          // use std::uint32_t to avoid conflicting with pcl::uint32_t
-//                                          (std::uint32_t, t, t)
-//                                          (std::uint16_t, reflectivity, reflectivity)
-//                                          (std::uint8_t, ring, ring)
-//                                          (std::uint16_t, ambient, ambient)
-//                                          (std::uint32_t, range, range))
-//
 
 // Use the Velodyne point format as a common representation
 using PointXYZIRT = VelodynePointXYZIRT;
@@ -122,8 +54,6 @@ private:
     Eigen::Affine3f transStartInverse;
 
     pcl::PointCloud<PointXYZIRT>::Ptr laserCloudIn;
-    pcl::PointCloud<OusterPointXYZIRT>::Ptr tmpOusterCloudIn;
-    pcl::PointCloud<PandarPointXYZIRT>::Ptr tmpPandarCloudIn;
     pcl::PointCloud<PointType>::Ptr fullCloud;
     pcl::PointCloud<PointType>::Ptr extractedCloud;
 
@@ -146,7 +76,7 @@ public:
     ros::NodeHandle nh;
     ImageProjection() :
             deskewFlag(0) {
-        subImu = nh.subscribe<sensor_msgs::Imu>(Config::imuTopic,
+        subImu = nh.subscribe<gps_imu::ivsensorgps>(Config::imuTopic,
                                                 2000,
                                                 &ImageProjection::imuHandler,
                                                 this,
@@ -174,8 +104,6 @@ public:
 
     void allocateMemory() {
         laserCloudIn.reset(new pcl::PointCloud<PointXYZIRT>());
-        tmpOusterCloudIn.reset(new pcl::PointCloud<OusterPointXYZIRT>());
-        tmpPandarCloudIn.reset(new pcl::PointCloud<PandarPointXYZIRT>());
         fullCloud.reset(new pcl::PointCloud<PointType>());
         extractedCloud.reset(new pcl::PointCloud<PointType>());
 
@@ -212,30 +140,23 @@ public:
 
     ~ImageProjection() {}
 
-    void imuHandler(const sensor_msgs::Imu::ConstPtr &imuMsg) {
+    void imuHandler(const gps_imu::ivsensorgpsConstPtr &gnssImu_raw) {
+
+        sensor_msgs::Imu::Ptr imuMsg(new sensor_msgs::Imu());
+        imuMsg->header = gnssImu_raw->header;
+        imuMsg->linear_acceleration.x = gnssImu_raw->accx;
+        imuMsg->linear_acceleration.y = gnssImu_raw->accy;
+        imuMsg->linear_acceleration.z = gnssImu_raw->accz;
+
+        imuMsg->angular_velocity.x = gnssImu_raw->angx;
+        imuMsg->angular_velocity.y = gnssImu_raw->angy;
+        imuMsg->angular_velocity.z = gnssImu_raw->yaw;
+
         sensor_msgs::Imu thisImu = imuConverter(*imuMsg);
 
         std::lock_guard<std::mutex> lock1(imuLock);
         imuQueue.push_back(thisImu);
 
-        if (Config::debugImu) {
-            // debug IMU data
-            cout << std::setprecision(6);
-            cout << "IMU acc: " << endl;
-            cout << "x: " << thisImu.linear_acceleration.x <<
-                 ", y: " << thisImu.linear_acceleration.y <<
-                 ", z: " << thisImu.linear_acceleration.z << endl;
-            cout << "IMU gyro: " << endl;
-            cout << "x: " << thisImu.angular_velocity.x <<
-                 ", y: " << thisImu.angular_velocity.y <<
-                 ", z: " << thisImu.angular_velocity.z << endl;
-            double imuRoll, imuPitch, imuYaw;
-            tf::Quaternion orientation;
-            tf::quaternionMsgToTF(thisImu.orientation, orientation);
-            tf::Matrix3x3(orientation).getRPY(imuRoll, imuPitch, imuYaw);
-            cout << "IMU roll pitch yaw: " << endl;
-            cout << "roll: " << imuRoll << ", pitch: " << imuPitch << ", yaw: " << imuYaw << endl << endl;
-        }
     }
 
     void odometryHandler(const nav_msgs::Odometry::ConstPtr &odometryMsg) {
@@ -268,47 +189,16 @@ public:
         // convert cloud
         currentCloudMsg = std::move(cloudQueue.front());
         cloudQueue.pop_front();
-        // if (sensor == SensorType::VELODYNE || sensor == SensorType::LIVOX) {
         if (Config::sensor == LidarType::VELODYNE || Config::sensor == LidarType::LIVOX) {    
             pcl::moveFromROSMsg(currentCloudMsg, *laserCloudIn);
-        // } else if (sensor == SensorType::OUSTER) {
-        } else if (Config::sensor == LidarType::OUSTER) {   
-            // Convert to Velodyne format
-            pcl::moveFromROSMsg(currentCloudMsg, *tmpOusterCloudIn);
-            laserCloudIn->points.resize(tmpOusterCloudIn->size());
-            laserCloudIn->is_dense = tmpOusterCloudIn->is_dense;
-            for (size_t i = 0; i < tmpOusterCloudIn->size(); i++) {
-                auto &src = tmpOusterCloudIn->points[i];
-                auto &dst = laserCloudIn->points[i];
-                dst.x = src.x;
-                dst.y = src.y;
-                dst.z = src.z;
-                dst.intensity = src.intensity;
-                dst.ring = src.ring;
-                //dst.time = src.t * 1e-9f;
-//                dst.time = src.t;
-                dst.time = src.time;
-//                dst.time = (i % 2048) / 20480.0;
-            }
-        // } else if (sensor == SensorType::HESAI) {
-        } else if (Config::sensor == LidarType::HESAI) {
-            // Convert to Velodyne format
-            pcl::moveFromROSMsg(currentCloudMsg, *tmpPandarCloudIn);
-            laserCloudIn->points.resize(tmpPandarCloudIn->size());
-            laserCloudIn->is_dense = tmpPandarCloudIn->is_dense;
-            double time_begin = tmpPandarCloudIn->points[0].timestamp;
-            for (size_t i = 0; i < tmpPandarCloudIn->size(); i++) {
-                auto &src = tmpPandarCloudIn->points[i];
-                auto &dst = laserCloudIn->points[i];
-                dst.x = src.y * -1;
-                dst.y = src.x;
-                //        dst.x = src.x;
-                //        dst.y = src.y;
-                dst.z = src.z;
-                dst.intensity = src.intensity;
-                dst.ring = src.ring;
-                //dst.tiSme = src.t * 1e-9f;
-                dst.time = src.timestamp - time_begin; // s
+            double t_0 = laserCloudIn->points[0].latency;
+            for(int i=0;i<laserCloudIn->points.size();++i)
+            {
+                if(i==0){
+                    laserCloudIn->points[i].latency=0;
+                }
+                else
+                    laserCloudIn->points[i].latency = laserCloudIn->points[i].latency - t_0;
             }
         } else {
             ROS_ERROR_STREAM("Unknown sensor type: " << Config::sensor);
@@ -319,19 +209,19 @@ public:
         cloudHeader = currentCloudMsg.header;
         timeScanCur = cloudHeader.stamp.toSec();
         // timeScanEnd = timeScanCur + laserCloudIn->points.back().time;
-        timeScanEnd = timeScanCur + laserCloudIn->points.back().time;
+        timeScanEnd = timeScanCur + laserCloudIn->points.back().latency;
 
         if (Config::debugLidarTimestamp) {
             std::cout << std::fixed << std::setprecision(12) << "end time from pcd and size: "
-                      << laserCloudIn->points.back().time
+                      << laserCloudIn->points.back().latency
                       << ", " << laserCloudIn->points.size() << std::endl;
         }
 
         // check dense flag
-        if (laserCloudIn->is_dense == false) {
-            ROS_ERROR("Point cloud is not in dense format, please remove NaN points first!");
-            ros::shutdown();
-        }
+//        if (laserCloudIn->is_dense == false) {
+//            ROS_ERROR("Point cloud is not in dense format, please remove NaN points first!");
+//            ros::shutdown();
+//        }
 
         // check ring channel
         static int ringFlag = 0;
@@ -353,7 +243,7 @@ public:
         if (deskewFlag == 0) {
             deskewFlag = -1;
             for (auto &field : currentCloudMsg.fields) {
-                if (field.name == "time" || field.name == "t" || field.name == "timestamp") {
+                if (field.name == "time" || field.name == "t" || field.name == "timestamp" || field.name == "latency") {
                     deskewFlag = 1;
                     break;
                 }
@@ -651,7 +541,7 @@ public:
             if (rangeMat.at<float>(rowIdn, columnIdn) != FLT_MAX)
                 continue;
 
-            thisPoint = deskewPoint(&thisPoint, laserCloudIn->points[i].time);
+            thisPoint = deskewPoint(&thisPoint, laserCloudIn->points[i].latency);
 
             rangeMat.at<float>(rowIdn, columnIdn) = range;
 
@@ -692,7 +582,7 @@ public:
 };
 
 int main(int argc, char **argv) {
-    Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+    Load_YAML("/home/lsy/seu_lidarloc/src/config/config.yaml");
     //std::cout<<"------------------------------------------"<<lidarFrame<<std::endl;
 
     ros::init(argc, argv, "lio_sam_6axis");

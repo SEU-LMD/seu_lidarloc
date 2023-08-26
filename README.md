@@ -60,7 +60,7 @@ Firstly, correct **bag's path** and **ROS Node topics, if necessary** ,in `run.l
 ```shell
 source devel/setup.bash
 roslaunch lio_sam_6axis run.launch
-
+rosbag play *.bag
 rosservice call /lio_sam_6axis/save_map #Please run these codes to save the map.
 
 ```

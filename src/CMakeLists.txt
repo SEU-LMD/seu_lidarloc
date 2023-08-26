@@ -117,9 +117,10 @@ add_executable(${PROJECT_NAME}_gpsOdometry src/simpleGpsOdom.cpp)
 target_link_libraries(${PROJECT_NAME}_gpsOdometry ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic ${YAML_LIB})
 #
 ## # # Range Image Projection
-add_executable(${PROJECT_NAME}_imageProjection src/imageProjection.cpp)
+add_executable(${PROJECT_NAME}_imageProjection src/imageProjection_gnss.cpp)
+#add_executable(${PROJECT_NAME}_imageProjection src/imageProjection.cpp src/imageProjection_gnss.cpp)
 add_dependencies(${PROJECT_NAME}_imageProjection ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_imageProjection ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES}  ${YAML_LIB})#YAML_CPP_LIBRARIES
+target_link_libraries(${PROJECT_NAME}_imageProjection ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES}  libGeographic ${YAML_LIB})#YAML_CPP_LIBRARIES
 #
 ## Feature Association
 add_executable(${PROJECT_NAME}_featureExtraction src/featureExtraction.cpp)
