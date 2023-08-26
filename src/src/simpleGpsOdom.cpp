@@ -15,6 +15,8 @@
 #include "utility.h"
 #include "config_helper.h"
 
+#include "easylogging++.h"
+INITIALIZE_EASYLOGGINGPP
 
 class GNSSOdom  {
 public:
@@ -144,8 +146,18 @@ private:
 };
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "lio_sam_6axis");
-    Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+
+    el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Format, "%level %file %line : %msg");
+#ifdef ELPP_THREAD_SAFE
+    EZLOG(INFO) << "easylogging++ thread safe!";
+#else
+    EZLOG(INFO) << "easylogging++ thread unsafe";
+#endif
+
+    exit(-1);
+
+    ros::init(argc, argv, "gps_convert");
+    Load_YAML("./config/config.yaml");
 
     ros::NodeHandle nh;
     GNSSOdom gps(nh);

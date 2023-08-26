@@ -24,6 +24,9 @@
 #include "utility.h"
 #include "MapSaver.h"
 
+#include "easylogging++.h"
+INITIALIZE_EASYLOGGINGPP
+
 using namespace gtsam;
 
 using symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz)
@@ -2437,9 +2440,16 @@ public:
 };
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "lio_sam_6axis");
+    el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Format, "%level %file %line : %msg");
+#ifdef ELPP_THREAD_SAFE
+    EZLOG(INFO) << "easylogging++ thread safe!";
+#else
+    EZLOG(INFO) << "easylogging++ thread unsafe";
+#endif
 
-    Load_YAML("/home/fyy/code/seu_lidarloc/src/config/config.yaml");
+    ros::init(argc, argv, "map_opt");
+
+    Load_YAML("./config/config.yaml");
 
     mapOptimization MO;
     ROS_INFO("\033[1;32m----> Map Optimization Started.\033[0m");
