@@ -29,6 +29,7 @@ public:
     std::mutex data_mutex;
     std::deque<CloudInfo> pts_deque;
 
+
     void SaveToDisk(const CloudInfo& cloud_info){
         pcl::io::savePCDFileASCII(sav_root_path+std::to_string(cloud_info.frame_id)+"_corner.pcd", cloud_info.corner_cloud);
         pcl::io::savePCDFileASCII(sav_root_path+std::to_string(cloud_info.frame_id)+"_surf.pcd", cloud_info.surf_cloud);

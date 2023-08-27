@@ -235,7 +235,6 @@ void Load_YAML(std::string path)
 
     Config::save_map_path = config["save_map_path"].as<std::string>();
     Config::pointCloudTopic = config["pointCloudTopic"].as<std::string>();
-    std::cout<<"1111111 load"<<std::endl;
     Config::imuTopic = config["imuTopic"].as<std::string>();
     Config::odomTopic = config["odomTopic"].as<std::string>();
     Config::gpsTopic = config["gpsTopic"].as<std::string>();

@@ -46,12 +46,10 @@ set(YAML_CPP_DIR "${CMAKE_SOURCE_DIR}/../env/yaml-cpp-install/lib/cmake/yaml-cpp
 find_package(YAML_CPP REQUIRED) 
 set(YAML_LIB "${CMAKE_SOURCE_DIR}/../env/yaml-cpp-install/lib/libyaml-cpp.a")
 
-
+#use for easylog marco
 add_definitions(-DELPP_THREAD_SAFE)
 #add_definitions(-DELPP_FORCE_USE_STD_THREAD)
 add_definitions(-DELPP_NO_DEFAULT_LOG_FILE)
-#set(EASYLOG_LIB "${CMAKE_SOURCE_DIR}/../env/easylog-9.97.1-install/lib/libeasyloggingpp.a")
-#set(EASYLOG_INCLUD_DIR "${CMAKE_SOURCE_DIR}/../env/easylog-9.97.1-install/include/")
 
 
 add_message_files(
@@ -76,7 +74,6 @@ generate_messages(
 catkin_package(
         INCLUDE_DIRS include
         DEPENDS PCL GTSAM
-
         CATKIN_DEPENDS
         std_msgs
         nav_msgs
@@ -88,7 +85,6 @@ catkin_package(
 )
 
 add_subdirectory(./ThirdParty/GeographicLib/)
-
 
 
 include_directories(

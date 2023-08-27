@@ -62,7 +62,8 @@ class mapOptimization {
 public:
     int frame_id = -1;
     ros::NodeHandle nh;
-    TicToc timer;
+    std::mutex timer_mutex;
+    TicToc timer_cloud;//用于记录接收到数据的时间
     SaveMap map_saver;
     NonlinearFactorGraph gtSAMgraph;
     Values initialEstimate;
@@ -687,13 +688,50 @@ public:
         cout << "Saving map to pcd files completed: " << endl;
 
         return true;
-    }
+    }//end function saveMapService
 
     void visualizeGlobalMapThread() {
         ros::Rate rate(0.2);
         while (ros::ok()) {
             rate.sleep();
             publishGlobalMap();
+        }
+    }
+
+    //如果5秒内没有接收到点云数据，就会自动保存
+    void savePathThread() {
+        while (1) {
+
+            //保证有了位姿数据
+            if (cloudKeyPoses6D->size() >0) {
+
+                timer_mutex.lock();
+                double delta_time = timer_cloud.toc();
+                timer_mutex.unlock();
+
+                if(delta_time>5000){
+
+
+                    if (Config::useGPS) {
+                        Eigen::Vector3d optimized_lla;
+                        Eigen::Vector3d first_point(cloudKeyPoses6D->at(0).x,
+                                                    cloudKeyPoses6D->at(0).y,
+                                                    cloudKeyPoses6D->at(0).z);
+                        // we save optimized origin gps point
+                        geo_converter.Reverse(first_point[0], first_point[1], first_point[2],
+                                              optimized_lla[0], optimized_lla[1],optimized_lla[2]);
+
+                        dataSaverPtr->saveOriginGPS(optimized_lla);
+                        EZLOG(INFO)<<" optimized_lla = "<<optimized_lla.transpose();
+                    }
+
+                    dataSaverPtr->saveOptimizedVerticesTUM(isamCurrentEstimate);
+                    EZLOG(INFO) << "Saving poses completed! " << endl;
+                    exit(-1);
+                }
+            }//end if(delta_time>5000)
+
+            sleep(500);
         }
     }
 
@@ -2134,6 +2172,9 @@ public:
         cloud_info.corner_cloud = *thisCornerKeyFrame;
         cloud_info.surf_cloud = *thisSurfKeyFrame;
         map_saver.addToSave(cloud_info);
+        timer_mutex.lock();
+        timer_cloud.tic();
+        timer_mutex.unlock();
         // if you want to save raw cloud
 //        laserCloudRawKeyFrames.push_back(thislaserCloudRawKeyFrame);
 
@@ -2440,6 +2481,7 @@ public:
 };
 
 int main(int argc, char **argv) {
+
     el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Format, "%level %file %line : %msg");
 #ifdef ELPP_THREAD_SAFE
     EZLOG(INFO) << "easylogging++ thread safe!";
@@ -2452,11 +2494,11 @@ int main(int argc, char **argv) {
     Load_YAML("./config/config.yaml");
 
     mapOptimization MO;
-    ROS_INFO("\033[1;32m----> Map Optimization Started.\033[0m");
+    EZLOG(INFO)<<"Map Optimization Started";
 
     std::thread loopthread(&mapOptimization::loopClosureThread, &MO);
-    std::thread visualizeMapThread(&mapOptimization::visualizeGlobalMapThread,
-                                   &MO);
+    std::thread visualizeMapThread(&mapOptimization::visualizeGlobalMapThread, &MO);
+    std::thread savepathThread(&mapOptimization::savePathThread, &MO);
     std::thread saveMapThread(&SaveMap::do_work, &(MO.map_saver));//comment fyy
     //启动每帧点云数据线程
     ros::spin();
