@@ -45,11 +45,11 @@ public:
     deque<nav_msgs::Odometry> imuOdomQueue;
 
     TransformFusion() {
-        if (Config::lidarFrame != Config::baselinkFrame) {
+        if (SensorConfig::lidarFrame != SensorConfig::baselinkFrame) {
             try {
-                tfListener.waitForTransform(Config::lidarFrame, Config::baselinkFrame, ros::Time(0),
+                tfListener.waitForTransform(SensorConfig::lidarFrame, SensorConfig::baselinkFrame, ros::Time(0),
                                             ros::Duration(3.0));
-                tfListener.lookupTransform(Config::lidarFrame, Config::baselinkFrame, ros::Time(0),
+                tfListener.lookupTransform(SensorConfig::lidarFrame, SensorConfig::baselinkFrame, ros::Time(0),
                                            lidar2Baselink);
             } catch (tf::TransformException ex) {
                 ROS_ERROR("%s", ex.what());
@@ -61,10 +61,10 @@ public:
                 &TransformFusion::lidarOdometryHandler, this,
                 ros::TransportHints().tcpNoDelay());
         subImuOdometry = nh.subscribe<nav_msgs::Odometry>(
-                Config::odomTopic + "_incremental", 2000, &TransformFusion::imuOdometryHandler,
+                SensorConfig::odomTopic + "_incremental", 2000, &TransformFusion::imuOdometryHandler,
                 this, ros::TransportHints().tcpNoDelay());
 
-        pubImuOdometry = nh.advertise<nav_msgs::Odometry>(Config::odomTopic, 2000);
+        pubImuOdometry = nh.advertise<nav_msgs::Odometry>(SensorConfig::odomTopic, 2000);
         pubImuPath = nh.advertise<nav_msgs::Path>("lio_sam_6axis/imu/path", 1);
     }
 
@@ -93,7 +93,7 @@ public:
         static tf::Transform map_to_odom = tf::Transform(
                 tf::createQuaternionFromRPY(0, 0, 0), tf::Vector3(0, 0, 0));
         tfMap2Odom.sendTransform(tf::StampedTransform(
-                map_to_odom, odomMsg->header.stamp, Config::mapFrame, Config::odometryFrame));
+                map_to_odom, odomMsg->header.stamp, SensorConfig::mapFrame, SensorConfig::odometryFrame));
 
         std::lock_guard<std::mutex> lock(mtx);
 
@@ -129,13 +129,13 @@ public:
         static tf::TransformBroadcaster tfOdom2BaseLink;
         tf::Transform tCur;
         tf::poseMsgToTF(laserOdometry.pose.pose, tCur);
-        if (Config::lidarFrame != Config::baselinkFrame) tCur = tCur * lidar2Baselink;
+        if (SensorConfig::lidarFrame != SensorConfig::baselinkFrame) tCur = tCur * lidar2Baselink;
         tf::StampedTransform odom_2_baselink = tf::StampedTransform(
-                tCur, odomMsg->header.stamp, Config::odometryFrame, Config::baselinkFrame);
+                tCur, odomMsg->header.stamp, SensorConfig::odometryFrame,SensorConfig::baselinkFrame);
         tfOdom2BaseLink.sendTransform(odom_2_baselink);
 
         // std::cout<<"********************************"<<useImuHeadingInitialization<<std::endl;
-        std::cout<<"********************************"<<Config::useImuHeadingInitialization<<std::endl;
+        std::cout<<"********************************"<<SensorConfig::useImuHeadingInitialization<<std::endl;
 
         // publish IMU path
         static nav_msgs::Path imuPath;
@@ -145,7 +145,7 @@ public:
             last_path_time = imuTime;
             geometry_msgs::PoseStamped pose_stamped;
             pose_stamped.header.stamp = imuOdomQueue.back().header.stamp;
-            pose_stamped.header.frame_id = Config::odometryFrame;
+            pose_stamped.header.frame_id = SensorConfig::odometryFrame;
             pose_stamped.pose = laserOdometry.pose.pose;
             imuPath.poses.push_back(pose_stamped);
             while (!imuPath.poses.empty() &&
@@ -153,7 +153,7 @@ public:
                 imuPath.poses.erase(imuPath.poses.begin());
             if (pubImuPath.getNumSubscribers() != 0) {
                 imuPath.header.stamp = imuOdomQueue.back().header.stamp;
-                imuPath.header.frame_id = Config::odometryFrame;
+                imuPath.header.frame_id = SensorConfig::odometryFrame;
                 pubImuPath.publish(imuPath);
             }
         }
@@ -207,14 +207,14 @@ public:
 
     gtsam::Pose3 imu2Lidar =
             gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0),
-                         gtsam::Point3(-Config::extrinsicTrans.x(), -Config::extrinsicTrans.y(), -Config::extrinsicTrans.z()));
+                         gtsam::Point3(-SensorConfig::extrinsicTrans.x(), -SensorConfig::extrinsicTrans.y(), -SensorConfig::extrinsicTrans.z()));
     gtsam::Pose3 lidar2Imu =
             gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0),
-                         gtsam::Point3(Config::extrinsicTrans.x(), Config::extrinsicTrans.y(), Config::extrinsicTrans.z()));
+                         gtsam::Point3(SensorConfig::extrinsicTrans.x(), SensorConfig::extrinsicTrans.y(), SensorConfig::extrinsicTrans.z()));
 
     IMUPreintegration() {
         subImu = nh.subscribe<sensor_msgs::Imu>(
-                Config::imuTopic, 2000, &IMUPreintegration::imuHandler, this,
+                SensorConfig::imuTopic, 2000, &IMUPreintegration::imuHandler, this,
                 ros::TransportHints().tcpNoDelay());
         subOdometry = nh.subscribe<nav_msgs::Odometry>(
                 "lio_sam_6axis/mapping/odometry_incremental", 5,
@@ -222,16 +222,16 @@ public:
                 ros::TransportHints().tcpNoDelay());
 
         pubImuOdometry =
-                nh.advertise<nav_msgs::Odometry>(Config::odomTopic + "_incremental", 2000);
+                nh.advertise<nav_msgs::Odometry>(SensorConfig::odomTopic + "_incremental", 2000);
 
         boost::shared_ptr<gtsam::PreintegrationParams> p =
-                gtsam::PreintegrationParams::MakeSharedU(Config::imuGravity);
+                gtsam::PreintegrationParams::MakeSharedU(SensorConfig::imuGravity);
         p->accelerometerCovariance =
                 gtsam::Matrix33::Identity(3, 3) *
-                pow(Config::imuAccNoise, 2);  // acc white noise in continuous
+                pow(SensorConfig::imuAccNoise, 2);  // acc white noise in continuous
         p->gyroscopeCovariance =
                 gtsam::Matrix33::Identity(3, 3) *
-                pow(Config::imuGyrNoise, 2);  // gyro white noise in continuous
+                pow(SensorConfig::imuGyrNoise, 2);  // gyro white noise in continuous
         p->integrationCovariance =
                 gtsam::Matrix33::Identity(3, 3) *
                 pow(1e-4,
@@ -251,8 +251,8 @@ public:
         correctionNoise2 = gtsam::noiseModel::Diagonal::Sigmas(
                 (gtsam::Vector(6) << 1, 1, 1, 1, 1, 1)
                         .finished());  // rad,rad,rad,m, m, m
-        noiseModelBetweenBias = (gtsam::Vector(6) << Config::imuAccBiasN, Config::imuAccBiasN,
-                Config::imuAccBiasN, Config::imuGyrBiasN, Config::imuGyrBiasN, Config::imuGyrBiasN)
+        noiseModelBetweenBias = (gtsam::Vector(6) << SensorConfig::imuAccBiasN, SensorConfig::imuAccBiasN,
+                SensorConfig::imuAccBiasN, SensorConfig::imuGyrBiasN, SensorConfig::imuGyrBiasN, SensorConfig::imuGyrBiasN)
                 .finished();
 
 //    if (sensor == SensorType::HESAI) {
@@ -264,8 +264,8 @@ public:
 //              .finished();
 //    } else {
         noiseModelBetweenBias =
-                (gtsam::Vector(6) << Config::imuAccBiasN, Config::imuAccBiasN, Config::imuAccBiasN,
-                        Config::imuGyrBiasN, Config::imuGyrBiasN, Config::imuGyrBiasN)
+                (gtsam::Vector(6) << SensorConfig::imuAccBiasN, SensorConfig::imuAccBiasN, SensorConfig::imuAccBiasN,
+                        SensorConfig::imuGyrBiasN, SensorConfig::imuGyrBiasN, SensorConfig::imuGyrBiasN)
                         .finished();
 //    }
 
@@ -555,7 +555,7 @@ public:
         // publish odometry
         nav_msgs::Odometry odometry;
         odometry.header.stamp = thisImu.header.stamp;
-        odometry.header.frame_id = Config::odometryFrame;
+        odometry.header.frame_id = SensorConfig::odometryFrame;
         odometry.child_frame_id = "odom_imu";
 
         // transform imu pose to ldiar
@@ -596,7 +596,7 @@ int main(int argc, char **argv) {
 #endif
 
     ros::init(argc, argv, "imu_pre");
-    Load_YAML("./config/config.yaml");
+    Load_Sensor_YAML("./config/sensor.yaml");
 
 
     IMUPreintegration ImuP;

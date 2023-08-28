@@ -23,7 +23,7 @@ public:
 
     GNSSOdom(ros::NodeHandle &_nh) {
         nh = _nh;
-        gpsSub = nh.subscribe(Config::gpsTopic, 100, &GNSSOdom::GNSSCB, this,
+        gpsSub = nh.subscribe(SensorConfig::gpsTopic, 100, &GNSSOdom::GNSSCB, this,
                               ros::TransportHints().tcpNoDelay());
         left_odom_pub = nh.advertise<nav_msgs::Odometry>("/gps_odom", 100, false);
         init_origin_pub = nh.advertise<nav_msgs::Odometry>("/init_odom", 10000, false);
@@ -48,7 +48,7 @@ private:
             /** publish initial pose from GNSS ENU Frame*/
             nav_msgs::Odometry init_msg;
             init_msg.header.stamp = msg->header.stamp;
-            init_msg.header.frame_id = Config::odometryFrame;
+            init_msg.header.frame_id = SensorConfig::odometryFrame;
             init_msg.child_frame_id = "gps";
             init_msg.pose.pose.position.x = lla[0];
             init_msg.pose.pose.position.y = lla[1];
@@ -88,7 +88,7 @@ private:
         // pub gps odometry
         nav_msgs::Odometry odom_msg;
         odom_msg.header.stamp = msg->header.stamp;
-        odom_msg.header.frame_id = Config::odometryFrame;
+        odom_msg.header.frame_id = SensorConfig::odometryFrame;
         odom_msg.child_frame_id = "gps";
 
         // ----------------- 1. use utm -----------------------
@@ -115,7 +115,7 @@ private:
 
         /** just for gnss visualization */
         // publish path
-        left_path.header.frame_id = Config::odometryFrame;
+        left_path.header.frame_id = SensorConfig::odometryFrame;
         left_path.header.stamp = msg->header.stamp;
         geometry_msgs::PoseStamped pose;
         pose.header = left_path.header;
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
 
 
     ros::init(argc, argv, "gps_convert");
-    Load_YAML("./config/config.yaml");
+    Load_Sensor_YAML("./config/sensor.yaml");
 
     ros::NodeHandle nh;
     GNSSOdom gps(nh);

@@ -2,6 +2,7 @@
 #include "utility.h"
 #include "config_helper.h"
 #include "easylogging++.h"
+
 INITIALIZE_EASYLOGGINGPP
 struct smoothness_t {
   float value;
@@ -52,21 +53,23 @@ class FeatureExtraction {
         "lio_sam_6axis/feature/cloud_surface", 1);
 
     initializationValue();
+
   }
 
   void initializationValue() {
-    cloudSmoothness.resize(Config::N_SCAN * Config::Horizon_SCAN);
+    cloudSmoothness.resize(SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN);
 
-    downSizeFilter.setLeafSize(Config::odometrySurfLeafSize, Config::odometrySurfLeafSize,
-                               Config::odometrySurfLeafSize);
+    downSizeFilter.setLeafSize(MappingConfig::odometrySurfLeafSize, MappingConfig::odometrySurfLeafSize,
+                               MappingConfig::odometrySurfLeafSize);
 
     extractedCloud.reset(new pcl::PointCloud<PointType>());
     cornerCloud.reset(new pcl::PointCloud<PointType>());
     surfaceCloud.reset(new pcl::PointCloud<PointType>());
 
-    cloudCurvature = new float[Config::N_SCAN * Config::Horizon_SCAN];
-    cloudNeighborPicked = new int[Config::N_SCAN * Config::Horizon_SCAN];
-    cloudLabel = new int[Config::N_SCAN * Config::Horizon_SCAN];
+    cloudCurvature = new float[SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN];
+    cloudNeighborPicked = new int[SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN];
+    cloudLabel = new int[SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN];
+
   }
 
   void laserCloudInfoHandler(const lio_sam_6axis::cloud_infoConstPtr &msgIn) {
@@ -156,7 +159,7 @@ class FeatureExtraction {
     pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS(
         new pcl::PointCloud<PointType>());
 
-    for (int i = 0; i < Config::N_SCAN; i++) {
+    for (int i = 0; i < SensorConfig::N_SCAN; i++) {
       surfaceCloudScan->clear();
 
       for (int j = 0; j < 6; j++) {
@@ -177,7 +180,7 @@ class FeatureExtraction {
         for (int k = ep; k >= sp; k--) {
           int ind = cloudSmoothness[k].ind;
           if (cloudNeighborPicked[ind] == 0 &&
-              cloudCurvature[ind] > Config::edgeThreshold) {
+              cloudCurvature[ind] > MappingConfig::edgeThreshold) {
             largestPickedNum++;
             if (largestPickedNum <= 20) {
               cloudLabel[ind] = 1;
@@ -207,7 +210,7 @@ class FeatureExtraction {
         for (int k = sp; k <= ep; k++) {
           int ind = cloudSmoothness[k].ind;
           if (cloudNeighborPicked[ind] == 0 &&
-              cloudCurvature[ind] < Config::surfThreshold) {
+              cloudCurvature[ind] < MappingConfig::surfThreshold) {
             cloudLabel[ind] = -1;
             cloudNeighborPicked[ind] = 1;
 
@@ -257,9 +260,9 @@ class FeatureExtraction {
     freeCloudInfoMemory();
     // save newly extracted features
     cloudInfo.cloud_corner = publishCloud(pubCornerPoints, cornerCloud,
-                                          cloudHeader.stamp, Config::lidarFrame);
+                                          cloudHeader.stamp, SensorConfig::lidarFrame);
     cloudInfo.cloud_surface = publishCloud(pubSurfacePoints, surfaceCloud,
-                                           cloudHeader.stamp, Config::lidarFrame);
+                                           cloudHeader.stamp, SensorConfig::lidarFrame);
     // publish to mapOptimization
     pubLaserCloudInfo.publish(cloudInfo);
   }
@@ -272,8 +275,8 @@ int main(int argc, char **argv) {
 #else
     EZLOG(INFO) << "easylogging++ thread unsafe";
 #endif
-
-  Load_YAML("./config/config.yaml");
+    Load_Sensor_YAML("./config/sensor.yaml");
+    Load_Mapping_YAML("./config/mapping.yaml");
 
   ros::init(argc, argv, "ft_ext");
 

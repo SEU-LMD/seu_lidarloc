@@ -346,13 +346,13 @@ sensor_msgs::Imu imuConverter(const sensor_msgs::Imu &imu_in) {
     sensor_msgs::Imu imu_out = imu_in;
     // rotate acceleration
     Eigen::Vector3d acc(imu_in.linear_acceleration.x, imu_in.linear_acceleration.y, imu_in.linear_acceleration.z);
-    acc = Config::extrinsicRot * acc;//extRot = Eigen::Matrix3d
+    acc = SensorConfig::extrinsicRot * acc;//extRot = Eigen::Matrix3d
     imu_out.linear_acceleration.x = acc.x();
     imu_out.linear_acceleration.y = acc.y();
     imu_out.linear_acceleration.z = acc.z();
     // rotate gyroscope
     Eigen::Vector3d gyr(imu_in.angular_velocity.x, imu_in.angular_velocity.y, imu_in.angular_velocity.z);
-    gyr = Config::extrinsicRot  * gyr;
+    gyr = SensorConfig::extrinsicRot  * gyr;
     imu_out.angular_velocity.x = gyr.x();
     imu_out.angular_velocity.y = gyr.y();
     imu_out.angular_velocity.z = gyr.z();
@@ -361,7 +361,7 @@ sensor_msgs::Imu imuConverter(const sensor_msgs::Imu &imu_in) {
                                 imu_in.orientation.z);
     Eigen::Quaterniond q_final;
     // if (Config::imuType == 0) {
-    q_final = Config::extrinsicQRPY;//extQRPY = Eigen::Quaterniond 
+    q_final = SensorConfig::extrinsicQRPY;//extQRPY = Eigen::Quaterniond
     // } else if (imuType == 1)
     //     q_final = q_from * extQRPY;
     // else
