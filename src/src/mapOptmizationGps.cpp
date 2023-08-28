@@ -63,6 +63,7 @@ public:
     int frame_id = -1;
     ros::NodeHandle nh;
     std::mutex timer_mutex;
+    bool timer_start = false;
     TicToc timer_cloud;//用于记录接收到数据的时间
     SaveMap map_saver;
     NonlinearFactorGraph gtSAMgraph;
@@ -94,7 +95,6 @@ public:
     ros::Subscriber subGPS;
     ros::Subscriber subLoop;
 
-    ros::ServiceServer srvSaveMap;
 
     std::deque<nav_msgs::Odometry> gpsQueue;
     lio_sam_6axis::cloud_info cloudInfo;
@@ -255,8 +255,7 @@ public:
         subLoop = nh.subscribe<std_msgs::Float64MultiArray>(
                 "lio_loop/loop_closure_detection", 1, &mapOptimization::loopInfoHandler,
                 this, ros::TransportHints().tcpNoDelay());
-        srvSaveMap = nh.advertiseService("lio_sam_6axis/save_map",
-                                         &mapOptimization::saveMapService, this);
+
 
         pubHistoryKeyFrames = nh.advertise<sensor_msgs::PointCloud2>(
                 "lio_sam_6axis/mapping/icp_loop_closure_history_cloud", 1);
@@ -391,6 +390,11 @@ public:
                 publishOdometry();
 
                 publishFrames();
+
+                timer_mutex.lock();
+                timer_cloud.tic();
+                timer_start = true;
+                timer_mutex.unlock();
             }
         }
     }
@@ -515,180 +519,7 @@ public:
             return false;
     }
 
-    //保存地图 服务函数
-    bool saveMapService(std_srvs::Empty::Request &req,
-                        std_srvs::Empty::Response &res) {
-        if (cloudKeyPoses6D->size() < 1) {
-            ROS_INFO("NO ENCOUGH POSE!");
-            return false;
-        }
 
-        Eigen::Vector3d optimized_lla;
-        if (Config::useGPS) {
-            Eigen::Vector3d first_point(cloudKeyPoses6D->at(0).x,
-                                        cloudKeyPoses6D->at(0).y,
-                                        cloudKeyPoses6D->at(0).z);
-            // we save optimized origin gps point
-            geo_converter.Reverse(first_point[0], first_point[1], first_point[2], optimized_lla[0], optimized_lla[1],
-                                  optimized_lla[2]);
-            //Eigen::Vector3d enu;
-            geo_converter.Forward(originLLA[0], originLLA[1], originLLA[2], optimized_lla[0], optimized_lla[1], optimized_lla[2]);
-            //geo_converter.Forward(originLLA[0], originLLA[1], originLLA[2], enu[0], enu[1], enu[2]);
-
-            std::cout << std::setprecision(9)
-                      << "origin LLA: " << originLLA.transpose() << std::endl;
-            std::cout << std::setprecision(6)
-                      << "optimized LLA: " << optimized_lla.transpose() << std::endl;
-            //dataSaverPtr->saveOriginGPS(optimized_lla);
-           // std::cout << std::setprecision(6)
-               //     << "optimized LLA: " << enu.transpose() << std::endl;
-           dataSaverPtr->saveOriginGPS(optimized_lla);
-        }
-
-
-        geo_converter.Reset(optimized_lla[0], optimized_lla[1], optimized_lla[2]);
-
-        vector<pcl::PointCloud<PointType>::Ptr> keyframePc;
-        std::vector<Eigen::Vector3d> lla_vec;
-        std::vector<geometry_msgs::TransformStamped> transform_vec;
-        // pcl::PointCloud<PointType>::Ptr temp_ptr(new pcl::PointCloud<PointType>);
-        std::vector<nav_msgs::Odometry> keyframePosesOdom;
-
-        for (int i = 0; i < cloudKeyPoses6D->size(); ++i) {
-            mtx.lock();
-            PointTypePose p = cloudKeyPoses6D->at(i);
-            mtx.unlock();
-
-            // keyframeTimes.push_back(p.time);
-            //            Eigen::Translation3d tf_trans(p.x, p.y, p.z);
-            //            Eigen::AngleAxisd rot_x(p.roll, Eigen::Vector3d::UnitX());
-            //            Eigen::AngleAxisd rot_y(p.pitch, Eigen::Vector3d::UnitY());
-            //            Eigen::AngleAxisd rot_z(p.yaw, Eigen::Vector3d::UnitZ());
-            //            Eigen::Matrix4d trans = (tf_trans * rot_z * rot_y *
-            //            rot_x).matrix(); keyframePosestrans.push_back(trans);
-
-            nav_msgs::Odometry laserOdometryROS;
-            laserOdometryROS.header.stamp = ros::Time().fromSec(p.time);
-            laserOdometryROS.header.frame_id = Config::odometryFrame;
-            laserOdometryROS.child_frame_id = Config::lidarFrame;
-            laserOdometryROS.pose.pose.position.x = p.x;
-            laserOdometryROS.pose.pose.position.y = p.y;
-            laserOdometryROS.pose.pose.position.z = p.z;
-            laserOdometryROS.pose.pose.orientation =
-                    tf::createQuaternionMsgFromRollPitchYaw(p.roll, p.pitch, p.yaw);
-            keyframePosesOdom.push_back(laserOdometryROS);
-
-            //            temp_ptr->clear();
-            //            *temp_ptr += *surfCloudKeyFrames.at(i);
-            //            *temp_ptr += *cornerCloudKeyFrames.at(i);
-            //            keyframePc.push_back(temp_ptr);
-
-            geometry_msgs::TransformStamped transform_msg;
-            transform_msg.header.stamp = ros::Time().fromSec(p.time);
-            transform_msg.header.frame_id = Config::odometryFrame;
-            transform_msg.child_frame_id = Config::lidarFrame;
-            transform_msg.transform.translation.x = p.x;
-            transform_msg.transform.translation.y = p.y;
-            transform_msg.transform.translation.z = p.z;
-            transform_msg.transform.rotation =
-                    tf::createQuaternionMsgFromRollPitchYaw(p.roll, p.pitch, p.yaw);
-            transform_vec.push_back(transform_msg);
-
-            if (Config::useGPS) {
-                // we save optimized origin gps point, maybe the altitude value need to
-                // be fixes
-                Eigen::Vector3d first_point(p.x, p.y, p.z);
-                Eigen::Vector3d lla_point;
-                geo_converter.Reverse(first_point[0], first_point[1], first_point[2], lla_point[0], lla_point[1],
-                                      lla_point[2]);
-                lla_vec.push_back(lla_point);
-            }
-        }//end function  for (int i = 0; i < cloudKeyPoses6D->size(); ++i) {
-
-
-        //dataSaverPtr->saveTimes(keyframeTimes);
-        dataSaverPtr->saveOptimizedVerticesTUM(isamCurrentEstimate);
-        //dataSaverPtr->saveOptimizedVerticesKITTI(isamCurrentEstimate);
-//        dataSaverPtr->saveOdometryVerticesTUM(keyframeRawOdom);
-        // dataSaverPtr->saveResultBag(keyframePosesOdom, keyframeCloudDeskewed, transform_vec);//保存原始点
-       // if (Config::useGPS) dataSaverPtr->saveKMLTrajectory(lla_vec);
-
-        /** always remember do not call this service if your databag do not play over!!!!!!!!*/
-        mtxGraph.lock();
-       // dataSaverPtr->saveGraphGtsam(gtSAMgraph, isam, isamCurrentEstimate);
-        mtxGraph.unlock();
-
-        std::cout << "Times, isam, raw_odom, pose_odom, pose3D, pose6D: "
-                  << keyframeTimes.size() << " " << isamCurrentEstimate.size()
-                  << ", " << keyframeRawOdom.size() << " "
-                  << keyframePosesOdom.size() << " " << cloudKeyPoses3D->size()
-                  << " " << cloudKeyPoses6D->size() << std::endl;
-        std::cout << "key_cloud, surf, corner, raw_frame size: "
-                  << keyframePc.size() << " " << surfCloudKeyFrames.size() << " "
-                  << cornerCloudKeyFrames.size() << " "
-                  << laserCloudRawKeyFrames.size() << std::endl;
-
-        pcl::PointCloud<PointType>::Ptr globalCornerCloud(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr globalCornerCloudDS(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr globalSurfCloud(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr globalSurfCloudDS(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr globalRawCloud(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr globalRawCloudDS(
-                new pcl::PointCloud<PointType>());
-
-        pcl::PointCloud<PointType>::Ptr globalMapCloud(
-                new pcl::PointCloud<PointType>());
-        for (int i = 0; i < (int) cloudKeyPoses3D->size(); i++) {
-            *globalCornerCloud += *transformPointCloud(cornerCloudKeyFrames[i],
-                                                       &cloudKeyPoses6D->points[i]);
-            *globalSurfCloud += *transformPointCloud(surfCloudKeyFrames[i],
-                                                     &cloudKeyPoses6D->points[i]);
-            /** if you want to save the origin deskewed point cloud, but not only feature map*/
-//            *globalRawCloud += *transformPointCloud(laserCloudRawKeyFrames[i],
-//                                                    &cloudKeyPoses6D->points[i]);
-            cout << "\r" << std::flush << "Processing feature cloud " << i << " of "
-                 << cloudKeyPoses6D->size() << " ..." << std::endl;
-        }
-
-        downSizeFilterCorner.setInputCloud(globalCornerCloud);
-        downSizeFilterCorner.setLeafSize(Config::globalMapLeafSize, Config::globalMapLeafSize, Config::globalMapLeafSize);
-        downSizeFilterCorner.filter(*globalCornerCloudDS);
-
-        downSizeFilterSurf.setInputCloud(globalSurfCloud);
-        downSizeFilterSurf.setLeafSize(Config::globalMapLeafSize,Config::globalMapLeafSize, Config::globalMapLeafSize);
-        downSizeFilterSurf.filter(*globalSurfCloudDS);
-
-        // save global point cloud map
-        *globalMapCloud += *globalCornerCloudDS;
-        *globalMapCloud += *globalSurfCloudDS;
-        // *globalMapCloud += *globalRawCloud;
-
-//        downSizeFilterSurf.setInputCloud(globalRawCloud);
-//        downSizeFilterSurf.setLeafSize(globalMapLeafSize, globalMapLeafSize,
-//                                       globalMapLeafSize);
-//        downSizeFilterSurf.filter(*globalRawCloudDS);
-
-        /** if you need to downsample the final map, 0.5m is ok*/
-        downSizeFilterSurf.setInputCloud(globalMapCloud);
-        downSizeFilterSurf.setLeafSize(Config::globalMapLeafSize, Config::globalMapLeafSize, Config::globalMapLeafSize);
-        downSizeFilterSurf.filter(*globalMapCloud);
-
-
-        std::cout << "global map size: " << globalMapCloud->size() << " " << globalRawCloudDS->size() << std::endl;
-        //dataSaverPtr->savePointCloudMap(*globalMapCloud);
-//         dataSaverPtr->savePointCloudMap(keyframePosesOdom,
-//         laserCloudRawKeyFrames);
-
-        cout << "****************************************************" << endl;
-        cout << "Saving map to pcd files completed: " << endl;
-
-        return true;
-    }//end function saveMapService
 
     void visualizeGlobalMapThread() {
         ros::Rate rate(0.2);
@@ -703,14 +534,13 @@ public:
         while (1) {
 
             //保证有了位姿数据
-            if (cloudKeyPoses6D->size() >0) {
+            if (timer_start == true) {
 
                 timer_mutex.lock();
                 double delta_time = timer_cloud.toc();
                 timer_mutex.unlock();
-
+                EZLOG(INFO)<<"delta_time = "<<delta_time<<std::endl;
                 if(delta_time>5000){
-
 
                     if (Config::useGPS) {
                         Eigen::Vector3d optimized_lla;
@@ -727,11 +557,11 @@ public:
 
                     dataSaverPtr->saveOptimizedVerticesTUM(isamCurrentEstimate);
                     EZLOG(INFO) << "Saving poses completed! " << endl;
-                    exit(-1);
+                    while(1);
                 }
             }//end if(delta_time>5000)
 
-            sleep(500);
+            sleep(0.5);
         }
     }
 
@@ -2172,9 +2002,7 @@ public:
         cloud_info.corner_cloud = *thisCornerKeyFrame;
         cloud_info.surf_cloud = *thisSurfKeyFrame;
         map_saver.addToSave(cloud_info);
-        timer_mutex.lock();
-        timer_cloud.tic();
-        timer_mutex.unlock();
+
         // if you want to save raw cloud
 //        laserCloudRawKeyFrames.push_back(thislaserCloudRawKeyFrame);
 

@@ -154,7 +154,6 @@ int main(int argc, char **argv) {
     EZLOG(INFO) << "easylogging++ thread unsafe";
 #endif
 
-    exit(-1);
 
     ros::init(argc, argv, "gps_convert");
     Load_YAML("./config/config.yaml");
