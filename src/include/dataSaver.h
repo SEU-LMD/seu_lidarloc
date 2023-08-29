@@ -50,7 +50,7 @@ class DataSaver {
 
   void saveOriginGPS(Eigen::Vector3d gps_point){
       std::fstream originStream( MappingConfig::save_map_path +"origin.txt", std::fstream::out);
-      originStream.precision(15);
+      originStream.precision(6);
       originStream << gps_point[0] << " " << gps_point[1] << " " << gps_point[2]
                    << std::endl;
       originStream.close();
@@ -60,7 +60,7 @@ class DataSaver {
   void saveOptimizedVerticesTUM(gtsam::Values _estimates) {
       std::fstream stream(MappingConfig::save_map_path + "Pose_TUM.txt",
                           std::fstream::out);
-      stream.precision(15);
+      stream.precision(6);
       for (int i = 0; i < _estimates.size(); i++) {
           auto &pose = _estimates.at(i).cast<gtsam::Pose3>();
           gtsam::Point3 p = pose.translation();
