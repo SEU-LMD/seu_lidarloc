@@ -341,7 +341,12 @@ private:
 
 //         usleep(100);
 //     }
-
+/**
+ * input：IMU raw data(3-axis acc,gyo,ori)
+ * output：rotate IMU data to lidar axis, only rotation not translation
+ * @param imu_in
+ * @return
+ */
 sensor_msgs::Imu imuConverter(const sensor_msgs::Imu &imu_in) {
     sensor_msgs::Imu imu_out = imu_in;
     // rotate acceleration
@@ -357,6 +362,7 @@ sensor_msgs::Imu imuConverter(const sensor_msgs::Imu &imu_in) {
     imu_out.angular_velocity.y = gyr.y();
     imu_out.angular_velocity.z = gyr.z();
     // rotate roll pitch yaw
+//    q_from: imu axis
     Eigen::Quaterniond q_from(imu_in.orientation.w, imu_in.orientation.x, imu_in.orientation.y,
                                 imu_in.orientation.z);
     Eigen::Quaterniond q_final;

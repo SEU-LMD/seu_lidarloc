@@ -1,7 +1,7 @@
 
   #  velodyne16 and stim300(6 axis)
   # Topics
-  save_map_path: "/home/wxy/seu_lidarloc8.24/src/result8.25/"
+  save_map_path: "/home/sy/dataSet/M2DGR/map_test/"
   pointCloudTopic: "velodyne_points"               # Point cloud data
   imuTopic: "handsfree/imu"                         # IMU data
   odomTopic: "odometry/imu"                   # IMU pre-preintegration odometry, same frequency as IMU
@@ -14,7 +14,7 @@
   mapFrame: "map"
 
   # GPS Settings
-  useGPS: true
+  useGPS: false
   updateOrigin: true                          # when you can not get a reliable gps origin points(RTK fixed)
   gpsFrequence: 10                            # set proper gps frequence to align gps and lidar timestamp
   useImuHeadingInitialization: false         # if using GPS data, set to "false"

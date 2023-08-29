@@ -24,6 +24,8 @@
 #include "utility.h"
 #include "MapSaver.h"
 
+#include "pcl/io/pcd_io.h"
+
 #include "easylogging++.h"
 INITIALIZE_EASYLOGGINGPP
 
@@ -60,7 +62,7 @@ typedef PointXYZIRPYT PointTypePose;
 
 // for ZhongKeXingChi dataset
 
-class mapOptimization {
+class LocmapOptimization {
 public:
     int frame_id = -1;
     ros::NodeHandle nh;
@@ -218,10 +220,8 @@ public:
     //  string savePCDDirectory;
     //  string scene_name;
 
-    mapOptimization() {
-        std::cout<<"init mapOptimization function"<<std::endl;
-        map_saver.Init(Config::save_map_path);
-//        std::thread saveMapThread(&SaveMap::do_work, &map_saver);//comment fyy
+    LocmapOptimization() {
+        std::cout<<"init Loc optimization function"<<std::endl;
         std::cout<<"after start map thread"<<std::endl;
 
         ISAM2Params parameters;
@@ -233,11 +233,11 @@ public:
             pubGPSOdometry = nh.advertise<sensor_msgs::NavSatFix>("lio_sam_6axis/mapping/odometry_gps", 1);
         }
 
-        pubKeyPoses = nh.advertise<sensor_msgs::PointCloud2>(
-                "lio_sam_6axis/mapping/trajectory", 1);
+//        pubKeyPoses = nh.advertise<sensor_msgs::PointCloud2>(
+//                "lio_sam_6axis/mapping/trajectory", 1);
 //        局部关键帧map的关键点云n
-        pubLaserCloudSurround = nh.advertise<sensor_msgs::PointCloud2>(
-                "lio_sam_6axis/mapping/map_global", 1);
+//        pubLaserCloudSurround = nh.advertise<sensor_msgs::PointCloud2>(
+//                "lio_sam_6axis/mapping/map_global", 1);
         pubLaserOdometryGlobal =
                 nh.advertise<nav_msgs::Odometry>("lio_sam_6axis/mapping/odometry", 1);
         pubLaserOdometryIncremental = nh.advertise<nav_msgs::Odometry>(
@@ -246,18 +246,18 @@ public:
 
         subCloud = nh.subscribe<lio_sam_6axis::cloud_info>(
                 "lio_sam_6axis/feature/cloud_info", 1,
-                &mapOptimization::laserCloudInfoHandler, this,
+                &LocmapOptimization::laserCloudInfoHandler, this,
                 ros::TransportHints().tcpNoDelay());
 
         subGPS = nh.subscribe<nav_msgs::Odometry>(
-                "gps_odom", 200, &mapOptimization::gpsHandler, this,
+                "gps_odom", 200, &LocmapOptimization::gpsHandler, this,
                 ros::TransportHints().tcpNoDelay());
 
         subLoop = nh.subscribe<std_msgs::Float64MultiArray>(
-                "lio_loop/loop_closure_detection", 1, &mapOptimization::loopInfoHandler,
+                "lio_loop/loop_closure_detection", 1, &LocmapOptimization::loopInfoHandler,
                 this, ros::TransportHints().tcpNoDelay());
         srvSaveMap = nh.advertiseService("lio_sam_6axis/save_map",
-                                         &mapOptimization::saveMapService, this);
+                                         &LocmapOptimization::saveMapService, this);
 
         pubHistoryKeyFrames = nh.advertise<sensor_msgs::PointCloud2>(
                 "lio_sam_6axis/mapping/icp_loop_closure_history_cloud", 1);
@@ -366,9 +366,9 @@ public:
 
         // extract info and feature cloud
         cloudInfo = *msgIn;
+//      --------------------come from XiaoQiang
         pcl::fromROSMsg(msgIn->cloud_corner, *laserCloudCornerLast);
         pcl::fromROSMsg(msgIn->cloud_surface, *laserCloudSurfLast);
-        pcl::fromROSMsg(msgIn->cloud_deskewed, *laserCloudRaw);  // deskewed data
 
         std::lock_guard<std::mutex> lock(mtx);
 
@@ -1149,10 +1149,14 @@ public:
         incrementalOdometryAffineFront = trans2Affine3f(transformTobeMapped);
         static Eigen::Affine3f lastImuTransformation;
 
+        // rotate the predict yaw
+//        if without init R, use trick
+
         // initialization the first frame
         if (cloudKeyPoses3D->points.empty()) {
             systemInitialized = false;
-            if (Config::useGPS) {
+//            use imu for init
+            if (Config::useGPS){
                 ROS_INFO("GPS use to init pose");
                 /** when you align gnss and lidar timestamp, make sure (1.0/gpsFrequence) is small encougn
                  *  no need to care about the real gnss frquency. time alignment fail will cause
@@ -1221,23 +1225,22 @@ public:
                     ROS_WARN("GPS init success");
                 }
             }
-
-            else {
-
+            else{
                 transformTobeMapped[0] = cloudInfo.imuRollInit;
                 transformTobeMapped[1] = cloudInfo.imuPitchInit;
                 transformTobeMapped[2] = cloudInfo.imuYawInit;
+//--------------- change to gnss heading
+//                if (!Config::useImuHeadingInitialization) transformTobeMapped[2] = 0;
 
-                if (!Config::useImuHeadingInitialization) transformTobeMapped[2] = 0;
-
-                lastImuTransformation = pcl::getTransformation(
-                        0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
-                        cloudInfo.imuYawInit);
+//                lastImuTransformation = pcl::getTransformation(
+//                        0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
+//                        cloudInfo.imuYawInit);
 
                 systemInitialized = true;
                 return;
             }
         }
+
 
         if (!systemInitialized) {
             ROS_ERROR("sysyem need to be initialized");
@@ -1246,55 +1249,56 @@ public:
 
         // if not the first frame
         // use imu pre-integration estimation for pose guess
-        static bool lastImuPreTransAvailable = false;
-        static Eigen::Affine3f lastImuPreTransformation;
-        if (cloudInfo.odomAvailable == true) {
-            Eigen::Affine3f transBack = pcl::getTransformation(
-                    cloudInfo.initialGuessX, cloudInfo.initialGuessY,
-                    cloudInfo.initialGuessZ, cloudInfo.initialGuessRoll,
-                    cloudInfo.initialGuessPitch, cloudInfo.initialGuessYaw);
-            if (lastImuPreTransAvailable == false) {
-                lastImuPreTransformation = transBack;
-                lastImuPreTransAvailable = true;
-            } else {
-                Eigen::Affine3f transIncre =
-                        lastImuPreTransformation.inverse() * transBack;
-                Eigen::Affine3f transTobe = trans2Affine3f(transformTobeMapped);
-                Eigen::Affine3f transFinal = transTobe * transIncre;
-                pcl::getTranslationAndEulerAngles(
-                        transFinal, transformTobeMapped[3], transformTobeMapped[4],
-                        transformTobeMapped[5], transformTobeMapped[0],
-                        transformTobeMapped[1], transformTobeMapped[2]);
-
-                lastImuPreTransformation = transBack;
-
-                lastImuTransformation = pcl::getTransformation(
-                        0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
-                        cloudInfo.imuYawInit);  // save imu before return;
-                return;
-            }
-        }
-
-        // use imu incremental estimation for pose guess (only rotation)
-        if (cloudInfo.imuAvailable == true) {
-            Eigen::Affine3f transBack =
-                    pcl::getTransformation(0, 0, 0, cloudInfo.imuRollInit,
-                                           cloudInfo.imuPitchInit, cloudInfo.imuYawInit);
-            Eigen::Affine3f transIncre = lastImuTransformation.inverse() * transBack;
-
-            Eigen::Affine3f transTobe = trans2Affine3f(transformTobeMapped);
-            Eigen::Affine3f transFinal = transTobe * transIncre;
-            pcl::getTranslationAndEulerAngles(
-                    transFinal, transformTobeMapped[3], transformTobeMapped[4],
-                    transformTobeMapped[5], transformTobeMapped[0],
-                    transformTobeMapped[1], transformTobeMapped[2]);
-
-            // update last imu transformation
-            lastImuTransformation = pcl::getTransformation(
-                    0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
-                    cloudInfo.imuYawInit);  // save imu before return;
-            return;
-        }
+//---------------------------use gnss for pose guess
+//        static bool lastImuPreTransAvailable = false;
+//        static Eigen::Affine3f lastImuPreTransformation;
+//        if (cloudInfo.odomAvailable == true) {
+//            Eigen::Affine3f transBack = pcl::getTransformation(
+//                    cloudInfo.initialGuessX, cloudInfo.initialGuessY,
+//                    cloudInfo.initialGuessZ, cloudInfo.initialGuessRoll,
+//                    cloudInfo.initialGuessPitch, cloudInfo.initialGuessYaw);
+//            if (lastImuPreTransAvailable == false) {
+//                lastImuPreTransformation = transBack;
+//                lastImuPreTransAvailable = true;
+//            } else {
+//                Eigen::Affine3f transIncre =
+//                        lastImuPreTransformation.inverse() * transBack;
+//                Eigen::Affine3f transTobe = trans2Affine3f(transformTobeMapped);
+//                Eigen::Affine3f transFinal = transTobe * transIncre;
+//                pcl::getTranslationAndEulerAngles(
+//                        transFinal, transformTobeMapped[3], transformTobeMapped[4],
+//                        transformTobeMapped[5], transformTobeMapped[0],
+//                        transformTobeMapped[1], transformTobeMapped[2]);
+//
+//                lastImuPreTransformation = transBack;
+//
+//                lastImuTransformation = pcl::getTransformation(
+//                        0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
+//                        cloudInfo.imuYawInit);  // save imu before return;
+//                return;
+//            }
+//        }
+//
+//        // use imu incremental estimation for pose guess (only rotation)
+//        if (cloudInfo.imuAvailable == true) {
+//            Eigen::Affine3f transBack =
+//                    pcl::getTransformation(0, 0, 0, cloudInfo.imuRollInit,
+//                                           cloudInfo.imuPitchInit, cloudInfo.imuYawInit);
+//            Eigen::Affine3f transIncre = lastImuTransformation.inverse() * transBack;
+//
+//            Eigen::Affine3f transTobe = trans2Affine3f(transformTobeMapped);
+//            Eigen::Affine3f transFinal = transTobe * transIncre;
+//            pcl::getTranslationAndEulerAngles(
+//                    transFinal, transformTobeMapped[3], transformTobeMapped[4],
+//                    transformTobeMapped[5], transformTobeMapped[0],
+//                    transformTobeMapped[1], transformTobeMapped[2]);
+//
+//            // update last imu transformation
+//            lastImuTransformation = pcl::getTransformation(
+//                    0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
+//                    cloudInfo.imuYawInit);  // save imu before return;
+//            return;
+//        }
     }
 
     void extractForLoopClosure() {
@@ -1320,6 +1324,7 @@ public:
         std::vector<float> pointSearchSqDis;
 
         // extract all the nearby key poses and downsample them
+//        -------------From XiaoQiang cloudKeyPoses3D->local pose
         kdtreeSurroundingKeyPoses->setInputCloud(
                 cloudKeyPoses3D);  // create kd-tree
         kdtreeSurroundingKeyPoses->radiusSearch(
@@ -1347,9 +1352,10 @@ public:
             else
                 break;
         }
+//        XiaoQiang's -> downSizeFilterCorner,downSizeFilterSurf
         extractCloud(surroundingKeyPosesDS);
     }
-
+// maybe not used with XiaoQiang's localMap
     void extractCloud(pcl::PointCloud<PointType>::Ptr cloudToExtract) {
         // fuse the map
         laserCloudCornerFromMap->clear();
@@ -1394,22 +1400,16 @@ public:
     }
 
     void extractSurroundingKeyFrames() {
+//--------------------------if KDTree from XiaoQiang is empty(),return.
         if (cloudKeyPoses3D->points.empty() == true) return;
-
-        // if (loopClosureEnableFlag == true)
-        // {
-        //     extractForLoopClosure();
-        // } else {
-        //     extractNearby();
-        // }
 
         extractNearby();
     }
 
     void downsampleCurrentScan() {
         laserCloudRawDS->clear();
-        downSizeFilterRaw.setInputCloud(laserCloudRaw);
-        downSizeFilterRaw.filter(*laserCloudRawDS);
+//        downSizeFilterRaw.setInputCloud(laserCloudRaw);
+//        downSizeFilterRaw.filter(*laserCloudRawDS);
 
         // Downsample cloud from current scan
         laserCloudCornerLastDS->clear();
@@ -1436,11 +1436,13 @@ public:
             std::vector<int> pointSearchInd;
             std::vector<float> pointSearchSqDis;
 
+//--------- change lidar points to GNSS axis with imu prior->transformTobeMapped
             pointOri = laserCloudCornerLastDS->points[i];
             pointAssociateToMap(&pointOri, &pointSel);
             kdtreeCornerFromMap->nearestKSearch(pointSel, 5, pointSearchInd,
                                                 pointSearchSqDis);
 
+//            cal A1 corvariance to find line
             cv::Mat matA1(3, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matD1(1, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matV1(3, 3, CV_32F, cv::Scalar::all(0));
@@ -1452,9 +1454,12 @@ public:
                     cy += laserCloudCornerFromMapDS->points[pointSearchInd[j]].y;
                     cz += laserCloudCornerFromMapDS->points[pointSearchInd[j]].z;
                 }
-                cx /= 5;
-                cy /= 5;
-                cz /= 5;
+//                cx /= 5;
+//                cy /= 5;
+//                cz /= 5;
+                cx *= 0.2;
+                cy *= 0.2;
+                cz *= 0.2;
 
                 float a11 = 0, a12 = 0, a13 = 0, a22 = 0, a23 = 0, a33 = 0;
                 for (int j = 0; j < 5; j++) {
@@ -1472,12 +1477,19 @@ public:
                     a23 += ay * az;
                     a33 += az * az;
                 }
-                a11 /= 5;
-                a12 /= 5;
-                a13 /= 5;
-                a22 /= 5;
-                a23 /= 5;
-                a33 /= 5;
+//                a11 /= 5;
+//                a12 /= 5;
+//                a13 /= 5;
+//                a22 /= 5;
+//                a23 /= 5;
+//                a33 /= 5;
+
+                a11 *= 0.2;
+                a12 *= 0.2;
+                a13 *= 0.2;
+                a22 *= 0.2;
+                a23 *= 0.2;
+                a33 *= 0.2;
 
                 matA1.at<float>(0, 0) = a11;
                 matA1.at<float>(0, 1) = a12;
@@ -1489,8 +1501,10 @@ public:
                 matA1.at<float>(2, 1) = a23;
                 matA1.at<float>(2, 2) = a33;
 
+//                特征值matD1，特征向量matV1
                 cv::eigen(matA1, matD1, matV1);
 
+//                其中一个特征值比剩下两个都要大，那么这个大的特征值所对应的特征向量代表直线的方向
                 if (matD1.at<float>(0, 0) > 3 * matD1.at<float>(0, 1)) {
                     float x0 = pointSel.x;
                     float y0 = pointSel.y;
@@ -1557,6 +1571,7 @@ public:
             std::vector<float> pointSearchSqDis;
 
             pointOri = laserCloudSurfLastDS->points[i];
+//            change points to gnss map
             pointAssociateToMap(&pointOri, &pointSel);
             kdtreeSurfFromMap->nearestKSearch(pointSel, 5, pointSearchInd,
                                               pointSearchSqDis);
@@ -1613,6 +1628,8 @@ public:
                     coeff.z = s * pc;
                     coeff.intensity = s * pd2;
 
+//                  laserCloudOriSurfVec, points in lidar frame
+//                  coeffSelSurfVec
                     if (s > 0.1) {
                         laserCloudOriSurfVec[i] = pointOri;
                         coeffSelSurfVec[i] = coeff;
@@ -1647,13 +1664,17 @@ public:
 
     bool LMOptimization(int iterCount) {
         // This optimization is from the original loam_velodyne by Ji Zhang, need to
-        // cope with coordinate transformation lidar <- camera      ---     camera
-        // <- lidar x = z                ---     x = y y = x                --- y =
-        // z z = y                ---     z = x roll = yaw           ---     roll =
-        // pitch pitch = roll         ---     pitch = yaw yaw = pitch          ---
-        // yaw = roll
+        // cope with coordinate transformation
+        // lidar <- camera      ---     camera <- lidar
+        // x = z                ---     x = y
+        // y = x                ---     y = z
+        // z = y                ---     z = x
+        // roll = yaw           ---     roll = pitch
+        // pitch = roll         ---     pitch = yaw
+        // yaw = pitch          ---     yaw = roll
 
         // lidar -> camera
+//        为何需要转换？
         float srx = sin(transformTobeMapped[1]);
         float crx = cos(transformTobeMapped[1]);
         float sry = sin(transformTobeMapped[2]);
@@ -1663,6 +1684,7 @@ public:
 
         int laserCloudSelNum = laserCloudOri->size();
         if (laserCloudSelNum < 50) {
+            EZLOG(INFO) << "laserCloudSelNum is too small, num: " << laserCloudSelNum << endl;
             return false;
         }
 
@@ -1804,9 +1826,11 @@ public:
         }
     }
 
+//    IMU roll pitch yaw will constraint the result comment by ssssyyyy
     void transformUpdate() {
         if (cloudInfo.imuAvailable == true) {
             if (std::abs(cloudInfo.imuPitchInit) < 1.4) {
+//                IMU 权重，根据组合导航质量赋予不同权重
                 double imuWeight = Config::imuRPYWeight;
                 tf::Quaternion imuQuaternion;
                 tf::Quaternion transformQuaternion;
@@ -1828,13 +1852,14 @@ public:
             }
         }
 
+//       更新当前帧的 roll pitch  z
         transformTobeMapped[0] =
                 constraintTransformation(transformTobeMapped[0], Config::rotation_tollerance);
         transformTobeMapped[1] =
                 constraintTransformation(transformTobeMapped[1], Config::rotation_tollerance);
         transformTobeMapped[5] =
                 constraintTransformation(transformTobeMapped[5], Config::z_tollerance);
-
+//      incrementalOdometryAffineBack 当前帧位姿
         incrementalOdometryAffineBack = trans2Affine3f(transformTobeMapped);
     }
 
@@ -1846,14 +1871,19 @@ public:
     }
 
     bool saveFrame() {
-        if (cloudKeyPoses3D->points.empty()) return true;
+        if (cloudKeyPoses3D->points.empty())
+        {
+            EZLOG(INFO)<< "cloudKeyPoses3D->points.empty() "<<std::endl;
+            return true;
+        }
 
-        // if (sensor == SensorType::LIVOX) {
         if (Config::sensor == LidarType::LIVOX) {
             if (timeLaserInfoCur - cloudKeyPoses6D->back().time > 1.0) return true;
         }
 
+//        上一时刻位姿，历史帧数据
         Eigen::Affine3f transStart = pclPointToAffine3f(cloudKeyPoses6D->back());
+//        当前帧位姿
         Eigen::Affine3f transFinal = pcl::getTransformation(
                 transformTobeMapped[3], transformTobeMapped[4], transformTobeMapped[5],
                 transformTobeMapped[0], transformTobeMapped[1], transformTobeMapped[2]);
@@ -1875,8 +1905,7 @@ public:
 
     void addOdomFactor() {
         if (cloudKeyPoses3D->points.empty()) {
-            noiseModel::Diagonal::shared_ptr priorNoise =
-                    noiseModel::Diagonal::Variances(
+            noiseModel::Diagonal::shared_ptr priorNoise = noiseModel::Diagonal::Variances(
                             (Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8)
                                     .finished());  // rad*rad, meter*meter
 
@@ -2048,10 +2077,10 @@ public:
         if (Config::useGPS) addGPSFactor();
 
         // loop factor
-        addLoopFactor();
+//        addLoopFactor();
 
         // cout << "****************************************************" << endl;
-        // gtSAMgraph.print("GTSAM Graph:\n");
+         gtSAMgraph.print("GTSAM Graph:\n");
 
         // add raw odom
         nav_msgs::Odometry laserOdometryROS;
@@ -2071,6 +2100,7 @@ public:
             isam->update();
         }
 
+//--------------        ISAM是否清空
         gtSAMgraph.resize(0);
         initialEstimate.clear();
 
@@ -2090,7 +2120,9 @@ public:
         thisPose3D.z = latestEstimate.translation().z();
         thisPose3D.intensity =
                 cloudKeyPoses3D->size();  // this can be used as index
+        //------------------ 历史点云 需要吗？cloudKeyPoses3D comment by sy
         cloudKeyPoses3D->push_back(thisPose3D);
+
 
         thisPose6D.x = thisPose3D.x;
         thisPose6D.y = thisPose3D.y;
@@ -2100,7 +2132,9 @@ public:
         thisPose6D.pitch = latestEstimate.rotation().pitch();
         thisPose6D.yaw = latestEstimate.rotation().yaw();
         thisPose6D.time = timeLaserInfoCur;
+        //------------------ 历史点云 需要吗？cloudKeyPoses3D comment by sy
         cloudKeyPoses6D->push_back(thisPose6D);
+
 
         // cout << "****************************************************" << endl;
         // cout << "Pose covariance:" << endl;
@@ -2116,35 +2150,35 @@ public:
         transformTobeMapped[4] = latestEstimate.translation().y();
         transformTobeMapped[5] = latestEstimate.translation().z();
 
-        // save all the received edge and surf points
-        pcl::PointCloud<PointType>::Ptr thisCornerKeyFrame(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr thisSurfKeyFrame(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr thislaserCloudRawKeyFrame(
-                new pcl::PointCloud<PointType>());
-        pcl::copyPointCloud(*laserCloudCornerLastDS, *thisCornerKeyFrame);
-        pcl::copyPointCloud(*laserCloudSurfLastDS, *thisSurfKeyFrame);
-//        pcl::copyPointCloud(*laserCloudRawDS, *thislaserCloudRawKeyFrame);
-        pcl::copyPointCloud(*laserCloudRaw, *thislaserCloudRawKeyFrame);
+        //------------------- 不需要保存 comment by sy
+//        // save all the received edge and surf points
+//        pcl::PointCloud<PointType>::Ptr thisCornerKeyFrame(
+//                new pcl::PointCloud<PointType>());
+//        pcl::PointCloud<PointType>::Ptr thisSurfKeyFrame(
+//                new pcl::PointCloud<PointType>());
+//        pcl::PointCloud<PointType>::Ptr thislaserCloudRawKeyFrame(
+//                new pcl::PointCloud<PointType>());
+//        pcl::copyPointCloud(*laserCloudCornerLastDS, *thisCornerKeyFrame);
+//        pcl::copyPointCloud(*laserCloudSurfLastDS, *thisSurfKeyFrame);
+////        pcl::copyPointCloud(*laserCloudRawDS, *thislaserCloudRawKeyFrame);
+//        pcl::copyPointCloud(*laserCloudRaw, *thislaserCloudRawKeyFrame);
+//        // save key frame cloud
+//        cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
+//        surfCloudKeyFrames.push_back(thisSurfKeyFrame);
 
-        // save key frame cloud
-        cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
-        surfCloudKeyFrames.push_back(thisSurfKeyFrame);
-
-        //add by fyy
-        std::cout<<"start push cloud to map saver"<<std::endl;
-        CloudInfo cloud_info;
-        cloud_info.frame_id = ++frame_id;
-        cloud_info.corner_cloud = *thisCornerKeyFrame;
-        cloud_info.surf_cloud = *thisSurfKeyFrame;
-        map_saver.addToSave(cloud_info);
+//        //add by fyy
+//        std::cout<<"start push cloud to map saver"<<std::endl;
+//        CloudInfo cloud_info;
+//        cloud_info.frame_id = ++frame_id;
+//        cloud_info.corner_cloud = *thisCornerKeyFrame;
+//        cloud_info.surf_cloud = *thisSurfKeyFrame;
+//        map_saver.addToSave(cloud_info);
         // if you want to save raw cloud
 //        laserCloudRawKeyFrames.push_back(thislaserCloudRawKeyFrame);
 
 
-        keyframeCloudDeskewed.push_back(cloudInfo.cloud_deskewed);
-        keyframeTimes.push_back(timeLaserInfoStamp.toSec());
+//        keyframeCloudDeskewed.push_back(cloudInfo.cloud_deskewed);
+//        keyframeTimes.push_back(timeLaserInfoStamp.toSec());
 
         // save keyframe pose odom
         //        nav_msgs::Odometry updatesOdometryROS;
@@ -2452,21 +2486,19 @@ int main(int argc, char **argv) {
     EZLOG(INFO) << "easylogging++ thread unsafe";
 #endif
 
-    ros::init(argc, argv, "map_opt");
+    ros::init(argc, argv, "Loc_map_opt");
 
     Load_YAML("./config/config.yaml");
 
-    mapOptimization MO;
-    ROS_INFO("\033[1;32m----> Map Optimization Started.\033[0m");
+    LocmapOptimization MO;
+    ROS_INFO("\033[1;32m----> Loc Map Optimization Started.\033[0m");
 
-    std::thread loopthread(&mapOptimization::loopClosureThread, &MO);
-    std::thread visualizeMapThread(&mapOptimization::visualizeGlobalMapThread,
+    std::thread visualizeMapThread(&LocmapOptimization::visualizeGlobalMapThread,
                                    &MO);
-    std::thread saveMapThread(&SaveMap::do_work, &(MO.map_saver));//comment fyy
     //启动每帧点云数据线程
     ros::spin();
 
-    loopthread.join();
+
     visualizeMapThread.join();
 
     return 0;

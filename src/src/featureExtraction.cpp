@@ -44,6 +44,7 @@ class FeatureExtraction {
         &FeatureExtraction::laserCloudInfoHandler, this,
         ros::TransportHints().tcpNoDelay());
 
+//    pubLaserCloudInfo = pubCornerPoints + pubSurfacePoints
     pubLaserCloudInfo = nh.advertise<lio_sam_6axis::cloud_info>(
         "lio_sam_6axis/feature/cloud_info", 1);
     pubCornerPoints = nh.advertise<sensor_msgs::PointCloud2>(

@@ -245,18 +245,22 @@ public:
     }
 
     void cloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg) {
+//        change ros to pcl points
         if (!cachePointCloud(laserCloudMsg))
             return;
-
+//      get imu_preintegration Odometry in one lidar frame
         if (!deskewInfo())
             return;
-
+//      de skew
         projectPointCloud();
 
+//        extract good lidar points instead of feature points
         cloudExtraction();
 
+//        pub good lidar points deskewed
         publishClouds();
 
+//        clear for next lidar pointcloud
         resetParameters();
     }
 
@@ -269,52 +273,7 @@ public:
         // convert cloud
         currentCloudMsg = std::move(cloudQueue.front());
         cloudQueue.pop_front();
-        // if (sensor == SensorType::VELODYNE || sensor == SensorType::LIVOX) {
-        if (Config::sensor == LidarType::VELODYNE || Config::sensor == LidarType::LIVOX) {    
-            pcl::moveFromROSMsg(currentCloudMsg, *laserCloudIn);
-        // } else if (sensor == SensorType::OUSTER) {
-        } else if (Config::sensor == LidarType::OUSTER) {   
-            // Convert to Velodyne format
-            pcl::moveFromROSMsg(currentCloudMsg, *tmpOusterCloudIn);
-            laserCloudIn->points.resize(tmpOusterCloudIn->size());
-            laserCloudIn->is_dense = tmpOusterCloudIn->is_dense;
-            for (size_t i = 0; i < tmpOusterCloudIn->size(); i++) {
-                auto &src = tmpOusterCloudIn->points[i];
-                auto &dst = laserCloudIn->points[i];
-                dst.x = src.x;
-                dst.y = src.y;
-                dst.z = src.z;
-                dst.intensity = src.intensity;
-                dst.ring = src.ring;
-                //dst.time = src.t * 1e-9f;
-//                dst.time = src.t;
-                dst.time = src.time;
-//                dst.time = (i % 2048) / 20480.0;
-            }
-        // } else if (sensor == SensorType::HESAI) {
-        } else if (Config::sensor == LidarType::HESAI) {
-            // Convert to Velodyne format
-            pcl::moveFromROSMsg(currentCloudMsg, *tmpPandarCloudIn);
-            laserCloudIn->points.resize(tmpPandarCloudIn->size());
-            laserCloudIn->is_dense = tmpPandarCloudIn->is_dense;
-            double time_begin = tmpPandarCloudIn->points[0].timestamp;
-            for (size_t i = 0; i < tmpPandarCloudIn->size(); i++) {
-                auto &src = tmpPandarCloudIn->points[i];
-                auto &dst = laserCloudIn->points[i];
-                dst.x = src.y * -1;
-                dst.y = src.x;
-                //        dst.x = src.x;
-                //        dst.y = src.y;
-                dst.z = src.z;
-                dst.intensity = src.intensity;
-                dst.ring = src.ring;
-                //dst.tiSme = src.t * 1e-9f;
-                dst.time = src.timestamp - time_begin; // s
-            }
-        } else {
-            ROS_ERROR_STREAM("Unknown sensor type: " << Config::sensor);
-            ros::shutdown();
-        }
+        pcl::moveFromROSMsg(currentCloudMsg, *laserCloudIn);
 
         // get timestamp
         cloudHeader = currentCloudMsg.header;
@@ -322,11 +281,11 @@ public:
         // timeScanEnd = timeScanCur + laserCloudIn->points.back().time;
         timeScanEnd = timeScanCur + laserCloudIn->points.back().time;
 
-        if (Config::debugLidarTimestamp) {
-            std::cout << std::fixed << std::setprecision(12) << "end time from pcd and size: "
-                      << laserCloudIn->points.back().time
-                      << ", " << laserCloudIn->points.size() << std::endl;
-        }
+//        if (Config::debugLidarTimestamp) {
+//            std::cout << std::fixed << std::setprecision(12) << "end time from pcd and size: "
+//                      << laserCloudIn->points.back().time
+//                      << ", " << laserCloudIn->points.size() << std::endl;
+//        }
 
         // check dense flag
         if (laserCloudIn->is_dense == false) {
@@ -378,6 +337,7 @@ public:
             return false;
         }
 
+        // cal imu frame orientation in one lidar frame
         imuDeskewInfo();
 
         odomDeskewInfo();
@@ -445,7 +405,9 @@ public:
         cloudInfo.imuAvailable = true;
 
     }
-
+/**
+ * cal T between in lidar frame imu-preintegration-odometry
+ */
     void odomDeskewInfo() {
         cloudInfo.odomAvailable = false;
 
@@ -463,6 +425,7 @@ public:
             return;
 
         // get start odometry at the beinning of the scan
+//        first pose of lidar scan
         nav_msgs::Odometry startOdomMsg;
 
         for (int i = 0; i < (int) odomQueue.size(); ++i) {
@@ -507,6 +470,7 @@ public:
                 break;
         }
 
+//        check imu data  covariance?
         if (int(round(startOdomMsg.pose.covariance[0])) != int(round(endOdomMsg.pose.covariance[0])))
             return;
 
@@ -569,14 +533,14 @@ public:
 
         // If the sensor moves relatively slow, like walking speed, positional deskew seems to have little benefits. Thus code below is commented.
 
-        // if (cloudInfo.odomAvailable == false || odomDeskewFlag == false)
-        //     return;
+         if (cloudInfo.odomAvailable == false || odomDeskewFlag == false)
+             return;
 
-        // float ratio = relTime / (timeScanEnd - timeScanCur);
+         float ratio = relTime / (timeScanEnd - timeScanCur);
 
-        // *posXCur = ratio * odomIncreX;
-        // *posYCur = ratio * odomIncreY;
-        // *posZCur = ratio * odomIncreZ;
+         *posXCur = ratio * odomIncreX;
+         *posYCur = ratio * odomIncreY;
+         *posZCur = ratio * odomIncreZ;
     }
 
     PointType deskewPoint(PointType *point, double relTime) {
@@ -665,6 +629,7 @@ public:
         int count = 0;
         // extract segmented cloud for lidar odometry
         for (int i = 0; i < Config::N_SCAN; ++i) {
+//            note 5th point index.
             cloudInfo.startRingIndex[i] = count - 1 + 5;
 
             for (int j = 0; j < Config::Horizon_SCAN; ++j) {
