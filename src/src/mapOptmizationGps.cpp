@@ -23,6 +23,8 @@
 //#include "lio_sam_6axis/save_map.h"
 #include "utility.h"
 #include "MapSaver.h"
+#include "utm/utm_convert.h"
+//#include "utm/gnss.h"
 
 #include "easylogging++.h"
 INITIALIZE_EASYLOGGINGPP
@@ -552,8 +554,23 @@ public:
                         geo_converter.Reverse(first_point[0], first_point[1], first_point[2],
                                               optimized_lla[0], optimized_lla[1],optimized_lla[2]);
 
-                        dataSaverPtr->saveOriginGPS(optimized_lla);
-                        EZLOG(INFO)<<" optimized_lla = "<<optimized_lla.transpose();
+                        sad::UTMCoordinate utm_coor;
+                        Eigen::Vector2d lat_lon;
+                        Eigen::Vector3d utm;
+                        //将经度和纬度给到lat_lon
+                        lat_lon << optimized_lla[0], optimized_lla[1];
+
+                        std::cout << std::setprecision(15)<<"optimized_lla"<<optimized_lla<<std::endl;
+                       //调用utm_convert.h中的函数将精度纬度转换到UTM坐标系下
+                        sad::LatLon2UTM(lat_lon.head<2>(), utm_coor);
+                        utm_coor.z_ = optimized_lla[2];
+
+                        utm[0] = utm_coor.xy_[0];
+                        utm[1] = utm_coor.xy_[1];
+                        utm[2] = utm_coor.z_;
+
+                        dataSaverPtr->saveOriginGPS(utm);
+                        EZLOG(INFO)<<" lat_lon = "<<utm <<endl;
                     }
 
                     dataSaverPtr->saveOptimizedVerticesTUM(isamCurrentEstimate);
@@ -562,7 +579,7 @@ public:
                 }
             }//end if(delta_time>5000)
 
-            sleep(0.5);
+            sleep(0.1);
         }
     }
 
