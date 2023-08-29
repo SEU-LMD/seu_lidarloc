@@ -67,6 +67,7 @@ class SensorConfig{
     static int imu_type;//meiyong buyiyang********
     static Eigen::Vector3d  extrinsicTrans;//
     static Eigen::Matrix3d extrinsicRot;//
+    static Eigen::Matrix4d T_L_B;
     static Eigen::Matrix3d extrinsicRPY;//  **meiyong
     static Eigen::Quaterniond extrinsicQRPY;//not
     static Eigen::Vector3d t_body_sensor;
@@ -75,6 +76,8 @@ class SensorConfig{
 
 class MappingConfig{
     public:
+        static Eigen::Vector3d origin_gnss;
+        static bool use_deskew;
         // save map
         static std::string save_map_path;
 
@@ -148,6 +151,7 @@ std::string  SensorConfig::odometryFrame="";
 std::string  SensorConfig::mapFrame="";
 
     //GPS Setting
+Eigen::Matrix4d SensorConfig::T_L_B = Eigen::Matrix4d::Identity();
 bool  SensorConfig::useGPS=false;
 bool   SensorConfig::updateOrigin=false;
 int  SensorConfig::gpsFrequence=-1;
@@ -192,11 +196,13 @@ Eigen::Quaterniond SensorConfig::q_body_sensor;
 
 std::string MappingConfig::save_map_path = "";
 
+Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
 bool  MappingConfig::savePCD=false;
 std::string  MappingConfig::savePCDDirectory="";
 
 // LOAM feature threshold
 float MappingConfig::edgeThreshold=-1;
+bool MappingConfig::use_deskew = false;
 float MappingConfig::surfThreshold=-1;
 int  MappingConfig::edgeFeatureMinValidNum=-1;
 int  MappingConfig::surfFeatureMinValidNum=-1;
@@ -323,26 +329,31 @@ void Load_Sensor_YAML(std::string sensorpath)
             sensorconfig["extrinsicRPY"][3].as<double >(),sensorconfig["extrinsicRPY"][4].as<double >(),sensorconfig["extrinsicRPY"][5].as<double >(),
             sensorconfig["extrinsicRPY"][6].as<double >(),sensorconfig["extrinsicRPY"][7].as<double >(),sensorconfig["extrinsicRPY"][8].as<double >();
 
+    Eigen::Matrix4d T_L_B_tmp = Eigen::Matrix4d::Identity();
+    T_L_B_tmp.block<3,3>(0,0) = SensorConfig::extrinsicRot;
+    T_L_B_tmp.block<3,1>(0,3) = SensorConfig::extrinsicTrans;
+    SensorConfig::T_L_B = T_L_B_tmp;
+
     SensorConfig::extrinsicQRPY = Eigen::Quaterniond(SensorConfig::extrinsicRPY);
     Eigen::Quaterniond q_sensor_body(SensorConfig::extrinsicRPY);
     Eigen::Vector3d t_sensor_body = SensorConfig::extrinsicTrans;
     SensorConfig::q_body_sensor = q_sensor_body.inverse();
     SensorConfig::t_body_sensor = -(q_sensor_body.inverse() * t_sensor_body);
-    std::cout<<SensorConfig::extrinsicRot(4)<<std::endl;
 
     std::cout<<"sensorconfig yaml success load"<<std::endl;
 }
 
 void Load_Mapping_YAML(std::string mappingpath)
 {
-    YAML::Node mappingconfig;
-    try{
-        mappingconfig = YAML::LoadFile(mappingpath);
-    } catch(YAML::BadFile &e) {
-        std::cout << "mapping yaml read error!" << mappingpath << std::endl;
-        exit(1);
-    }
+        YAML::Node mappingconfig;
+        try{
+            mappingconfig = YAML::LoadFile(mappingpath);
+        } catch(YAML::BadFile &e) {
+            std::cout << "mapping yaml read error!" << mappingpath << std::endl;
+            exit(1);
+        }
 
+        MappingConfig::use_deskew=mappingconfig["use_deskew"].as<bool >();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();
         // //Export settings
@@ -402,8 +413,7 @@ void Load_Mapping_YAML(std::string mappingpath)
 
         std::cout<<"mapping yaml success load"<<std::endl;
 
-
-    }
+}//end function Load_Mapping_YAML
 
     void Load_offline_YAML(std::string offlinepath)
     {

@@ -7,6 +7,7 @@
   savePCDDirectory: "/Downloads/LOAM/"        # actually we do not use the floder to save maps
 
   # LOAM feature threshold
+  use_deskew: true
   edgeThreshold: 1.0
   surfThreshold: 0.1
   edgeFeatureMinValidNum: 10
