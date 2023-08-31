@@ -3,7 +3,7 @@
   pointCloudTopic: "/middle"               # Point cloud data
   imuTopic: "/gps_imu"                         # IMU data
   odomTopic: "odometry/imu"                   # IMU pre-preintegration odometry, same frequency as IMU
-  gpsTopic: "fix"                   # GPS odometry topic from navsat, see module_navsat.launch file
+  gpsTopic: "/gps_imu"                   # GPS odometry topic from navsat, see module_navsat.launch file
 
 # Frames
   lidarFrame: "base_link"
@@ -44,10 +44,11 @@
 
   # Extrinsics (lidar -> IMU)
   imu_type: 0   # 0: 6axis, 1:9 axis
+  #T_L_B
   extrinsicTrans: [ 0.0, 0.0, -0.5135 ]
-  extrinsicRot: [ 1, 0, 0,
-                  0, 1, 0,
+  extrinsicRot: [ 0, 1, 0,
+                  -1, 0, 0,
                   0, 0, 1 ]
-  extrinsicRPY: [ 1, 0, 0,
-                  0, 1, 0,
+  extrinsicRPY: [ -1, 0, 0,
+                  0, -1, 0,
                   0, 0, 1 ]

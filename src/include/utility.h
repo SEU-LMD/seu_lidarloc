@@ -15,6 +15,7 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include "opencv2/opencv.hpp"   // for opencv4
+#include "Eigen/Dense"
 //#include <opencv/cv.h>
 
 #include <pcl/point_cloud.h>
@@ -436,6 +437,13 @@ float pointDistance(PointType p) {
 
 float pointDistance(PointType p1, PointType p2) {
     return sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y) + (p1.z - p2.z) * (p1.z - p2.z));
+}
+
+Eigen::Matrix4d ConstructPoseT(const Eigen::Vector3d& t, const Eigen::Quaterniond& q){
+    Eigen::Matrix4d res = Eigen::Matrix4d::Identity();
+    res.block<3,3>(0,0) = q.toRotationMatrix();
+    res.block<3,1>(0,3) = t;
+     return res;
 }
 
 #endif

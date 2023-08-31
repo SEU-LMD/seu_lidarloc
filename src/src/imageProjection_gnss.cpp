@@ -58,7 +58,7 @@ private:
     ros::Subscriber subLaserCloud;
     ros::Publisher pubLaserCloud;
 
-    ros::Publisher pub_origin_cloud;
+    ros::Publisher pub_origin_cloud, pub_origin_cloud_world;
     ros::Publisher pub_deskew_cloud;
     ros::Publisher pubLaserCloudInfo;
     ros::Publisher pub_gnss_odom;
@@ -67,7 +67,7 @@ private:
     std::deque<sensor_msgs::Imu> imuQueue;
 
     ros::Subscriber subOdom;
-    std::deque<nav_msgs::Odometry> odomQueue;
+    std::deque<nav_msgs::Odometry> T_w_b_odomQueue;
     std::deque<PoseTime> gnssQueue;
 
     std::deque<sensor_msgs::PointCloud2> cloudQueue;
@@ -82,7 +82,7 @@ private:
     Eigen::Affine3f transStartInverse;
 
 
-    pcl::PointCloud<PointXYZIRT>::Ptr laserCloudIn;//传入的原始点云
+    pcl::PointCloud<PointXYZIRT>::Ptr cur_scan_cloud_body;//传入的原始点云
     pcl::PointCloud<PointType>::Ptr deskewCloud;//去畸变之后的全部点云
     pcl::PointCloud<PointType>::Ptr extractedCloud;
 
@@ -125,6 +125,7 @@ public:
 
         //for debug use topic
         pub_origin_cloud = nh.advertise<sensor_msgs::PointCloud2>("/origin_cloud", 1);
+        pub_origin_cloud_world = nh.advertise<sensor_msgs::PointCloud2>("/origin_cloud_world", 1);
         pub_deskew_cloud = nh.advertise<sensor_msgs::PointCloud2>("/deskew_cloud", 1);
         pub_gnss_odom = nh.advertise<nav_msgs::Odometry>("/gnss_odom", 2000);
 
@@ -165,7 +166,7 @@ public:
 
     void allocateMemory() {
         //
-        laserCloudIn.reset(new pcl::PointCloud<PointXYZIRT>());
+        cur_scan_cloud_body.reset(new pcl::PointCloud<PointXYZIRT>());
         deskewCloud.reset(new pcl::PointCloud<PointType>());
         extractedCloud.reset(new pcl::PointCloud<PointType>());
         deskewCloud->points.resize(SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN);//将fullCloud的点集大小初始化为N_SCAN * Horizon_SCAN
@@ -181,7 +182,7 @@ public:
     }
 
     void resetParameters() {  //重置变量，每次处理完一帧点云后调用,目的是为下一次点云的处理重新初始化相关变量,避免使用到上一帧数据的状态
-        laserCloudIn->clear();
+        cur_scan_cloud_body->clear();
         extractedCloud->clear();
         // reset range matrix for range image projection
         rangeMat = cv::Mat(SensorConfig::N_SCAN, SensorConfig::Horizon_SCAN, CV_32F, cv::Scalar::all(FLT_MAX));
@@ -219,7 +220,7 @@ public:
         Eigen::Matrix3d z_matrix;//calculate Quaternion
         Eigen::Matrix3d x_matrix;
         Eigen::Matrix3d y_matrix;
-        double heading_Z = gnss_msg->heading * 3.1415926535 / 180.0;
+        double heading_Z = -gnss_msg->heading * 3.1415926535 / 180.0;
         double pitch_Y = gnss_msg->pitch * 3.1415926535 / 180.0;
         double roll_X = gnss_msg->roll * 3.1415926535 / 180.0;
         z_matrix << cos(heading_Z), -sin(heading_Z), 0,
@@ -234,21 +235,29 @@ public:
                     0,                 1,               0 ,
                     -sin(roll_X),      0,         cos(roll_X);
 
-        Eigen::Matrix3d R_w_b = z_matrix * x_matrix * y_matrix;
+        Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);
         Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
         Eigen::Quaterniond q_w_b(R_w_b);//获得局部坐标系的四元数
 
+        Eigen::Matrix4d T_w_b = Eigen::Matrix4d::Identity();
+        T_w_b.block<3,3>(0,0) = R_w_b;
+        T_w_b.block<3,1>(0,3) = t_w_b;
+//        Eigen::Matrix4d T_w_l =  T_w_b*SensorConfig::T_L_B.inverse();
+//        Eigen::Vector3d t_w_l = T_w_l.block<3,1>(0,3);
+//        Eigen::Quaterniond q_w_l(T_w_l.block<3,3>(0,0));//获得局部坐标系的四元数
+
 //        std::cout<<"befeore!!!!!!!!!!!!!!!!!!!!!1"<<std::endl;
-//        nav_msgs::Odometry odom_msg;
-//        odom_msg.header.frame_id = "map";
-//        odom_msg.pose.pose.position.x = t_w_b[0];
-//        odom_msg.pose.pose.position.y = t_w_b[1];
-//        odom_msg.pose.pose.position.z = t_w_b[2];
-//        odom_msg.pose.pose.orientation.w = q_w_b.w();
-//        odom_msg.pose.pose.orientation.x = q_w_b.x();
-//        odom_msg.pose.pose.orientation.y = q_w_b.y();
-//        odom_msg.pose.pose.orientation.z = q_w_b.z();
-//        pub_gnss_odom.publish(odom_msg);
+        nav_msgs::Odometry odom_msg;
+        odom_msg.header.frame_id = "map";
+        odom_msg.pose.pose.position.x = t_w_b[0];
+        odom_msg.pose.pose.position.y = t_w_b[1];
+        odom_msg.pose.pose.position.z = t_w_b[2];
+        odom_msg.pose.pose.orientation.w = q_w_b.w();
+        odom_msg.pose.pose.orientation.x = q_w_b.x();
+        odom_msg.pose.pose.orientation.y = q_w_b.y();
+        odom_msg.pose.pose.orientation.z = q_w_b.z();
+        pub_gnss_odom.publish(odom_msg);
+        EZLOG(INFO)<<"publish odom"<<std::endl;
 
 
 
@@ -265,8 +274,8 @@ public:
         thisgnss->pose.pose.orientation.z = q_w_b.z();
 
         std::lock_guard<std::mutex> lock2(odoLock);
-        odomQueue.push_back(*thisgnss);//delete
-        //
+        T_w_b_odomQueue.push_back(*thisgnss);//delete
+        //backup for T_w_b_odomQueue
         PoseTime posetime;
         posetime.timestamp = gnss_msg->header.stamp.toSec();
         posetime.q = q_w_b;
@@ -279,8 +288,14 @@ public:
 
         double delta_max_time, delta_min_time;
         //转换格式, 获取每个点的delta time
-        cachePointCloud(laserCloudMsg, delta_min_time ,delta_max_time );
+        bool cahce_state = cachePointCloud(laserCloudMsg, delta_min_time ,delta_max_time );
+        if(cahce_state==false){
+            return;
+        }
+        /* pcl::PointCloud<PointXYZIRT>::Ptr origin_cloud_transformed(new pcl::PointCloud<PointXYZIRT>);
+        Eigen::Matrix4f T_w_l = Eigen::Matrix4f::Identity();
 
+        pcl::transformPointCloud(*cur_scan_cloud_body, *origin_cloud_transformed, T_w_l);*/
         Eigen::Matrix4d T_w_lidar_start;
         if (!deskewInfo(T_w_lidar_start))  //获取陀螺仪和里程计数据{}
         {
@@ -291,11 +306,11 @@ public:
         //for deubug use
 //        {
 //            pcl::PointCloud<pcl::PointXYZ> temp ;
-//            for(int i = 0; i < laserCloudIn -> points.size(); ++i){
+//            for(int i = 0; i < cur_scan_cloud_body -> points.size(); ++i){
 //                pcl::PointXYZ p;
-//                p.x = laserCloudIn -> points[i].x;
-//                p.y = laserCloudIn -> points[i].y;
-//                p.z = laserCloudIn -> points[i].z;
+//                p.x = cur_scan_cloud_body -> points[i].x;
+//                p.y = cur_scan_cloud_body -> points[i].y;
+//                p.z = cur_scan_cloud_body -> points[i].z;
 //                temp.push_back(p);
 //            }
 //            std::string filename = "/home/lsy/point/before"+ to_string( idx )+".ply";
@@ -309,7 +324,7 @@ public:
 
 
         //very important function!!!!!!!!!!!!!!!!!!1
-        projectPointCloud(delta_min_time, delta_max_time, T_w_lidar_start);  //投影点云
+        //projectPointCloud(delta_min_time, delta_max_time, T_w_lidar_start);  //投影点云
 
 //        {
 //            pcl::PointCloud<pcl::PointXYZ> temp ;
@@ -325,156 +340,144 @@ public:
 //            ++idx;
 //        }
 
-        cloudExtraction();  //提取分割点云
+        //cloudExtraction();  //提取分割点云
 
-        publishClouds();  //发布去畸变点云
+        //publishClouds();  //发布去畸变点云
 
-        resetParameters();
+        //resetParameters();
     }
 
     //
     bool cachePointCloud(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg, double& min_timestamp, double& max_timestamp) {
         // cache point cloud
         //1.convert msg to pcl cloud
+        cloudQueue.push_back(*laserCloudMsg);
+        if (cloudQueue.size() <= 2)
+            return false;
+
+        // convert cloud
         sensor_msgs::PointCloud2 currentCloudMsg;
-        currentCloudMsg = std::move(*laserCloudMsg);  //将队列前面的消息保存到currentCloudMsg
-        pcl::moveFromROSMsg(currentCloudMsg, *laserCloudIn);
-        EZLOG(INFO)<<"laserCloudIn pts size = "<<laserCloudIn->points.size()<<std::endl;
+        currentCloudMsg = std::move(cloudQueue.front());
+        cloudQueue.pop_front();
+
+        pcl::moveFromROSMsg(currentCloudMsg, *cur_scan_cloud_body);
+        EZLOG(INFO) << "cur_scan_cloud_body pts size = " << cur_scan_cloud_body->points.size() << std::endl;
+
+        Eigen::Matrix4f T_B_L = (SensorConfig::T_L_B.inverse()).cast<float>();
+        pcl::PointCloud<PointXYZIRT> tf_cloud;
+        pcl::transformPointCloud(*cur_scan_cloud_body, tf_cloud, T_B_L);
+        *cur_scan_cloud_body = tf_cloud;
+
 
         //2.find the min and max timestamp in one scan and get the delta time stamp
         min_timestamp = 10000000;
         max_timestamp = -100000000;
-        double t_0 = laserCloudIn->points[0].latency;
-        for(int i=0;i<laserCloudIn->points.size();++i)
+        double t_0 = cur_scan_cloud_body->points[0].latency;
+        for(int i=0; i < cur_scan_cloud_body->points.size(); ++i)
         {
-            laserCloudIn->points[i].latency = laserCloudIn->points[i].latency - t_0;
-            if( laserCloudIn->points[i].latency <= std::numeric_limits<double>::epsilon()) {
-                laserCloudIn->points[i].latency = 0.0;
+            cur_scan_cloud_body->points[i].latency = cur_scan_cloud_body->points[i].latency - t_0;
+//            if( cur_scan_cloud_body->points[i].latency <= std::numeric_limits<double>::epsilon()) {
+//                cur_scan_cloud_body->points[i].latency = 0.0;
+//            }
+
+
+            if(cur_scan_cloud_body->points[i].latency > max_timestamp){
+                max_timestamp = cur_scan_cloud_body->points[i].latency;
+
             }
-
-
-//            if(laserCloudIn->points[i].latency>max_tmiesatmp){
-//                max_tmiesatmp = laserCloudIn->points[i].latency;
-//
-//            }
-//            if(laserCloudIn->points[i].latency<min_timestap){
-//                min_timestap = laserCloudIn->points[i].latency;
-//            }
+            if(cur_scan_cloud_body->points[i].latency < min_timestamp){
+                min_timestamp = cur_scan_cloud_body->points[i].latency;
+            }
         }
-
-        max_timestamp = laserCloudIn->points.back().latency;
-        min_timestamp = laserCloudIn->points.front().latency;
 
         EZLOG(INFO)<<"min_timestamp = "<<min_timestamp<<std::endl;
         EZLOG(INFO)<<"max_timestamp = "<<max_timestamp<<std::endl;
+        EZLOG(INFO)<<"one scan cloud delta time(second) = "<< max_timestamp - min_timestamp<<std::endl;
 
         //3.获取在ros系统下面的启动和结束时间戳
         // get timestamp  获得时间戳信息，找到每帧开始和结束的时间
         cloudHeader = currentCloudMsg.header;
         timeScanCur = cloudHeader.stamp.toSec();
-        timeScanEnd = timeScanCur + max_timestamp - min_timestamp;//??
+        timeScanEnd = timeScanCur + max_timestamp - min_timestamp;
 
-
-        // 4.check ring channel  检查点云是否包含ring通道，检查其存在可以避免在无ring通道点云上运行导致不正确结果
-//        static int ringFlag = 0;
-//        if (ringFlag == 0) {
-//            ringFlag = -1;
-//            for (int i = 0; i < (int) currentCloudMsg.fields.size(); ++i) {  //遍历当前点云字段field，判断name中是否有ring，如果有，将ringFlag置1
-//                if (currentCloudMsg.fields[i].name == "ring") {
-//                    ringFlag = 1;
-//                    break;
-//                }
-//            }
-//            if (ringFlag == -1) {
-//                ROS_ERROR("Point cloud ring channel not available, please configure your point cloud data!");
-//                ros::shutdown();
-//            }
-//        }
-
-        // check point time  检查点云是否包含时间，点云中需要包含每点的时间戳信息,才能利用这些信息进行运动畸变校正，检查时间戳的存在,可以避免在没有时间信息的点云上执行去畸变导致错误
-        //comment by fyy
-//        if (deskewFlag == 0) {
-//            deskewFlag = -1;
-//            for (auto &field : currentCloudMsg.fields) {
-//                if (field.name == "time" || field.name == "t" || field.name == "timestamp" || field.name == "latency") {
-//                    deskewFlag = 1;
-//                    break;
-//                }
-//            }
-//            if (deskewFlag == -1)
+//      if (deskewFlag == -1)
 //                ROS_WARN(
 //                        "Point cloud timestamp not available, deskew function disabled, system will drift significantly!");
 //        }
+        sensor_msgs::PointCloud2 cur_scan_cloud_body_ros;
+        pcl::toROSMsg(*cur_scan_cloud_body, cur_scan_cloud_body_ros);
+        cur_scan_cloud_body_ros.header.frame_id = "map";
+        pub_origin_cloud.publish(cur_scan_cloud_body_ros);
 
         return true;
     }//end function cachePointCloud
 
     //找到激光起始时刻的位姿
-    bool deskewInfo(Eigen::Matrix4d& T_w_lidar_start ) {
+    bool deskewInfo( Eigen::Matrix4d& T_w_b_lidar_start ) {
 
        odoLock.lock();
 
         // make sure GNSS data available for the scan
-        if (odomQueue.empty() || odomQueue.front().header.stamp.toSec() > timeScanCur  //检查gnssQueue队列是否有数据,以及时间戳是否包含当前帧的开始和结束时间
-            || odomQueue.back().header.stamp.toSec() < timeScanEnd) {
+        if (T_w_b_odomQueue.empty() || T_w_b_odomQueue.front().header.stamp.toSec() > timeScanCur  //检查gnssQueue队列是否有数据,以及时间戳是否包含当前帧的开始和结束时间
+            || T_w_b_odomQueue.back().header.stamp.toSec() < timeScanEnd) {
+            EZLOG(INFO) << T_w_b_odomQueue.size() << std::endl;
+            EZLOG(INFO) << T_w_b_odomQueue.front().header.stamp.toSec() - timeScanCur << std::endl;
+            EZLOG(INFO) << T_w_b_odomQueue.back().header.stamp.toSec() - timeScanEnd << std::endl;
+            EZLOG(INFO)<<timeScanCur - timeScanEnd<<std::endl;
+
             EZLOG(INFO)<<"Waiting for GNSS data ..."<<std::endl;
             odoLock.unlock();
             return false;
         }
 
-        //
-        while (!odomQueue.empty()) {  //将里程计中时间早于当前帧前0.01秒的数据取出
-            if (odomQueue.front().header.stamp.toSec() < timeScanCur - 0.01)
-                odomQueue.pop_front();
+
+        //将里程计中时间早于当前帧前0.01秒的数据取出
+        while (!T_w_b_odomQueue.empty()) {
+            if (T_w_b_odomQueue.front().header.stamp.toSec() < timeScanCur - 0.015)
+                T_w_b_odomQueue.pop_front();
             else
                 break;
         }
 
-        //如果队列为空或者队列头时间早于当前帧时间，直接返回
-        if (odomQueue.empty()){
-            return false;
-        }
 
-        if (odomQueue.front().header.stamp.toSec() > timeScanCur){
-            return false;
-        }
 
-        // get start odometry at the beinning of the scan
-        //nav_msgs::Odometry startgnssmsg;//每帧数据起始时刻
-        Eigen::Vector3d startT;//第一帧输入的位置
-        Eigen::Quaterniond startQ;//旋转
-        double ktime;
-        for (int i = 0; i < (int) odomQueue.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
+        for (int i = 0; i < (int) T_w_b_odomQueue.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
 
-            if (odomQueue[i].header.stamp.toSec() > timeScanCur){
-                ktime = (timeScanCur - odomQueue[i-1].header.stamp.toSec()) / (odomQueue[i].header.stamp.toSec() - odomQueue[i-1].header.stamp.toSec());
-                //平移
-                startgnssmsg.pose.pose.position.x = odomQueue[i-1].pose.pose.position.x +
-                                                    ktime * (odomQueue[i].pose.pose.position.x-odomQueue[i-1].pose.pose.position.x);
-                startgnssmsg.pose.pose.position.y = odomQueue[i-1].pose.pose.position.y +
-                                                    ktime * (odomQueue[i].pose.pose.position.y-odomQueue[i-1].pose.pose.position.y);
-                startgnssmsg.pose.pose.position.z = odomQueue[i-1].pose.pose.position.z +
-                                                    ktime * (odomQueue[i].pose.pose.position.z-odomQueue[i-1].pose.pose.position.z);
-                //旋转
+            if (T_w_b_odomQueue[i].header.stamp.toSec() > timeScanCur){
+                double ktime = (timeScanCur - T_w_b_odomQueue[i - 1].header.stamp.toSec()) / (T_w_b_odomQueue[i].header.stamp.toSec() - T_w_b_odomQueue[i - 1].header.stamp.toSec());
+                //平移插值
+                Eigen::Vector3d t_w_b_lidar_start;
+                t_w_b_lidar_start[0] = T_w_b_odomQueue[i - 1].pose.pose.position.x +
+                                                    ktime * (T_w_b_odomQueue[i].pose.pose.position.x - T_w_b_odomQueue[i - 1].pose.pose.position.x);
+                t_w_b_lidar_start[1] = T_w_b_odomQueue[i - 1].pose.pose.position.y +
+                                                    ktime * (T_w_b_odomQueue[i].pose.pose.position.y - T_w_b_odomQueue[i - 1].pose.pose.position.y);
+                t_w_b_lidar_start[2] = T_w_b_odomQueue[i - 1].pose.pose.position.z +
+                                                    ktime * (T_w_b_odomQueue[i].pose.pose.position.z - T_w_b_odomQueue[i - 1].pose.pose.position.z);
+                //旋转插值
+                Eigen::Quaterniond q_w_b_lidar_start;//旋转
                 Eigen::Quaterniond frontQ;
                 Eigen::Quaterniond rearQ;
-                frontQ.w() = odomQueue[i-1].pose.pose.orientation.w;
-                frontQ.x() = odomQueue[i-1].pose.pose.orientation.x;
-                frontQ.y() = odomQueue[i-1].pose.pose.orientation.y;
-                frontQ.z() = odomQueue[i-1].pose.pose.orientation.z;
+                frontQ.w() = T_w_b_odomQueue[i - 1].pose.pose.orientation.w;
+                frontQ.x() = T_w_b_odomQueue[i - 1].pose.pose.orientation.x;
+                frontQ.y() = T_w_b_odomQueue[i - 1].pose.pose.orientation.y;
+                frontQ.z() = T_w_b_odomQueue[i - 1].pose.pose.orientation.z;
 
-                rearQ.w() = odomQueue[i].pose.pose.orientation.w;
-                rearQ.x() = odomQueue[i].pose.pose.orientation.x;
-                rearQ.y() = odomQueue[i].pose.pose.orientation.y;
-                rearQ.z() = odomQueue[i].pose.pose.orientation.z;
+                rearQ.w() = T_w_b_odomQueue[i].pose.pose.orientation.w;
+                rearQ.x() = T_w_b_odomQueue[i].pose.pose.orientation.x;
+                rearQ.y() = T_w_b_odomQueue[i].pose.pose.orientation.y;
+                rearQ.z() = T_w_b_odomQueue[i].pose.pose.orientation.z;
+                q_w_b_lidar_start = frontQ.slerp(ktime,rearQ);
 
-                //startT = Eigen::Vector3d(startgnssmsg.pose.pose.position.x,startgnssmsg.pose.pose.position.y,startgnssmsg.pose.pose.position.z);
-                //find x y z in lidar coordinate,Q in gnss coordinate at the beginning of the scan
-                startT << startgnssmsg.pose.pose.position.x, startgnssmsg.pose.pose.position.y, startgnssmsg.pose.pose.position.z;
-                startQ = frontQ.slerp(ktime,rearQ);
-                T_w_lidar_start = Eigen::Matrix4d::Identity();
-                T_w_lidar_start.block<3,3>(0,0) = startQ.toRotationMatrix();
-                T_w_lidar_start.block<3,1>(0,3) = startT;
+                //插值位姿态矩阵
+                T_w_b_lidar_start = ConstructPoseT(t_w_b_lidar_start , q_w_b_lidar_start);
+
+                //pusblish world origin cloud
+                pcl::PointCloud<PointXYZIRT> cur_scan_cloud_w;
+                pcl::transformPointCloud(*cur_scan_cloud_body, cur_scan_cloud_w, (T_w_b_lidar_start).cast<float>());
+                sensor_msgs::PointCloud2 cur_scan_cloud_w_ros;
+                pcl::toROSMsg(cur_scan_cloud_w, cur_scan_cloud_w_ros);
+                cur_scan_cloud_w_ros.header.frame_id = "map";
+                pub_origin_cloud_world.publish(cur_scan_cloud_w_ros);
             }
             continue;
         }
@@ -482,24 +485,27 @@ public:
 //        cloudInfo.odomAvailable = true;
 
 
-        if (odomQueue.back().header.stamp.toSec() < timeScanEnd)
+        if (T_w_b_odomQueue.back().header.stamp.toSec() < timeScanEnd)
+        {
+            odoLock.unlock();
             return  false;
+
+        }
 
 //        nav_msgs::Odometry endgnssMsg;
 //
-//        for (int i = 0; i < (int) odomQueue.size(); ++i) {  //遍历里程计队列，得到帧结束时间的里程计数据
-//            endgnssMsg = odomQueue[i];
+//        for (int i = 0; i < (int) T_w_b_odomQueue.size(); ++i) {  //遍历里程计队列，得到帧结束时间的里程计数据
+//            endgnssMsg = T_w_b_odomQueue[i];
 //
 //            if (ROS_TIME(&endgnssMsg) < timeScanEnd)
 //                continue;
 //            else
 //                break;
 //        }
-
+        odoLock.unlock();
         return true;
     }
 
-    nav_msgs::Odometry startgnssmsg;//每帧数据起始时刻
 
 
     //find the start lidar gnss pose  startT startQ
@@ -514,15 +520,15 @@ public:
     void findRotation(double pointTime, Eigen::Matrix4d *transformation_matrix) {//IMU数据中找到与当前点对应时刻的变换矩阵
         //lock mutex????????????????????????
         std::lock_guard<std::mutex> lock2(odoLock);
-        for(int i = 0;i < (int)odomQueue.size(); i++){
+        for(int i = 0;i < (int)T_w_b_odomQueue.size(); i++){
 
-            double currentgnsstime = odomQueue[i].header.stamp.toSec();
+            double currentgnsstime = T_w_b_odomQueue[i].header.stamp.toSec();
 
             if (currentgnsstime > pointTime)
             {
 
-                nav_msgs::Odometry frontgnss = odomQueue[i-1];
-                nav_msgs::Odometry reargnss = odomQueue[i];
+                nav_msgs::Odometry frontgnss = T_w_b_odomQueue[i - 1];
+                nav_msgs::Odometry reargnss = T_w_b_odomQueue[i];
 
                 double k_time = (pointTime - frontgnss.header.stamp.toSec())
                                 /(reargnss.header.stamp.toSec() - frontgnss.header.stamp.toSec());
@@ -609,21 +615,21 @@ public:
 
     void projectPointCloud(const double& delta_min_time, const double& delta_max_time, const Eigen::Matrix4d& T_w_lidar_start) {
 
-        int cloudSize = laserCloudIn->points.size(); //获取原始点云大小
+        int cloudSize = cur_scan_cloud_body->points.size(); //获取原始点云大小
 //    std::cout << "point size raw: " << cloudSize << std::endl;
         // range image projection
         for (int i = 0; i < cloudSize; ++i) {  //遍历每一个点
             PointType thisPoint;
-            thisPoint.x = laserCloudIn->points[i].x;//获取xyz、强度
-            thisPoint.y = laserCloudIn->points[i].y;
-            thisPoint.z = laserCloudIn->points[i].z;
-            thisPoint.intensity = laserCloudIn->points[i].intensity;
+            thisPoint.x = cur_scan_cloud_body->points[i].x;//获取xyz、强度
+            thisPoint.y = cur_scan_cloud_body->points[i].y;
+            thisPoint.z = cur_scan_cloud_body->points[i].z;
+            thisPoint.intensity = cur_scan_cloud_body->points[i].intensity;
             float range = pointDistance(thisPoint); //计算点的距离
 
             if (range < SensorConfig::lidarMinRange || range > SensorConfig::lidarMaxRange)
                 continue;
 
-            int rowIdn = laserCloudIn->points[i].ring;//获取行数
+            int rowIdn = cur_scan_cloud_body->points[i].ring;//获取行数
             if (rowIdn < 0 || rowIdn >= SensorConfig::N_SCAN)
                 continue;
 
@@ -665,7 +671,7 @@ public:
 //            pcl::PointXYZ before = (thisPoint.x(),thisPoint.y(),thisPoint.z()); //temp <- thisPoint, ||temp - thisPoint||
 
             //very important function@!!!!!!!!!
-            thisPoint = deskewPoint(&thisPoint, laserCloudIn->points[i].latency,T_w_lidar_start);//进行点云去畸变
+            thisPoint = deskewPoint(&thisPoint, cur_scan_cloud_body->points[i].latency, T_w_lidar_start);//进行点云去畸变
 //            std::cout<<"***************************************************604"<<std::endl;
 //            pcl::PointXYZ after = (thisPoint.x,thisPoint.y,thisPoint.z);
 //            double distance = pcl::euclideanDistance(point1, point2);;
@@ -679,6 +685,7 @@ public:
 //            std::cout<<"***************************************************606"<<std::endl;
         }
     }
+
 
     void cloudExtraction() {
 
