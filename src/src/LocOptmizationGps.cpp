@@ -406,7 +406,6 @@ public:
 
         // extract info and feature cloud
         cloudInfo = *msgIn;
-//      --------------------come from XiaoQiang  comment by sy
         pcl::fromROSMsg(msgIn->cloud_corner, *laserCloudCornerLast);
         pcl::fromROSMsg(msgIn->cloud_surface, *laserCloudSurfLast);
         std::lock_guard<std::mutex> lock(mtx);

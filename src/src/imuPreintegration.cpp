@@ -14,6 +14,7 @@
 #include "config_helper.h"
 #include <iostream>
 
+#include "ivsensorgps.h"
 // #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
 
 #include "utility.h"
@@ -213,7 +214,7 @@ public:
                          gtsam::Point3(Config::extrinsicTrans.x(), Config::extrinsicTrans.y(), Config::extrinsicTrans.z()));
 
     IMUPreintegration() {
-        subImu = nh.subscribe<sensor_msgs::Imu>(
+        subImu = nh.subscribe<gps_imu::ivsensorgps>(
                 Config::imuTopic, 2000, &IMUPreintegration::imuHandler, this,
                 ros::TransportHints().tcpNoDelay());
         subOdometry = nh.subscribe<nav_msgs::Odometry>(
@@ -523,8 +524,18 @@ public:
         return false;
     }
 
-    void imuHandler(const sensor_msgs::Imu::ConstPtr &imu_raw) {
+    void imuHandler(const gps_imu::ivsensorgpsConstPtr &gnssImu_raw) {
         std::lock_guard<std::mutex> lock(mtx);
+
+        sensor_msgs::Imu::Ptr imu_raw(new sensor_msgs::Imu());
+        imu_raw->header = gnssImu_raw->header;
+        imu_raw->linear_acceleration.x = gnssImu_raw->accx;
+        imu_raw->linear_acceleration.y = gnssImu_raw->accy;
+        imu_raw->linear_acceleration.z = gnssImu_raw->accz;
+
+        imu_raw->angular_velocity.x = gnssImu_raw->angx * 3.1415926535 / 180.0;
+        imu_raw->angular_velocity.y = gnssImu_raw->angy * 3.1415926535 / 180.0;
+        imu_raw->angular_velocity.z = gnssImu_raw->yaw * 3.1415926535 / 180.0;
 
         sensor_msgs::Imu thisImu = imuConverter(*imu_raw);
 

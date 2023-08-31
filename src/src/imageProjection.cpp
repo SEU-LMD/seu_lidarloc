@@ -1,22 +1,40 @@
 #include "utility.h"
 #include "lio_sam_6axis/cloud_info.h"
+#include "ivsensorgps.h"
+#include <limits>
+#include <cmath>
 #include "config_helper.h"
 
 #include "easylogging++.h"
 INITIALIZE_EASYLOGGINGPP
+//struct VelodynePointXYZIRT {
+//    PCL_ADD_POINT4D
+//
+//    PCL_ADD_INTENSITY;
+//    uint16_t ring;
+//    float time;
+//
+//    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+//} EIGEN_ALIGN16;
+//POINT_CLOUD_REGISTER_POINT_STRUCT (VelodynePointXYZIRT,
+//                                   (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
+//                                           (uint16_t, ring, ring)(float, time, time)
+//)
+
 struct VelodynePointXYZIRT {
     PCL_ADD_POINT4D
 
-    PCL_ADD_INTENSITY;
+    uint8_t intensity;
     uint16_t ring;
-    float time;
+    double latency;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 } EIGEN_ALIGN16;
 POINT_CLOUD_REGISTER_POINT_STRUCT (VelodynePointXYZIRT,
-                                   (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
-                                           (uint16_t, ring, ring)(float, time, time)
+                                   (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
+                                           (uint16_t, ring, ring)(double, latency, latency)
 )
+
 
 struct PandarPointXYZIRT {
     PCL_ADD_POINT4D
@@ -147,7 +165,7 @@ public:
     ros::NodeHandle nh;
     ImageProjection() :
             deskewFlag(0) {
-        subImu = nh.subscribe<sensor_msgs::Imu>(Config::imuTopic,
+        subImu = nh.subscribe<gps_imu::ivsensorgps>(Config::imuTopic,
                                                 2000,
                                                 &ImageProjection::imuHandler,
                                                 this,
@@ -213,7 +231,18 @@ public:
 
     ~ImageProjection() {}
 
-    void imuHandler(const sensor_msgs::Imu::ConstPtr &imuMsg) {
+    void imuHandler(const gps_imu::ivsensorgpsConstPtr &gnssImu_raw) {
+
+        sensor_msgs::Imu::Ptr imuMsg(new sensor_msgs::Imu());
+        imuMsg->header = gnssImu_raw->header;
+        imuMsg->linear_acceleration.x = gnssImu_raw->accx;
+        imuMsg->linear_acceleration.y = gnssImu_raw->accy;
+        imuMsg->linear_acceleration.z = gnssImu_raw->accz;
+
+        imuMsg->angular_velocity.x = gnssImu_raw->angx * 3.1415926535 / 180.0;
+        imuMsg->angular_velocity.y = gnssImu_raw->angy * 3.1415926535 / 180.0;
+        imuMsg->angular_velocity.z = gnssImu_raw->yaw * 3.1415926535 / 180.0;
+
         sensor_msgs::Imu thisImu = imuConverter(*imuMsg);
 
         std::lock_guard<std::mutex> lock1(imuLock);
@@ -274,12 +303,29 @@ public:
         currentCloudMsg = std::move(cloudQueue.front());
         cloudQueue.pop_front();
         pcl::moveFromROSMsg(currentCloudMsg, *laserCloudIn);
+        double t_0 = laserCloudIn->points[0].latency;
+        for(int i=0;i<laserCloudIn->points.size();++i)
+        {
+            if(i==0){
+                laserCloudIn->points[i].latency=0;
+            }
+            else
+            {
+                laserCloudIn->points[i].latency = laserCloudIn->points[i].latency - t_0;
+                if(abs(laserCloudIn->points[i].latency) < std::numeric_limits<double>::epsilon())
+                {
+                    laserCloudIn->points[i].latency = 0.0;
+                }
+            }
+
+
+        }
 
         // get timestamp
         cloudHeader = currentCloudMsg.header;
         timeScanCur = cloudHeader.stamp.toSec();
         // timeScanEnd = timeScanCur + laserCloudIn->points.back().time;
-        timeScanEnd = timeScanCur + laserCloudIn->points.back().time;
+        timeScanEnd = timeScanCur + laserCloudIn->points.back().latency;
 
 //        if (Config::debugLidarTimestamp) {
 //            std::cout << std::fixed << std::setprecision(12) << "end time from pcd and size: "
@@ -288,6 +334,10 @@ public:
 //        }
 
         // check dense flag
+        //        remove NaN
+        vector<int> indices;
+        pcl::removeNaNFromPointCloud(*laserCloudIn,*laserCloudIn,indices);
+
         if (laserCloudIn->is_dense == false) {
             ROS_ERROR("Point cloud is not in dense format, please remove NaN points first!");
             ros::shutdown();
@@ -313,7 +363,7 @@ public:
         if (deskewFlag == 0) {
             deskewFlag = -1;
             for (auto &field : currentCloudMsg.fields) {
-                if (field.name == "time" || field.name == "t" || field.name == "timestamp") {
+                if (field.name == "time" || field.name == "t" || field.name == "timestamp"|| field.name == "latency") {
                     deskewFlag = 1;
                     break;
                 }
@@ -616,7 +666,7 @@ public:
             if (rangeMat.at<float>(rowIdn, columnIdn) != FLT_MAX)
                 continue;
 
-            thisPoint = deskewPoint(&thisPoint, laserCloudIn->points[i].time);
+            thisPoint = deskewPoint(&thisPoint, laserCloudIn->points[i].latency);
 
             rangeMat.at<float>(rowIdn, columnIdn) = range;
 
