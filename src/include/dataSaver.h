@@ -92,6 +92,8 @@ class DataSaver {
                          std::vector<pcl::PointCloud<PointT>::Ptr> allResVec);
 
   void savePointCloudMap(pcl::PointCloud<PointT> &allResVec);
+  void savePointCloudCornerMap(pcl::PointCloud<PointT> &allResVec);
+  void savePointCloudSurfMap(pcl::PointCloud<PointT> &allResVec);
 
   int readParameter();
 

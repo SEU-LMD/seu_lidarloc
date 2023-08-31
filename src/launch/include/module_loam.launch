@@ -8,7 +8,9 @@
           output="screen"/>
     <node pkg="$(arg project)" type="$(arg project)_featureExtraction" name="$(arg project)_featureExtraction"
           output="screen"/>
-    <node pkg="$(arg project)" type="$(arg project)_mapOptmization" name="$(arg project)_mapOptmization"
+    <node pkg="$(arg project)" type="$(arg project)_loc_mapOptmizationGps" name="$(arg project)_loc_mapOptmizationGps"
           output="screen"/>
+<!--     <node pkg="$(arg project)" type="$(arg project)_mapOptmization" name="$(arg project)_mapOptmization" -->
+<!--           output="screen"/> -->
 
 </launch>

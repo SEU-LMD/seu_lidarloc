@@ -3,8 +3,10 @@ lio_sam_6axis:
   #  velodyne16 and stim300(6 axis)
 
   # Topics
-  pointCloudTopic: "velodyne_points"               # Point cloud data
-  imuTopic: "handsfree/imu"                         # IMU data
+  pointCloudTopic: "/middle"               # Point cloud data
+  imuTopic: "/gps_imu"                         # IMU data
+#  pointCloudTopic: "/velodyne_points"               # Point cloud data
+#  imuTopic: "/handsfree/imu"                         # IMU data
   odomTopic: "odometry/imu"                   # IMU pre-preintegration odometry, same frequency as IMU
   gpsTopic: "fix"                   # GPS odometry topic from navsat, see module_navsat.launch file
 
@@ -34,23 +36,38 @@ lio_sam_6axis:
   savePCDDirectory: "/Downloads/LOAM/"        # actually we do not use the floder to save maps
 
   sensor: velodyne                            # lidar sensor type, 'velodyne' or 'ouster' or 'livox' or 'hesai'
-  N_SCAN: 32                                  # number of lidar channel (i.e., Velodyne/Ouster: 16, 32, 64, 128, Livox Horizon: 6)
+  N_SCAN: 80                                  # number of lidar channel (i.e., Velodyne/Ouster: 16, 32, 64, 128, Livox Horizon: 6)
   Horizon_SCAN: 1800                          # lidar horizontal resolution (Velodyne:1800, Ouster:512,1024,2048, Livox Horizon: 4000)
   downsampleRate: 1                           # default: 1. Downsample your data if too many points. i.e., 16 = 64 / 4, 16 = 16 / 1
   lidarMinRange: 1.5                          # default: 1.0, minimum lidar range to be used
   lidarMaxRange: 1000.0
 
   # IMU Settings
-  imuAccNoise: 3.9939570888238808e-03
-  imuGyrNoise: 1.5636343949698187e-03
-  imuAccBiasN: 6.4356659353532566e-05
-  imuGyrBiasN: 3.5640318696367613e-05
-  imuGravity: 9.80511
-  imuRPYWeight: 0.01
+#  imuAccNoise: 3.9939570888238808e-03
+#  imuGyrNoise: 1.5636343949698187e-03
+#  imuAccBiasN: 6.4356659353532566e-05
+#  imuGyrBiasN: 3.5640318696367613e-05
+  imuAccNoise: 0.1
+  imuGyrNoise: 0.01
+  imuAccBiasN: 0.001
+  imuGyrBiasN: 0.0001
+#  imuGravity: 9.80511
+  imuGravity: 0.0
+  imuRPYWeight: 0.000001
+
 
   # Extrinsics (lidar -> IMU)
   imu_type: 0   # 0: 6axis, 1:9 axis
-  extrinsicTrans: [0.27255, -0.00053, 0.17954]
+#  extrinsicTrans: [0.27255, -0.00053, 0.17954]
+  extrinsicTrans: [0, 0, -0.513500004517258]
+#  extrinsicTrans: [0.27255, -0.00053, 0.17954]
+#  extrinsicTrans: [-0.335556, -0.224772, 0.380888]
+#  extrinsicRot: [ -0.000646759, 0.9999217, 0.0124914,
+#                  -0.99998904, -0.00058879, -0.0046438245,
+#                  -0.004636106, -0.012494333, 0.99991119 ]
+#  extrinsicRPY: [ -0.000646759, 0.9999217, 0.0124914,
+#                  -0.99998904, -0.00058879, -0.0046438245,
+#                  -0.004636106, -0.012494333, 0.99991119 ]
   extrinsicRot: [ 1, 0, 0,
                   0, 1, 0,
                   0, 0, 1 ]
@@ -99,7 +116,7 @@ lio_sam_6axis:
 
 
   # mapping
-  globalMapLeafSize: 0.5                        # saved map voxgrid size
+  globalMapLeafSize: 0.35                        # saved map voxgrid size
 
 
 # Navsat (convert GPS coordinates to Cartesian)

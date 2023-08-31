@@ -1,0 +1,23 @@
+std_msgs/Header header
+
+float64 lon
+float64 lat
+float64 height
+uint8 mode
+float64 heading
+float64 velocity
+string status
+int32 satenum
+uint8 isvalid
+float64 acceleration
+float64 pitch
+float64 roll
+float64 angx
+float64 angy
+float64 yaw
+float64 accx
+float64 accy
+float64 accz
+string msgflag
+float64 gpsweek
+float64 gpstime

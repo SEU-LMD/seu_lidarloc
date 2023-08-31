@@ -1,6 +1,6 @@
 <launch>
     <arg name="project" default="lio_sam_6axis"/>
-    <arg name="bag_path" default="/media/fyy/home1/M2DGR/gate_03.bag"/>
+    <arg name="bag_path" default="/home/sy/dataSet/ZhongKeXingChi/2023-08-18-14-03-54.bag"/>
     <arg name="sequence" default="hkust_campus"/>
 
     <!--set your own Parameters -->
@@ -18,9 +18,9 @@
 
     <!--show satellite-->
     <!--set your orgin gps lla  22.3387279108228 114.263622199692 87.7310562180355 -->
-    <node pkg="rostopic" type="rostopic" name="fake_gps_fix"
-          args="pub gps/fix sensor_msgs/NavSatFix '{ header: auto, latitude: 22.3387279108228, longitude: 114.263622199692, altitude:  87.7310562}'"
-          output="screen"/>
+<!--     <node pkg="rostopic" type="rostopic" name="fake_gps_fix" -->
+<!--           args="pub gps/fix sensor_msgs/NavSatFix '{ header: auto, latitude: 22.3387279108228, longitude: 114.263622199692, altitude:  87.7310562}'" -->
+<!--           output="screen"/> -->
 
     <!--- Run Navsat -->
     <node pkg="lio_sam_6axis" type="lio_sam_6axis_gpsOdometry" name="lio_sam_6axis_gpsOdometry" output="log"/>

@@ -14,10 +14,14 @@
 // #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
 
 #include "utility.h"
+#include "ivsensorgps.h"
 
 using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz)
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
+
+std::ofstream fout_gpsimu_raw_data("/home/sy/dataSet/ZhongKeXingChi/output/1403/gpsimu.txt", std::ios::app);
+int fileflag=0;
 
 class TransformFusion : public ParamServer {
 public:
@@ -40,17 +44,20 @@ public:
     deque<nav_msgs::Odometry> imuOdomQueue;
 
     TransformFusion() {
-        if (lidarFrame != baselinkFrame) {
-            try {
-                tfListener.waitForTransform(lidarFrame, baselinkFrame, ros::Time(0),
-                                            ros::Duration(3.0));
-                tfListener.lookupTransform(lidarFrame, baselinkFrame, ros::Time(0),
-                                           lidar2Baselink);
-            } catch (tf::TransformException ex) {
-                ROS_ERROR("%s", ex.what());
-            }
-        }
-
+////        if (lidarFrame != baselinkFrame) {
+////            try {
+////                tfListener.waitForTransform(lidarFrame, baselinkFrame, ros::Time(0),
+////                                            ros::Duration(10.0));
+////                tfListener.lookupTransform(lidarFrame, baselinkFrame, ros::Time(0),
+////                                           lidar2Baselink);
+////            } catch (tf::TransformException ex) {
+////                ROS_ERROR("%s", ex.what());
+////            }
+////        }
+//        tfListener.waitForTransform(lidarFrame, baselinkFrame, ros::Time(0),
+//                                            ros::Duration(3.0));
+//        tfListener.lookupTransform(lidarFrame, baselinkFrame, ros::Time(0),
+//                                   lidar2Baselink);
         subLaserOdometry = nh.subscribe<nav_msgs::Odometry>(
                 "lio_sam_6axis/mapping/odometry", 5,
                 &TransformFusion::lidarOdometryHandler, this,
@@ -58,7 +65,6 @@ public:
         subImuOdometry = nh.subscribe<nav_msgs::Odometry>(
                 odomTopic + "_incremental", 2000, &TransformFusion::imuOdometryHandler,
                 this, ros::TransportHints().tcpNoDelay());
-
         pubImuOdometry = nh.advertise<nav_msgs::Odometry>(odomTopic, 2000);
         pubImuPath = nh.advertise<nav_msgs::Path>("lio_sam_6axis/imu/path", 1);
     }
@@ -82,6 +88,10 @@ public:
         lidarOdomTime = odomMsg->header.stamp.toSec();
     }
 
+    /**
+     *
+     * @param odomMsg
+     */
     void imuOdometryHandler(const nav_msgs::Odometry::ConstPtr &odomMsg) {
         // static tf
         static tf::TransformBroadcaster tfMap2Odom;
@@ -102,16 +112,20 @@ public:
             else
                 break;
         }
+//        上一帧激光时刻的IMU位姿
         Eigen::Affine3f imuOdomAffineFront = odom2affine(imuOdomQueue.front());
+//        当前IMU位姿
         Eigen::Affine3f imuOdomAffineBack = odom2affine(imuOdomQueue.back());
         Eigen::Affine3f imuOdomAffineIncre =
                 imuOdomAffineFront.inverse() * imuOdomAffineBack;
+//        IMU的增量变化
         Eigen::Affine3f imuOdomAffineLast = lidarOdomAffine * imuOdomAffineIncre;
         float x, y, z, roll, pitch, yaw;
         pcl::getTranslationAndEulerAngles(imuOdomAffineLast, x, y, z, roll, pitch,
                                           yaw);
 
         // publish latest odometry
+//        odometry/imu = odometry/imu_incremental(激光修正) + odometry/imu
         nav_msgs::Odometry laserOdometry = imuOdomQueue.back();
         laserOdometry.pose.pose.position.x = x;
         laserOdometry.pose.pose.position.y = y;
@@ -124,7 +138,7 @@ public:
         static tf::TransformBroadcaster tfOdom2BaseLink;
         tf::Transform tCur;
         tf::poseMsgToTF(laserOdometry.pose.pose, tCur);
-        if (lidarFrame != baselinkFrame) tCur = tCur * lidar2Baselink;
+//        if (lidarFrame != baselinkFrame) tCur = tCur * lidar2Baselink;
         tf::StampedTransform odom_2_baselink = tf::StampedTransform(
                 tCur, odomMsg->header.stamp, odometryFrame, baselinkFrame);
         tfOdom2BaseLink.sendTransform(odom_2_baselink);
@@ -203,14 +217,18 @@ public:
                          gtsam::Point3(extTrans.x(), extTrans.y(), extTrans.z()));
 
     IMUPreintegration() {
-        subImu = nh.subscribe<sensor_msgs::Imu>(
+        // 接受IMU原始数据，发布两帧间激光系下的里程计，pubImuOdometry
+        subImu = nh.subscribe<gps_imu::ivsensorgps>(
                 imuTopic, 2000, &IMUPreintegration::imuHandler, this,
                 ros::TransportHints().tcpNoDelay());
+        //        Lidar odometry
+//        来自mapOptimization
         subOdometry = nh.subscribe<nav_msgs::Odometry>(
                 "lio_sam_6axis/mapping/odometry_incremental", 5,
                 &IMUPreintegration::odometryHandler, this,
                 ros::TransportHints().tcpNoDelay());
 
+        //        odometry/imu_incremental
         pubImuOdometry =
                 nh.advertise<nav_msgs::Odometry>(odomTopic + "_incremental", 2000);
 
@@ -286,6 +304,12 @@ public:
         systemInitialized = false;
     }
 
+/**
+ * 订阅激光里程计 /mapping/odometry_incremental,相对世界坐标系的位姿，有IMU优化的结果
+ * (/mapping/odometry,是前端激光里程计直接优化得到的位姿）
+ * (/mapping/）
+ * @param odomMsg
+ */
     void odometryHandler(const nav_msgs::Odometry::ConstPtr &odomMsg) {
         std::lock_guard<std::mutex> lock(mtx);
 
@@ -389,6 +413,7 @@ public:
         }
 
         // 1. integrate imu data and optimize
+//        接受来自mapOptimization的当前帧位姿，因子图优化更新当前帧位姿
         while (!imuQueOpt.empty()) {
             // pop and integrate imu data that is between two optimizations
             sensor_msgs::Imu *thisImu = &imuQueOpt.front();
@@ -513,8 +538,24 @@ public:
         return false;
     }
 
-    void imuHandler(const sensor_msgs::Imu::ConstPtr &imu_raw) {
+/**
+ * 发布距离最近的激光数据的IMU里程计的结果，转到激光里程计
+ * odometry/imu
+ * @param imu_raw
+ */
+    void imuHandler(const gps_imu::ivsensorgpsConstPtr &gnssImu_raw)
+    {
         std::lock_guard<std::mutex> lock(mtx);
+
+        sensor_msgs::Imu::Ptr imu_raw(new sensor_msgs::Imu());
+        imu_raw->header = gnssImu_raw->header;
+        imu_raw->linear_acceleration.x = gnssImu_raw->accx;
+        imu_raw->linear_acceleration.y = gnssImu_raw->accy;
+        imu_raw->linear_acceleration.z = gnssImu_raw->accz;
+
+        imu_raw->angular_velocity.x = gnssImu_raw->angx * 3.1415926535 / 180.0;
+        imu_raw->angular_velocity.y = gnssImu_raw->angy * 3.1415926535 / 180.0;
+        imu_raw->angular_velocity.z = gnssImu_raw->yaw * 3.1415926535 / 180.0;
 
         sensor_msgs::Imu thisImu = imuConverter(*imu_raw);
 
@@ -530,6 +571,7 @@ public:
         //    std::cout << "dt: " << dt << std::endl;
 
         // integrate this single imu message
+//        从上一时刻激光雷达的数据开始
         imuIntegratorImu_->integrateMeasurement(
                 gtsam::Vector3(thisImu.linear_acceleration.x,
                                thisImu.linear_acceleration.y,
@@ -539,10 +581,12 @@ public:
                 dt);
 
         // predict odometry
+//        得到相对于上一帧激光雷达的当前姿态，imu系
         gtsam::NavState currentState =
                 imuIntegratorImu_->predict(prevStateOdom, prevBiasOdom);
 
         // publish odometry
+//        轉到激光雷达系
         nav_msgs::Odometry odometry;
         odometry.header.stamp = thisImu.header.stamp;
         odometry.header.frame_id = odometryFrame;
@@ -572,6 +616,7 @@ public:
                 thisImu.angular_velocity.z + prevBiasOdom.gyroscope().z();
         pubImuOdometry.publish(odometry);
     }
+
 };
 
 int main(int argc, char **argv) {

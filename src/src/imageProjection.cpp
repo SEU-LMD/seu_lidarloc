@@ -1,18 +1,34 @@
 #include "utility.h"
+#include "ivsensorgps.h"
 #include "lio_sam_6axis/cloud_info.h"
+#include <limits>
+#include <cmath>
 
+//struct VelodynePointXYZIRT {
+//    PCL_ADD_POINT4D
+//
+//    PCL_ADD_INTENSITY;
+//    uint16_t ring;
+//    float time;
+//
+//    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+//} EIGEN_ALIGN16;
+//POINT_CLOUD_REGISTER_POINT_STRUCT (VelodynePointXYZIRT,
+//                                   (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
+//                                           (uint16_t, ring, ring)(float, time, time)
+//)
 struct VelodynePointXYZIRT {
     PCL_ADD_POINT4D
 
-    PCL_ADD_INTENSITY;
+    uint8_t intensity;
     uint16_t ring;
-    float time;
+    double latency;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 } EIGEN_ALIGN16;
 POINT_CLOUD_REGISTER_POINT_STRUCT (VelodynePointXYZIRT,
-                                   (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
-                                           (uint16_t, ring, ring)(float, time, time)
+                                   (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
+                                           (uint16_t, ring, ring)(double, latency, latency)
 )
 
 struct PandarPointXYZIRT {
@@ -88,6 +104,8 @@ using PointXYZIRT = VelodynePointXYZIRT;
 
 const int queueLength = 2000;
 
+//std::ofstream fout_latency("/home/sy/SEU_WS/seu_lidarloc/src/latency.txt", std::ios::app);
+
 class ImageProjection : public ParamServer {
 private:
 
@@ -143,11 +161,16 @@ private:
 public:
     ImageProjection() :
             deskewFlag(0) {
-        subImu = nh.subscribe<sensor_msgs::Imu>(imuTopic,
+        subImu = nh.subscribe<gps_imu::ivsensorgps>(imuTopic,
                                                 2000,
                                                 &ImageProjection::imuHandler,
                                                 this,
                                                 ros::TransportHints().tcpNoDelay());
+//        subImu = nh.subscribe<sensor_msgs::Imu>(imuTopic,
+//                                                2000,
+//                                                &ImageProjection::imuHandler,
+//                                                this,
+//                                                ros::TransportHints().tcpNoDelay());
         subOdom = nh.subscribe<nav_msgs::Odometry>(odomTopic + "_incremental",
                                                    2000,
                                                    &ImageProjection::odometryHandler,
@@ -209,31 +232,70 @@ public:
 
     ~ImageProjection() {}
 
-    void imuHandler(const sensor_msgs::Imu::ConstPtr &imuMsg) {
+    void imuHandler(const gps_imu::ivsensorgpsConstPtr &gnssImu_raw) {
+
+
+        sensor_msgs::Imu::Ptr imuMsg(new sensor_msgs::Imu());
+        imuMsg->header = gnssImu_raw->header;
+        imuMsg->linear_acceleration.x = gnssImu_raw->accx;
+        imuMsg->linear_acceleration.y = gnssImu_raw->accy;
+        imuMsg->linear_acceleration.z = gnssImu_raw->accz;
+
+        imuMsg->angular_velocity.x = gnssImu_raw->angx * 3.1415926535 / 180.0;
+        imuMsg->angular_velocity.y = gnssImu_raw->angy * 3.1415926535 / 180.0;
+        imuMsg->angular_velocity.z = gnssImu_raw->yaw * 3.1415926535 / 180.0;
+
         sensor_msgs::Imu thisImu = imuConverter(*imuMsg);
 
         std::lock_guard<std::mutex> lock1(imuLock);
         imuQueue.push_back(thisImu);
 
-        if (debugImu) {
-            // debug IMU data
-            cout << std::setprecision(6);
-            cout << "IMU acc: " << endl;
-            cout << "x: " << thisImu.linear_acceleration.x <<
-                 ", y: " << thisImu.linear_acceleration.y <<
-                 ", z: " << thisImu.linear_acceleration.z << endl;
-            cout << "IMU gyro: " << endl;
-            cout << "x: " << thisImu.angular_velocity.x <<
-                 ", y: " << thisImu.angular_velocity.y <<
-                 ", z: " << thisImu.angular_velocity.z << endl;
-            double imuRoll, imuPitch, imuYaw;
-            tf::Quaternion orientation;
-            tf::quaternionMsgToTF(thisImu.orientation, orientation);
-            tf::Matrix3x3(orientation).getRPY(imuRoll, imuPitch, imuYaw);
-            cout << "IMU roll pitch yaw: " << endl;
-            cout << "roll: " << imuRoll << ", pitch: " << imuPitch << ", yaw: " << imuYaw << endl << endl;
-        }
+//        if (1) {
+//            // debug IMU data
+//            cout << std::setprecision(6);
+//            cout << "IMU acc: " << endl;
+//            cout << "x: " << thisImu.linear_acceleration.x <<
+//                 ", y: " << thisImu.linear_acceleration.y <<
+//                 ", z: " << thisImu.linear_acceleration.z << endl;
+//            cout << "IMU gyro: " << endl;
+//            cout << "x: " << thisImu.angular_velocity.x <<
+//                 ", y: " << thisImu.angular_velocity.y <<
+//                 ", z: " << thisImu.angular_velocity.z << endl;
+//            double imuRoll, imuPitch, imuYaw;
+//            tf::Quaternion orientation;
+//            tf::quaternionMsgToTF(thisImu.orientation, orientation);
+//            tf::Matrix3x3(orientation).getRPY(imuRoll, imuPitch, imuYaw);
+//            cout << "IMU roll pitch yaw: " << endl;
+//            cout << "roll: " << imuRoll << ", pitch: " << imuPitch << ", yaw: " << imuYaw << endl << endl;
+//        }
     }
+
+//    void imuHandler(const sensor_msgs::Imu::ConstPtr &imuMsg) {
+//
+//        sensor_msgs::Imu thisImu = imuConverter(*imuMsg);
+//
+//        std::lock_guard<std::mutex> lock1(imuLock);
+//        imuQueue.push_back(thisImu);
+//
+//        if (debugImu) {
+//            // debug IMU data
+//            cout << std::setprecision(6);
+//            cout << "IMU acc: " << endl;
+//            cout << "x: " << thisImu.linear_acceleration.x <<
+//                 ", y: " << thisImu.linear_acceleration.y <<
+//                 ", z: " << thisImu.linear_acceleration.z << endl;
+//            cout << "IMU gyro: " << endl;
+//            cout << "x: " << thisImu.angular_velocity.x <<
+//                 ", y: " << thisImu.angular_velocity.y <<
+//                 ", z: " << thisImu.angular_velocity.z << endl;
+//            double imuRoll, imuPitch, imuYaw;
+//            tf::Quaternion orientation;
+//            tf::quaternionMsgToTF(thisImu.orientation, orientation);
+//            tf::Matrix3x3(orientation).getRPY(imuRoll, imuPitch, imuYaw);
+//            cout << "IMU roll pitch yaw: " << endl;
+//            cout << "roll: " << imuRoll << ", pitch: " << imuPitch << ", yaw: " << imuYaw << endl << endl;
+//        }
+//    }
 
     void odometryHandler(const nav_msgs::Odometry::ConstPtr &odometryMsg) {
         std::lock_guard<std::mutex> lock2(odoLock);
@@ -259,72 +321,59 @@ public:
     bool cachePointCloud(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg) {
         // cache point cloud
         cloudQueue.push_back(*laserCloudMsg);
+//        cout<<"*****************************************"<<endl;
         if (cloudQueue.size() <= 2)
             return false;
 
         // convert cloud
         currentCloudMsg = std::move(cloudQueue.front());
         cloudQueue.pop_front();
+
+
         if (sensor == SensorType::VELODYNE || sensor == SensorType::LIVOX) {
             pcl::moveFromROSMsg(currentCloudMsg, *laserCloudIn);
-        } else if (sensor == SensorType::OUSTER) {
-            // Convert to Velodyne format
-            pcl::moveFromROSMsg(currentCloudMsg, *tmpOusterCloudIn);
-            laserCloudIn->points.resize(tmpOusterCloudIn->size());
-            laserCloudIn->is_dense = tmpOusterCloudIn->is_dense;
-            for (size_t i = 0; i < tmpOusterCloudIn->size(); i++) {
-                auto &src = tmpOusterCloudIn->points[i];
-                auto &dst = laserCloudIn->points[i];
-                dst.x = src.x;
-                dst.y = src.y;
-                dst.z = src.z;
-                dst.intensity = src.intensity;
-                dst.ring = src.ring;
-                //dst.time = src.t * 1e-9f;
-//                dst.time = src.t;
-                dst.time = src.time;
-//                dst.time = (i % 2048) / 20480.0;
+            double t_0 = laserCloudIn->points[0].latency;
+            for(int i=0;i<laserCloudIn->points.size();++i)
+            {
+                if(i==0){
+                    laserCloudIn->points[i].latency=0;
+                }
+                else
+                {
+                    laserCloudIn->points[i].latency = laserCloudIn->points[i].latency - t_0;
+                    if(abs(laserCloudIn->points[i].latency) < std::numeric_limits<double>::epsilon())
+                    {
+                        laserCloudIn->points[i].latency = 0.0;
+                    }
+                }
+
+
             }
-        } else if (sensor == SensorType::HESAI) {
-            // Convert to Velodyne format
-            pcl::moveFromROSMsg(currentCloudMsg, *tmpPandarCloudIn);
-            laserCloudIn->points.resize(tmpPandarCloudIn->size());
-            laserCloudIn->is_dense = tmpPandarCloudIn->is_dense;
-            double time_begin = tmpPandarCloudIn->points[0].timestamp;
-            for (size_t i = 0; i < tmpPandarCloudIn->size(); i++) {
-                auto &src = tmpPandarCloudIn->points[i];
-                auto &dst = laserCloudIn->points[i];
-                dst.x = src.y * -1;
-                dst.y = src.x;
-                //        dst.x = src.x;
-                //        dst.y = src.y;
-                dst.z = src.z;
-                dst.intensity = src.intensity;
-                dst.ring = src.ring;
-                //dst.tiSme = src.t * 1e-9f;
-                dst.time = src.timestamp - time_begin; // s
-            }
-        } else {
-            ROS_ERROR_STREAM("Unknown sensor type: " << int(sensor));
-            ros::shutdown();
+//
+
         }
 
         // get timestamp
         cloudHeader = currentCloudMsg.header;
         timeScanCur = cloudHeader.stamp.toSec();
         // timeScanEnd = timeScanCur + laserCloudIn->points.back().time;
-        timeScanEnd = timeScanCur + laserCloudIn->points.back().time;
+        timeScanEnd = timeScanCur + laserCloudIn->points.back().latency;
 
-        if (debugLidarTimestamp) {
-            std::cout << std::fixed << std::setprecision(12) << "end time from pcd and size: "
-                      << laserCloudIn->points.back().time
-                      << ", " << laserCloudIn->points.size() << std::endl;
-        }
+//        if (debugLidarTimestamp) {
+//            std::cout << std::fixed << std::setprecision(12) << "end time from pcd and size: "
+//                      << laserCloudIn->points.back().time
+//                      << ", " << laserCloudIn->points.size() << std::endl;
+//        }
 
         // check dense flag
+//        remove NaN
+        vector<int> indices;
+        pcl::removeNaNFromPointCloud(*laserCloudIn,*laserCloudIn,indices);
+
         if (laserCloudIn->is_dense == false) {
             ROS_ERROR("Point cloud is not in dense format, please remove NaN points first!");
-            ros::shutdown();
+//            laserCloudIn->is_dense = true;
+//            ros::shutdown();
         }
 
         // check ring channel
@@ -347,7 +396,7 @@ public:
         if (deskewFlag == 0) {
             deskewFlag = -1;
             for (auto &field : currentCloudMsg.fields) {
-                if (field.name == "time" || field.name == "t" || field.name == "timestamp") {
+                if (field.name == "time" || field.name == "t" || field.name == "timestamp" || field.name == "latency") {
                     deskewFlag = 1;
                     break;
                 }
@@ -643,7 +692,8 @@ public:
             if (rangeMat.at<float>(rowIdn, columnIdn) != FLT_MAX)
                 continue;
 
-            thisPoint = deskewPoint(&thisPoint, laserCloudIn->points[i].time);
+            thisPoint = deskewPoint(&thisPoint, laserCloudIn->points[i].latency);
+//            thisPoint = deskewPoint(&thisPoint, laserCloudIn->points[i].time);
 
             rangeMat.at<float>(rowIdn, columnIdn) = range;
 

@@ -56,6 +56,7 @@ typedef PointXYZIRPYT PointTypePose;
 
 class mapOptimization : public ParamServer {
 public:
+    int flagLoadMap = 1;
     NonlinearFactorGraph gtSAMgraph;
     Values initialEstimate;
     Values optimizedEstimate;
@@ -356,6 +357,43 @@ public:
 
         matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
     }
+
+
+    /**
+ * add by sy for load Prior map Corner
+ * @param mapFile
+ */
+    void Load_PriorMap_Corner(std::string mapFile,pcl::PointCloud<PointType>::Ptr laserCloudCornerFromMapDS)
+    {
+        pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdCornerFromMap(new pcl::KdTreeFLANN<pcl::PointXYZI>);
+
+        if(pcl::io::loadPCDFile<pcl::PointXYZI>(mapFile,*laserCloudCornerFromMapDS) == -1)
+        {
+            std::cout << "Could not read Map!"<<std::endl;
+            return ;
+        }
+        kdCornerFromMap->setInputCloud(laserCloudCornerFromMapDS);
+        std::cout << "Read Corner Map!"<<std::endl;
+
+    }
+/**
+ * add by sy for load Prior map Surf
+ * @param mapFile
+ */
+    void Load_PriorMap_Surf(std::string mapFile, pcl::PointCloud<PointType>::Ptr _laserCloudSurfFromMapDS)
+    {
+        pcl::KdTreeFLANN<PointType>::Ptr kdSurfFromMap(new pcl::KdTreeFLANN<PointType>);
+
+        if(pcl::io::loadPCDFile<pcl::PointXYZI>(mapFile,*_laserCloudSurfFromMapDS) == -1)
+        {
+            std::cout << "Could not read Map!"<<std::endl;
+            return ;
+        }
+        kdSurfFromMap->setInputCloud(_laserCloudSurfFromMapDS);
+        std::cout << "Read Surf Map!"<<std::endl;
+
+    }
+
 /**
  * 输入：IMU、激光原始点云、激光里程计数据，GPS
  * 输出： 因子节点位姿更新、
@@ -377,7 +415,7 @@ public:
 //        laserCloudCornerLast 当前帧瞬时点云
         pcl::fromROSMsg(msgIn->cloud_corner, *laserCloudCornerLast);
         pcl::fromROSMsg(msgIn->cloud_surface, *laserCloudSurfLast);
-        pcl::fromROSMsg(msgIn->cloud_deskewed, *laserCloudRaw);  // deskewed data ,原始点云
+//        pcl::fromROSMsg(msgIn->cloud_deskewed, *laserCloudRaw);  // deskewed data ,原始点云
 
         std::lock_guard<std::mutex> lock(mtx);
 
@@ -390,7 +428,12 @@ public:
             updateInitialGuess();
 
             if (systemInitialized) {
-                extractSurroundingKeyFrames();
+                //                extractSurroundingKeyFrames();
+                if(flagLoadMap){
+                    Load_PriorMap_Surf("/home/sy/SEU_WS/backup/seu_lidarloc_8.25/src/globalmap_lidar_feature_surf.pcd",laserCloudSurfFromMapDS);
+                    Load_PriorMap_Corner("/home/sy/SEU_WS/backup/seu_lidarloc_8.25/src/globalmap_lidar_feature_corner.pcd",laserCloudCornerFromMapDS);
+                    flagLoadMap = 0;
+                }
 
                 downsampleCurrentScan();
 
@@ -2460,7 +2503,7 @@ public:
 int main(int argc, char **argv) {
     ros::init(argc, argv, "lio_sam_6axis");
     mapOptimization MO;
-    ROS_INFO("\033[1;32m----> Map Optimization Started.\033[0m");
+    ROS_INFO("\033[1;32m----> Loc Map Optimization Started.\033[0m");
 
 //    std::thread loopthread(&mapOptimization::loopClosureThread, &MO);
     std::thread visualizeMapThread(&mapOptimization::visualizeGlobalMapThread,

@@ -410,7 +410,35 @@ void DataSaver::savePointCloudMap(pcl::PointCloud<PointT> &cloud_ptr) {
         return;
     }
     try {
-        pcl::io::savePCDFileASCII(save_directory + "globalmap_lidar_feature.pcd",
+        pcl::io::savePCDFileASCII(save_directory + "globalmap_lidar_feature_all.pcd",
+                                  cloud_ptr);
+    } catch (pcl::IOException) {
+        std::cout << "  save map failed!!! " << cloud_ptr.size() << std::endl;
+
+    }
+
+}
+void DataSaver::savePointCloudCornerMap(pcl::PointCloud<PointT> &cloud_ptr) {
+    if (cloud_ptr.empty()) {
+        std::cout << "empty global map cloud!" << std::endl;
+        return;
+    }
+    try {
+        pcl::io::savePCDFileASCII(save_directory + "globalmap_lidar_feature_corner.pcd",
+                                  cloud_ptr);
+    } catch (pcl::IOException) {
+        std::cout << "  save map failed!!! " << cloud_ptr.size() << std::endl;
+
+    }
+
+}
+void DataSaver::savePointCloudSurfMap(pcl::PointCloud<PointT> &cloud_ptr) {
+    if (cloud_ptr.empty()) {
+        std::cout << "empty global map cloud!" << std::endl;
+        return;
+    }
+    try {
+        pcl::io::savePCDFileASCII(save_directory + "globalmap_lidar_feature_surf.pcd",
                                   cloud_ptr);
     } catch (pcl::IOException) {
         std::cout << "  save map failed!!! " << cloud_ptr.size() << std::endl;

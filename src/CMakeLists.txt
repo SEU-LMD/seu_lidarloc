@@ -46,6 +46,7 @@ add_message_files(
         DIRECTORY msg
         FILES
         cloud_info.msg
+        ivsensorgps.msg
 )
 
 add_service_files(
@@ -87,6 +88,7 @@ include_directories(
         ${GTSAM_INCLUDE_DIR}
         ${EIGEN3_INCLUDE_DIR}
         ./ThirdParty/GeographicLib/
+        ../env/easyloggingpp/
 )
 
 MESSAGE(STATUS "------------${EIGEN3_INCLUDE_DIR}------------------")
@@ -121,6 +123,12 @@ target_link_libraries(${PROJECT_NAME}_mapOptmization ${catkin_LIBRARIES} ${PCL_L
 # IMU Preintegration
 add_executable(${PROJECT_NAME}_imuPreintegration src/imuPreintegration.cpp)
 target_link_libraries(${PROJECT_NAME}_imuPreintegration ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam )
+
+# Loc optimization
+add_executable(${PROJECT_NAME}_loc_mapOptmizationGps src/loc_mapOptmizationGps.cpp src/dataSaver.cpp)
+add_dependencies(${PROJECT_NAME}_loc_mapOptmizationGps ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+target_compile_options(${PROJECT_NAME}_loc_mapOptmizationGps PRIVATE ${OpenMP_CXX_FLAGS})
+target_link_libraries(${PROJECT_NAME}_loc_mapOptmizationGps ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${OpenMP_CXX_FLAGS} gtsam  libGeographic)
 
 #  add_executable(main main.cpp)
 #  target_link_libraries(main gtsam)
