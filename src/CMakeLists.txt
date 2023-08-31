@@ -52,33 +52,18 @@ add_definitions(-DELPP_THREAD_SAFE)
 add_definitions(-DELPP_NO_DEFAULT_LOG_FILE)
 
 
-add_message_files(
-        DIRECTORY msg
-        FILES
-        cloud_info.msg
-)
-
-
-
-generate_messages(
-        DEPENDENCIES
-        geometry_msgs
-        std_msgs
-        nav_msgs
-        sensor_msgs
-)
-catkin_package(
-        INCLUDE_DIRS include
-        DEPENDS PCL GTSAM
-        CATKIN_DEPENDS
-        std_msgs
-        nav_msgs
-        geometry_msgs
-        sensor_msgs
-        message_runtime
-        message_generation
-        visualization_msgs
-)
+#catkin_package(
+#        INCLUDE_DIRS include
+#        DEPENDS PCL GTSAM
+#        CATKIN_DEPENDS
+#        std_msgs
+#        nav_msgs
+#        geometry_msgs
+#        sensor_msgs
+#        message_runtime
+#        message_generation
+#        visualization_msgs
+#)
 
 add_subdirectory(./ThirdParty/GeographicLib/)
 

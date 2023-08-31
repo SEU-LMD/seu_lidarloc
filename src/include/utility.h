@@ -446,4 +446,8 @@ Eigen::Matrix4d ConstructPoseT(const Eigen::Vector3d& t, const Eigen::Quaternion
      return res;
 }
 
+Eigen::Vector3d PoseTMulPt(const Eigen::Matrix4d& T, const Eigen::Vector3d& pt){
+    return T.block<3,3>(0,0)*pt+T.block<3,1>(0,3);
+}
+
 #endif

@@ -19,7 +19,7 @@
 #include <csignal>
 
 #include "dataSaver.h"
-#include "lio_sam_6axis/cloud_info.h"
+#include "cloud_info.h"
 //#include "lio_sam_6axis/save_map.h"
 #include "utility.h"
 #include "MapSaver.h"

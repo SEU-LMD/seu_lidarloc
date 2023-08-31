@@ -1,5 +1,5 @@
 #include "utility.h"
-#include "lio_sam_6axis/cloud_info.h"
+#include "cloud_info.h"
 #include "config_helper.h"
 
 #include "easylogging++.h"

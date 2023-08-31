@@ -1,5 +1,5 @@
 #include "utility.h"
-#include "lio_sam_6axis/cloud_info.h"
+#include "cloud_info.h"
 
 #include "ivsensorgps.h"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
@@ -58,8 +58,10 @@ private:
     ros::Subscriber subLaserCloud;
     ros::Publisher pubLaserCloud;
 
-    ros::Publisher pub_origin_cloud, pub_origin_cloud_world;
-    ros::Publisher pub_deskew_cloud;
+    ros::Publisher pub_origin_cloud;
+    ros::Publisher pub_origin_cloud_world;
+    ros::Publisher pub_deskew_cloud_world;
+
     ros::Publisher pubLaserCloudInfo;
     ros::Publisher pub_gnss_odom;
 
@@ -83,7 +85,7 @@ private:
 
 
     pcl::PointCloud<PointXYZIRT>::Ptr cur_scan_cloud_body;//传入的原始点云
-    pcl::PointCloud<PointType>::Ptr deskewCloud;//去畸变之后的全部点云
+    pcl::PointCloud<PointType>::Ptr deskewCloud_body;//去畸变之后的全部点云
     pcl::PointCloud<PointType>::Ptr extractedCloud;
 
 //    int deskewFlag;
@@ -126,7 +128,7 @@ public:
         //for debug use topic
         pub_origin_cloud = nh.advertise<sensor_msgs::PointCloud2>("/origin_cloud", 1);
         pub_origin_cloud_world = nh.advertise<sensor_msgs::PointCloud2>("/origin_cloud_world", 1);
-        pub_deskew_cloud = nh.advertise<sensor_msgs::PointCloud2>("/deskew_cloud", 1);
+        pub_deskew_cloud_world = nh.advertise<sensor_msgs::PointCloud2>("/deskew_cloud_world", 1);
         pub_gnss_odom = nh.advertise<nav_msgs::Odometry>("/gnss_odom", 2000);
 
         //publish to next node
@@ -134,42 +136,15 @@ public:
 
 
         allocateMemory();//内存分配
-//        resetParameters();//变量重置 comment fyy
 
-//        pcl::console::setVerbosityLevel(pcl::console::L_ERROR); //设置PCL的打印日志级别为错误 fyy comment
-//comment fyy
-//        extrinc_rotation <<     0, 1, 0,
-//                                -1, 0, 0,
-//                                0, 0, 1;
-
-//        extrinc_rotation <<   -0.000646759294, 0.999921769,    0.0124914668,
-//                              -0.999989044,    -0.000588790089, -0.00464382452,
-//                              -0.00463610638,  -0.0124943334,   0.999911195;
-
-        //Eigen::Vector3d extrinc_translation(-0.33555608, -0.22477218, 0.38088802);//fyy comment
-
-//comment by fyy
-//        T_L_G.setIdentity();
-//        T_L_G.block<3,3>(0,0) = extrinc_rotation;
-//        T_L_G.topRightCorner(3,1) = extrinc_translation;
-
-//        std::cout<<"*********************************************"<<T_L_G<<std::endl;
-
-//        T_b_n.translation() = extrinc_translation;//translate matrix
-//        T_b_n.linear() = extrinc_rotation;
-
-//        T_b_n.translate(extrinc_translation) ;
-//        T_b_n.rotate(extrinc_rotation) ;
-
-//        RESULT_PATH = "/home/lsy/point/result.txt";
     }//end function ImageProjection
 
     void allocateMemory() {
         //
         cur_scan_cloud_body.reset(new pcl::PointCloud<PointXYZIRT>());
-        deskewCloud.reset(new pcl::PointCloud<PointType>());
+        deskewCloud_body.reset(new pcl::PointCloud<PointType>());
         extractedCloud.reset(new pcl::PointCloud<PointType>());
-        deskewCloud->points.resize(SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN);//将fullCloud的点集大小初始化为N_SCAN * Horizon_SCAN
+        deskewCloud_body->points.resize(SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN);//将fullCloud的点集大小初始化为N_SCAN * Horizon_SCAN
 
         //
         cloudInfo.startRingIndex.assign(SensorConfig::N_SCAN, 0);//为cloudInfo中的startRingIndex、endRingIndex向量分配大小N_SCAN,并初始化为0
@@ -286,9 +261,9 @@ public:
 
     void cloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg) {
 
-        double delta_max_time, delta_min_time;
+        double max_timestamp, min_timestamp;
         //转换格式, 获取每个点的delta time
-        bool cahce_state = cachePointCloud(laserCloudMsg, delta_min_time ,delta_max_time );
+        bool cahce_state = cachePointCloud(laserCloudMsg, min_timestamp ,max_timestamp );
         if(cahce_state==false){
             return;
         }
@@ -324,15 +299,15 @@ public:
 
 
         //very important function!!!!!!!!!!!!!!!!!!1
-        //projectPointCloud(delta_min_time, delta_max_time, T_w_lidar_start);  //投影点云
+        projectPointCloud(min_timestamp, max_timestamp, T_w_lidar_start);  //投影点云
 
 //        {
 //            pcl::PointCloud<pcl::PointXYZ> temp ;
-//            for(int i = 0; i < deskewCloud -> points.size(); ++i){
+//            for(int i = 0; i < deskewCloud_body -> points.size(); ++i){
 //                pcl::PointXYZ p;
-//                p.x = deskewCloud -> points[i].x;
-//                p.y = deskewCloud -> points[i].y;
-//                p.z = deskewCloud -> points[i].z;
+//                p.x = deskewCloud_body -> points[i].x;
+//                p.y = deskewCloud_body -> points[i].y;
+//                p.z = deskewCloud_body -> points[i].z;
 //                temp.push_back(p);
 //            }
 //            std::string filename2 = "/home/lsy/point/after"+ to_string( idx )+".ply";
@@ -340,11 +315,11 @@ public:
 //            ++idx;
 //        }
 
-        //cloudExtraction();  //提取分割点云
+        cloudExtraction();  //提取分割点云
 
         //publishClouds();  //发布去畸变点云
 
-        //resetParameters();
+        resetParameters();
     }
 
     //
@@ -440,7 +415,6 @@ public:
         }
 
 
-
         for (int i = 0; i < (int) T_w_b_odomQueue.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
 
             if (T_w_b_odomQueue[i].header.stamp.toSec() > timeScanCur){
@@ -484,7 +458,6 @@ public:
 
 //        cloudInfo.odomAvailable = true;
 
-
         if (T_w_b_odomQueue.back().header.stamp.toSec() < timeScanEnd)
         {
             odoLock.unlock();
@@ -517,7 +490,7 @@ public:
     }
 
     //find x y z in lidar coordinate,Q in gnss coordinate at the pointtime and calculate translation matrix
-    void findRotation(double pointTime, Eigen::Matrix4d *transformation_matrix) {//IMU数据中找到与当前点对应时刻的变换矩阵
+    void findRotation(double pointTime, Eigen::Matrix4d& T_w_b_lidar_now) {//IMU数据中找到与当前点对应时刻的变换矩阵
         //lock mutex????????????????????????
         std::lock_guard<std::mutex> lock2(odoLock);
         for(int i = 0;i < (int)T_w_b_odomQueue.size(); i++){
@@ -534,12 +507,12 @@ public:
                                 /(reargnss.header.stamp.toSec() - frontgnss.header.stamp.toSec());
 
                 //平移
-                Eigen::Vector3d t_interpolate;
-                t_interpolate[0] = frontgnss.pose.pose.position.x +
+                Eigen::Vector3d t_w_b_lidar_now;
+                t_w_b_lidar_now[0] = frontgnss.pose.pose.position.x +
                                                    k_time * (reargnss.pose.pose.position.x-frontgnss.pose.pose.position.x);
-                t_interpolate[1] = frontgnss.pose.pose.position.y +
+                t_w_b_lidar_now[1] = frontgnss.pose.pose.position.y +
                                                    k_time * (reargnss.pose.pose.position.y-frontgnss.pose.pose.position.y);
-                t_interpolate[2] = frontgnss.pose.pose.position.z +
+                t_w_b_lidar_now[2] = frontgnss.pose.pose.position.z +
                                                    k_time * (reargnss.pose.pose.position.z-frontgnss.pose.pose.position.z);
 
                 //旋转
@@ -555,24 +528,11 @@ public:
                 rearQ.y() = reargnss.pose.pose.orientation.y;
                 rearQ.z() = reargnss.pose.pose.orientation.z;
 
-                Eigen::Quaterniond currentQ = frontQ.slerp(k_time,rearQ);
+                Eigen::Quaterniond q_w_b_lidar_now = frontQ.slerp(k_time,rearQ);
 
-//                Eigen::Vector3d thispoint(thisgnssmsg.pose.pose.position.x,thisgnssmsg.pose.pose.position.y,thisgnssmsg.pose.pose.position.z);    //当前点
-//
-//                Eigen::Vector3d translation = thispoint - startT; //平移向量
-//                Eigen::Matrix3d rotation_matrix =  currentQ.toRotationMatrix() * startQ.toRotationMatrix().transpose();//startQ.toRotationMatrix().transpose() * currentQ.toRotationMatrix()
-//
-////                Eigen::Matrix3d rotation = T_b_n * rotation_matrix;//regard T as translation from gnss to lidar
-////                Eigen::Matrix3d rotation = T_b_n.inverse() * rotation_matrix;
-//                Eigen::Matrix3d rotation = extrinc_rotation * rotation_matrix * extrinc_rotation.transpose();
-////                std::cout<<"******************rotation_matrix******************"<<rotation_matrix<<std::endl;
+                T_w_b_lidar_now.block<3,3>(0,0) = q_w_b_lidar_now.toRotationMatrix();
+                T_w_b_lidar_now.topRightCorner(3,1) = t_w_b_lidar_now;
 
-                transformation_matrix->block<3,3>(0,0) = currentQ.toRotationMatrix();
-                transformation_matrix->topRightCorner(3,1) = t_interpolate;
-
-
-//                rotationinlidar = currentQ;
-//                translationinlidar = translation;
             }
             continue;
 
@@ -580,44 +540,37 @@ public:
 
     }
 
-    PointType deskewPoint(PointType *point, double relTime, const Eigen::Matrix4d& T_w_lidar_start) {  //激光点去畸变
-//        if (deskewFlag == -1 || cloudInfo.imuAvailable == false)
-//comment by fyy
-//        if (MappingConfig::deskewFlag == -1 )//判断是否可以去畸变
-//            return *point;
+    PointType deskewPoint(PointType *point, double relTime, const Eigen::Matrix4d& T_w_b_lidar_start) {  //激光点去畸变
 
         double pointTime = timeScanCur + relTime;//scan时间加相对时间，获得点的时间
 
-//        Eigen::Isometry3d transformation_matrix;
-        Eigen::Matrix4d T_w_lidar_end;
-        findRotation(pointTime, &T_w_lidar_end);
+        Eigen::Matrix4d T_w_b_lidar_now;
+        findRotation(pointTime, T_w_b_lidar_now);
 
-//        std::cout<< "************************************deskewPoint"<<std::endl;
-
-        Eigen::Vector3d newpoint;
-        newpoint << point->x,point->y,point->z;
-        Eigen::Matrix4d T_L_B = Eigen::Matrix4d::Identity();
-        T_L_B.block<3,3>(0,0) = Eigen::Matrix3d::Identity();
-        T_L_B.block<3,1>(0,3) = Eigen::Vector3d(0,0,-0.5135);
-        Eigen::Matrix4d T_B_L = T_L_B.inverse();
-        Eigen::Matrix4d T_lidar_start_now = T_L_B*T_w_lidar_start.inverse()*T_w_lidar_end*T_B_L;
-        Eigen::Vector3d deskewnewpoint = T_lidar_start_now.block<3,3>(0,0) * newpoint  + T_lidar_start_now.block<3,1>(0,3);
+        Eigen::Vector3d origin_pt;
+        origin_pt << point->x,point->y,point->z;
+        Eigen::Matrix4d T_lidar_start_now = T_w_b_lidar_start.inverse()*T_w_b_lidar_now;
+        Eigen::Vector3d deskewnewpoint = PoseTMulPt(T_lidar_start_now, origin_pt);
 
         PointType newPoint;//get deskewed point
         newPoint.x = deskewnewpoint.x();
         newPoint.y = deskewnewpoint.y();
         newPoint.z = deskewnewpoint.z();
         newPoint.intensity = point->intensity;
-//        std::cout<< "************************************deskewPoint"<<newPoint.x<<std::endl;
 
         return newPoint;
     }
 
-    void projectPointCloud(const double& delta_min_time, const double& delta_max_time, const Eigen::Matrix4d& T_w_lidar_start) {
+    void projectPointCloud(const double& delta_min_time, const double& delta_max_time, const Eigen::Matrix4d& T_w_body_lidar_start) {
 
         int cloudSize = cur_scan_cloud_body->points.size(); //获取原始点云大小
-//    std::cout << "point size raw: " << cloudSize << std::endl;
+        pcl::PointCloud<PointType> deskewCloud_body_offset;
         // range image projection
+        int valid_num = 0;
+        int range_outlier = 0;
+        int row_outlier = 0;
+        int col_outlier = 0;
+        int rangemat_outlier = 0;
         for (int i = 0; i < cloudSize; ++i) {  //遍历每一个点
             PointType thisPoint;
             thisPoint.x = cur_scan_cloud_body->points[i].x;//获取xyz、强度
@@ -626,64 +579,90 @@ public:
             thisPoint.intensity = cur_scan_cloud_body->points[i].intensity;
             float range = pointDistance(thisPoint); //计算点的距离
 
-            if (range < SensorConfig::lidarMinRange || range > SensorConfig::lidarMaxRange)
+            if (range < SensorConfig::lidarMinRange || range > SensorConfig::lidarMaxRange){
+                range_outlier++;
                 continue;
-
-            int rowIdn = cur_scan_cloud_body->points[i].ring;//获取行数
-            if (rowIdn < 0 || rowIdn >= SensorConfig::N_SCAN)
-                continue;
-
-            if (rowIdn % SensorConfig::downsampleRate != 0)
-                continue;
-
-            int columnIdn = -1;//获取列号
-            if (SensorConfig::sensor == LidarType::VELODYNE || SensorConfig::sensor == LidarType::OUSTER || SensorConfig::sensor == LidarType::HESAI) {
-                float horizonAngle = atan2(thisPoint.x, thisPoint.y) * 180 / M_PI;//水平角分辨率
-                static float ang_res_x = 360.0 / float(SensorConfig::Horizon_SCAN);//Horizon_SCAN=1800,每格0.2度
-                //horizonAngle 为[-180,180],horizonAngle -90 为[-270,90],-round 为[-90,270], /ang_res_x 为[-450,1350]
-                //+Horizon_SCAN/2后为[450,2250]
-                // 即把horizonAngle从[-180,180]映射到[450,2250]
-                columnIdn = -round((horizonAngle - 90.0) / ang_res_x) + SensorConfig::Horizon_SCAN / 2;
-                //大于1800，则减去1800，相当于把1801～2250映射到1～450
-                //先把columnIdn从horizonAngle:(-PI,PI]转换到columnIdn:[H/4,5H/4],
-                //然后判断columnIdn大小，把H到5H/4的部分切下来，补到0～H/4的部分。
-                //将它的范围转换到了[0,H] (H:Horizon_SCAN)。
-                //这样就把扫描开始的地方角度为0与角度为360的连在了一起，非常巧妙。
-                //如果前方是x，左侧是y，那么正后方左边是180，右边是-180。这里的操作就是，把它展开成一幅图:
-                //                   0
-                //   90                        -90
-                //          180 || (-180)
-                //  (-180)   -----   (-90)  ------  0  ------ 90 -------180
-                //变为:  90 ----180(-180) ---- (-90)  ----- (0)    ----- 90
-
-                if (columnIdn >= SensorConfig::Horizon_SCAN)
-                    columnIdn -= SensorConfig::Horizon_SCAN;
-            } else if (SensorConfig::sensor == LidarType::LIVOX) {
-                columnIdn = columnIdnCountVec[rowIdn];
-                columnIdnCountVec[rowIdn] += 1;
             }
 
-            if (columnIdn < 0 || columnIdn >= SensorConfig::Horizon_SCAN)//检查列号是否在范围内
+            int rowIdn = cur_scan_cloud_body->points[i].ring;//获取行数
+            if (rowIdn < 0 || rowIdn >= SensorConfig::N_SCAN){
+                row_outlier++;
+                continue;
+            }
+
+//            if (rowIdn % SensorConfig::downsampleRate != 0)
+//                continue;
+
+            int columnIdn = -1;//获取列号
+
+            float horizonAngle = atan2(thisPoint.x, thisPoint.y) * 180 / M_PI;//水平角分辨率
+            static float ang_res_x = 360.0 / float(SensorConfig::Horizon_SCAN);//Horizon_SCAN=1800,每格0.2度
+            //horizonAngle 为[-180,180],horizonAngle -90 为[-270,90],-round 为[-90,270], /ang_res_x 为[-450,1350]
+            //+Horizon_SCAN/2后为[450,2250]
+            // 即把horizonAngle从[-180,180]映射到[450,2250]
+            columnIdn = -round((horizonAngle - 90.0) / ang_res_x) + SensorConfig::Horizon_SCAN / 2;
+            //大于1800，则减去1800，相当于把1801～2250映射到1～450
+            //先把columnIdn从horizonAngle:(-PI,PI]转换到columnIdn:[H/4,5H/4],
+            //然后判断columnIdn大小，把H到5H/4的部分切下来，补到0～H/4的部分。
+            //将它的范围转换到了[0,H] (H:Horizon_SCAN)。
+            //这样就把扫描开始的地方角度为0与角度为360的连在了一起，非常巧妙。
+            //如果前方是x，左侧是y，那么正后方左边是180，右边是-180。这里的操作就是，把它展开成一幅图:
+            //                   0
+            //   90                        -90
+            //          180 || (-180)
+            //  (-180)   -----   (-90)  ------  0  ------ 90 -------180
+            //变为:  90 ----180(-180) ---- (-90)  ----- (0)    ----- 90
+
+            if (columnIdn >= SensorConfig::Horizon_SCAN)
+                columnIdn -= SensorConfig::Horizon_SCAN;
+
+
+            if (columnIdn < 0 || columnIdn >= SensorConfig::Horizon_SCAN)//检查列号是否在范围内            // }
+            {
+                col_outlier++;
+                continue;
+            }
+
+            if (rangeMat.at<float>(rowIdn, columnIdn) != FLT_MAX){
+                rangemat_outlier++;
                 continue;
 
-            if (rangeMat.at<float>(rowIdn, columnIdn) != FLT_MAX)
-                continue;
+            }
 //            pcl::PointXYZ before = (thisPoint.x(),thisPoint.y(),thisPoint.z()); //temp <- thisPoint, ||temp - thisPoint||
 
             //very important function@!!!!!!!!!
-            thisPoint = deskewPoint(&thisPoint, cur_scan_cloud_body->points[i].latency, T_w_lidar_start);//进行点云去畸变
+            thisPoint = deskewPoint(&thisPoint, cur_scan_cloud_body->points[i].latency - delta_min_time, T_w_body_lidar_start);//进行点云去畸变
 //            std::cout<<"***************************************************604"<<std::endl;
 //            pcl::PointXYZ after = (thisPoint.x,thisPoint.y,thisPoint.z);
 //            double distance = pcl::euclideanDistance(point1, point2);;
 //            std::cout<<"***************************************************"<<distance<<std::endl;
 
             rangeMat.at<float>(rowIdn, columnIdn) = range;//将去畸变后的点范围和坐标存入rangeMat
-//            std::cout<<"***************************************************610"<<std::endl;
 
             int index = columnIdn + rowIdn * SensorConfig::Horizon_SCAN;//计算索引index,将去畸变后的点存入fullCloud
-            deskewCloud->points[index] = thisPoint;
-//            std::cout<<"***************************************************606"<<std::endl;
-        }
+            deskewCloud_body->points[index] = thisPoint;
+            //just for show
+            auto thisPoint_offset = thisPoint;
+            thisPoint_offset.z = thisPoint_offset.z + 50.0;
+            deskewCloud_body_offset.points.push_back(thisPoint_offset);
+            valid_num++;
+        }//end for
+
+        EZLOG(INFO)<<"valid_num num = "<<valid_num<<std::endl;
+        EZLOG(INFO)<<"range_outlier num = "<<range_outlier<<std::endl;
+        EZLOG(INFO)<<"row_outlier num = "<<row_outlier<<std::endl;
+        EZLOG(INFO)<<"col_outlier num = "<<col_outlier<<std::endl;
+        EZLOG(INFO)<<"rangemat_outlier num = "<<rangemat_outlier<<std::endl;
+
+        pcl::PointCloud<PointType> deskewCloud_w;
+        EZLOG(INFO)<<"deskewCloud_body size = "<<deskewCloud_body->points.size()<<std::endl;
+        EZLOG(INFO)<<"deskewCloud_body_offset size = "<<deskewCloud_body_offset.points.size()<<std::endl;
+        pcl::transformPointCloud(deskewCloud_body_offset, deskewCloud_w, (T_w_body_lidar_start).cast<float>());
+        EZLOG(INFO)<<"deskewCloud_w size = "<<deskewCloud_w.points.size()<<std::endl;
+        sensor_msgs::PointCloud2 deskewCloud_w_ros;
+        pcl::toROSMsg(deskewCloud_w, deskewCloud_w_ros);
+        deskewCloud_w_ros.header.frame_id = "map";
+        pub_deskew_cloud_world.publish(deskewCloud_w_ros);
     }
 
 
@@ -703,7 +682,7 @@ public:
                     // save range info  激光点距离
                     cloudInfo.pointRange[count] = rangeMat.at<float>(i, j);
                     // save extracted cloud 加入有效激光点
-                    extractedCloud->push_back(deskewCloud->points[j + i * SensorConfig::Horizon_SCAN]);
+                    extractedCloud->push_back(deskewCloud_body->points[j + i * SensorConfig::Horizon_SCAN]);
                     // size of extracted cloud
                     ++count;
                 }
@@ -717,7 +696,7 @@ public:
         cloudInfo.cloud_deskewed = publishCloud(pub_origin_cloud, extractedCloud, cloudHeader.stamp, SensorConfig::lidarFrame);
         pubLaserCloudInfo.publish(cloudInfo);
 
-        publishCloud(pub_deskew_cloud, deskewCloud, cloudHeader.stamp, SensorConfig::lidarFrame);
+//        publishCloud(pub_deskew_cloud_world, deskewCloud_body, cloudHeader.stamp, SensorConfig::lidarFrame);
     }
 };
 
