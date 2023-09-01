@@ -29,7 +29,6 @@ using symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz)
 using symbol_shorthand::G;  // GPS pose
 using symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
-
 /*
  * A point cloud type that has 6D pose info ([x,y,z,roll,pitch,yaw] intensity is
  * time stamp)
@@ -79,6 +78,10 @@ public:
     ros::Publisher pubCloudRaw;
     ros::Publisher pubLoopConstraintEdge;
     ros::Publisher pubGpsConstraintEdge;
+    ros::Publisher pubSurfFromMap;
+    ros::Publisher pubCornerFromMap;
+    sensor_msgs::PointCloud2 pcl_SurfMapMsg;
+    sensor_msgs::PointCloud2 pcl_CornerMapMsg;
 
     ros::Publisher pubSLAMInfo;
 
@@ -264,6 +267,7 @@ public:
         pubGpsConstraintEdge = nh.advertise<visualization_msgs::MarkerArray>(
                 "/lio_sam_6axis/mapping/gps_constraints", 1);
 
+
         pubRecentKeyFrames = nh.advertise<sensor_msgs::PointCloud2>(
                 "lio_sam_6axis/mapping/map_local", 1);
         pubRecentKeyFrame = nh.advertise<sensor_msgs::PointCloud2>(
@@ -271,6 +275,10 @@ public:
         pubCloudRegisteredRaw = nh.advertise<sensor_msgs::PointCloud2>(
                 "lio_sam_6axis/mapping/cloud_registered_raw", 1);
         pubCloudRaw = nh.advertise<sensor_msgs::PointCloud2>("cloud_deskewed", 1);
+        pubSurfFromMap = nh.advertise<sensor_msgs::PointCloud2>(
+                "surf_fromMap", 1);
+        pubCornerFromMap = nh.advertise<sensor_msgs::PointCloud2>(
+                "Corner_fromMap", 1);
 
         pubSLAMInfo = nh.advertise<lio_sam_6axis::cloud_info>(
                 "lio_sam_6axis/mapping/slam_info", 1);
@@ -295,6 +303,8 @@ public:
         // use imu frame when saving map
         dataSaverPtr->setExtrinc(true, t_body_sensor, q_body_sensor);
         dataSaverPtr->setConfigDir(configDirectory);
+
+
 
         allocateMemory();
         std::cout << savePCDDirectory << std::endl;
@@ -375,6 +385,14 @@ public:
         kdCornerFromMap->setInputCloud(laserCloudCornerFromMapDS);
         std::cout << "Read Corner Map!"<<std::endl;
 
+//        pcl::PointCloud<pcl::PointXYZI> pub_cloud;
+//        pub_cloud = *laserCloudCornerFromMapDS;
+//        pcl::toROSMsg(pub_cloud, pcl_CornerMapMsg);
+//        pcl_CornerMapMsg.header.frame_id = "map";
+//        pcl_CornerMapMsg.header.stamp = ros::Time::now();
+//        pubCornerFromMap.publish(pcl_CornerMapMsg);
+//        std::cout << "Pub Corner Map!"<<std::endl;
+
     }
 /**
  * add by sy for load Prior map Surf
@@ -391,6 +409,32 @@ public:
         }
         kdSurfFromMap->setInputCloud(_laserCloudSurfFromMapDS);
         std::cout << "Read Surf Map!"<<std::endl;
+
+    }
+
+    void pub_CornerAndSurfFromMap()
+    {
+        if (pubSurfFromMap.getNumSubscribers() != 0)
+        {
+            pcl::PointCloud<pcl::PointXYZI> pub_cloud;
+            pub_cloud = *laserCloudSurfFromMapDS;
+            pcl::toROSMsg(pub_cloud, pcl_SurfMapMsg);
+            pcl_SurfMapMsg.header.frame_id = "map";
+            pcl_SurfMapMsg.header.stamp = ros::Time::now();
+            pubSurfFromMap.publish(pcl_SurfMapMsg);
+            std::cout << "Pub Surf Map!"<<std::endl;
+        }
+
+        if (pubCornerFromMap.getNumSubscribers() != 0)
+        {
+            pcl::PointCloud<pcl::PointXYZI> pub_cloud;
+            pub_cloud = *laserCloudCornerFromMapDS;
+            pcl::toROSMsg(pub_cloud, pcl_CornerMapMsg);
+            pcl_CornerMapMsg.header.frame_id = "map";
+            pcl_CornerMapMsg.header.stamp = ros::Time::now();
+            pubCornerFromMap.publish(pcl_CornerMapMsg);
+            std::cout << "Pub Corner Map!"<<std::endl;
+        }
 
     }
 
@@ -432,8 +476,10 @@ public:
                 if(flagLoadMap){
                     Load_PriorMap_Surf("/home/sy/SEU_WS/backup/seu_lidarloc_8.25/src/globalmap_lidar_feature_surf.pcd",laserCloudSurfFromMapDS);
                     Load_PriorMap_Corner("/home/sy/SEU_WS/backup/seu_lidarloc_8.25/src/globalmap_lidar_feature_corner.pcd",laserCloudCornerFromMapDS);
+
                     flagLoadMap = 0;
                 }
+                pub_CornerAndSurfFromMap();
 
                 downsampleCurrentScan();
 
@@ -446,6 +492,8 @@ public:
                 publishOdometry();
 
                 publishFrames();
+
+
             }
         }
     }
