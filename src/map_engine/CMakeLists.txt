@@ -35,6 +35,7 @@ include_directories(
         ${EIGEN3_INCLUDE_DIR}
         ../ThirdParty/easylog-9.89/src/
         ${YAML_CPP_INCLUDE_DIR}
+        ${PCL_INCLUDE_DIRS}
 )
 
 MESSAGE(STATUS "------------${EIGEN3_INCLUDE_DIR}------------------")
