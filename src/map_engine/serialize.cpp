@@ -78,6 +78,10 @@ FindMinMaxUsePose(){
     y_min_t=tum_sum.begin()->ty-lidar_range;
     y_max_t=std::prev(tum_sum.end())->ty+lidar_range;
     //输出
+    //输出到文本文件
+    std::ofstream file(Map_Out_path+"index.txt");
+    file<<x_min_t<<" "<<y_min_t<<" "<<std::endl;
+    file.close();
     std::cout<<"xmin"<<x_min_t<<std::endl;
     std::cout<<"xmax"<<x_max_t<<std::endl;
     std::cout<<"ymin"<<y_min_t<<std::endl;
@@ -93,6 +97,7 @@ CutDownMapCaulate(){
     std::cout << "x分区: " << x_up_num << std::endl;
     std::cout << "y分区: " << y_up_num << std::endl;
     std::cout << "分区总数" <<up_bloc_count<<std::endl;
+
 }
 
 pcl::PointXYZ

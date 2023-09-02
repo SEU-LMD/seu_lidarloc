@@ -27,9 +27,9 @@ struct Tum{
     double qx, qy, qz, qw; // 四元数表示的旋转
 };
 
-const std::string Map_In_path="/home/wxq/mapin/";
-const std::string Map_Out_path="/home/wxq/mapout/";
-const std::string Map_Index_Path="/home/wxq/mapin/optimized_odom_tum.txt";
+const std::string Map_In_path="/home/slam/mapin/";
+const std::string Map_Out_path="/home/slam/mapout/";
+const std::string Map_Index_Path="/home/slam/mapin/Pose_TUM.txt";
 const int up_grid_size=40;
 const int up2down_num=2;  //up_grid_size/down_grid_size  要整数倍
 const double lidar_range=50;
