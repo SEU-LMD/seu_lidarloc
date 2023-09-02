@@ -13,6 +13,7 @@
 
 
 #include "utility.h"
+#include "timer.h"
 #include "config_helper.h"
 
 #include "easylogging++.h"

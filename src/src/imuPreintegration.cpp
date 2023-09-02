@@ -17,6 +17,8 @@
 // #include <gtsam_unstable/nonlinear/IncrementalFixedLagSmoother.h>
 
 #include "utility.h"
+#include "timer.h"
+
 #include "easylogging++.h"
 #include "ivsensorgps.h"
 INITIALIZE_EASYLOGGINGPP

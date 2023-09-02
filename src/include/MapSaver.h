@@ -16,6 +16,7 @@
 #include <pcl/io/pcd_io.h>
 
 #include "./utility.h"
+#include "timer.h"
 
 struct CloudInfo{
     pcl::PointCloud<PointType> corner_cloud;

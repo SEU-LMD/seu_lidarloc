@@ -22,6 +22,8 @@
 #include "cloud_info.h"
 //#include "lio_sam_6axis/save_map.h"
 #include "utility.h"
+#include "timer.h"
+
 #include "MapSaver.h"
 #include "utm/utm_convert.h"
 //#include "utm/gnss.h"
