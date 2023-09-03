@@ -4,6 +4,7 @@
 
 #include "config_helper.h"
 #include "easylogging++.h"
+#include "MapSaver.h"
 
 INITIALIZE_EASYLOGGINGPP
 struct smoothness_t {
@@ -20,7 +21,9 @@ struct by_value {
 class FeatureExtraction {
 
  public:
-  ros::NodeHandle nh;
+    MapSaver map_saver;
+    int frame_id = 0;
+    ros::NodeHandle nh;
   ros::Subscriber subLaserCloudInfo;
 
   ros::Publisher pubLaserCloudInfo;
@@ -75,6 +78,7 @@ class FeatureExtraction {
   }
 
   void laserCloudInfoHandler(const lio_sam_6axis::cloud_infoConstPtr &msgIn) {
+
     cloudInfo = *msgIn;           // new cloud info
     cloudHeader = msgIn->header;  // new cloud header
     pcl::fromROSMsg(msgIn->cloud_deskewed,
@@ -87,27 +91,35 @@ class FeatureExtraction {
     extractFeatures();
 
     publishFeatureCloud();
+
+    //save
+    CloudInfo cloudinfo;
+    cloudinfo.frame_id = frame_id;
+    frame_id++;
+    cloudinfo.corner_cloud = cornerCloud;
+    cloudinfo.surf_cloud = surfaceCloud;
+    map_saver.AddCloudToSave(cloudinfo);
   }
 
   void calculateSmoothness() {
       int cloudSize = extractedCloud->points.size();
     for (int i = 5; i < cloudSize - 5; i++) {
-      float diffRange =
-          cloudInfo.pointRange[i - 5] + cloudInfo.pointRange[i - 4] +
-          cloudInfo.pointRange[i - 3] + cloudInfo.pointRange[i - 2] +
-          cloudInfo.pointRange[i - 1] - cloudInfo.pointRange[i] * 10 +
-          cloudInfo.pointRange[i + 1] + cloudInfo.pointRange[i + 2] +
-          cloudInfo.pointRange[i + 3] + cloudInfo.pointRange[i + 4] +
-          cloudInfo.pointRange[i + 5];
+          float diffRange =
+              cloudInfo.pointRange[i - 5] + cloudInfo.pointRange[i - 4] +
+              cloudInfo.pointRange[i - 3] + cloudInfo.pointRange[i - 2] +
+              cloudInfo.pointRange[i - 1] - cloudInfo.pointRange[i] * 10 +
+              cloudInfo.pointRange[i + 1] + cloudInfo.pointRange[i + 2] +
+              cloudInfo.pointRange[i + 3] + cloudInfo.pointRange[i + 4] +
+              cloudInfo.pointRange[i + 5];
 
-      cloudCurvature[i] =  diffRange * diffRange;  // diffX * diffX + diffY * diffY + diffZ * diffZ;
+          cloudCurvature[i] =  diffRange * diffRange;  // diffX * diffX + diffY * diffY + diffZ * diffZ;
 
 
-      cloudNeighborPicked[i] = 0;//初始化所有的点都没有被标记过
-      cloudLabel[i] = 0;
-      // cloudSmoothness for sorting
-      cloudSmoothness[i].value = cloudCurvature[i];
-      cloudSmoothness[i].ind = i;
+          cloudNeighborPicked[i] = 0;//初始化所有的点都没有被标记过
+          cloudLabel[i] = 0;
+          // cloudSmoothness for sorting
+          cloudSmoothness[i].value = cloudCurvature[i];
+          cloudSmoothness[i].ind = i;
     }
   }
 
@@ -268,7 +280,7 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "ft_ext");
 
   FeatureExtraction FE;
-
+  std::thread saveMapThread(&MapSaver::do_work, &(FE.map_saver));//comment fyy
   ROS_INFO("\033[1;32m----> Feature Extraction Started.\033[0m");
 
   ros::spin();

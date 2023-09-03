@@ -19,21 +19,41 @@
 #include "timer.h"
 
 struct CloudInfo{
-    pcl::PointCloud<PointType> corner_cloud;
-    pcl::PointCloud<PointType> surf_cloud;
+    pcl::PointCloud<PointType>::Ptr corner_cloud;
+    pcl::PointCloud<PointType>::Ptr surf_cloud;
     int frame_id;
 };
 
-class SaveMap{
+class MapSaver{
 public:
     std::string sav_root_path;
     std::mutex data_mutex;
     std::deque<CloudInfo> pts_deque;
 
 
-    void SaveToDisk(const CloudInfo& cloud_info){
-        pcl::io::savePCDFileASCII(sav_root_path+std::to_string(cloud_info.frame_id)+"_corner.pcd", cloud_info.corner_cloud);
-        pcl::io::savePCDFileASCII(sav_root_path+std::to_string(cloud_info.frame_id)+"_surf.pcd", cloud_info.surf_cloud);
+    void SaveCloud(const CloudInfo& cloud_info){
+        pcl::io::savePCDFileASCII(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_corner.pcd", *cloud_info.corner_cloud);
+        pcl::io::savePCDFileASCII(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_surf.pcd", *cloud_info.surf_cloud);
+    }
+
+    static void SaveOriginLLA(const Eigen::Vector3d gps_point){
+        std::fstream originStream( MappingConfig::save_map_path +"origin.txt", std::fstream::out);
+        originStream.precision(6);
+        originStream << gps_point[0] << " " << gps_point[1] << " " << gps_point[2]
+                     << std::endl;
+        originStream.close();
+    }
+
+    static void SavePoses(const std::vector<PoseT>& opt_poses) {
+        std::fstream stream(MappingConfig::save_map_path + "Opt_Poses.txt",std::fstream::out);
+        stream.precision(6);
+        for (int i = 0; i < opt_poses.size(); i++) {
+            Eigen::Vector3d p = opt_poses[i].GetT();
+            Eigen::Quaterniond  q = opt_poses[i].GetQ();
+            stream << i << " " << p.x() << " " << p.y() << " "
+                   << p.z() << " " << q.x() << " " << q.y() << " " << q.z() << " "
+                   << q.w() << std::endl;
+        }
     }
 
     void do_work(){
@@ -43,21 +63,18 @@ public:
                 auto cloud_info = pts_deque.front();
                 pts_deque.pop_front();
                 data_mutex.unlock();
-                SaveToDisk(cloud_info);
+                SaveCloud(cloud_info);
             }
             sleep(10);
         }
     }
 
-    void addToSave(const CloudInfo& cloud_info){
+    void AddCloudToSave(const CloudInfo& cloud_info){
         data_mutex.lock();
         pts_deque.push_back(cloud_info);
         data_mutex.unlock();
     }
 
-    void Init(const std::string& path){
-        sav_root_path = path;
-    }
 };
 
 #endif //SEU_LIDARLOC_SAVE_MAP_H
