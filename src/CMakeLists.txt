@@ -76,8 +76,8 @@ MESSAGE(STATUS "------------${PCL_LIBRARY_DIRS}------------------")
 ###########
 
 ## Gps odometry
-add_executable(gpsOdometry src/simpleGpsOdom.cpp)
-target_link_libraries(gpsOdometry ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic ${YAML_LIB} )
+#add_executable(gpsOdometry src/simpleGpsOdom.cpp)
+#target_link_libraries(gpsOdometry ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic ${YAML_LIB} )
 #
 ## # # Range Image Projection
 add_executable(imageProjection src/imageProjection_gnss.cpp)
