@@ -174,4 +174,48 @@ Eigen::Vector3d PoseTMulPt(const Eigen::Matrix4d& T, const Eigen::Vector3d& pt){
     return T.block<3,3>(0,0)*pt+T.block<3,1>(0,3);
 }
 
+//void GetPose(const Eigen::Matrix4d& T, ){
+//
+//}
+
+class PoseT{
+public:
+    Eigen::Matrix4d pose;
+    PoseT(){}
+    PoseT(const Eigen::Vector3d& t, const Eigen::Matrix3d& R){
+        pose = Eigen::Matrix4d::Identity();
+        pose.block<3,3>(0,0) = R;
+        pose.block<3,1>(0,3) = t;
+    }
+    PoseT(const Eigen::Vector3d& t, const Eigen::Quaterniond& q){
+        pose = Eigen::Matrix4d::Identity();
+        pose.block<3,3>(0,0) = q.toRotationMatrix();
+        pose.block<3,1>(0,3) = t;
+    }
+    PoseT(const Eigen::Matrix4d &T){
+        pose = T;
+    }
+    Eigen::Vector3d GetT() const{
+        return pose.block<3,1>(0,3);
+    }
+    Eigen::Matrix3d GetR() const{
+        return pose.block<3,3>(0,0);
+    }
+    Eigen::Quaterniond GetQ() const{
+        Eigen::Quaterniond q (pose.block<3,3>(0,0));
+        return q;
+    }
+    PoseT operator*(const PoseT& T) const{
+        return PoseT(pose * T.pose);
+    }
+
+    Eigen::Vector3d operator*(const Eigen::Vector3d& pt) const{
+        return pose.block<3,3>(0,0)*pt+pose.block<3,1>(0,3);
+    }
+
+    PoseT inverse() const{
+        return PoseT(pose.inverse());
+    }
+};
+
 #endif
