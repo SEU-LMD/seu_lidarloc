@@ -96,6 +96,6 @@ target_compile_options(mapOptmization PRIVATE ${OpenMP_CXX_FLAGS})
 target_link_libraries(mapOptmization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES}  gtsam  libGeographic  ${YAML_LIB})
 
 # IMU Preintegrations
-add_executable(imuPreintegration src/imuPreintegration.cpp)
-target_link_libraries(imuPreintegration ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam  ${YAML_LIB})
+#add_executable(imuPreintegration src/imuPreintegration.cpp)
+#target_link_libraries(imuPreintegration ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam  ${YAML_LIB})
 

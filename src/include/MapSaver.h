@@ -37,7 +37,7 @@ public:
     }
 
     static void SaveOriginLLA(const Eigen::Vector3d gps_point){
-        std::fstream originStream( MappingConfig::save_map_path +"origin.txt", std::fstream::out);
+        std::fstream originStream( MappingConfig::save_map_path +"Origin.txt", std::fstream::out);
         originStream.precision(6);
         originStream << gps_point[0] << " " << gps_point[1] << " " << gps_point[2]
                      << std::endl;
@@ -65,7 +65,7 @@ public:
                 data_mutex.unlock();
                 SaveCloud(cloud_info);
             }
-            sleep(10);
+            sleep(0.05);
         }
     }
 

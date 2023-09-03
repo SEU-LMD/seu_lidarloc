@@ -610,7 +610,7 @@ int main(int argc, char **argv) {
 
     ros::init(argc, argv, "imu_pre");
     Load_Sensor_YAML("./config/sensor.yaml");
-
+    Load_Mapping_YAML("./config/mapping.yaml");
 
     IMUPreintegration ImuP;
 
