@@ -90,7 +90,7 @@ class FeatureExtraction {
   }
 
   void calculateSmoothness() {
-    int cloudSize = extractedCloud->points.size();
+      int cloudSize = extractedCloud->points.size();
     for (int i = 5; i < cloudSize - 5; i++) {
       float diffRange =
           cloudInfo.pointRange[i - 5] + cloudInfo.pointRange[i - 4] +
@@ -100,11 +100,10 @@ class FeatureExtraction {
           cloudInfo.pointRange[i + 3] + cloudInfo.pointRange[i + 4] +
           cloudInfo.pointRange[i + 5];
 
-      cloudCurvature[i] =
-          diffRange *
-          diffRange;  // diffX * diffX + diffY * diffY + diffZ * diffZ;
+      cloudCurvature[i] =  diffRange * diffRange;  // diffX * diffX + diffY * diffY + diffZ * diffZ;
 
-      cloudNeighborPicked[i] = 0;
+
+      cloudNeighborPicked[i] = 0;//初始化所有的点都没有被标记过
       cloudLabel[i] = 0;
       // cloudSmoothness for sorting
       cloudSmoothness[i].value = cloudCurvature[i];
@@ -153,104 +152,90 @@ class FeatureExtraction {
   }
 
   void extractFeatures() {
+
+
     cornerCloud->clear();
     surfaceCloud->clear();
 
-    pcl::PointCloud<PointType>::Ptr surfaceCloudScan(
-        new pcl::PointCloud<PointType>());
-    pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS(
-        new pcl::PointCloud<PointType>());
 
     for (int i = 0; i < SensorConfig::N_SCAN; i++) {
-      surfaceCloudScan->clear();
 
+      pcl::PointCloud<PointType>::Ptr surfaceCloudScan(  new pcl::PointCloud<PointType>());
+
+      //给一个scan分成6个不同的扇区
       for (int j = 0; j < 6; j++) {
-        int sp = (cloudInfo.startRingIndex[i] * (6 - j) +
-                  cloudInfo.endRingIndex[i] * j) /
-                 6;
-        int ep = (cloudInfo.startRingIndex[i] * (5 - j) +
-                  cloudInfo.endRingIndex[i] * (j + 1)) /
-                     6 -
-                 1;
+            int sp = ( cloudInfo.startRingIndex[i] * (6 - j) + cloudInfo.endRingIndex[i] * j ) / 6;
+            int ep = ( cloudInfo.startRingIndex[i] * (5 - j) +  cloudInfo.endRingIndex[i] * (j + 1) ) / 6 - 1;
 
-        if (sp >= ep) continue;
+            if (sp >= ep) continue;
 
-        std::sort(cloudSmoothness.begin() + sp, cloudSmoothness.begin() + ep,
-                  by_value());
+            std::sort(cloudSmoothness.begin() + sp, cloudSmoothness.begin() + ep, by_value());
+            //提取角点×××××××××××××××××××××××××××××××××××××××××××××××××××××××××××
+            int largestPickedNum = 0;//只在提取角点时使用
+            for (int k = ep; k >= sp; k--) {
+                  int ind = cloudSmoothness[k].ind;
+                  if (cloudNeighborPicked[ind] == 0 && cloudCurvature[ind] > MappingConfig::edgeThreshold) {
+                        largestPickedNum++;
+                        //每个扇区最多只能提取出20个角点
+                        if (largestPickedNum <= 20) {
+                          cloudLabel[ind] = 1;//标记这个点不是面点 是角点
+                          cornerCloud->push_back(extractedCloud->points[ind]);//very important movement!!!!!!!!!!!!!11
+                        } else {
+                          break;
+                        }
+                        cloudNeighborPicked[ind] = 1;
+                        //周围的几个点如果距离不远，也被标记为被选中，即不再参与角点的计算
+                        for (int l = 1; l <= 5; l++) {
+                          int columnDiff =  std::abs(int(cloudInfo.pointColInd[ind + l] -  cloudInfo.pointColInd[ind + l - 1]));
+                          if (columnDiff > 10) break;
+                          cloudNeighborPicked[ind + l] = 1;
+                        }
+                        for (int l = -1; l >= -5; l--) {
+                          int columnDiff = std::abs(int(cloudInfo.pointColInd[ind + l] -  cloudInfo.pointColInd[ind + l + 1]));
+                          if (columnDiff > 10) break;
+                          cloudNeighborPicked[ind + l] = 1;
+                        }
+                  }
+            }
+            //提取面点×××××××××××××××××××××××××××××××××××××××××××××××××××××××××××
+            for (int k = sp; k <= ep; k++) {
+                  int ind = cloudSmoothness[k].ind;
+                  if (cloudNeighborPicked[ind] == 0 && cloudCurvature[ind] < MappingConfig::surfThreshold) {
+                        cloudLabel[ind] = -1;//标记这个点是面点
+                        cloudNeighborPicked[ind] = 1;
 
-        int largestPickedNum = 0;
-        for (int k = ep; k >= sp; k--) {
-          int ind = cloudSmoothness[k].ind;
-          if (cloudNeighborPicked[ind] == 0 &&
-              cloudCurvature[ind] > MappingConfig::edgeThreshold) {
-            largestPickedNum++;
-            if (largestPickedNum <= 20) {
-              cloudLabel[ind] = 1;
-              cornerCloud->push_back(extractedCloud->points[ind]);
-            } else {
-              break;
+                        for (int l = 1; l <= 5; l++) {
+                          int columnDiff = std::abs(int(cloudInfo.pointColInd[ind + l] - cloudInfo.pointColInd[ind + l - 1]));
+                          if (columnDiff > 10) break;
+                          cloudNeighborPicked[ind + l] = 1;
+                        }
+                        for (int l = -1; l >= -5; l--) {
+                          int columnDiff = std::abs(int(cloudInfo.pointColInd[ind + l] - cloudInfo.pointColInd[ind + l + 1]));
+                          if (columnDiff > 10) break;
+                          cloudNeighborPicked[ind + l] = 1;
+                        }
+                  }
             }
 
-            cloudNeighborPicked[ind] = 1;
-            for (int l = 1; l <= 5; l++) {
-              int columnDiff =
-                  std::abs(int(cloudInfo.pointColInd[ind + l] -
-                               cloudInfo.pointColInd[ind + l - 1]));
-              if (columnDiff > 10) break;
-              cloudNeighborPicked[ind + l] = 1;
+            for (int k = sp; k <= ep; k++) {
+              if (cloudLabel[k] <= 0) {
+                surfaceCloudScan->push_back(extractedCloud->points[k]);
+              }
             }
-            for (int l = -1; l >= -5; l--) {
-              int columnDiff =
-                  std::abs(int(cloudInfo.pointColInd[ind + l] -
-                               cloudInfo.pointColInd[ind + l + 1]));
-              if (columnDiff > 10) break;
-              cloudNeighborPicked[ind + l] = 1;
-            }
-          }
-        }
+      }//for (int j = 0; j < 6; j++)
 
-        for (int k = sp; k <= ep; k++) {
-          int ind = cloudSmoothness[k].ind;
-          if (cloudNeighborPicked[ind] == 0 &&
-              cloudCurvature[ind] < MappingConfig::surfThreshold) {
-            cloudLabel[ind] = -1;
-            cloudNeighborPicked[ind] = 1;
-
-            for (int l = 1; l <= 5; l++) {
-              int columnDiff =
-                  std::abs(int(cloudInfo.pointColInd[ind + l] -
-                               cloudInfo.pointColInd[ind + l - 1]));
-              if (columnDiff > 10) break;
-
-              cloudNeighborPicked[ind + l] = 1;
-            }
-            for (int l = -1; l >= -5; l--) {
-              int columnDiff =
-                  std::abs(int(cloudInfo.pointColInd[ind + l] -
-                               cloudInfo.pointColInd[ind + l + 1]));
-              if (columnDiff > 10) break;
-
-              cloudNeighborPicked[ind + l] = 1;
-            }
-          }
-        }
-
-        for (int k = sp; k <= ep; k++) {
-          if (cloudLabel[k] <= 0) {
-            surfaceCloudScan->push_back(extractedCloud->points[k]);
-          }
-        }
-      }
-
-      surfaceCloudScanDS->clear();
+      //对属于同一个scan的面点进行降采样
+      pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS( new pcl::PointCloud<PointType>());
       downSizeFilter.setInputCloud(surfaceCloudScan);
       downSizeFilter.filter(*surfaceCloudScanDS);
 
-      *surfaceCloud += *surfaceCloudScanDS;
-    }
-  }
+      *surfaceCloud += *surfaceCloudScanDS;//very important function!!!!!!!
+    }//end function     for (int i = 0; i < SensorConfig::N_SCAN; i++) {
 
-  void freeCloudInfoMemory() {
+  }//end fucntion   void extractFeatures() {
+
+
+    void freeCloudInfoMemory() {
     cloudInfo.startRingIndex.clear();
     cloudInfo.endRingIndex.clear();
     cloudInfo.pointColInd.clear();
