@@ -116,13 +116,14 @@ CutDownMapCaulate(){
 }
 
 PointType
-PointPoseTrance(const pcl::PointXYZ& piont_in,const Eigen::Isometry3d& trans ){
+PointPoseTrance(const pcl::PointXYZI& piont_in,const Eigen::Isometry3d& trans ){
     Eigen::Vector3d piont_trans(piont_in.x,piont_in.y,piont_in.z);
     Eigen::Vector3d piont_transformed=trans*piont_trans;
     PointType piont_out;
     piont_out.x=piont_transformed.x();
     piont_out.y=piont_transformed.y();
     piont_out.z=piont_transformed.z();
+    piont_out.intensity=piont_in.intensity;
     return piont_out;
 }
 
@@ -143,15 +144,15 @@ CutMap(const std::string& feature,const std::string& map_out_path,const std::str
                     int laser_cloud_width=x_up_num*SerializeConfig::up2down_num;
                     int index=(m+j*SerializeConfig::up2down_num)+(n+i*SerializeConfig::up2down_num)*laser_cloud_width;
 
-                    pcl::PointCloud<pcl::PointXYZ>::Ptr in_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+                    pcl::PointCloud<pcl::PointXYZI>::Ptr in_cloud(new pcl::PointCloud<pcl::PointXYZI>);
 
                     for(int k=0;k<frame_sum;k++){                        //循环每一个小pcd
-                        if (pcl::io::loadPCDFile<pcl::PointXYZ> (map_in_path+pcd_index[k]+"_"+feature+".pcd", *in_cloud) == -1)
+                        if (pcl::io::loadPCDFile<pcl::PointXYZI> (map_in_path+pcd_index[k]+"_"+feature+".pcd", *in_cloud) == -1)
                         {
 //                            PCL_ERROR("Couldn't read file test_pcd.pcd \n");
 //                            continue;
                         }
-                        for (const pcl::PointXYZ& point : *in_cloud){//  循环每一个点
+                        for (const pcl::PointXYZI& point : *in_cloud){//  循环每一个点
                             PointType transformed_point;
                             transformed_point=PointPoseTrance(point,pcd_tans[k]);
                             if ( transformed_point.x>=(x_min_t+(m+j*SerializeConfig::up2down_num)*(SerializeConfig::up_grid_size/SerializeConfig::up2down_num))&&transformed_point.y >=(y_min_t + (n+i*SerializeConfig::up2down_num)*(SerializeConfig::up_grid_size/SerializeConfig::up2down_num))&&
@@ -164,7 +165,7 @@ CutMap(const std::string& feature,const std::string& map_out_path,const std::str
                 }
             }
             std::string filename=map_out_path+std::to_string(j)+"_"+std::to_string(i)+feature+".pcd";
-            pcl::io::savePCDFileASCII (filename, *out_cloud);
+            pcl::io::savePCDFileBinary (filename, *out_cloud);
         }
     }
 };
