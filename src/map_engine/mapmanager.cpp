@@ -170,8 +170,8 @@ LoadMap(const int& center_cubeI,const int& center_cubeJ){
     std::cout<<"load"<<center_load_cubeI<<" "<<" "<<center_load_cubeJ<<std::endl;
     //需要加载的索引以及寻找是否已经加载
     int k=0;
-    for (int i=center_load_cubeJ; i<5; ++i) {
-        for(int j=center_load_cubeI; j<5; ++j){
+    for (int i=center_load_cubeJ; i<center_load_cubeJ+5; ++i) {
+        for(int j=center_load_cubeI; j<center_load_cubeJ+5; ++j){
             bool is_in_memeroy= false;
             laser_cloud_load_ind[k]=j+i*laserCloudWidth;
             //寻找地图中有没有当前的点
@@ -218,8 +218,8 @@ BuildTree(const int& center_cubeI,const int& center_cubeJ){
     else center_bulid_cubeJ=center_cubeJ-1;
 
     int k=0;
-    for (int i=center_bulid_cubeJ; i<3; ++i) {
-        for(int j=center_bulid_cubeI; j<3; ++j){
+    for (int i=center_bulid_cubeJ; i<center_bulid_cubeJ+3; ++i) {
+        for(int j=center_bulid_cubeI; j<center_bulid_cubeJ+3; ++j){
             laser_cloud_valid_ind[k]=j+i*laserCloudWidth;
             std::cout<<laser_cloud_valid_ind[k]<<std::endl;
             k++;
