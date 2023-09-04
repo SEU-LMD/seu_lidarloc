@@ -4,6 +4,7 @@
 
 #ifndef SERIALIZE_MAPMANAGER_H
 #define SERIALIZE_MAPMANAGER_H
+#define PCL_NO_PRECOMPILE
 
 #include <iostream>              //标准C++库中的输入输出的头文件
 #include <pcl/io/pcd_io.h>       //PCD读写类相关的头文件
@@ -21,17 +22,16 @@
 #include <thread>
 #include <chrono>
 #include "timer.h"
+#include "config_helper.h"
+#include "easylogging++.h"
+INITIALIZE_EASYLOGGINGPP
 
 
 
-typedef pcl::PointXYZ PointType;
 
-const std::string map_read_path="/media/today/新加卷1/0831/mapout/";
-const int up_grid_size=40;
-const int up2down_num=2;  //up_grid_size/down_grid_size  要整数倍
-const int laserCloudWidth = 4*up2down_num;  //x方向
-const int laserCloudHeight = 5*up2down_num; //y方向
-const int laserCloudNum = laserCloudWidth * laserCloudHeight;
+const int laserCloudWidth = 4*SerializeConfig::up2down_num;  //x方向
+const int laserCloudHeight = 5*SerializeConfig::up2down_num; //y方向
+const int laserCloudNum = 80;
 
 
 typedef struct{
@@ -46,6 +46,23 @@ typedef struct {
     double z;
 }Gnsspostion;
 
+
+
+struct MyPointType{
+    PCL_ADD_POINT4D;
+
+    PCL_ADD_INTENSITY;
+
+    int down_grid_index;
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+}EIGEN_ALIGN16;
+
+POINT_CLOUD_REGISTER_POINT_STRUCT (MyPointType,
+(float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(int, down_grid_index, down_grid_index)
+)
+
+typedef pcl::PointXYZI PointType;
 
 
 
