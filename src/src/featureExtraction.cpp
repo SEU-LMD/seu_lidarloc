@@ -8,10 +8,11 @@
 
 INITIALIZE_EASYLOGGINGPP
 struct smoothness_t {
-  float value;
-  size_t ind;
+  float value;      //curvature
+  size_t ind;       //index in cloudinfo
 };
 
+//compare curvature and sort from smallest to largest
 struct by_value {
   bool operator()(smoothness_t const &left, smoothness_t const &right) {
     return left.value < right.value;
@@ -40,9 +41,9 @@ class FeatureExtraction {
   std_msgs::Header cloudHeader;
 
   std::vector<smoothness_t> cloudSmoothness;
-  float *cloudCurvature;
-  int *cloudNeighborPicked;
-  int *cloudLabel;
+  float *cloudCurvature;    // for calculate curvature
+  int *cloudNeighborPicked; // 1:after process; 0:before process
+  int *cloudLabel;          //1:corner; 0:surface
 
   FeatureExtraction() {
     subLaserCloudInfo = nh.subscribe<lio_sam_6axis::cloud_info>(
@@ -79,17 +80,23 @@ class FeatureExtraction {
 
   void laserCloudInfoHandler(const lio_sam_6axis::cloud_infoConstPtr &msgIn) {
 
+      EZLOG(INFO)<<"***************laserCloudInfoHandler "<<std::endl;
+
     cloudInfo = *msgIn;           // new cloud info
     cloudHeader = msgIn->header;  // new cloud header
     pcl::fromROSMsg(msgIn->cloud_deskewed,
                     *extractedCloud);  // new cloud for extraction
 
+    //1.calculate point curvature and store in cloudSmoothness
     calculateSmoothness();
 
+    //2.mark point which does not extract features
     markOccludedPoints();
 
+    //3.extract corner and surface point
     extractFeatures();
 
+    //4.publish cloud
     publishFeatureCloud();
 
     //save
@@ -102,29 +109,35 @@ class FeatureExtraction {
   }
 
   void calculateSmoothness() {
-      int cloudSize = extractedCloud->points.size();
+    int cloudSize = extractedCloud->points.size();
     for (int i = 5; i < cloudSize - 5; i++) {
-          float diffRange =
-              cloudInfo.pointRange[i - 5] + cloudInfo.pointRange[i - 4] +
-              cloudInfo.pointRange[i - 3] + cloudInfo.pointRange[i - 2] +
-              cloudInfo.pointRange[i - 1] - cloudInfo.pointRange[i] * 10 +
-              cloudInfo.pointRange[i + 1] + cloudInfo.pointRange[i + 2] +
-              cloudInfo.pointRange[i + 3] + cloudInfo.pointRange[i + 4] +
-              cloudInfo.pointRange[i + 5];
+        //use front 5points and rear 5points to calculate curvature
+
+      float diffRange =
+          cloudInfo.pointRange[i - 5] + cloudInfo.pointRange[i - 4] +
+          cloudInfo.pointRange[i - 3] + cloudInfo.pointRange[i - 2] +
+          cloudInfo.pointRange[i - 1] - cloudInfo.pointRange[i] * 10 +
+          cloudInfo.pointRange[i + 1] + cloudInfo.pointRange[i + 2] +
+          cloudInfo.pointRange[i + 3] + cloudInfo.pointRange[i + 4] +
+          cloudInfo.pointRange[i + 5];
 
           cloudCurvature[i] =  diffRange * diffRange;  // diffX * diffX + diffY * diffY + diffZ * diffZ;
 
+      //0:before feature extraction; 1:after feature extraction
+      cloudNeighborPicked[i] = 0;//初始化所有的点都没有被标记过
+      //0:surface; 1:corner
+      cloudLabel[i] = 0;
 
-          cloudNeighborPicked[i] = 0;//初始化所有的点都没有被标记过
-          cloudLabel[i] = 0;
-          // cloudSmoothness for sorting
-          cloudSmoothness[i].value = cloudCurvature[i];
-          cloudSmoothness[i].ind = i;
+      // cloudSmoothness for sorting
+      cloudSmoothness[i].value = cloudCurvature[i];
+      cloudSmoothness[i].ind = i;
+//        EZLOG(INFO)<<"***************cloudSmoothness[i].value = "<<cloudSmoothness[i].value<<std::endl;
     }
   }
 
   void markOccludedPoints() {
     int cloudSize = extractedCloud->points.size();
+      EZLOG(INFO)<<"***************cloudSize = "<<cloudSize<<std::endl;
     // mark occluded points and parallel beam points
     for (int i = 5; i < cloudSize - 6; ++i) {
       // occluded points
@@ -247,7 +260,7 @@ class FeatureExtraction {
   }//end fucntion   void extractFeatures() {
 
 
-    void freeCloudInfoMemory() {
+  void freeCloudInfoMemory() {
     cloudInfo.startRingIndex.clear();
     cloudInfo.endRingIndex.clear();
     cloudInfo.pointColInd.clear();
@@ -255,9 +268,13 @@ class FeatureExtraction {
   }
 
   void publishFeatureCloud() {
-    // free cloud info memory
+      EZLOG(INFO)<<"***************publishFeatureCloud "<<std::endl;
+
+      // free cloud info memory
     freeCloudInfoMemory();
     // save newly extracted features
+//      cloudInfo.cloud_corner = publishCloud(pubCornerPoints, cornerCloud,
+//                                            cloudHeader.stamp, SensorConfig::lidarFrame);
     cloudInfo.cloud_corner = publishCloud(pubCornerPoints, cornerCloud,
                                           cloudHeader.stamp, SensorConfig::lidarFrame);
     cloudInfo.cloud_surface = publishCloud(pubSurfacePoints, surfaceCloud,
