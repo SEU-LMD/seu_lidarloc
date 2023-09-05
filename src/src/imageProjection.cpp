@@ -703,7 +703,7 @@ int main(int argc, char **argv) {
 #endif
 
     Load_Sensor_YAML("./config/sensor.yaml");
-    //std::cout<<"------------------------------------------"<<lidarFrame<<std::endl;
+    Load_Mapping_YAML("./config/mapping.yaml");
 
     ros::init(argc, argv, "img_pro");
 

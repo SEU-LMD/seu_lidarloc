@@ -69,7 +69,7 @@ public:
     std::mutex timer_mutex;
     bool timer_start = false;
     TicToc timer_cloud;//用于记录接收到数据的时间
-    SaveMap map_saver;
+//    MapSaver map_saver;
     NonlinearFactorGraph gtSAMgraph;
     Values initialEstimate;
     Values optimizedEstimate;
@@ -223,8 +223,7 @@ public:
 
     mapOptimization() {
         std::cout<<"init mapOptimization function"<<std::endl;
-        map_saver.Init(MappingConfig::save_map_path);
-//        std::thread saveMapThread(&SaveMap::do_work, &map_saver);//comment fyy
+//        std::thread saveMapThread(&MapSaver::do_work, &map_saver);//comment fyy
         std::cout<<"after start map thread"<<std::endl;
 
 
@@ -2000,12 +1999,9 @@ public:
         transformTobeMapped[5] = latestEstimate.translation().z();
 
         // save all the received edge and surf points
-        pcl::PointCloud<PointType>::Ptr thisCornerKeyFrame(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr thisSurfKeyFrame(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr thislaserCloudRawKeyFrame(
-                new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointType>::Ptr thisCornerKeyFrame(new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointType>::Ptr thisSurfKeyFrame( new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointType>::Ptr thislaserCloudRawKeyFrame(new pcl::PointCloud<PointType>());
         pcl::copyPointCloud(*laserCloudCornerLastDS, *thisCornerKeyFrame);
         pcl::copyPointCloud(*laserCloudSurfLastDS, *thisSurfKeyFrame);
 //        pcl::copyPointCloud(*laserCloudRawDS, *thislaserCloudRawKeyFrame);
@@ -2017,11 +2013,11 @@ public:
 
         //add by fyy
         std::cout<<"start push cloud to map saver"<<std::endl;
-        CloudInfo cloud_info;
-        cloud_info.frame_id = ++frame_id;
-        cloud_info.corner_cloud = *thisCornerKeyFrame;
-        cloud_info.surf_cloud = *thisSurfKeyFrame;
-        map_saver.addToSave(cloud_info);
+//        CloudInfo cloud_info;
+//        cloud_info.frame_id = ++frame_id;
+//        cloud_info.corner_cloud = *thisCornerKeyFrame;
+//        cloud_info.surf_cloud = *thisSurfKeyFrame;
+//        map_saver.AddCloudToSave(cloud_info);
 
         // if you want to save raw cloud
 //        laserCloudRawKeyFrames.push_back(thislaserCloudRawKeyFrame);
@@ -2348,7 +2344,7 @@ int main(int argc, char **argv) {
     std::thread loopthread(&mapOptimization::loopClosureThread, &MO);
     std::thread visualizeMapThread(&mapOptimization::visualizeGlobalMapThread, &MO);
     std::thread savepathThread(&mapOptimization::savePathThread, &MO);
-    std::thread saveMapThread(&SaveMap::do_work, &(MO.map_saver));//comment fyy
+//    std::thread saveMapThread(&MapSaver::do_work, &(MO.map_saver));//comment fyy
     //启动每帧点云数据线程
     ros::spin();
 

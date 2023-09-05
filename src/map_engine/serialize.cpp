@@ -1,11 +1,27 @@
 
 // PCL specific includes
-
-
 #include "serialize.h"
 
 
-int count=0;
+struct MyPointType{
+    PCL_ADD_POINT4D;
+
+    PCL_ADD_INTENSITY;
+
+    int down_grid_index;
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+}EIGEN_ALIGN16;
+
+POINT_CLOUD_REGISTER_POINT_STRUCT (MyPointType,
+(float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(int, down_grid_index, down_grid_index)
+)
+
+typedef MyPointType PointType;
+
+
+
+
 std::vector<std::string>  pcd_index;
 std::vector<Eigen::Isometry3d>  pcd_tans;
 std::vector<std::string>   pcd_feature;
@@ -23,13 +39,13 @@ int up_bloc_count=0;
 int write_sum=0;
 
 void
-LoadTxt()
+LoadTxt(const std::string& map_in_path,const int& frame_sum)
 {
     std::string pcdindex;
     Eigen::Vector3d tanslation;
     Eigen::Quaterniond rotation;
     Eigen::Isometry3d T=Eigen::Isometry3d::Identity();
-    std::ifstream downfile(Map_Index_Path);
+    std::ifstream downfile(map_in_path+"Pose_TUM.txt");
     Tum tum;
     for(int j=0;j<frame_sum;j++){
         std::string line;
@@ -52,9 +68,9 @@ LoadTxt()
     }
     downfile.close(); // 关闭文件
     for(int i=0;i<frame_sum;i++){
-        std::cout<< pcd_index[i]<<std::endl;
-        std::cout<< pcd_tans[i].matrix()<<std::endl;
-        std::cout<< tum_sum[i].tx<<std::endl;
+        EZLOG(INFO)<< pcd_index[i]<<std::endl;
+        EZLOG(INFO)<< pcd_tans[i].matrix()<<std::endl;
+        EZLOG(INFO)<< tum_sum[i].tx<<std::endl;
     }
     pcd_feature.push_back("corner");
     pcd_feature.push_back("surf");
@@ -62,7 +78,7 @@ LoadTxt()
 
 //通过位姿求地图四个角
 void
-FindMinMaxUsePose(){
+FindMinMaxUsePose(const std::string& map_out_path,const int& lidar_range){
     //x排序
     std::sort(tum_sum.begin(), tum_sum.end(), [](const Tum& a, const Tum& b) {
         return a.tx < b.tx;
@@ -79,87 +95,77 @@ FindMinMaxUsePose(){
     y_max_t=std::prev(tum_sum.end())->ty+lidar_range;
     //输出
     //输出到文本文件
-    std::ofstream file(Map_Out_path+"index.txt");
+    std::ofstream file(map_out_path+"index.txt");
     file<<x_min_t<<" "<<y_min_t<<" "<<std::endl;
     file.close();
-    std::cout<<"xmin"<<x_min_t<<std::endl;
-    std::cout<<"xmax"<<x_max_t<<std::endl;
-    std::cout<<"ymin"<<y_min_t<<std::endl;
-    std::cout<<"ymax"<<y_max_t<<std::endl;
+    EZLOG(INFO)<<"xmin:"<<x_min_t<<std::endl;
+    EZLOG(INFO)<<"xmax:"<<x_max_t<<std::endl;
+    EZLOG(INFO)<<"ymin:"<<y_min_t<<std::endl;
+    EZLOG(INFO)<<"ymax:"<<y_max_t<<std::endl;
 }
 
 
 void
 CutDownMapCaulate(){
-    x_up_num=static_cast<int>(std::ceil((x_max_t-x_min_t)/up_grid_size));
-    y_up_num=static_cast<int>(std::ceil((y_max_t-y_min_t)/up_grid_size));
+    x_up_num=static_cast<int>(std::ceil((x_max_t-x_min_t)/SerializeConfig::up_grid_size));
+    y_up_num=static_cast<int>(std::ceil((y_max_t-y_min_t)/SerializeConfig::up_grid_size));
     up_bloc_count=x_up_num*y_up_num;
-    std::cout << "x分区: " << x_up_num << std::endl;
-    std::cout << "y分区: " << y_up_num << std::endl;
-    std::cout << "分区总数" <<up_bloc_count<<std::endl;
-
+    EZLOG(INFO)<<  "x分区: " << x_up_num << std::endl;
+    EZLOG(INFO)<< "y分区: " << y_up_num << std::endl;
+    EZLOG(INFO)<< "分区总数" <<up_bloc_count<<std::endl;
 }
 
-pcl::PointXYZ
-PointPoseTrance(const pcl::PointXYZ& piont_in,const Eigen::Isometry3d& trans ){
+PointType
+PointPoseTrance(const pcl::PointXYZI& piont_in,const Eigen::Isometry3d& trans ){
     Eigen::Vector3d piont_trans(piont_in.x,piont_in.y,piont_in.z);
     Eigen::Vector3d piont_transformed=trans*piont_trans;
-    pcl::PointXYZ piont_out;
+    PointType piont_out;
     piont_out.x=piont_transformed.x();
     piont_out.y=piont_transformed.y();
     piont_out.z=piont_transformed.z();
+    piont_out.intensity=piont_in.intensity;
     return piont_out;
 }
 
 
 
 void
-CutMap(std::string feature){
+CutMap(const std::string& feature,const std::string& map_out_path,const std::string& map_in_path,const int& frame_sum){
     //大grid
         //内层为x加数据即 x先y后加
     for(int i=0;i<y_up_num;i++){        //外层为y
         for(int j=0;j<x_up_num;j++){   //内层x
-            std::string filename=Map_Out_path+std::to_string(j)+"_"+std::to_string(i)+feature+".txt";
-            std::ofstream file(filename);
+//            std::string filename=map_out_path+std::to_string(j)+"_"+std::to_string(i)+feature+".txt";
+//            std::ofstream file(filename);
                    //小grid编写
-            for(int n=0;n<up2down_num;n++){           //外城为y
-                for (int m=0; m<up2down_num;m++ ) {   //内层为x
-                    pcl::PointCloud<PointType>::Ptr in_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-                    pcl::PointCloud<PointType>::Ptr out_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::PointCloud<PointType>::Ptr out_cloud(new pcl::PointCloud<PointType>);
+            for(int n=0;n<SerializeConfig::up2down_num;n++){           //外城为y
+                for (int m=0; m<SerializeConfig::up2down_num;m++ ) {   //内层为x
+                    int laser_cloud_width=x_up_num*SerializeConfig::up2down_num;
+                    int index=(m+j*SerializeConfig::up2down_num)+(n+i*SerializeConfig::up2down_num)*laser_cloud_width;
+
+                    pcl::PointCloud<pcl::PointXYZI>::Ptr in_cloud(new pcl::PointCloud<pcl::PointXYZI>);
+
                     for(int k=0;k<frame_sum;k++){                        //循环每一个小pcd
-                        if (pcl::io::loadPCDFile<pcl::PointXYZ> (Map_In_path+pcd_index[k]+"_"+feature+".pcd", *in_cloud) == -1)
+                        if (pcl::io::loadPCDFile<pcl::PointXYZI> (map_in_path+pcd_index[k]+"_"+feature+".pcd", *in_cloud) == -1)
                         {
 //                            PCL_ERROR("Couldn't read file test_pcd.pcd \n");
 //                            continue;
                         }
-                        for (const pcl::PointXYZ& point : *in_cloud){//  循环每一个点
-                            pcl::PointXYZ transformed_point;
+                        for (const pcl::PointXYZI& point : *in_cloud){//  循环每一个点
+                            PointType transformed_point;
                             transformed_point=PointPoseTrance(point,pcd_tans[k]);
-                            if ( transformed_point.x>=(x_min_t+(m+j*up2down_num)*(up_grid_size/up2down_num))&&transformed_point.y >=(y_min_t + (n+i*up2down_num)*(up_grid_size/up2down_num))&&
-                                    transformed_point.x < (x_min_t + (m+j*up2down_num+1) * (up_grid_size/up2down_num)) && transformed_point.y < (y_min_t + (n+i*up2down_num + 1) * (up_grid_size/up2down_num))) {
+                            if ( transformed_point.x>=(x_min_t+(m+j*SerializeConfig::up2down_num)*(SerializeConfig::up_grid_size/SerializeConfig::up2down_num))&&transformed_point.y >=(y_min_t + (n+i*SerializeConfig::up2down_num)*(SerializeConfig::up_grid_size/SerializeConfig::up2down_num))&&
+                                    transformed_point.x < (x_min_t + (m+j*SerializeConfig::up2down_num+1) * (SerializeConfig::up_grid_size/SerializeConfig::up2down_num)) && transformed_point.y < (y_min_t + (n+i*SerializeConfig::up2down_num + 1) * (SerializeConfig::up_grid_size/SerializeConfig::up2down_num))) {
+                                transformed_point.down_grid_index=index;
                                 out_cloud->push_back(transformed_point);
                             }
                         }
                     }
-                    file<<(m+j*up2down_num)<<"_"<<(n+i*up2down_num)<<" "<<out_cloud->size()<<std::endl;
-                    for (const auto& point : *out_cloud) {
-                        file<< point.x << " " << point.y << " " << point.z << std::endl; // 将点的坐标写入文件
-                        write_sum++;
-                    }
-                    if(write_sum!=out_cloud->size()){
-                        std::cout<<"wrong in"<<(m+j*up2down_num)<<" "<<(n+i*up2down_num);
-                        write_sum=0;
-                        exit(1);
-                    }
-                    else{
-                        write_sum=0;
-                    }
-                    in_cloud->clear();
-                    out_cloud->clear();
                 }
-
             }
-            file.close();
+            std::string filename=map_out_path+std::to_string(j)+"_"+std::to_string(i)+feature+".pcd";
+            pcl::io::savePCDFileBinary (filename, *out_cloud);
         }
     }
 };
@@ -170,9 +176,10 @@ CutMap(std::string feature){
 int
 main (int argc, char** argv)
 {
-    LoadTxt();
-    FindMinMaxUsePose();
+    Load_offline_YAML("./config/offline_mapping.yaml");
+    LoadTxt(SerializeConfig::map_in_path,SerializeConfig::frame_sum);
+    FindMinMaxUsePose(SerializeConfig::map_out_path,SerializeConfig::lidar_range);
     CutDownMapCaulate();
-    CutMap(pcd_feature[0]);
-    CutMap(pcd_feature[1]);
+    CutMap(pcd_feature[0],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
+    CutMap(pcd_feature[1],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
 }

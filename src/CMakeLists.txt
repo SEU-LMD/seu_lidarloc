@@ -76,8 +76,8 @@ MESSAGE(STATUS "------------${PCL_LIBRARY_DIRS}------------------")
 ###########
 
 ## Gps odometry
-add_executable(gpsOdometry src/simpleGpsOdom.cpp)
-target_link_libraries(gpsOdometry ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic ${YAML_LIB} )
+#add_executable(gpsOdometry src/simpleGpsOdom.cpp)
+#target_link_libraries(gpsOdometry ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic ${YAML_LIB} )
 #
 ## # # Range Image Projection
 add_executable(imageProjection src/imageProjection_gnss.cpp)
@@ -95,7 +95,13 @@ add_dependencies(mapOptmization ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gener
 target_compile_options(mapOptmization PRIVATE ${OpenMP_CXX_FLAGS})
 target_link_libraries(mapOptmization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES}  gtsam  libGeographic  ${YAML_LIB})
 
+# Prior Map based localization
+add_executable(priorMapLoc src/priorMapLoc.cpp )
+add_dependencies(priorMapLoc ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+target_compile_options(priorMapLoc PRIVATE ${OpenMP_CXX_FLAGS})
+target_link_libraries(priorMapLoc ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES}  gtsam  libGeographic  ${YAML_LIB})
+
 # IMU Preintegrations
-add_executable(imuPreintegration src/imuPreintegration.cpp)
-target_link_libraries(imuPreintegration ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam  ${YAML_LIB})
+#add_executable(imuPreintegration src/imuPreintegration.cpp)
+#target_link_libraries(imuPreintegration ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam  ${YAML_LIB})
 

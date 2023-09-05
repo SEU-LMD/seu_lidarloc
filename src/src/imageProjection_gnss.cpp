@@ -15,6 +15,7 @@
 
 #include "config_helper.h"
 #include "easylogging++.h"
+#include "MapSaver.h"
 INITIALIZE_EASYLOGGINGPP
 
 
@@ -70,7 +71,6 @@ public:
 class ImageProjection  {
 
 private:
-
     std::mutex imuLock;
     std::mutex odoLock;
 
@@ -252,6 +252,8 @@ public:
         {
             geoConverter.Reset(gnss_msg->lat, gnss_msg->lon, gnss_msg->height);
             init = true;
+            Eigen::Vector3d origin_lla(gnss_msg->lat, gnss_msg->lon, gnss_msg->height);
+            MapSaver::SaveOriginLLA(origin_lla);
             return;
         }
 
