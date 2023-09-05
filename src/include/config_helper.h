@@ -429,7 +429,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         SerializeConfig::lidar_range = offlineconfig["lidar_range"].as<double>();
         SerializeConfig::frame_sum = offlineconfig["frame_sum"].as<int>();
         SerializeConfig::up_grid_size= offlineconfig["up_grid_size"].as<int>();
-        std::cout<<SerializeConfig::up_grid_size<<std::endl;
+        std::cout<<SerializeConfig::up2down_num<<std::endl;
 
         std::cout<<"offline yaml success load"<<std::endl;
 

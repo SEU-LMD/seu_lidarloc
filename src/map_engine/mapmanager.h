@@ -6,6 +6,8 @@
 #define SERIALIZE_MAPMANAGER_H
 #define PCL_NO_PRECOMPILE
 
+#include <ros/ros.h>
+
 #include <iostream>              //标准C++库中的输入输出的头文件
 #include <pcl/io/pcd_io.h>       //PCD读写类相关的头文件
 #include <pcl/point_types.h>     //PCL中支持的点类型的头文件
@@ -16,6 +18,8 @@
 #include <fstream>              //文件输入输出的文件相关的
 #include <pcl/common/transforms.h>  //点的变换相关的头文件
 #include <pcl/kdtree/kdtree_flann.h> //kd tree
+#include <pcl_conversions/pcl_conversions.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <vector>               //使用vector
 #include <mutex>
 #include <queue>
@@ -29,8 +33,7 @@ INITIALIZE_EASYLOGGINGPP
 
 
 
-const int laserCloudWidth = 4*SerializeConfig::up2down_num;  //x方向
-const int laserCloudHeight = 5*SerializeConfig::up2down_num; //y方向
+
 const int laserCloudNum = 80;
 
 
