@@ -448,11 +448,11 @@ void Load_offline_YAML(std::string offlinepath)
 
         SerializeConfig::map_in_path = offlineconfig["map_in_path"].as<std::string>();
         SerializeConfig::map_out_path = offlineconfig["map_out_path"].as<std::string>();
-        SerializeConfig::map_index_path = offlineconfig["map_index_path"].as<std::string>();
+//        SerializeConfig::map_index_path = offlineconfig["map_index_path"].as<std::string>();
         SerializeConfig::up2down_num = offlineconfig["up2down_num"].as<int>();
         SerializeConfig::lidar_range = offlineconfig["lidar_range"].as<double>();
         SerializeConfig::frame_sum = offlineconfig["frame_sum"].as<int>();
-        SerializeConfig::up_grid_down = offlineconfig["up_grid_down"].as<int>();
+//        SerializeConfig::up_grid_down = offlineconfig["up_grid_down"].as<int>();
 
         //Prior Map localization
         SerializeConfig::current_lidar_path = offlineconfig["CURRENT_LIDAR_PATH"].as<std::string>();
