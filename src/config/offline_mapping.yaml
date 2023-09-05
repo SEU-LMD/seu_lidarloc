@@ -1,4 +1,3 @@
-
 #offline_mapping Setting
 map_in_path: "/home/wxq/mapin"
 map_out_path: "/home/wxq/mapout"
@@ -7,5 +6,23 @@ up2down_num: 4    #up_grid_size/down_grid_size，该数值必须为整数倍
 lidar_range: 50
 frame_sum: 184
 up_grid_down: 200
+
+#offline_Loc Setting
+CURRENT_LIDAR_PATH: "/home/sy/dataSet/ZhongKeXingChi/output/1403/data/"
+CURRENT_LIDAR_NUM: 271
+PRIOR_MAP_PATH: "/home/sy/SEU_WS/backup/seu_lidarloc_8.25/src/globalmap_lidar_feature_surf.pcd"
+PRIOR_POSE_PATH: "/home/sy/dataSet/ZhongKeXingChi/output/1403/data/Pose_TUM.txt"
+
+#PRIOR_MAP_PATH: "/home/sy/SEU_WS/backup/seu_lidarloc_8.25/src/globalmap_lidar_feature_surf.pcd"
+
+T_EPSILION: 0.01 #0.01 #终止条件
+STEP_SIZE: 1.1 #线搜索的最大步长，理论上这个值是网格分辨率的一半，但也不能过小，当匹配效果不好时，应该放大这个参数，分辨率同理
+SIZE_RESOLUTION: 10.1 #NDT网格分辨率
+MAXMUN_INTERNUM: 35 #35
+
+DOWNSIZE_LEAF: 0.3 #体素滤波size，经验判断其值因该是点云跨度最大除以30
+
+
+
 
 
