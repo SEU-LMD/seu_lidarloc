@@ -7,10 +7,11 @@
 
 INITIALIZE_EASYLOGGINGPP
 struct smoothness_t {
-  float value;
-  size_t ind;
+  float value;      //curvature
+  size_t ind;       //index in cloudinfo
 };
 
+//compare curvature and sort from smallest to largest
 struct by_value {
   bool operator()(smoothness_t const &left, smoothness_t const &right) {
     return left.value < right.value;
@@ -37,7 +38,7 @@ class FeatureExtraction {
   std_msgs::Header cloudHeader;
 
   std::vector<smoothness_t> cloudSmoothness;
-  float *cloudCurvature;
+  float *cloudCurvature;  //
   int *cloudNeighborPicked;
   int *cloudLabel;
 
