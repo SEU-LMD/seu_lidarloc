@@ -131,7 +131,6 @@ class SerializeConfig{
    public:
       static std::string map_in_path;
       static std::string map_out_path;
-      static std::string map_index_path;
       static int up2down_num;
       static double lidar_range;
       static int frame_sum;
@@ -147,6 +146,7 @@ class SerializeConfig{
       static double setLeafSize;
       static double sequence_num;
 
+      static int up_grid_size;
    };
 
 std::string SensorConfig::pointCloudTopic = "";
@@ -257,11 +257,10 @@ float MappingConfig::globalMapLeafSize=-1;
 // offline mapping
 std::string SerializeConfig::map_in_path = "";
 std::string SerializeConfig::map_out_path = "";
-std::string SerializeConfig::map_index_path = "";
 int SerializeConfig::up2down_num = 4;
 double SerializeConfig::lidar_range = 50;
 int SerializeConfig::frame_sum = 185;
-int SerializeConfig::up_grid_down = 200;
+int SerializeConfig::up_grid_size = 200;
 
 //PriorMap localization
 std::string SerializeConfig::current_lidar_path = "";
@@ -478,6 +477,12 @@ void Load_offline_YAML(std::string offlinepath)
         std::cout<<"DOWNSIZE_LEAF: "<<SerializeConfig::setLeafSize<<std::endl;
         std::cout<<"MAXMUN_INTERNUM: "<<SerializeConfig::max_inter_num<<std::endl;
         std::cout<<"CURRENT_LIDAR_NUM: "<<SerializeConfig::sequence_num<<std::endl;
+        SerializeConfig::map_out_path =offlineconfig["map_out_path"].as<std::string>();
+        SerializeConfig::up2down_num = offlineconfig["up2down_num"].as<int>();
+        SerializeConfig::lidar_range = offlineconfig["lidar_range"].as<double>();
+        SerializeConfig::frame_sum = offlineconfig["frame_sum"].as<int>();
+        SerializeConfig::up_grid_size= offlineconfig["up_grid_size"].as<int>();
+        std::cout<<SerializeConfig::up_grid_size<<std::endl;
 
         std::cout<<"offline yaml success load"<<std::endl;
 
