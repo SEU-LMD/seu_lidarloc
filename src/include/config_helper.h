@@ -146,6 +146,10 @@ class SerializeConfig{
       static double sequence_num;
 
       static int up_grid_size;
+      static int lasercloud_width;
+      static int lasercloud_height;
+      static int lasercloud_num;
+
    };
 
 std::string SensorConfig::pointCloudTopic = "";
@@ -260,7 +264,9 @@ int SerializeConfig::up2down_num = 4;
 double SerializeConfig::lidar_range = 50;
 int SerializeConfig::frame_sum = 185;
 int SerializeConfig::up_grid_size = 200;
-
+int SerializeConfig::lasercloud_width=0;
+int SerializeConfig::lasercloud_height=0;
+int SerializeConfig::lasercloud_num=0;
 //PriorMap localization
 std::string SerializeConfig::current_lidar_path = "";
 std::string SerializeConfig::prior_map_path = "";
@@ -479,7 +485,9 @@ void Load_offline_YAML(std::string offlinepath)
         SerializeConfig::lidar_range = offlineconfig["lidar_range"].as<double>();
         SerializeConfig::frame_sum = offlineconfig["frame_sum"].as<int>();
         SerializeConfig::up_grid_size= offlineconfig["up_grid_size"].as<int>();
-        std::cout<<SerializeConfig::up2down_num<<std::endl;
+        SerializeConfig::lasercloud_width= offlineconfig["lasercloud_width"].as<int>();
+        SerializeConfig::lasercloud_height= offlineconfig["lasercloud_height"].as<int>();
+        SerializeConfig::lasercloud_num= offlineconfig["lasercloud_num"].as<int>();
 
         std::cout<<"offline yaml success load"<<std::endl;
 

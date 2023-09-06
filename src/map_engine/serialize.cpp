@@ -95,7 +95,7 @@ FindMinMaxUsePose(const std::string& map_out_path,const int& lidar_range){
     y_max_t=std::prev(tum_sum.end())->ty+lidar_range;
     //输出
     //输出到文本文件
-    std::ofstream file(map_out_path+"index.txt");
+    std::ofstream file(map_out_path+"index.txt",std::ios_base::app);
     file<<x_min_t<<" "<<y_min_t<<" "<<std::endl;
     file.close();
     EZLOG(INFO)<<"xmin:"<<x_min_t<<std::endl;
@@ -130,7 +130,7 @@ PointPoseTrance(const pcl::PointXYZI& piont_in,const Eigen::Isometry3d& trans ){
 
 
 void
-CutMap(const std::string& feature,const std::string& map_out_path,const std::string& map_in_path,const int& frame_sum){
+CutMap(const std::string& feature,const std::string& map_out_path,const std::string& map_in_path,const int frame_sum){
     //大grid
         //内层为x加数据即 x先y后加
     for(int i=0;i<y_up_num;i++){        //外层为y
@@ -165,7 +165,13 @@ CutMap(const std::string& feature,const std::string& map_out_path,const std::str
                 }
             }
             std::string filename=map_out_path+std::to_string(j)+"_"+std::to_string(i)+feature+".pcd";
-            pcl::io::savePCDFileBinary (filename, *out_cloud);
+            if(out_cloud->size()!=0)
+                pcl::io::savePCDFileBinary (filename, *out_cloud);
+            else{
+                std::ofstream file(map_out_path+"index.txt",std::ios_base::app);
+                file<<feature<<" "<<std::to_string(j)+"_"+std::to_string(i)<<std::endl;
+                file.close();
+            }
         }
     }
 };

@@ -1,10 +1,13 @@
 #offline_mapping Setting
 map_in_path: "/home/today/mapin/"
-map_out_path: "/home/today/mapout/"
+map_out_path: "/home/today/mapyang/"
 up2down_num: 2    #up_grid_size/down_grid_size，该数值必须为整数倍
 lidar_range: 50
 frame_sum: 184
-up_grid_size: 40
+up_grid_size: 120
+lasercloud_width: 14
+lasercloud_height: 8
+lasercloud_num: 112
 
 #offline_Loc Setting
 CURRENT_LIDAR_PATH: "/home/sy/dataSet/ZhongKeXingChi/output/1403/data/"
