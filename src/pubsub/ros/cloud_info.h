@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
 
 #include <ros/types.h>
 #include <ros/serialization.h>
@@ -23,6 +24,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <nav_msgs/Odometry.h>
 
 namespace lio_sam_6axis
 {
@@ -54,7 +56,8 @@ struct cloud_info_
     , key_frame_cloud()
     , key_frame_color()
     , key_frame_poses()
-    , key_frame_map()  {
+    , key_frame_map()
+    , T_w_l_curlidar()  {
     }
   cloud_info_(const ContainerAllocator& _alloc)
     : header(_alloc)
@@ -79,7 +82,8 @@ struct cloud_info_
     , key_frame_cloud(_alloc)
     , key_frame_color(_alloc)
     , key_frame_poses(_alloc)
-    , key_frame_map(_alloc)  {
+    , key_frame_map(_alloc)
+    , T_w_l_curlidar(_alloc)  {
   (void)_alloc;
     }
 
@@ -88,16 +92,16 @@ struct cloud_info_
    typedef  ::std_msgs::Header_<ContainerAllocator>  _header_type;
   _header_type header;
 
-   typedef std::vector<int32_t, typename ContainerAllocator::template rebind<int32_t>::other >  _startRingIndex_type;
+   typedef std::vector<int32_t, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<int32_t>> _startRingIndex_type;
   _startRingIndex_type startRingIndex;
 
-   typedef std::vector<int32_t, typename ContainerAllocator::template rebind<int32_t>::other >  _endRingIndex_type;
+   typedef std::vector<int32_t, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<int32_t>> _endRingIndex_type;
   _endRingIndex_type endRingIndex;
 
-   typedef std::vector<int32_t, typename ContainerAllocator::template rebind<int32_t>::other >  _pointColInd_type;
+   typedef std::vector<int32_t, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<int32_t>> _pointColInd_type;
   _pointColInd_type pointColInd;
 
-   typedef std::vector<float, typename ContainerAllocator::template rebind<float>::other >  _pointRange_type;
+   typedef std::vector<float, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<float>> _pointRange_type;
   _pointRange_type pointRange;
 
    typedef int64_t _imuAvailable_type;
@@ -154,6 +158,8 @@ struct cloud_info_
    typedef  ::sensor_msgs::PointCloud2_<ContainerAllocator>  _key_frame_map_type;
   _key_frame_map_type key_frame_map;
 
+   typedef  ::nav_msgs::Odometry_<ContainerAllocator>  _T_w_l_curlidar_type;
+  _T_w_l_curlidar_type T_w_l_curlidar;
 
 
 
@@ -179,6 +185,43 @@ ros::message_operations::Printer< ::lio_sam_6axis::cloud_info_<ContainerAllocato
 return s;
 }
 
+
+template<typename ContainerAllocator1, typename ContainerAllocator2>
+bool operator==(const ::lio_sam_6axis::cloud_info_<ContainerAllocator1> & lhs, const ::lio_sam_6axis::cloud_info_<ContainerAllocator2> & rhs)
+{
+  return lhs.header == rhs.header &&
+    lhs.startRingIndex == rhs.startRingIndex &&
+    lhs.endRingIndex == rhs.endRingIndex &&
+    lhs.pointColInd == rhs.pointColInd &&
+    lhs.pointRange == rhs.pointRange &&
+    lhs.imuAvailable == rhs.imuAvailable &&
+    lhs.odomAvailable == rhs.odomAvailable &&
+    lhs.imuRollInit == rhs.imuRollInit &&
+    lhs.imuPitchInit == rhs.imuPitchInit &&
+    lhs.imuYawInit == rhs.imuYawInit &&
+    lhs.initialGuessX == rhs.initialGuessX &&
+    lhs.initialGuessY == rhs.initialGuessY &&
+    lhs.initialGuessZ == rhs.initialGuessZ &&
+    lhs.initialGuessRoll == rhs.initialGuessRoll &&
+    lhs.initialGuessPitch == rhs.initialGuessPitch &&
+    lhs.initialGuessYaw == rhs.initialGuessYaw &&
+    lhs.cloud_deskewed == rhs.cloud_deskewed &&
+    lhs.cloud_corner == rhs.cloud_corner &&
+    lhs.cloud_surface == rhs.cloud_surface &&
+    lhs.key_frame_cloud == rhs.key_frame_cloud &&
+    lhs.key_frame_color == rhs.key_frame_color &&
+    lhs.key_frame_poses == rhs.key_frame_poses &&
+    lhs.key_frame_map == rhs.key_frame_map &&
+    lhs.T_w_l_curlidar == rhs.T_w_l_curlidar;
+}
+
+template<typename ContainerAllocator1, typename ContainerAllocator2>
+bool operator!=(const ::lio_sam_6axis::cloud_info_<ContainerAllocator1> & lhs, const ::lio_sam_6axis::cloud_info_<ContainerAllocator2> & rhs)
+{
+  return !(lhs == rhs);
+}
+
+
 } // namespace lio_sam_6axis
 
 namespace ros
@@ -188,23 +231,7 @@ namespace message_traits
 
 
 
-// BOOLTRAITS {'IsFixedSize': False, 'IsMessage': True, 'HasHeader': True}
-// {'nav_msgs': ['/opt/ros/kinetic/share/nav_msgs/cmake/../msg'], 'sensor_msgs': ['/opt/ros/kinetic/share/sensor_msgs/cmake/../msg'], 'actionlib_msgs': ['/opt/ros/kinetic/share/actionlib_msgs/cmake/../msg'], 'std_msgs': ['/opt/ros/kinetic/share/std_msgs/cmake/../msg'], 'geometry_msgs': ['/opt/ros/kinetic/share/geometry_msgs/cmake/../msg'], 'lio_sam_6axis': ['/home/fyy/code/seu_lidarloc/src/msg']}
 
-// !!!!!!!!!!! ['__class__', '__delattr__', '__dict__', '__doc__', '__eq__', '__format__', '__getattribute__', '__hash__', '__init__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_parsed_fields', 'constants', 'fields', 'full_name', 'has_header', 'header_present', 'names', 'package', 'parsed_fields', 'short_name', 'text', 'types']
-
-
-
-
-template <class ContainerAllocator>
-struct IsFixedSize< ::lio_sam_6axis::cloud_info_<ContainerAllocator> >
-  : FalseType
-  { };
-
-template <class ContainerAllocator>
-struct IsFixedSize< ::lio_sam_6axis::cloud_info_<ContainerAllocator> const>
-  : FalseType
-  { };
 
 template <class ContainerAllocator>
 struct IsMessage< ::lio_sam_6axis::cloud_info_<ContainerAllocator> >
@@ -214,6 +241,16 @@ struct IsMessage< ::lio_sam_6axis::cloud_info_<ContainerAllocator> >
 template <class ContainerAllocator>
 struct IsMessage< ::lio_sam_6axis::cloud_info_<ContainerAllocator> const>
   : TrueType
+  { };
+
+template <class ContainerAllocator>
+struct IsFixedSize< ::lio_sam_6axis::cloud_info_<ContainerAllocator> >
+  : FalseType
+  { };
+
+template <class ContainerAllocator>
+struct IsFixedSize< ::lio_sam_6axis::cloud_info_<ContainerAllocator> const>
+  : FalseType
   { };
 
 template <class ContainerAllocator>
@@ -232,12 +269,12 @@ struct MD5Sum< ::lio_sam_6axis::cloud_info_<ContainerAllocator> >
 {
   static const char* value()
   {
-    return "b654dbfca2e5288eff9e25937cb8519e";
+    return "943f04a18d025a79d779cf24fdf18d19";
   }
 
   static const char* value(const ::lio_sam_6axis::cloud_info_<ContainerAllocator>&) { return value(); }
-  static const uint64_t static_value1 = 0xb654dbfca2e5288eULL;
-  static const uint64_t static_value2 = 0xff9e25937cb8519eULL;
+  static const uint64_t static_value1 = 0x943f04a18d025a79ULL;
+  static const uint64_t static_value2 = 0xd779cf24fdf18d19ULL;
 };
 
 template<class ContainerAllocator>
@@ -256,108 +293,189 @@ struct Definition< ::lio_sam_6axis::cloud_info_<ContainerAllocator> >
 {
   static const char* value()
   {
-    return "# Cloud Info\n\
-Header header \n\
-\n\
-int32[] startRingIndex\n\
-int32[] endRingIndex\n\
-\n\
-int32[]  pointColInd # point column index in range image\n\
-float32[] pointRange # point range \n\
-\n\
-int64 imuAvailable\n\
-int64 odomAvailable\n\
-\n\
-# Attitude for LOAM initialization\n\
-float32 imuRollInit\n\
-float32 imuPitchInit\n\
-float32 imuYawInit\n\
-\n\
-# Initial guess from imu pre-integration\n\
-float32 initialGuessX\n\
-float32 initialGuessY\n\
-float32 initialGuessZ\n\
-float32 initialGuessRoll\n\
-float32 initialGuessPitch\n\
-float32 initialGuessYaw\n\
-\n\
-# Point cloud messages\n\
-sensor_msgs/PointCloud2 cloud_deskewed  # original cloud deskewed\n\
-sensor_msgs/PointCloud2 cloud_corner    # extracted corner feature\n\
-sensor_msgs/PointCloud2 cloud_surface   # extracted surface feature\n\
-\n\
-# 3rd party messages\n\
-sensor_msgs/PointCloud2 key_frame_cloud\n\
-sensor_msgs/PointCloud2 key_frame_color\n\
-sensor_msgs/PointCloud2 key_frame_poses\n\
-sensor_msgs/PointCloud2 key_frame_map\n\
-\n\
-================================================================================\n\
-MSG: std_msgs/Header\n\
-# Standard metadata for higher-level stamped data types.\n\
-# This is generally used to communicate timestamped data \n\
-# in a particular coordinate frame.\n\
-# \n\
-# sequence ID: consecutively increasing ID \n\
-uint32 seq\n\
-#Two-integer timestamp that is expressed as:\n\
-# * stamp.sec: seconds (stamp_secs) since epoch (in Python the variable is called 'secs')\n\
-# * stamp.nsec: nanoseconds since stamp_secs (in Python the variable is called 'nsecs')\n\
-# time-handling sugar is provided by the client library\n\
-time stamp\n\
-#Frame this data is associated with\n\
-# 0: no frame\n\
-# 1: global frame\n\
-string frame_id\n\
-\n\
-================================================================================\n\
-MSG: sensor_msgs/PointCloud2\n\
-# This message holds a collection of N-dimensional points, which may\n\
-# contain additional information such as normals, intensity, etc. The\n\
-# point data is stored as a binary blob, its layout described by the\n\
-# contents of the \"fields\" array.\n\
-\n\
-# The point cloud data may be organized 2d (image-like) or 1d\n\
-# (unordered). Point clouds organized as 2d images may be produced by\n\
-# camera depth sensors such as stereo or time-of-flight.\n\
-\n\
-# Time of sensor data acquisition, and the coordinate frame ID (for 3d\n\
-# points).\n\
-Header header\n\
-\n\
-# 2D structure of the point cloud. If the cloud is unordered, height is\n\
-# 1 and width is the length of the point cloud.\n\
-uint32 height\n\
-uint32 width\n\
-\n\
-# Describes the channels and their layout in the binary data blob.\n\
-PointField[] fields\n\
-\n\
-bool    is_bigendian # Is this data bigendian?\n\
-uint32  point_step   # Length of a point in bytes\n\
-uint32  row_step     # Length of a row in bytes\n\
-uint8[] data         # Actual point data, size is (row_step*height)\n\
-\n\
-bool is_dense        # True if there are no invalid points\n\
-\n\
-================================================================================\n\
-MSG: sensor_msgs/PointField\n\
-# This message holds the description of one point entry in the\n\
-# PointCloud2 message format.\n\
-uint8 INT8    = 1\n\
-uint8 UINT8   = 2\n\
-uint8 INT16   = 3\n\
-uint8 UINT16  = 4\n\
-uint8 INT32   = 5\n\
-uint8 UINT32  = 6\n\
-uint8 FLOAT32 = 7\n\
-uint8 FLOAT64 = 8\n\
-\n\
-string name      # Name of field\n\
-uint32 offset    # Offset from start of point struct\n\
-uint8  datatype  # Datatype enumeration, see above\n\
-uint32 count     # How many elements in the field\n\
-";
+    return "# Cloud Info\n"
+"Header header \n"
+"\n"
+"int32[] startRingIndex\n"
+"int32[] endRingIndex\n"
+"\n"
+"int32[]  pointColInd # point column index in range image\n"
+"float32[] pointRange # point range \n"
+"\n"
+"int64 imuAvailable\n"
+"int64 odomAvailable\n"
+"\n"
+"# Attitude for LOAM initialization\n"
+"float32 imuRollInit\n"
+"float32 imuPitchInit\n"
+"float32 imuYawInit\n"
+"\n"
+"# Initial guess from imu pre-integration\n"
+"float32 initialGuessX\n"
+"float32 initialGuessY\n"
+"float32 initialGuessZ\n"
+"float32 initialGuessRoll\n"
+"float32 initialGuessPitch\n"
+"float32 initialGuessYaw\n"
+"\n"
+"# Point cloud messages\n"
+"sensor_msgs/PointCloud2 cloud_deskewed  # original cloud deskewed\n"
+"sensor_msgs/PointCloud2 cloud_corner    # extracted corner feature\n"
+"sensor_msgs/PointCloud2 cloud_surface   # extracted surface feature\n"
+"\n"
+"# 3rd party messages\n"
+"sensor_msgs/PointCloud2 key_frame_cloud\n"
+"sensor_msgs/PointCloud2 key_frame_color\n"
+"sensor_msgs/PointCloud2 key_frame_poses\n"
+"sensor_msgs/PointCloud2 key_frame_map\n"
+"\n"
+"# trans to mapopt\n"
+"nav_msgs/Odometry T_w_l_curlidar\n"
+"\n"
+"\n"
+"\n"
+"\n"
+"\n"
+"\n"
+"================================================================================\n"
+"MSG: std_msgs/Header\n"
+"# Standard metadata for higher-level stamped data types.\n"
+"# This is generally used to communicate timestamped data \n"
+"# in a particular coordinate frame.\n"
+"# \n"
+"# sequence ID: consecutively increasing ID \n"
+"uint32 seq\n"
+"#Two-integer timestamp that is expressed as:\n"
+"# * stamp.sec: seconds (stamp_secs) since epoch (in Python the variable is called 'secs')\n"
+"# * stamp.nsec: nanoseconds since stamp_secs (in Python the variable is called 'nsecs')\n"
+"# time-handling sugar is provided by the client library\n"
+"time stamp\n"
+"#Frame this data is associated with\n"
+"string frame_id\n"
+"\n"
+"================================================================================\n"
+"MSG: sensor_msgs/PointCloud2\n"
+"# This message holds a collection of N-dimensional points, which may\n"
+"# contain additional information such as normals, intensity, etc. The\n"
+"# point data is stored as a binary blob, its layout described by the\n"
+"# contents of the \"fields\" array.\n"
+"\n"
+"# The point cloud data may be organized 2d (image-like) or 1d\n"
+"# (unordered). Point clouds organized as 2d images may be produced by\n"
+"# camera depth sensors such as stereo or time-of-flight.\n"
+"\n"
+"# Time of sensor data acquisition, and the coordinate frame ID (for 3d\n"
+"# points).\n"
+"Header header\n"
+"\n"
+"# 2D structure of the point cloud. If the cloud is unordered, height is\n"
+"# 1 and width is the length of the point cloud.\n"
+"uint32 height\n"
+"uint32 width\n"
+"\n"
+"# Describes the channels and their layout in the binary data blob.\n"
+"PointField[] fields\n"
+"\n"
+"bool    is_bigendian # Is this data bigendian?\n"
+"uint32  point_step   # Length of a point in bytes\n"
+"uint32  row_step     # Length of a row in bytes\n"
+"uint8[] data         # Actual point data, size is (row_step*height)\n"
+"\n"
+"bool is_dense        # True if there are no invalid points\n"
+"\n"
+"================================================================================\n"
+"MSG: sensor_msgs/PointField\n"
+"# This message holds the description of one point entry in the\n"
+"# PointCloud2 message format.\n"
+"uint8 INT8    = 1\n"
+"uint8 UINT8   = 2\n"
+"uint8 INT16   = 3\n"
+"uint8 UINT16  = 4\n"
+"uint8 INT32   = 5\n"
+"uint8 UINT32  = 6\n"
+"uint8 FLOAT32 = 7\n"
+"uint8 FLOAT64 = 8\n"
+"\n"
+"string name      # Name of field\n"
+"uint32 offset    # Offset from start of point struct\n"
+"uint8  datatype  # Datatype enumeration, see above\n"
+"uint32 count     # How many elements in the field\n"
+"\n"
+"================================================================================\n"
+"MSG: nav_msgs/Odometry\n"
+"# This represents an estimate of a position and velocity in free space.  \n"
+"# The pose in this message should be specified in the coordinate frame given by header.frame_id.\n"
+"# The twist in this message should be specified in the coordinate frame given by the child_frame_id\n"
+"Header header\n"
+"string child_frame_id\n"
+"geometry_msgs/PoseWithCovariance pose\n"
+"geometry_msgs/TwistWithCovariance twist\n"
+"\n"
+"================================================================================\n"
+"MSG: geometry_msgs/PoseWithCovariance\n"
+"# This represents a pose in free space with uncertainty.\n"
+"\n"
+"Pose pose\n"
+"\n"
+"# Row-major representation of the 6x6 covariance matrix\n"
+"# The orientation parameters use a fixed-axis representation.\n"
+"# In order, the parameters are:\n"
+"# (x, y, z, rotation about X axis, rotation about Y axis, rotation about Z axis)\n"
+"float64[36] covariance\n"
+"\n"
+"================================================================================\n"
+"MSG: geometry_msgs/Pose\n"
+"# A representation of pose in free space, composed of position and orientation. \n"
+"Point position\n"
+"Quaternion orientation\n"
+"\n"
+"================================================================================\n"
+"MSG: geometry_msgs/Point\n"
+"# This contains the position of a point in free space\n"
+"float64 x\n"
+"float64 y\n"
+"float64 z\n"
+"\n"
+"================================================================================\n"
+"MSG: geometry_msgs/Quaternion\n"
+"# This represents an orientation in free space in quaternion form.\n"
+"\n"
+"float64 x\n"
+"float64 y\n"
+"float64 z\n"
+"float64 w\n"
+"\n"
+"================================================================================\n"
+"MSG: geometry_msgs/TwistWithCovariance\n"
+"# This expresses velocity in free space with uncertainty.\n"
+"\n"
+"Twist twist\n"
+"\n"
+"# Row-major representation of the 6x6 covariance matrix\n"
+"# The orientation parameters use a fixed-axis representation.\n"
+"# In order, the parameters are:\n"
+"# (x, y, z, rotation about X axis, rotation about Y axis, rotation about Z axis)\n"
+"float64[36] covariance\n"
+"\n"
+"================================================================================\n"
+"MSG: geometry_msgs/Twist\n"
+"# This expresses velocity in free space broken into its linear and angular parts.\n"
+"Vector3  linear\n"
+"Vector3  angular\n"
+"\n"
+"================================================================================\n"
+"MSG: geometry_msgs/Vector3\n"
+"# This represents a vector in free space. \n"
+"# It is only meant to represent a direction. Therefore, it does not\n"
+"# make sense to apply a translation to it (e.g., when applying a \n"
+"# generic rigid transformation to a Vector3, tf2 will only apply the\n"
+"# rotation). If you want your data to be translatable too, use the\n"
+"# geometry_msgs/Point message instead.\n"
+"\n"
+"float64 x\n"
+"float64 y\n"
+"float64 z\n"
+;
   }
 
   static const char* value(const ::lio_sam_6axis::cloud_info_<ContainerAllocator>&) { return value(); }
@@ -398,6 +516,7 @@ namespace serialization
       stream.next(m.key_frame_color);
       stream.next(m.key_frame_poses);
       stream.next(m.key_frame_map);
+      stream.next(m.T_w_l_curlidar);
     }
 
     ROS_DECLARE_ALLINONE_SERIALIZER
@@ -486,10 +605,13 @@ struct Printer< ::lio_sam_6axis::cloud_info_<ContainerAllocator> >
     s << indent << "key_frame_map: ";
     s << std::endl;
     Printer< ::sensor_msgs::PointCloud2_<ContainerAllocator> >::stream(s, indent + "  ", v.key_frame_map);
+    s << indent << "T_w_l_curlidar: ";
+    s << std::endl;
+    Printer< ::nav_msgs::Odometry_<ContainerAllocator> >::stream(s, indent + "  ", v.T_w_l_curlidar);
   }
 };
 
 } // namespace message_operations
 } // namespace ros
 
-#endif // LIO_SAM_6AXIS_MESSAGE_CLOUD_INFO_H
+#endif // GEN_H_MESSAGE_CLOUD_INFO_H

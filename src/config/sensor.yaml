@@ -52,3 +52,5 @@
   extrinsicRPY: [ -1, 0, 0,
                   0, -1, 0,
                   0, 0, 1 ]
+
+  use_gnss_deskew: false

@@ -19,7 +19,7 @@ PRIOR_POSE_PATH: "/home/sy/dataSet/ZhongKeXingChi/output/1403/data/Pose_TUM.txt"
 
 T_EPSILION: 0.01 #0.01 #终止条件
 STEP_SIZE: 1.1 #线搜索的最大步长，理论上这个值是网格分辨率的一半，但也不能过小，当匹配效果不好时，应该放大这个参数，分辨率同理
-SIZE_RESOLUTION: 10.1 #NDT网格分辨率
+SIZE_RESOLUTION: 5.1 #NDT网格分辨率
 MAXMUN_INTERNUM: 35 #35
 
 DOWNSIZE_LEAF: 0.3 #体素滤波size，经验判断其值因该是点云跨度最大除以30
