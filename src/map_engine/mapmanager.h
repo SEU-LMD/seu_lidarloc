@@ -34,7 +34,7 @@ INITIALIZE_EASYLOGGINGPP
 
 
 
-const int laserCloudNum = 80;
+
 
 
 typedef struct{
