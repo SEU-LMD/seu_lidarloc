@@ -5,6 +5,10 @@
 #include "config_helper.h"
 #include "easylogging++.h"
 
+#include <iostream>
+#include <pcl/io/pcd_io.h>       //PCD读写类相关的头文件
+#include <pcl/io/ply_io.h>
+
 INITIALIZE_EASYLOGGINGPP
 struct smoothness_t {
   float value;
@@ -138,15 +142,16 @@ class FeatureExtraction {
 
     EZLOG(INFO)<<"***************cloudSize = "<<cloudSize<<std::endl;
 
-      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.position.x = "<<cloudInfo.T_w_l_curlidar.pose.pose.position.x<<std::endl;
-      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.position.y = "<<cloudInfo.T_w_l_curlidar.pose.pose.position.y<<std::endl;
-      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.position.z = "<<cloudInfo.T_w_l_curlidar.pose.pose.position.z<<std::endl;
-      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.orientation.x = "<<cloudInfo.T_w_l_curlidar.pose.pose.orientation.x<<std::endl;
-      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.orientation.y = "<<cloudInfo.T_w_l_curlidar.pose.pose.orientation.y<<std::endl;
-      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.orientation.z = "<<cloudInfo.T_w_l_curlidar.pose.pose.orientation.z<<std::endl;
-      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.orientation.w = "<<cloudInfo.T_w_l_curlidar.pose.pose.orientation.w<<std::endl;
-      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.header.stamp.sec = "<<cloudInfo.T_w_l_curlidar.header.stamp.sec<<std::endl;
-      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.header.seq = "<<cloudInfo.T_w_l_curlidar.header.seq<<std::endl;
+//    //use for debug
+//    EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.position.x = "<<cloudInfo.T_w_l_curlidar.pose.pose.position.x<<std::endl;
+//    EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.position.y = "<<cloudInfo.T_w_l_curlidar.pose.pose.position.y<<std::endl;
+//    EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.position.z = "<<cloudInfo.T_w_l_curlidar.pose.pose.position.z<<std::endl;
+//    EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.orientation.x = "<<cloudInfo.T_w_l_curlidar.pose.pose.orientation.x<<std::endl;
+//    EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.orientation.y = "<<cloudInfo.T_w_l_curlidar.pose.pose.orientation.y<<std::endl;
+//    EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.orientation.z = "<<cloudInfo.T_w_l_curlidar.pose.pose.orientation.z<<std::endl;
+//    EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.orientation.w = "<<cloudInfo.T_w_l_curlidar.pose.pose.orientation.w<<std::endl;
+//    EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.header.stamp.sec = "<<cloudInfo.T_w_l_curlidar.header.stamp.sec<<std::endl;
+//    EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.header.seq = "<<cloudInfo.T_w_l_curlidar.header.seq<<std::endl;
 
 
     // mark occluded points and parallel beam points
@@ -317,6 +322,39 @@ class FeatureExtraction {
       EZLOG(INFO)<<"***************surfaceCloud->size() "<<surfaceCloud->size()<<std::endl;
     // publish to mapOptimization
     pubLaserCloudInfo.publish(cloudInfo);
+
+    static long long int idx = 0;
+      //for deubug use
+        {
+            pcl::PointCloud<pcl::PointXYZ> temp ;
+            for(int i = 0; i < cornerCloud -> points.size(); ++i){
+                pcl::PointXYZ p;
+                p.x = cornerCloud -> points[i].x;
+                p.y = cornerCloud -> points[i].y;
+                p.z = cornerCloud -> points[i].z;
+                temp.push_back(p);
+            }
+            std::string filename = "/home/lsy/point/cornerCloud"+ to_string( idx )+".ply";
+            pcl::io::savePLYFile(filename, temp);
+//            ++idx;
+        }
+
+      {
+          pcl::PointCloud<pcl::PointXYZ> temp ;
+          for(int i = 0; i < surfaceCloud -> points.size(); ++i){
+              pcl::PointXYZ p;
+              p.x = surfaceCloud -> points[i].x;
+              p.y = surfaceCloud -> points[i].y;
+              p.z = surfaceCloud -> points[i].z;
+              temp.push_back(p);
+          }
+          std::string filename2 = "/home/lsy/point/surfaceCloud"+ to_string( idx )+".ply";
+          pcl::io::savePLYFile(filename2, temp);
+          ++idx;
+      }
+      //end debug use
+
+
   }
 };
 
