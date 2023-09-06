@@ -4,11 +4,13 @@
 
 #include "mapmanager.h"
 
-
 //是否更新标志位
 bool top_cache_update=false;
 //是否是第一帧标志位
 bool is_initailed= false;
+
+int laserCloudWidth=0;
+int laserCloudHeight=0;
 
 //从txt中获得
 double x_min_t;
@@ -39,7 +41,7 @@ int last_laser_cloud_load_ind[25];
 
 
 std::vector<int> lasercloud_loaded_map;
-
+ros::Publisher pub;
 
 
 
@@ -51,10 +53,10 @@ MapmanagerInitialized(const std::string& map_read_path){
     std::getline(file, line); // 读取第一行并存储到line中
     std::istringstream iss(line);
     iss >> x_min_t >> y_min_t; //
-    EZLOG(INFO)<<"x_min "<<x_min_t<<std::endl;
-    EZLOG(INFO)<<"y_min "<<y_min_t<<std::endl;
     pcd_feature.push_back("corner");
     pcd_feature.push_back("surf");
+    laserCloudWidth = 4*SerializeConfig::up2down_num;  //x方向
+    laserCloudHeight = 5*SerializeConfig::up2down_num; //y方向
 }
 
 
@@ -92,9 +94,8 @@ int2up_grid_index(const int& lasercloud_index){
 }
 
 void
-MallocMeomery(const std::string& up_grid_string){  //有待改进成完全由超参数定义数据大小
+MallocMeomery(const std::string& up_grid_string,const std::string& feature_string ){  //有待改进成完全由超参数定义数据大小
     int lasercloud_index[4];
-
     std::istringstream ss(up_grid_string);
 
     int i, j;
@@ -107,10 +108,16 @@ MallocMeomery(const std::string& up_grid_string){  //有待改进成完全由超
     lasercloud_index[1]=lasercloud_index[0]+1;
     lasercloud_index[2]=lasercloud_index[0]+laserCloudWidth;
     lasercloud_index[3]=lasercloud_index[2]+1;
-
+    EZLOG(INFO)<<"lasercloud_index[0]:"<<lasercloud_index[0]<<std::endl;
     for(int k=0; k<SerializeConfig::up2down_num*SerializeConfig::up2down_num; ++k){
-        laser_cloud_corner_array[lasercloud_index[k]].reset(new pcl::PointCloud<PointType>());
-        lasercloud_loaded_map.push_back(lasercloud_index[k]);
+        if(feature_string=="corner"){
+            laser_cloud_corner_array[lasercloud_index[k]].reset(new pcl::PointCloud<PointType>());
+            lasercloud_loaded_map.push_back(lasercloud_index[k]);
+        }
+        if(feature_string=="surf"){
+            laser_cloud_surf_array[lasercloud_index[k]].reset(new pcl::PointCloud<PointType>());
+            lasercloud_loaded_map.push_back(lasercloud_index[k]);
+        }
     }
 }
 
@@ -128,8 +135,8 @@ UpdateTopGrid(const std::string& map_read_path,const std::string& index,const st
              << "! Aborting..." << std::endl;
         return;
     }
-    MallocMeomery(map_read_path);
-
+    MallocMeomery(index,feature);
+    EZLOG(INFO)<<"begin_loop"<<std::endl;
     for (const MyPointType& point : *loadcloud){
         PointType outpoint;
         outpoint.x=point.x;
@@ -141,6 +148,7 @@ UpdateTopGrid(const std::string& map_read_path,const std::string& index,const st
         else if(feature=="surf")
             laser_cloud_surf_array[point.down_grid_index]->push_back(outpoint);
     }
+    EZLOG(INFO)<<"end_loop"<<std::endl;
 }
 
 void
@@ -186,6 +194,7 @@ LoadMap(const int& center_cubeI,const int& center_cubeJ){
             //如果没有就加载
             if(!is_in_memeroy){
                 std::string laod_up_grid_string=int2up_grid_index(laser_cloud_load_ind[k]);
+                EZLOG(INFO)<<"laod_up_grid_string"<<laod_up_grid_string<<std::endl;
                 UpdateTopGrid(SerializeConfig::map_out_path,laod_up_grid_string,"corner");
                 UpdateTopGrid(SerializeConfig::map_out_path,laod_up_grid_string,"surf");
             }
@@ -225,9 +234,17 @@ BuildTree(const int& center_cubeI,const int& center_cubeJ){
         *laser_cloud_corner_from_map+=*laser_cloud_corner_array[laser_cloud_valid_ind[i]];
         *laser_cloud_surf_from_map+=*laser_cloud_surf_array[laser_cloud_valid_ind[i]];
     }
+    sensor_msgs::PointCloud2 ros_cloud;
+    pcl::toROSMsg(*laser_cloud_surf_from_map, ros_cloud);
+    ros_cloud.header.frame_id = "base";
+
+    pub.publish(ros_cloud);
+
     EZLOG(INFO)<<laser_cloud_corner_from_map->size()<<std::endl;
+
     kdtree_corner_from_map->setInputCloud(laser_cloud_corner_from_map);
     kdtree_surf_from_map->setInputCloud(laser_cloud_surf_from_map);
+
 }
 
 void ErasElement(){
@@ -309,6 +326,12 @@ main (int argc, char** argv)
 {
     Load_offline_YAML("./config/offline_mapping.yaml");
 
+    ros::init(argc, argv, "mapmanger");
+
+    ros::NodeHandle nh;
+    pub = nh.advertise<sensor_msgs::PointCloud2>("publish", 1);
+
+
     TicToc time;
     //路径为上个步骤序列化输出的路径结果
     MapmanagerInitialized(SerializeConfig::map_out_path);
@@ -317,7 +340,7 @@ main (int argc, char** argv)
         gnsspostion.x=-49.00+i*20;
         gnsspostion.y=-110.00+i*20;
         process(gnsspostion);
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(2));
     }
     EZLOG(INFO)<<"time"<<time.toc()<<std::endl;
 }

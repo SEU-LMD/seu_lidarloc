@@ -30,8 +30,15 @@ add_definitions(-DELPP_THREAD_SAFE)
 add_definitions(-DELPP_NO_DEFAULT_LOG_FILE)
 
 
-include_directories(
+find_package(catkin REQUIRED COMPONENTS
+        roscpp
+        sensor_msgs
+        )
+
+
+        include_directories(
         ../include
+        ${catkin_INCLUDE_DIRS}
         ${EIGEN3_INCLUDE_DIR}
         ../ThirdParty/easylog-9.89/src/
         ${YAML_CPP_INCLUDE_DIR}
@@ -51,4 +58,4 @@ add_executable(serialize ./serialize.cpp)
 target_link_libraries(serialize ${PCL_LIBRARIES} ${YAML_LIB})
 
 add_executable(mapmanager ./mapmanager.cpp)
-target_link_libraries(mapmanager ${PCL_LIBRARIES} ${YAML_LIB})
+target_link_libraries(mapmanager ${PCL_LIBRARIES} ${YAML_LIB} ${catkin_LIBRARIES})
