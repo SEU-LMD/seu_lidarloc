@@ -145,11 +145,21 @@ public:
         pubLaserCloudInfo = nh.advertise<lio_sam_6axis::cloud_info>("lio_sam_6axis/deskew/cloud_info", 1);
 
         allocateMemory();//内存分配
+        bool use_gnss_deskew = false;
+
+
+//        nav_msgs::Odometry T;
+//        T.header.stamp.sec= 1;
+
 
     }//end function ImageProjection
 
+    static int curlidar_index;
+//    int curlidar_index = 0;
     void do_work(){
         while(1){
+//            TicToc Time;
+
             if(cloudQueue.size()!=0){
 
                 odoLock.lock();
@@ -162,6 +172,7 @@ public:
                 cloud_mutex.lock();
                 CloudWithTime cloudinfo_cur = cloudQueue.front();
 //                cloudHeader = cloudQueue.front().cloud->header;
+                cloudInfo.T_w_l_curlidar.header.stamp.sec = cloudQueue.front().min_ros_timestamp;
                 double cloud_min_ros_timestamp = cloudinfo_cur.min_ros_timestamp;
                 double cloud_max_ros_timestamp = cloudinfo_cur.max_ros_timestamp;
 
@@ -169,24 +180,35 @@ public:
 
                     cloudQueue.pop_front();
                     cloud_mutex.unlock();
+                    ++ImageProjection::curlidar_index;
+                    cloudInfo.T_w_l_curlidar.header.seq = curlidar_index;
 
 //                    EZLOG(INFO)<<"odo_min_ros_time = "<<odo_min_ros_time - odo_min_ros_time<<std::endl;
 //                    EZLOG(INFO)<<"odo_max_ros_time = "<<odo_max_ros_time - odo_min_ros_time<<std::endl;
 //                    EZLOG(INFO)<<"cloud_min_ros_timestamp = "<<cloud_min_ros_timestamp - odo_min_ros_time<<std::endl;
 //                    EZLOG(INFO)<<"cloud_max_ros_timestamp = "<<cloud_max_ros_timestamp - odo_min_ros_time<<std::endl;
 
-                    //do veryt important work
-                    //1.deskew
-                    PoseT T_lidar_first_pose;
-                   double cost_time_findpose =  FindLidarFirstPose(cloudinfo_cur , odo_poses_copy,
-                                                                   T_lidar_first_pose);
-                   EZLOG(INFO)<<"cost_time_findpose(ms) = "<<cost_time_findpose<<std::endl;
+//                    if(use_gnss_deskew) {
+//                    if(0) {  //test time without deskew
 
-                    //2.imgprojection
+                        //do veryt important work
+                        //1.deskew
 
-                    double cost_time_projpc = projectPointCloud(cloudinfo_cur,odo_poses_copy,T_lidar_first_pose);
+                        PoseT T_lidar_first_pose;
+                        double cost_time_findpose = FindLidarFirstPose(cloudinfo_cur, odo_poses_copy,
+                                                                           T_lidar_first_pose);
+                        EZLOG(INFO) << "cost_time_findpose(ms) = " << cost_time_findpose << std::endl;
 
-                    EZLOG(INFO)<<"cost_time_projpc(ms) = "<<cost_time_projpc<<std::endl;
+                        //2.imgprojection
+
+                        double cost_time_projpc = projectPointCloud(cloudinfo_cur, odo_poses_copy, T_lidar_first_pose);
+
+                        EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
+
+//                    }       ///end if use_gnss_deskew
+//                    else{
+//
+//                    }
 
                     //3.cloudExtraction
 
@@ -204,7 +226,9 @@ public:
                         poseQueue.pop_front();
                     }
                     odoLock.unlock();
-                }
+
+
+                }//end function if
                 else{
                     cloud_mutex.unlock();
                 }
@@ -213,6 +237,8 @@ public:
             else{
                 sleep(0.05);
             }
+//        double do_work_time = Time.toc();
+//            EZLOG(INFO)<<"do_work_time(-0.05s(sleep)) = "<<do_work_time<<std::endl;
         }
     }
 
@@ -315,18 +341,6 @@ public:
         cloud_mutex.lock();
         cloudQueue.push_back(cloudinfo);
         cloud_mutex.unlock();
-//        Eigen::Matrix4d T_w_lidar_start;
-//        if (!FindLidarFirstPose(T_w_lidar_start))  //获取陀螺仪和里程计数据{}
-//        {
-//            return;
-//        }
-
-        //very important function!!!!!!!!!!!!!!!!!!1
-//        projectPointCloud(min_timestamp, max_timestamp, T_w_lidar_start);  //投影点云
-
-//        cloudExtraction();  //提取分割点云
-
-        //publishClouds();  //发布去畸变点云
 
 //        resetParameters();
     }
@@ -406,6 +420,18 @@ public:
 
                  T_w_b_lidar_start  = PoseT (t_w_b_lidar_start , q_w_b_lidar_start);
 
+                 Eigen::Vector3d t_w_l_curlidar = T_w_b_lidar_start.GetT();
+                 Eigen::Quaterniond q_w_l_curlidar = T_w_b_lidar_start.GetQ();
+
+
+                cloudInfo.T_w_l_curlidar.pose.pose.position.x = T_w_b_lidar_start.GetT()[0];
+                cloudInfo.T_w_l_curlidar.pose.pose.position.y = T_w_b_lidar_start.GetT()[1];
+                cloudInfo.T_w_l_curlidar.pose.pose.position.z = T_w_b_lidar_start.GetT()[2];
+                cloudInfo.T_w_l_curlidar.pose.pose.orientation.x = T_w_b_lidar_start.GetQ().x();
+                cloudInfo.T_w_l_curlidar.pose.pose.orientation.y = T_w_b_lidar_start.GetQ().y();
+                cloudInfo.T_w_l_curlidar.pose.pose.orientation.z = T_w_b_lidar_start.GetQ().z();
+                cloudInfo.T_w_l_curlidar.pose.pose.orientation.w = T_w_b_lidar_start.GetQ().w();
+
                 //pusblish world origin cloud
                 pcl::PointCloud<PointXYZIRT> cur_scan_cloud_w;
 //                pcl::transformPointCloud(*cur_scan_cloud_body, cur_scan_cloud_w, (T_w_b_lidar_start).pose.cast<float>());
@@ -477,7 +503,10 @@ public:
             }
 
             //very important function@!!!!!!!!!
-            thisPoint = deskewPoint(&thisPoint, cloudinfo.cloud->points[i].latency - cloudinfo.min_latency_timestamp, T_w_b_lidar_start,cloudinfo,pose_deque);//进行点云去畸变
+            if (SensorConfig::use_gnss_deskew){
+                thisPoint = deskewPoint(&thisPoint, cloudinfo.cloud->points[i].latency - cloudinfo.min_latency_timestamp, T_w_b_lidar_start,cloudinfo,pose_deque);//进行点云去畸变
+            }
+//            thisPoint = deskewPoint(&thisPoint, cloudinfo.cloud->points[i].latency - cloudinfo.min_latency_timestamp, T_w_b_lidar_start,cloudinfo,pose_deque);//进行点云去畸变
             rangeMat.at<float>(rowIdn, columnIdn) = range;//将去畸变后的点范围和坐标存入rangeMat
 
             int index = columnIdn + rowIdn * SensorConfig::Horizon_SCAN;//计算索引index,将去畸变后的点存入fullCloud
@@ -598,6 +627,8 @@ public:
 //        publishCloud(pub_deskew_cloud_world, deskewCloud_body, cloudHeader.stamp, SensorConfig::lidarFrame);
     }
 };
+
+int ImageProjection::curlidar_index = 0;
 
 int main(int argc, char **argv) {
 

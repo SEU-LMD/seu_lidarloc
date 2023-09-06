@@ -72,6 +72,8 @@ class SensorConfig{
     static Eigen::Quaterniond extrinsicQRPY;//not
     static Eigen::Vector3d t_body_sensor;
     static Eigen::Quaterniond q_body_sensor;
+
+    static bool use_gnss_deskew;
 };
 
 class MappingConfig{
@@ -203,6 +205,8 @@ Eigen::Quaterniond SensorConfig::extrinsicQRPY;
 Eigen::Vector3d SensorConfig::t_body_sensor;
 Eigen::Quaterniond SensorConfig::q_body_sensor;
 
+bool SensorConfig::use_gnss_deskew=false;
+
 
 std::string MappingConfig::save_map_path = "";
 
@@ -330,6 +334,9 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::  imuGyrBiasN=sensorconfig["imuGyrBiasN"].as<double >();
     SensorConfig::  imuGravity=sensorconfig["imuGravity"].as<double >();
     SensorConfig::  imuRPYWeight=sensorconfig["imuRPYWeight"].as<double >();
+
+    SensorConfig::use_gnss_deskew=sensorconfig["use_gnss_deskew"].as<bool >();
+
     std::cout<<SensorConfig::imuRPYWeight<<std::endl;
 
 

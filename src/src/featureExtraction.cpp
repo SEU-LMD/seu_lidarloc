@@ -4,15 +4,13 @@
 
 #include "config_helper.h"
 #include "easylogging++.h"
-#include "MapSaver.h"
 
 INITIALIZE_EASYLOGGINGPP
 struct smoothness_t {
-  float value;      //curvature
-  size_t ind;       //index in cloudinfo
+  float value;
+  size_t ind;
 };
 
-//compare curvature and sort from smallest to largest
 struct by_value {
   bool operator()(smoothness_t const &left, smoothness_t const &right) {
     return left.value < right.value;
@@ -22,9 +20,7 @@ struct by_value {
 class FeatureExtraction {
 
  public:
-    MapSaver map_saver;
-    int frame_id = 0;
-    ros::NodeHandle nh;
+  ros::NodeHandle nh;
   ros::Subscriber subLaserCloudInfo;
 
   ros::Publisher pubLaserCloudInfo;
@@ -80,39 +76,39 @@ class FeatureExtraction {
 
   void laserCloudInfoHandler(const lio_sam_6axis::cloud_infoConstPtr &msgIn) {
 
-      EZLOG(INFO)<<"***************laserCloudInfoHandler "<<std::endl;
+      TicToc timer;
+
+    EZLOG(INFO)<<"***************laserCloudInfoHandler "<<std::endl;
 
     cloudInfo = *msgIn;           // new cloud info
     cloudHeader = msgIn->header;  // new cloud header
     pcl::fromROSMsg(msgIn->cloud_deskewed,
                     *extractedCloud);  // new cloud for extraction
 
-    //1.calculate point curvature and store in cloudSmoothness
-    calculateSmoothness();
+      //1.calculate point curvature and store in cloudSmoothness
+      calculateSmoothness();
 
-    //2.mark point which does not extract features
-    markOccludedPoints();
+      //2.mark point which does not extract features
+      markOccludedPoints();
 
-    //3.extract corner and surface point
-    extractFeatures();
+      //3.extract corner and surface point
+      extractFeatures();
+//      double time_featureextraction = timer.toc();
+//      EZLOG(INFO)<<"***************time_featureextraction "<<time_featureextraction<<std::endl;
+      //4.publish cloud
+      publishFeatureCloud();
 
-    //4.publish cloud
-    publishFeatureCloud();
+      double time_featureextraction = timer.toc();
+      EZLOG(INFO)<<"***************time_featureextraction "<<time_featureextraction<<std::endl;
 
-    //save
-    CloudInfo cloudinfo;
-    cloudinfo.frame_id = frame_id;
-    frame_id++;
-    cloudinfo.corner_cloud = cornerCloud;
-    cloudinfo.surf_cloud = surfaceCloud;
-    map_saver.AddCloudToSave(cloudinfo);
   }
 
   void calculateSmoothness() {
-    int cloudSize = extractedCloud->points.size();
-    for (int i = 5; i < cloudSize - 5; i++) {
-        //use front 5points and rear 5points to calculate curvature
 
+    int cloudSize = extractedCloud->points.size();
+
+    for (int i = 5; i < cloudSize - 5; i++) {
+      //use front 5points and rear 5points to calculate curvature
       float diffRange =
           cloudInfo.pointRange[i - 5] + cloudInfo.pointRange[i - 4] +
           cloudInfo.pointRange[i - 3] + cloudInfo.pointRange[i - 2] +
@@ -121,33 +117,50 @@ class FeatureExtraction {
           cloudInfo.pointRange[i + 3] + cloudInfo.pointRange[i + 4] +
           cloudInfo.pointRange[i + 5];
 
-          cloudCurvature[i] =  diffRange * diffRange;  // diffX * diffX + diffY * diffY + diffZ * diffZ;
+      //calculate curvature
+      cloudCurvature[i] = diffRange * diffRange;  // diffX * diffX + diffY * diffY + diffZ * diffZ;
 
-      //0:before feature extraction; 1:after feature extraction
-      cloudNeighborPicked[i] = 0;//初始化所有的点都没有被标记过
-      //0:surface; 1:corner
+      //0:before feature extraction; 1 after feature extraction or obscured or parallel
+      cloudNeighborPicked[i] = 0;
+      //-1: surface point; 1:corner point
       cloudLabel[i] = 0;
 
-      // cloudSmoothness for sorting
+      // cloudSmoothness for
       cloudSmoothness[i].value = cloudCurvature[i];
       cloudSmoothness[i].ind = i;
-//        EZLOG(INFO)<<"***************cloudSmoothness[i].value = "<<cloudSmoothness[i].value<<std::endl;
     }
+
   }
 
   void markOccludedPoints() {
+
     int cloudSize = extractedCloud->points.size();
-      EZLOG(INFO)<<"***************cloudSize = "<<cloudSize<<std::endl;
+
+    EZLOG(INFO)<<"***************cloudSize = "<<cloudSize<<std::endl;
+
+      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.position.x = "<<cloudInfo.T_w_l_curlidar.pose.pose.position.x<<std::endl;
+      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.position.y = "<<cloudInfo.T_w_l_curlidar.pose.pose.position.y<<std::endl;
+      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.position.z = "<<cloudInfo.T_w_l_curlidar.pose.pose.position.z<<std::endl;
+      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.orientation.x = "<<cloudInfo.T_w_l_curlidar.pose.pose.orientation.x<<std::endl;
+      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.orientation.y = "<<cloudInfo.T_w_l_curlidar.pose.pose.orientation.y<<std::endl;
+      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.orientation.z = "<<cloudInfo.T_w_l_curlidar.pose.pose.orientation.z<<std::endl;
+      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.pose.pose.orientation.w = "<<cloudInfo.T_w_l_curlidar.pose.pose.orientation.w<<std::endl;
+      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.header.stamp.sec = "<<cloudInfo.T_w_l_curlidar.header.stamp.sec<<std::endl;
+      EZLOG(INFO)<<"cloudInfo.T_w_l_curlidar.header.seq = "<<cloudInfo.T_w_l_curlidar.header.seq<<std::endl;
+
+
     // mark occluded points and parallel beam points
+    //find current and next point's range value
     for (int i = 5; i < cloudSize - 6; ++i) {
       // occluded points
       float depth1 = cloudInfo.pointRange[i];
       float depth2 = cloudInfo.pointRange[i + 1];
-      int columnDiff = std::abs(
-          int(cloudInfo.pointColInd[i + 1] - cloudInfo.pointColInd[i]));
+
+      int columnDiff = std::abs(int(cloudInfo.pointColInd[i + 1] - cloudInfo.pointColInd[i]));
 
       if (columnDiff < 10) {
         // 10 pixel diff in range image
+        //if distance > 0.3 ,occluded point and mark neighbor point 1(don't extract feature)
         if (depth1 - depth2 > 0.3) {
           cloudNeighborPicked[i - 5] = 1;
           cloudNeighborPicked[i - 4] = 1;
@@ -170,6 +183,7 @@ class FeatureExtraction {
       float diff2 = std::abs(
           float(cloudInfo.pointRange[i + 1] - cloudInfo.pointRange[i]));
 
+      //if far from adjacent point ,bad point
       if (diff1 > 0.02 * cloudInfo.pointRange[i] &&
           diff2 > 0.02 * cloudInfo.pointRange[i])
         cloudNeighborPicked[i] = 1;
@@ -177,88 +191,106 @@ class FeatureExtraction {
   }
 
   void extractFeatures() {
-
-
     cornerCloud->clear();
     surfaceCloud->clear();
 
+    pcl::PointCloud<PointType>::Ptr surfaceCloudScan(new pcl::PointCloud<PointType>());
+    pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS(new pcl::PointCloud<PointType>());
 
     for (int i = 0; i < SensorConfig::N_SCAN; i++) {
+      surfaceCloudScan->clear();
 
-      pcl::PointCloud<PointType>::Ptr surfaceCloudScan(  new pcl::PointCloud<PointType>());
-
-      //给一个scan分成6个不同的扇区
       for (int j = 0; j < 6; j++) {
-            int sp = ( cloudInfo.startRingIndex[i] * (6 - j) + cloudInfo.endRingIndex[i] * j ) / 6;
-            int ep = ( cloudInfo.startRingIndex[i] * (5 - j) +  cloudInfo.endRingIndex[i] * (j + 1) ) / 6 - 1;
 
-            if (sp >= ep) continue;
+        //divide into 6 parts
+        int sp = (cloudInfo.startRingIndex[i] * (6 - j) +
+                  cloudInfo.endRingIndex[i] * j) /6;
+        int ep = (cloudInfo.startRingIndex[i] * (5 - j) +
+                  cloudInfo.endRingIndex[i] * (j + 1)) /6 - 1;
 
-            std::sort(cloudSmoothness.begin() + sp, cloudSmoothness.begin() + ep, by_value());
-            //提取角点×××××××××××××××××××××××××××××××××××××××××××××××××××××××××××
-            int largestPickedNum = 0;//只在提取角点时使用
-            for (int k = ep; k >= sp; k--) {
-                  int ind = cloudSmoothness[k].ind;
-                  if (cloudNeighborPicked[ind] == 0 && cloudCurvature[ind] > MappingConfig::edgeThreshold) {
-                        largestPickedNum++;
-                        //每个扇区最多只能提取出20个角点
-                        if (largestPickedNum <= 20) {
-                          cloudLabel[ind] = 1;//标记这个点不是面点 是角点
-                          cornerCloud->push_back(extractedCloud->points[ind]);//very important movement!!!!!!!!!!!!!11
-                        } else {
-                          break;
-                        }
-                        cloudNeighborPicked[ind] = 1;
-                        //周围的几个点如果距离不远，也被标记为被选中，即不再参与角点的计算
-                        for (int l = 1; l <= 5; l++) {
-                          int columnDiff =  std::abs(int(cloudInfo.pointColInd[ind + l] -  cloudInfo.pointColInd[ind + l - 1]));
-                          if (columnDiff > 10) break;
-                          cloudNeighborPicked[ind + l] = 1;
-                        }
-                        for (int l = -1; l >= -5; l--) {
-                          int columnDiff = std::abs(int(cloudInfo.pointColInd[ind + l] -  cloudInfo.pointColInd[ind + l + 1]));
-                          if (columnDiff > 10) break;
-                          cloudNeighborPicked[ind + l] = 1;
-                        }
-                  }
-            }
-            //提取面点×××××××××××××××××××××××××××××××××××××××××××××××××××××××××××
-            for (int k = sp; k <= ep; k++) {
-                  int ind = cloudSmoothness[k].ind;
-                  if (cloudNeighborPicked[ind] == 0 && cloudCurvature[ind] < MappingConfig::surfThreshold) {
-                        cloudLabel[ind] = -1;//标记这个点是面点
-                        cloudNeighborPicked[ind] = 1;
+        if (sp >= ep) continue;
 
-                        for (int l = 1; l <= 5; l++) {
-                          int columnDiff = std::abs(int(cloudInfo.pointColInd[ind + l] - cloudInfo.pointColInd[ind + l - 1]));
-                          if (columnDiff > 10) break;
-                          cloudNeighborPicked[ind + l] = 1;
-                        }
-                        for (int l = -1; l >= -5; l--) {
-                          int columnDiff = std::abs(int(cloudInfo.pointColInd[ind + l] - cloudInfo.pointColInd[ind + l + 1]));
-                          if (columnDiff > 10) break;
-                          cloudNeighborPicked[ind + l] = 1;
-                        }
-                  }
+        //sort point by comparing curvature(small - large)
+        std::sort(cloudSmoothness.begin() + sp, cloudSmoothness.begin() + ep,
+                  by_value());
+
+        int largestPickedNum = 0;
+
+        //traverse by curvature, from small to large
+        for (int k = ep; k >= sp; k--) {
+          //point index
+          int ind = cloudSmoothness[k].ind;
+          //if point
+          if (cloudNeighborPicked[ind] == 0 &&
+              cloudCurvature[ind] > MappingConfig::edgeThreshold) {
+            largestPickedNum++;
+            if (largestPickedNum <= 20) {
+              cloudLabel[ind] = 1;
+              cornerCloud->push_back(extractedCloud->points[ind]);
+            } else {
+              break;
             }
 
-            for (int k = sp; k <= ep; k++) {
-              if (cloudLabel[k] <= 0) {
-                surfaceCloudScan->push_back(extractedCloud->points[k]);
-              }
-            }
-      }//for (int j = 0; j < 6; j++)
+            cloudNeighborPicked[ind] = 1;
 
-      //对属于同一个scan的面点进行降采样
-      pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS( new pcl::PointCloud<PointType>());
+            for (int l = 1; l <= 5; l++) {
+              int columnDiff =
+                  std::abs(int(cloudInfo.pointColInd[ind + l] -
+                               cloudInfo.pointColInd[ind + l - 1]));
+              if (columnDiff > 10) break;
+              cloudNeighborPicked[ind + l] = 1;
+            }
+            for (int l = -1; l >= -5; l--) {
+              int columnDiff =
+                  std::abs(int(cloudInfo.pointColInd[ind + l] -
+                               cloudInfo.pointColInd[ind + l + 1]));
+              if (columnDiff > 10) break;
+              cloudNeighborPicked[ind + l] = 1;
+            }
+          }
+        }// end! traverse by curvature, from small to large
+
+        for (int k = sp; k <= ep; k++) {
+          int ind = cloudSmoothness[k].ind;
+          if (cloudNeighborPicked[ind] == 0 &&
+              cloudCurvature[ind] < MappingConfig::surfThreshold) {
+            cloudLabel[ind] = -1;
+            cloudNeighborPicked[ind] = 1;
+
+            for (int l = 1; l <= 5; l++) {
+              int columnDiff =
+                  std::abs(int(cloudInfo.pointColInd[ind + l] -
+                               cloudInfo.pointColInd[ind + l - 1]));
+              if (columnDiff > 10) break;
+
+              cloudNeighborPicked[ind + l] = 1;
+            }
+            for (int l = -1; l >= -5; l--) {
+              int columnDiff =
+                  std::abs(int(cloudInfo.pointColInd[ind + l] -
+                               cloudInfo.pointColInd[ind + l + 1]));
+              if (columnDiff > 10) break;
+
+              cloudNeighborPicked[ind + l] = 1;
+            }
+          }
+        }
+
+        // surface point and point doesn't be processed ,regard as surface
+        for (int k = sp; k <= ep; k++) {
+          if (cloudLabel[k] <= 0) {
+            surfaceCloudScan->push_back(extractedCloud->points[k]);
+          }
+        }
+      }
+
+      surfaceCloudScanDS->clear();
       downSizeFilter.setInputCloud(surfaceCloudScan);
       downSizeFilter.filter(*surfaceCloudScanDS);
 
-      *surfaceCloud += *surfaceCloudScanDS;//very important function!!!!!!!
-    }//end function     for (int i = 0; i < SensorConfig::N_SCAN; i++) {
-
-  }//end fucntion   void extractFeatures() {
-
+      *surfaceCloud += *surfaceCloudScanDS;
+    }
+  }
 
   void freeCloudInfoMemory() {
     cloudInfo.startRingIndex.clear();
@@ -268,17 +300,21 @@ class FeatureExtraction {
   }
 
   void publishFeatureCloud() {
-      EZLOG(INFO)<<"***************publishFeatureCloud "<<std::endl;
+
+    EZLOG(INFO)<<"***************publishFeatureCloud "<<std::endl;
+
 
       // free cloud info memory
     freeCloudInfoMemory();
     // save newly extracted features
-//      cloudInfo.cloud_corner = publishCloud(pubCornerPoints, cornerCloud,
-//                                            cloudHeader.stamp, SensorConfig::lidarFrame);
-    cloudInfo.cloud_corner = publishCloud(pubCornerPoints, cornerCloud,
-                                          cloudHeader.stamp, SensorConfig::lidarFrame);
-    cloudInfo.cloud_surface = publishCloud(pubSurfacePoints, surfaceCloud,
-                                           cloudHeader.stamp, SensorConfig::lidarFrame);
+//    cloudInfo.cloud_corner = publishCloud(pubCornerPoints, cornerCloud,
+//                                          cloudHeader.stamp, SensorConfig::lidarFrame);
+      cloudInfo.cloud_corner = publishCloud(pubCornerPoints, cornerCloud,
+                                            cloudHeader.stamp, "map");
+      cloudInfo.cloud_surface = publishCloud(pubSurfacePoints, surfaceCloud,
+                                             cloudHeader.stamp, "map");
+      EZLOG(INFO)<<"***************cornerCloud->size() "<<cornerCloud->size()<<std::endl;
+      EZLOG(INFO)<<"***************surfaceCloud->size() "<<surfaceCloud->size()<<std::endl;
     // publish to mapOptimization
     pubLaserCloudInfo.publish(cloudInfo);
   }
@@ -297,7 +333,7 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "ft_ext");
 
   FeatureExtraction FE;
-  std::thread saveMapThread(&MapSaver::do_work, &(FE.map_saver));//comment fyy
+
   ROS_INFO("\033[1;32m----> Feature Extraction Started.\033[0m");
 
   ros::spin();

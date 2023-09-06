@@ -15,8 +15,6 @@
 #include "MapSaver.h"
 #include "yaml-cpp/yaml.h"
 #include "utility.h"
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2/transform_datatypes.h>
 #include  <memory>
 
 #include "easylogging++.h"
@@ -53,7 +51,6 @@ public:
     sensor_msgs::PointCloud2 pubMsg_NDT_AlignedScan;
     sensor_msgs::PointCloud2 pubMsg_currentScan;
     std::deque<sensor_msgs::PointCloud2> ScanMsgQueue;
-    tf2_ros::TransformBroadcaster tf_NDT2Map;
 
 
     //prior map and pose init
@@ -67,8 +64,9 @@ public:
     pcl::PointCloud<PointXYZIRT>::Ptr current_scanIn;
     pcl::PointCloud<pclPointType>::Ptr ds_current_scan_ptr;
     pcl::PointCloud<pclPointType>::Ptr NDT_aligned_scan_ptr;
+    pcl::PointCloud<pclPointType>::Ptr NDT_aligned_scan_test_ptr;
     Eigen::Matrix4f initial_transform;
-    Eigen::Matrix4f T_Scan_2_map_NDT;
+    double sequence_num;
 
     priorMapLoc():flag_read_map(false),flag_read_pose(false),scanNum(0)
     {
@@ -117,6 +115,7 @@ public:
         current_scan_ptr.reset(new pcl::PointCloud<pclPointType>);
         ds_current_scan_ptr.reset(new pcl::PointCloud<pclPointType>);
         NDT_aligned_scan_ptr.reset(new pcl::PointCloud<pclPointType>);
+        NDT_aligned_scan_test_ptr.reset(new pcl::PointCloud<pclPointType>);
         current_scan_temp_ptr.reset(new pcl::PointCloud<pclPointType>);
 
         EZLOG(INFO)<<"1.1 Handler------------------NOW we are in currentScanHandler()";
@@ -130,9 +129,8 @@ public:
         loadPriorPose(initial_transform);
         //            auto start_time = std::chrono::high_resolution_clock::now();
 
-        NDTSequence(prior_map_ptr,ds_current_scan_ptr,initial_transform,NDT_aligned_scan_ptr,T_Scan_2_map_NDT);
+        NDTSequence(prior_map_ptr,ds_current_scan_ptr,initial_transform,NDT_aligned_scan_ptr);
         pubNDTScan(NDT_aligned_scan_ptr);
-        pubNDTTransform();
 
     }
     void loadCurrentScan(pcl::PointCloud<pclPointType>::Ptr _current_scan_temp_ptr,
@@ -187,7 +185,7 @@ public:
     }
     void downSampleCurrentScan(const pcl::PointCloud<pclPointType>::Ptr _current_scan,
                                pcl::PointCloud<pclPointType>::Ptr _ds_current_scan){
-            EZLOG(INFO)<<"1.4 Handler------------------NOW we are in downSampleCurrentScan()";
+            EZLOG(INFO)<<"1.3 Handler------------------NOW we are in downSampleCurrentScan()";
             pcl::ApproximateVoxelGrid<pclPointType> approximate_voxel_filter;
             approximate_voxel_filter.setLeafSize(SerializeConfig::setLeafSize, SerializeConfig::setLeafSize,SerializeConfig::setLeafSize);
             EZLOG(INFO)<<"setLeafSize  is : "<<SerializeConfig::setLeafSize;
@@ -234,7 +232,7 @@ public:
         }
     }
     void loadPriorPose(Eigen::Matrix4f &_initial_transform){
-        EZLOG(INFO)<<"1.5 Handler------------------NOW we are in loadPriorPose()";
+        EZLOG(INFO)<<"1.3 Handler------------------NOW we are in loadPriorPose()";
         if(!flag_read_pose)
         {
             ReadTumPose(SerializeConfig::prior_pose_path,rotation_matrix_prior,translation_vector_prior);
@@ -248,32 +246,46 @@ public:
     }
     void NDTSequence( pcl::PointCloud<pclPointType>::Ptr _prior_map,
                       pcl::PointCloud<pclPointType>::Ptr _ds_current_scan,
-                      const Eigen::Matrix4f &_initial_transform,
-                      pcl::PointCloud<pclPointType>::Ptr _NDT_aligned_scan,
-                      Eigen::Matrix4f &_T_Scan_2_map_NDT)
+                     const Eigen::Matrix4f &_initial_transform,
+                     pcl::PointCloud<pclPointType>::Ptr _NDT_aligned_scan)
     {
         // 初始化NDT配准对象
-        EZLOG(INFO)<<"1.6 Handler------------------NOW we are in NDTSequence()";
+        EZLOG(INFO)<<"1.3 Handler------------------NOW we are in NDTSequence()";
         pcl::NormalDistributionsTransform<pclPointType, pclPointType> ndt;
 
         ndt.setInputSource(_ds_current_scan);
         ndt.setInputTarget(_prior_map);
+        EZLOG(INFO)<<"  filter_current_scan size: "<< _ds_current_scan->points.size()
+                   <<"  prior_map size: "<< _prior_map->points.size()<<std::endl;
+
+
         // 设置NDT参数
+        EZLOG(INFO) <<"  Tepsilion: "<< SerializeConfig::Tepsilion
+                    <<"  step_size: "<< SerializeConfig::step_size
+                    <<"  size_resolution: "<< SerializeConfig::size_resolution
+                    <<"  max_inter_num: "<< SerializeConfig::max_inter_num;
 
         ndt.setTransformationEpsilon(SerializeConfig::Tepsilion);
         ndt.setStepSize(SerializeConfig::step_size);
         ndt.setResolution(SerializeConfig::size_resolution);
         ndt.setMaximumIterations(SerializeConfig::max_inter_num);
 
-        ndt.align(*_NDT_aligned_scan, _initial_transform);
+
+
+        EZLOG(INFO)<<"NDT Aligning!!!!";
+        EZLOG(INFO)<<"NDT _initial_transform:"<<std::endl<<_initial_transform;
+        pcl::PointCloud<pclPointType>::Ptr output_cloud (new pcl::PointCloud<pclPointType>);
+
+
+        ndt.align(*output_cloud, _initial_transform);
         if (ndt.hasConverged())
         {
             EZLOG(INFO) << "NDT has converged, score: " << ndt.getFitnessScore() << std::endl;
-            _T_Scan_2_map_NDT = ndt.getFinalTransformation();
-            EZLOG(INFO) << "Final transformation matrix:" << std::endl << _T_Scan_2_map_NDT << std::endl;
-            EZLOG(INFO) << "NDT iteration number: "<<ndt.getFinalNumIteration() << std::endl; //source(scan) ---> target(map_)的变换
+            Eigen::Matrix4f final_transform = ndt.getFinalTransformation();
+            EZLOG(INFO) << "Final transformation matrix:" << std::endl << final_transform << std::endl;
+            EZLOG(INFO) << "NDT iteration number: "<<ndt.getFinalNumIteration() << std::endl;
 
-            pcl::transformPointCloud(*_ds_current_scan, *_NDT_aligned_scan, ndt.getFinalTransformation());
+            pcl::transformPointCloud(*_ds_current_scan, *output_cloud, ndt.getFinalTransformation());
 
         }
         else
@@ -314,33 +326,17 @@ public:
 
     }
     void pubNDTScan(pcl::PointCloud<pclPointType>::Ptr _NDT_aligned_scan_ptr){
-        EZLOG(INFO)<<"1.7 Handler------------------NOW we are in pubNDTScan()";
+        EZLOG(INFO)<<"1.3 Handler------------------NOW we are in pubNDTScan()";
 //        pub ndt aligned map
         if (pubNDTAlignedScan.getNumSubscribers() != 0)
         {
-            pcl::toROSMsg(*_NDT_aligned_scan_ptr, pubMsg_NDT_AlignedScan);
+            pcl::toROSMsg(*NDT_aligned_scan_test_ptr, pubMsg_NDT_AlignedScan);
             pubMsg_NDT_AlignedScan.header.frame_id = "map";
             pubMsg_NDT_AlignedScan.header.stamp = ros::Time::now();
             pubNDTAlignedScan.publish(pubMsg_NDT_AlignedScan);
             EZLOG(INFO)<<"Pub NDT Aligned Scan!"<<std::endl;
         }
 
-    }
-    void pubNDTTransform(){
-        EZLOG(INFO)<<"1.8 Handler------------------NOW we are in pubNDTScan()";
-        geometry_msgs::TransformStamped transform_msg;
-        transform_msg.header.stamp = ros::Time::now();
-        transform_msg.header.frame_id = "map";
-        transform_msg.child_frame_id = "base_link";
-        transform_msg.transform.translation.x = T_Scan_2_map_NDT(0,3);
-        transform_msg.transform.translation.y = T_Scan_2_map_NDT(1, 3);
-        transform_msg.transform.translation.z = T_Scan_2_map_NDT(2, 3);
-        Eigen::Quaternionf quaternion(T_Scan_2_map_NDT.block<3, 3>(0, 0));
-        transform_msg.transform.rotation.x = quaternion.x();
-        transform_msg.transform.rotation.y = quaternion.y();
-        transform_msg.transform.rotation.z = quaternion.z();
-        transform_msg.transform.rotation.w = quaternion.w();
-        tf_NDT2Map.sendTransform(transform_msg);
     }
 };
 
