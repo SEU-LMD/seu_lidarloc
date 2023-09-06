@@ -266,6 +266,7 @@ std::string SerializeConfig::map_in_path = "";
 std::string SerializeConfig::map_out_path = "";
 int SerializeConfig::up2down_num = 4;
 double SerializeConfig::lidar_range = 50;
+
 int SerializeConfig::frame_sum = 185;
 int SerializeConfig::up_grid_size = 200;
 int SerializeConfig::lasercloud_width=0;
