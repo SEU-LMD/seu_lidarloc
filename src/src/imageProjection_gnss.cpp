@@ -84,6 +84,7 @@ private:
     ros::Publisher pubLaserCloudInfo;
     ros::Publisher pubextractedCloud;
     ros::Publisher pub_gnss_odom;
+    ros::Publisher pub_imu_info;
 
     ros::Subscriber subImu;
     std::deque<sensor_msgs::Imu> imuQueue;
@@ -140,6 +141,8 @@ public:
 
 
         pub_gnss_odom = nh.advertise<nav_msgs::Odometry>("/gnss_odom", 2000);
+
+        pub_imu_info = nh.advertise<sensor_msgs::Imu>("/imu_info", 2000);
 
         //publish to next node
         pubLaserCloudInfo = nh.advertise<lio_sam_6axis::cloud_info>("lio_sam_6axis/deskew/cloud_info", 1);
@@ -274,6 +277,8 @@ public:
 
     void gnssHandler(const gps_imu::ivsensorgpsConstPtr &gnss_msg) { //接收GNSS数据，存入队列
 
+//        EZLOG(INFO)<<"gnss_msg->status = "<<gnss_msg->status<<std::endl;
+
         if(!init)
         {
             geoConverter.Reset(gnss_msg->lat, gnss_msg->lon, gnss_msg->height);
@@ -316,6 +321,7 @@ public:
         poseQueue.push_back(pose_with_time);
         odoLock.unlock();
 
+        //pub gnss odometry in rviz
         nav_msgs::Odometry odom_msg;
         odom_msg.header.frame_id = "map";
         Eigen::Vector3d t_w_l = T_w_l.GetT();
@@ -329,6 +335,18 @@ public:
         odom_msg.pose.pose.orientation.z = q_w_l.z();
         pub_gnss_odom.publish(odom_msg);
 //        EZLOG(INFO)<<"publish odom"<<std::endl;
+
+        //pub imu info
+        sensor_msgs::Imu imu_msg;
+        imu_msg.header = gnss_msg->header;
+        imu_msg.linear_acceleration.x = gnss_msg->accx;
+        imu_msg.linear_acceleration.y = gnss_msg->accy;
+        imu_msg.linear_acceleration.z = gnss_msg->accz;
+
+        imu_msg.angular_velocity.x = gnss_msg->angx;
+        imu_msg.angular_velocity.y = gnss_msg->angy;
+        imu_msg.angular_velocity.z = gnss_msg->yaw;
+        pub_imu_info.publish(imu_msg);
     }
 
     void cloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg) {
@@ -348,7 +366,7 @@ public:
     //
     void GetCloudTime(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg,
                          CloudWithTime& cloud_info) {
-        TicToc timer;
+//        TicToc timer;
         sensor_msgs::PointCloud2 currentCloudMsg;
         currentCloudMsg = std::move(*laserCloudMsg);
         pcl::moveFromROSMsg(currentCloudMsg, *cloud_info.cloud);
@@ -378,8 +396,10 @@ public:
 //        EZLOG(INFO)<<"min_timestamp = "<<min_timestamp<<std::endl;
 //        EZLOG(INFO)<<"max_timestamp = "<<max_timestamp<<std::endl;
 //        EZLOG(INFO)<<"one scan cloud delta time(second) = "<< max_timestamp - min_timestamp<<std::endl;
-        double cost_time = timer.toc();
-        EZLOG(INFO)<<"GetCloudTime cost time(ms) = "<<cost_time<<std::endl;
+
+//        double cost_time = timer.toc();
+//        EZLOG(INFO)<<"GetCloudTime cost time(ms) = "<<cost_time<<std::endl;
+
 //        {
 //            Eigen::Matrix4f T_B_L = (SensorConfig::T_L_B.inverse()).cast<float>();
 //            pcl::PointCloud<PointXYZIRT> tf_cloud;
@@ -440,6 +460,26 @@ public:
                 pcl::toROSMsg(cur_scan_cloud_w, cur_scan_cloud_w_ros);
                 cur_scan_cloud_w_ros.header.frame_id = "map";
                 pub_origin_cloud_world.publish(cur_scan_cloud_w_ros);
+
+//                //save origin pointcloud
+//                //for deubug use (output pcd/ply)
+//                static long long int idx = 0;
+//                {
+//                    pcl::PointCloud<pcl::PointXYZ> temp ;
+//                    for(int i = 0; i < cur_scan_cloud_w.points.size(); ++i){
+//                        pcl::PointXYZ p;
+//                        p.x = cur_scan_cloud_w.points[i].x;
+//                        p.y = cur_scan_cloud_w.points[i].y;
+//                        p.z = cur_scan_cloud_w. points[i].z;
+//                        temp.push_back(p);
+//                    }
+//                    std::string filename = "/home/lsy/point/originCloud"+ to_string( idx )+".ply";
+//                    pcl::io::savePLYFile(filename, temp);
+//                    ++idx;
+//                    EZLOG(INFO)<<"saving map number = "<<idx<<std::endl;
+//                    EZLOG(INFO)<<"cur_scan_cloud_w.points.size = "<<cur_scan_cloud_w.points.size()<<std::endl;
+//                }
+
             }
             continue;
         }
