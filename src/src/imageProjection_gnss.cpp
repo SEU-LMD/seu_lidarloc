@@ -165,6 +165,8 @@ public:
 
             if(cloudQueue.size()!=0){
 
+                EZLOG(INFO) << "do_work " << std::endl;
+
                 odoLock.lock();
                 std::deque<PoseWithTime> odo_poses_copy;
                 odo_poses_copy = poseQueue;
@@ -225,7 +227,7 @@ public:
 
                     //5.pop used odom
                     odoLock.lock();
-                    while(poseQueue.front().ros_time_stamp < cloud_max_ros_timestamp - 0.02){
+                    while(poseQueue.front().ros_time_stamp < cloud_max_ros_timestamp - 0.05){
                         poseQueue.pop_front();
                     }
                     odoLock.unlock();
@@ -336,17 +338,17 @@ public:
         pub_gnss_odom.publish(odom_msg);
 //        EZLOG(INFO)<<"publish odom"<<std::endl;
 
-        //pub imu info
-        sensor_msgs::Imu imu_msg;
-        imu_msg.header = gnss_msg->header;
-        imu_msg.linear_acceleration.x = gnss_msg->accx;
-        imu_msg.linear_acceleration.y = gnss_msg->accy;
-        imu_msg.linear_acceleration.z = gnss_msg->accz;
-
-        imu_msg.angular_velocity.x = gnss_msg->angx;
-        imu_msg.angular_velocity.y = gnss_msg->angy;
-        imu_msg.angular_velocity.z = gnss_msg->yaw;
-        pub_imu_info.publish(imu_msg);
+//        //pub imu info
+//        sensor_msgs::Imu imu_msg;
+//        imu_msg.header = gnss_msg->header;
+//        imu_msg.linear_acceleration.x = gnss_msg->accx;
+//        imu_msg.linear_acceleration.y = gnss_msg->accy;
+//        imu_msg.linear_acceleration.z = gnss_msg->accz;
+//
+//        imu_msg.angular_velocity.x = gnss_msg->angx;
+//        imu_msg.angular_velocity.y = gnss_msg->angy;
+//        imu_msg.angular_velocity.z = gnss_msg->yaw;
+//        pub_imu_info.publish(imu_msg);
     }
 
     void cloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg) {
