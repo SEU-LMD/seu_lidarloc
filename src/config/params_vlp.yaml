@@ -40,34 +40,21 @@ lio_sam_6axis:
   Horizon_SCAN: 1800                          # lidar horizontal resolution (Velodyne:1800, Ouster:512,1024,2048, Livox Horizon: 4000)
   downsampleRate: 1                           # default: 1. Downsample your data if too many points. i.e., 16 = 64 / 4, 16 = 16 / 1
   lidarMinRange: 1.5                          # default: 1.0, minimum lidar range to be used
-  lidarMaxRange: 1000.0
+  lidarMaxRange: 200.0
 
   # IMU Settings
-#  imuAccNoise: 3.9939570888238808e-03
-#  imuGyrNoise: 1.5636343949698187e-03
-#  imuAccBiasN: 6.4356659353532566e-05
-#  imuGyrBiasN: 3.5640318696367613e-05
-  imuAccNoise: 0.1
-  imuGyrNoise: 0.01
-  imuAccBiasN: 0.001
-  imuGyrBiasN: 0.0001
-#  imuGravity: 9.80511
+  imuAccNoise: 3.9939570888238808e-03
+  imuGyrNoise: 1.5636343949698187e-03
+  imuAccBiasN: 6.4356659353532566e-05
+  imuGyrBiasN: 3.5640318696367613e-05
   imuGravity: 0.0
-  imuRPYWeight: 0.000001
+  imuRPYWeight: 0.01
 
 
   # Extrinsics (lidar -> IMU)
   imu_type: 0   # 0: 6axis, 1:9 axis
 #  extrinsicTrans: [0.27255, -0.00053, 0.17954]
   extrinsicTrans: [0, 0, -0.513500004517258]
-#  extrinsicTrans: [0.27255, -0.00053, 0.17954]
-#  extrinsicTrans: [-0.335556, -0.224772, 0.380888]
-#  extrinsicRot: [ -0.000646759, 0.9999217, 0.0124914,
-#                  -0.99998904, -0.00058879, -0.0046438245,
-#                  -0.004636106, -0.012494333, 0.99991119 ]
-#  extrinsicRPY: [ -0.000646759, 0.9999217, 0.0124914,
-#                  -0.99998904, -0.00058879, -0.0046438245,
-#                  -0.004636106, -0.012494333, 0.99991119 ]
   extrinsicRot: [ 1, 0, 0,
                   0, 1, 0,
                   0, 0, 1 ]
@@ -83,8 +70,8 @@ lio_sam_6axis:
 
   # voxel filter paprams
   odometrySurfLeafSize: 0.4                     # default: 0.4 - outdoor, 0.2 - indoor
-  mappingCornerLeafSize: 0.2                    # default: 0.2 - outdoor, 0.1 - indoor
-  mappingSurfLeafSize: 0.4                      # default: 0.4 - outdoor, 0.2 - indoor
+  mappingCornerLeafSize: 0.4                    # default: 0.2 - outdoor, 0.1 - indoor
+  mappingSurfLeafSize: 0.6                      # default: 0.4 - outdoor, 0.2 - indoor
 
   # robot motion constraint (in case you are using a 2D robot)
   z_tollerance: 1000                            # meters
@@ -99,6 +86,7 @@ lio_sam_6axis:
   surroundingkeyframeAddingAngleThreshold: 0.2  # radians, regulate keyframe adding threshold
   surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses   
   surroundingKeyframeSearchRadius: 50.0         # meters, within n meters scan-to-map optimization (when loop closure disabled)
+  localMap_searchRadius: 30.0
 
   # Loop closure
   loopClosureEnableFlag: true

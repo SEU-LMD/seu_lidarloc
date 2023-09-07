@@ -1,5 +1,7 @@
 #include "lio_sam_6axis/cloud_info.h"
 #include "utility.h"
+#include "easylogging++.h"
+INITIALIZE_EASYLOGGINGPP
 
 struct smoothness_t {
   float value;
@@ -262,11 +264,11 @@ class FeatureExtraction : public ParamServer {
 };
 
 int main(int argc, char **argv) {
+
   ros::init(argc, argv, "lio_sam_6axis");
 
   FeatureExtraction FE;
 
-  ROS_INFO("\033[1;32m----> Feature Extraction Started.\033[0m");
 
   ros::spin();
 

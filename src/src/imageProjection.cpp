@@ -3,6 +3,9 @@
 #include "lio_sam_6axis/cloud_info.h"
 #include <limits>
 #include <cmath>
+#include "time.h"
+#include "easylogging++.h"
+INITIALIZE_EASYLOGGINGPP
 
 //struct VelodynePointXYZIRT {
 //    PCL_ADD_POINT4D
@@ -245,6 +248,15 @@ public:
         imuMsg->angular_velocity.y = gnssImu_raw->angy * 3.1415926535 / 180.0;
         imuMsg->angular_velocity.z = gnssImu_raw->yaw * 3.1415926535 / 180.0;
 
+        Eigen::Quaterniond orientation_quaternion;
+        orientation_quaternion = Eigen::AngleAxisd(gnssImu_raw->roll* 3.1415926535 / 180.0, Eigen::Vector3d::UnitX())
+                                 *Eigen::AngleAxisd(gnssImu_raw->pitch* 3.1415926535 / 180.0, Eigen::Vector3d::UnitY())
+                                 *Eigen::AngleAxisd(gnssImu_raw->heading* 3.1415926535 / 180.0, Eigen::Vector3d::UnitZ());
+        imuMsg->orientation.x = orientation_quaternion.x();
+        imuMsg->orientation.y = orientation_quaternion.y();
+        imuMsg->orientation.z = orientation_quaternion.z();
+        imuMsg->orientation.w = orientation_quaternion.w();
+
         sensor_msgs::Imu thisImu = imuConverter(*imuMsg);
 
         std::lock_guard<std::mutex> lock1(imuLock);
@@ -253,14 +265,6 @@ public:
 //        if (1) {
 //            // debug IMU data
 //            cout << std::setprecision(6);
-//            cout << "IMU acc: " << endl;
-//            cout << "x: " << thisImu.linear_acceleration.x <<
-//                 ", y: " << thisImu.linear_acceleration.y <<
-//                 ", z: " << thisImu.linear_acceleration.z << endl;
-//            cout << "IMU gyro: " << endl;
-//            cout << "x: " << thisImu.angular_velocity.x <<
-//                 ", y: " << thisImu.angular_velocity.y <<
-//                 ", z: " << thisImu.angular_velocity.z << endl;
 //            double imuRoll, imuPitch, imuYaw;
 //            tf::Quaternion orientation;
 //            tf::quaternionMsgToTF(thisImu.orientation, orientation);
@@ -449,7 +453,11 @@ public:
 
             // get roll, pitch, and yaw estimation for this scan
             if (currentImuTime <= timeScanCur)
+            {
                 imuRPY2rosRPY(&thisImuMsg, &cloudInfo.imuRollInit, &cloudInfo.imuPitchInit, &cloudInfo.imuYawInit);
+
+            }
+
 
             if (currentImuTime > timeScanEnd + 0.01)
                 break;
@@ -653,6 +661,9 @@ public:
     }
 
     void projectPointCloud() {
+         auto start_time = std::chrono::high_resolution_clock::now();
+
+
         int cloudSize = laserCloudIn->points.size();
 //    std::cout << "point size raw: " << cloudSize << std::endl;
         // range image projection
@@ -700,6 +711,12 @@ public:
             int index = columnIdn + rowIdn * Horizon_SCAN;
             fullCloud->points[index] = thisPoint;
         }
+
+//            auto end_time = std::chrono::high_resolution_clock::now();
+//                std::chrono::duration<double> elapsed_time = end_time - start_time;
+//                std::cout << "Time taken for registration: " << elapsed_time.count() << " seconds" << std::endl;
+
+
     }
 
     void cloudExtraction() {
@@ -734,11 +751,12 @@ public:
 };
 
 int main(int argc, char **argv) {
+
     ros::init(argc, argv, "lio_sam_6axis");
 
     ImageProjection IP;
 
-    ROS_INFO("\033[1;32m----> Image Projection Started.\033[0m");
+
 
     ros::MultiThreadedSpinner spinner(3);
     spinner.spin();

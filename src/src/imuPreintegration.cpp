@@ -15,6 +15,8 @@
 
 #include "utility.h"
 #include "ivsensorgps.h"
+#include "easylogging++.h"
+INITIALIZE_EASYLOGGINGPP
 
 using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz)
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
@@ -43,17 +45,21 @@ public:
     double lidarOdomTime = -1;
     deque<nav_msgs::Odometry> imuOdomQueue;
 
+    /**
+     * 根据IMU预积分量，基于最近一帧lidar的位姿，得到当前帧位姿
+     */
     TransformFusion() {
-////        if (lidarFrame != baselinkFrame) {
-////            try {
-////                tfListener.waitForTransform(lidarFrame, baselinkFrame, ros::Time(0),
-////                                            ros::Duration(10.0));
-////                tfListener.lookupTransform(lidarFrame, baselinkFrame, ros::Time(0),
-////                                           lidar2Baselink);
-////            } catch (tf::TransformException ex) {
-////                ROS_ERROR("%s", ex.what());
-////            }
-////        }
+//        IMU and lidar frame are different
+//        if (lidarFrame != baselinkFrame) {
+//            try {
+//                tfListener.waitForTransform(lidarFrame, baselinkFrame, ros::Time(0),
+//                                            ros::Duration(10.0));
+//                tfListener.lookupTransform(lidarFrame, baselinkFrame, ros::Time(0),
+//                                           lidar2Baselink);
+//            } catch (tf::TransformException ex) {
+//                ROS_ERROR("%s", ex.what());
+//            }
+//        }
 //        tfListener.waitForTransform(lidarFrame, baselinkFrame, ros::Time(0),
 //                                            ros::Duration(3.0));
 //        tfListener.lookupTransform(lidarFrame, baselinkFrame, ros::Time(0),
@@ -82,14 +88,14 @@ public:
 
     void lidarOdometryHandler(const nav_msgs::Odometry::ConstPtr &odomMsg) {
         std::lock_guard<std::mutex> lock(mtx);
-
         lidarOdomAffine = odom2affine(*odomMsg);
-
         lidarOdomTime = odomMsg->header.stamp.toSec();
     }
 
     /**
-     *
+     *订阅imu里程计，来自IMUPreintegration
+     * 1、以最近一帧激光里程计位姿为基础，计算该时刻与当前时刻间imu里程计增量位姿变换，相乘得到当前时刻imu里程计位姿
+     * 2、发布当前时刻里程计位姿，用于rviz展示；发布imu里程计路径，注：只是最近一帧激光里程计时刻与当前时刻之间的一段
      * @param odomMsg
      */
     void imuOdometryHandler(const nav_msgs::Odometry::ConstPtr &odomMsg) {
@@ -116,6 +122,8 @@ public:
         Eigen::Affine3f imuOdomAffineFront = odom2affine(imuOdomQueue.front());
 //        当前IMU位姿
         Eigen::Affine3f imuOdomAffineBack = odom2affine(imuOdomQueue.back());
+
+        //  当前时刻imu里程计位姿=最近的一帧激光里程计位姿 * imu里程计增量位姿变换
         Eigen::Affine3f imuOdomAffineIncre =
                 imuOdomAffineFront.inverse() * imuOdomAffineBack;
 //        IMU的增量变化
@@ -183,7 +191,9 @@ public:
     gtsam::noiseModel::Diagonal::shared_ptr correctionNoise2;
     gtsam::Vector noiseModelBetweenBias;
 
+    //imuIntegratorOpt_负责预积分两个激光里程计之间的imu数据，作为约束加入因子图，并且优化出bias
     gtsam::PreintegratedImuMeasurements *imuIntegratorOpt_;
+    //imuIntegratorImu_用来根据新的激光里程计到达后已经优化好的bias，预测从当前帧开始，下一帧激光里程计到达之前的imu里程计增量
     gtsam::PreintegratedImuMeasurements *imuIntegratorImu_;
 
     std::deque<sensor_msgs::Imu> imuQueOpt;
@@ -209,6 +219,12 @@ public:
 
     int key = 1;
 
+    // imu-lidar位姿变换
+    //这点要注意，tixiaoshan这里命名的很垃圾，这只是一个平移变换，
+    //同样头文件的imuConverter中，也只有一个旋转变换。这里绝对不可以理解为把imu数据转到lidar下的变换矩阵。
+    //事实上，作者后续是把imu数据先用imuConverter旋转到雷达系下（但其实还差了个平移）。
+    //作者真正是把雷达数据又根据lidar2Imu反向平移了一下，和转换以后差了个平移的imu数据在“中间系”对齐，
+    //之后算完又从中间系通过imu2Lidar挪回了雷达系进行publish。
     gtsam::Pose3 imu2Lidar =
             gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0),
                          gtsam::Point3(-extTrans.x(), -extTrans.y(), -extTrans.z()));
@@ -439,6 +455,10 @@ public:
                 break;
         }
         // add imu factor to graph
+        //利用两帧之间的IMU数据完成了预积分后增加imu因子到因子图中,
+        //注意后面容易被遮挡，imuIntegratorOpt_的值经过格式转换被传入preint_imu，
+        //因此可以推测imuIntegratorOpt_中的integrateMeasurement函数应该就是一个简单的积分轮子，
+        //传入数据和dt，得到一个积分量,数据会被存放在imuIntegratorOpt_中
         const gtsam::PreintegratedImuMeasurements &preint_imu =
                 dynamic_cast<const gtsam::PreintegratedImuMeasurements &>(
                         *imuIntegratorOpt_);
@@ -556,6 +576,19 @@ public:
         imu_raw->angular_velocity.x = gnssImu_raw->angx * 3.1415926535 / 180.0;
         imu_raw->angular_velocity.y = gnssImu_raw->angy * 3.1415926535 / 180.0;
         imu_raw->angular_velocity.z = gnssImu_raw->yaw * 3.1415926535 / 180.0;
+        Eigen::Quaterniond orientation_quaternion;
+        orientation_quaternion = Eigen::AngleAxisd(gnssImu_raw->roll * 3.1415926535 / 180.0, Eigen::Vector3d::UnitX())
+                *Eigen::AngleAxisd(gnssImu_raw->pitch* 3.1415926535 / 180.0, Eigen::Vector3d::UnitY())
+                *Eigen::AngleAxisd(gnssImu_raw->heading* 3.1415926535 / 180.0, Eigen::Vector3d::UnitZ());
+        imu_raw->orientation.x = orientation_quaternion.x();
+        imu_raw->orientation.y = orientation_quaternion.y();
+        imu_raw->orientation.z = orientation_quaternion.z();
+        imu_raw->orientation.w = orientation_quaternion.w();
+
+//        std::cout << "gnssImu_raw.orientation_quaternion w: " << orientation_quaternion.w()
+//                    <<" , x:  "<<orientation_quaternion.x()
+//                    << ", y: " << orientation_quaternion.y()
+//                    <<" , z: "<< orientation_quaternion.z() <<std::endl;
 
         sensor_msgs::Imu thisImu = imuConverter(*imu_raw);
 
@@ -620,13 +653,12 @@ public:
 };
 
 int main(int argc, char **argv) {
+
     ros::init(argc, argv, "roboat_loam");
 
     IMUPreintegration ImuP;
 
     TransformFusion TF;
-
-    ROS_INFO("\033[1;32m----> IMU Preintegration Started.\033[0m");
 
     ros::MultiThreadedSpinner spinner(4);
     spinner.spin();

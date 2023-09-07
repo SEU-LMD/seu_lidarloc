@@ -167,6 +167,7 @@ public:
     float surroundingkeyframeAddingAngleThreshold;
     float surroundingKeyframeDensity;
     float surroundingKeyframeSearchRadius;
+    float localMap_searchRadius;
 
     // Loop closure
     bool loopClosureEnableFlag;
@@ -293,6 +294,7 @@ public:
                         surroundingkeyframeAddingAngleThreshold, 0.2);
         nh.param<float>("lio_sam_6axis/surroundingKeyframeDensity", surroundingKeyframeDensity, 1.0);
         nh.param<float>("lio_sam_6axis/surroundingKeyframeSearchRadius", surroundingKeyframeSearchRadius, 50.0);
+        nh.param<float>("lio_sam_6axis/localMap_searchRadius", localMap_searchRadius, 50.0);
 
         nh.param<bool>("lio_sam_6axis/loopClosureEnableFlag", loopClosureEnableFlag, false);
         nh.param<float>("lio_sam_6axis/loopClosureFrequency", loopClosureFrequency, 1.0);
@@ -326,8 +328,14 @@ public:
         imu_out.angular_velocity.y = gyr.y();
         imu_out.angular_velocity.z = gyr.z();
         // rotate roll pitch yaw
+//        imu_in.orientation is 0
         Eigen::Quaterniond q_from(imu_in.orientation.w, imu_in.orientation.x, imu_in.orientation.y,
                                   imu_in.orientation.z);
+//        std::cout   << "imu_in.orientation w: " << imu_in.orientation.w
+//                    <<" , x:  "<<imu_in.orientation.x
+//                    << ", y: " << imu_in.orientation.y
+//                    <<" , z: "<< imu_in.orientation.z <<std::endl;
+
         Eigen::Quaterniond q_final;
         if (imuType == 0) {
             q_final = extQRPY;
