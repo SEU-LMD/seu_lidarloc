@@ -26,6 +26,11 @@ using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
 
+//订阅激光里程计（来自MapOptimization）和IMU里程计，
+//根据前一时刻激光里程计，和该时刻到当前时刻的IMU里程计变换增量，
+//计算当前时刻IMU里程计；
+//rviz展示IMU里程计轨迹（局部）
+
 class TransformFusion  {
 public:
     ros::NodeHandle nh;
@@ -48,29 +53,36 @@ public:
     deque<nav_msgs::Odometry> imuOdomQueue;
 
     TransformFusion() {
+        //need transformation between lidarFrame and baselinkFrame
         if (SensorConfig::lidarFrame != SensorConfig::baselinkFrame) {
             try {
                 tfListener.waitForTransform(SensorConfig::lidarFrame, SensorConfig::baselinkFrame, ros::Time(0),
                                             ros::Duration(3.0));
+                //trans from lidar to baselink
                 tfListener.lookupTransform(SensorConfig::lidarFrame, SensorConfig::baselinkFrame, ros::Time(0),
                                            lidar2Baselink);
             } catch (tf::TransformException ex) {
                 ROS_ERROR("%s", ex.what());
             }
         }
-
+        //subscribe LO,from mapOptimization
         subLaserOdometry = nh.subscribe<nav_msgs::Odometry>(
                 "lio_sam_6axis/mapping/odometry", 5,
                 &TransformFusion::lidarOdometryHandler, this,
                 ros::TransportHints().tcpNoDelay());
+        //subscribe IMU odometry,from IMUPreintegration
+        //topic name: odometry/imu_incremental,是增量内容，即两帧激光里程计之间的预积分内容,（加上开始的激光里程计本身有的位姿）
+        //imuIntegratorImu_本身是个积分器，只有两帧之间的预积分，但是发布的时候发布的实际是结合了前述里程计本身有的位姿
+        //currentState = imuIntegratorImu_->predict(prevStateOdom, prevBiasOdom);
         subImuOdometry = nh.subscribe<nav_msgs::Odometry>(
                 SensorConfig::odomTopic + "_incremental", 2000, &TransformFusion::imuOdometryHandler,
                 this, ros::TransportHints().tcpNoDelay());
-
+        //for rviz use
         pubImuOdometry = nh.advertise<nav_msgs::Odometry>(SensorConfig::odomTopic, 2000);
         pubImuPath = nh.advertise<nav_msgs::Path>("lio_sam_6axis/imu/path", 1);
     }
 
+    //calculate transformation according to odometry
     Eigen::Affine3f odom2affine(nav_msgs::Odometry odom) {
         double x, y, z, roll, pitch, yaw;
         x = odom.pose.pose.position.x;
@@ -82,16 +94,20 @@ public:
         return pcl::getTransformation(x, y, z, roll, pitch, yaw);
     }
 
+    //LO,from mapOptimization
     void lidarOdometryHandler(const nav_msgs::Odometry::ConstPtr &odomMsg) {
         std::lock_guard<std::mutex> lock(mtx);
 
+        // find T and time
         lidarOdomAffine = odom2affine(*odomMsg);
-
         lidarOdomTime = odomMsg->header.stamp.toSec();
     }
 
+    //sub imu odometry,from IMUPreintegration
+    //1、以最近一帧激光里程计位姿为基础，计算该时刻与当前时刻间imu里程计增量位姿变换，相乘得到当前时刻imu里程计位姿
+    //2、发布当前时刻里程计位姿，用于rviz展示；发布imu里程计路径，注：只是最近一帧激光里程计时刻与当前时刻之间的一段
     void imuOdometryHandler(const nav_msgs::Odometry::ConstPtr &odomMsg) {
-        // static tf
+        // static tf,map与odom系设为同一个系
         static tf::TransformBroadcaster tfMap2Odom;
         static tf::Transform map_to_odom = tf::Transform(
                 tf::createQuaternionFromRPY(0, 0, 0), tf::Vector3(0, 0, 0));
@@ -99,10 +115,12 @@ public:
                 map_to_odom, odomMsg->header.stamp, SensorConfig::mapFrame, SensorConfig::odometryFrame));
 
         std::lock_guard<std::mutex> lock(mtx);
-
+        // 添加imu里程计到队列，注：imu里程计由本cpp中的另一个类imuPreintegration来发布
         imuOdomQueue.push_back(*odomMsg);
 
         // get latest odometry (at current IMU stamp)
+        //从imu里程计队列中删除当前（最近的一帧）激光里程计时刻之前的数据
+        // lidarOdomTime初始化为-1，在收到lidar里程计数据后，在回调函数lidarOdometryHandler中被赋值时间戳
         if (lidarOdomTime == -1) return;
         while (!imuOdomQueue.empty()) {
             if (imuOdomQueue.front().header.stamp.toSec() <= lidarOdomTime)
@@ -110,40 +128,50 @@ public:
             else
                 break;
         }
+
+        //imu里程计增量位姿变换
         Eigen::Affine3f imuOdomAffineFront = odom2affine(imuOdomQueue.front());
         Eigen::Affine3f imuOdomAffineBack = odom2affine(imuOdomQueue.back());
         Eigen::Affine3f imuOdomAffineIncre =
                 imuOdomAffineFront.inverse() * imuOdomAffineBack;
+        //当前时刻imu里程计位姿=最近的一帧激光里程计位姿 * imu里程计增量位姿变换
+        //lidarOdomAffine在本类的lidarOdometryHandler回调函数中被赋值，消息来源于mapOptimization.cpp发布,是激光里程计
         Eigen::Affine3f imuOdomAffineLast = lidarOdomAffine * imuOdomAffineIncre;
         float x, y, z, roll, pitch, yaw;
         pcl::getTranslationAndEulerAngles(imuOdomAffineLast, x, y, z, roll, pitch,
                                           yaw);
 
         // publish latest odometry
+        //发布名为"odometry/imu"的话题
+        //也就是说，这个函数先监听了类IMUPreintegration中发布的odometry/imu_incremental，
+        //然后计算imu二者之间的增量，然后在激光的基础上加上增量，重新发布
+        //把x，y，z，roll，pitch，yaw都经过了激光里程计的修正，才发布当前时刻里程计位姿.发布名称为"odometry/imu"
         nav_msgs::Odometry laserOdometry = imuOdomQueue.back();
         laserOdometry.pose.pose.position.x = x;
         laserOdometry.pose.pose.position.y = y;
         laserOdometry.pose.pose.position.z = z;
-        laserOdometry.pose.pose.orientation =
-                tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, yaw);
+        laserOdometry.pose.pose.orientation =tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, yaw);
         pubImuOdometry.publish(laserOdometry);
 
-        // publish tf
+        //publish tf mark!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        //发布tf，当前时刻odom与baselink系变换关系
+        //由于之前把map和odom坐标系固定了，因此这里我认为发布的就是真正的最终位姿关系
+        //map优化提供激光，预积分提供imu，imu之间变换再乘以激光里程计得到各个时刻精确位姿
         static tf::TransformBroadcaster tfOdom2BaseLink;
         tf::Transform tCur;
         tf::poseMsgToTF(laserOdometry.pose.pose, tCur);
-        if (SensorConfig::lidarFrame != SensorConfig::baselinkFrame) tCur = tCur * lidar2Baselink;
+        if (SensorConfig::lidarFrame != SensorConfig::baselinkFrame)
+            tCur = tCur * lidar2Baselink;
         tf::StampedTransform odom_2_baselink = tf::StampedTransform(
                 tCur, odomMsg->header.stamp, SensorConfig::odometryFrame,SensorConfig::baselinkFrame);
         tfOdom2BaseLink.sendTransform(odom_2_baselink);
 
-        // std::cout<<"********************************"<<useImuHeadingInitialization<<std::endl;
-        std::cout<<"********************************"<<SensorConfig::useImuHeadingInitialization<<std::endl;
-
-        // publish IMU path
+        // publish IMU path mark!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // 发布imu里程计路径，注：只是最近一帧激光里程计时刻与当前时刻之间的一段
         static nav_msgs::Path imuPath;
         static double last_path_time = -1;
         double imuTime = imuOdomQueue.back().header.stamp.toSec();
+        // 每隔0.1s添加一个
         if (imuTime - last_path_time > 0.1) {
             last_path_time = imuTime;
             geometry_msgs::PoseStamped pose_stamped;
@@ -151,6 +179,7 @@ public:
             pose_stamped.header.frame_id = SensorConfig::odometryFrame;
             pose_stamped.pose = laserOdometry.pose.pose;
             imuPath.poses.push_back(pose_stamped);
+            // 删除最近一帧激光里程计时刻之前的imu里程计
             while (!imuPath.poses.empty() &&
                    imuPath.poses.front().header.stamp.toSec() < lidarOdomTime - 1.0)
                 imuPath.poses.erase(imuPath.poses.begin());
@@ -174,7 +203,7 @@ public:
     ros::Publisher pubImuOdometry;
 
     bool systemInitialized = false;
-
+    // 噪声协方差
     gtsam::noiseModel::Diagonal::shared_ptr priorPoseNoise;
     gtsam::noiseModel::Diagonal::shared_ptr priorVelNoise;
     gtsam::noiseModel::Diagonal::shared_ptr priorBiasNoise;
