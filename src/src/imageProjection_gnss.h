@@ -1,6 +1,7 @@
 
 // Use the Velodyne point format as a common representation
-
+#ifndef SEU_LIDARLOC_IMGPROJECTION_H
+#define SEU_LIDARLOC_IMGPROJECTION_H
 #include <mutex>
 #include <thread>
 
@@ -43,5 +44,5 @@ public:
 
 
 };
-
+#endif
 

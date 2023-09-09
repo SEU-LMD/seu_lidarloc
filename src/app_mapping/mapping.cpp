@@ -4,12 +4,11 @@
 
 #include "utils/config_helper.h"
 #include "easylogging++.h"
-#include "pubsub/pubusb.h"
 #include "./mapping_manager.h"
 
 //选择中间件
 //#ifdef X86
-#include "pubsub/ros_pubsub.h"
+#include "pubsub/ros/ros_pubsub.h"
 //#endif
 
 INITIALIZE_EASYLOGGINGPP
@@ -25,7 +24,11 @@ int main(int argc, char **argv) {
 #endif
 
     //2.初始化中间件
-    PubSubInterface* pubsub = new ROSPubSub();
+    PubSubInterface* pubsub;
+    //#ifdef X86
+    pubsub = new ROSPubSub();
+    //#endif
+
     pubsub->initPubSub(argc, argv, "mapping");
     //订阅topic
 

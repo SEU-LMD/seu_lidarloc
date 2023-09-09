@@ -26,6 +26,6 @@ public:
 
     virtual void PublishCloud(const std::string &topic_name, const CloudType &data) = 0;
 
-    virtual void PublishOdometry(const std::string &topic_name, const OdometryType &data);
+    virtual void PublishOdometry(const std::string &topic_name, const OdometryType &data) = 0;
 };
 #endif //SEU_LIDARLOC_PUBUSB_H

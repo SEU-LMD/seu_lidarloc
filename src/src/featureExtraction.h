@@ -1,10 +1,10 @@
 #include <mutex>
-
+#ifndef SEU_LIDARLOC_FEATUREEXTRACTION_H
+#define SEU_LIDARLOC_FEATUREEXTRACTION_H
 #include "pubsub/pubusb.h"
 class FeatureExtraction  {
 public:
     PubSubInterface* pubsub;
-    std::mutex
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
     }
@@ -16,3 +16,4 @@ public:
     }
 
 };
+#endif

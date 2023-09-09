@@ -40,8 +40,8 @@ public:
         pubsub = pubsub_;
 
         //然后开启各个线程
-        img_proj.init(pubsub);
-        ft_extr.init(pubsub);
+        img_proj.Init(pubsub);
+        ft_extr.Init(pubsub);
 
         //构建数据流关系
         img_proj.ft_extr_ptr = &ft_extr;

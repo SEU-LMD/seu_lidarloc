@@ -19,6 +19,7 @@ elseif( ${COMPILE_MODE} STREQUAL "MDC")
 endif()
 message("Compile mode: ${COMPILE_MODE}")
 
+
 set(Eigen3_DIR ${CMAKE_SOURCE_DIR}/../env/eigen-3.4.0-install-x86/share/eigen3/cmake)
 find_package(Eigen3 REQUIRED)
 MESSAGE(STATUS "EIGEN3_INCLUDE_DIR------------${EIGEN3_INCLUDE_DIR}------------------")
@@ -68,8 +69,8 @@ MESSAGE(STATUS "------------${PCL_LIBRARY_DIRS}------------------")
 add_executable(mapping app_mapping/mapping.cpp)
 target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  ${YAML_LIB})#YAML_CPP_LIBRARIES
 
-add_executable(loc app_loc/loc.cpp)
-target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  ${YAML_LIB})#YAML_CPP_LIBRARIES
+#add_executable(loc app_loc/loc.cpp)
+#target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  ${YAML_LIB})#YAML_CPP_LIBRARIES
 
 
 ## # # Range Image Projection
