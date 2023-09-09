@@ -38,7 +38,6 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (VelodynePointXYZIRT,
 
 using PointXYZIRT = VelodynePointXYZIRT;
 typedef pcl::PointXYZ pclPointType;
-//typedef pcl::PointXYZ pclPointType;
 
 class priorMapLoc {
 public:
@@ -64,7 +63,6 @@ public:
     pcl::PointCloud<pclPointType>::Ptr prior_map_ptr;
     pcl::PointCloud<pclPointType>::Ptr current_scan_temp_ptr;
     pcl::PointCloud<pclPointType>::Ptr current_scan_ptr;
-    pcl::PointCloud<PointXYZIRT>::Ptr current_scanIn;
     pcl::PointCloud<pclPointType>::Ptr ds_current_scan_ptr;
     pcl::PointCloud<pclPointType>::Ptr NDT_aligned_scan_ptr;
     Eigen::Matrix4f initial_transform;
@@ -75,6 +73,7 @@ public:
 //        read raw lidar message without deskew
 //        EZLOG(INFO)<<"0.1 Init------------------NOW we are in priorMapLoc()";
         prior_map_ptr.reset(new pcl::PointCloud<pclPointType>);
+
 
         subCurrentScan = nh.subscribe<sensor_msgs::PointCloud2>(SensorConfig::pointCloudTopic,
                                                                5,
@@ -109,10 +108,10 @@ public:
 
     void currentScanHandler(const sensor_msgs::PointCloud2ConstPtr &currentScanMsg){
 
-        current_scan_ptr.reset(new pcl::PointCloud<pclPointType>);
-        ds_current_scan_ptr.reset(new pcl::PointCloud<pclPointType>);
-        NDT_aligned_scan_ptr.reset(new pcl::PointCloud<pclPointType>);
-        current_scan_temp_ptr.reset(new pcl::PointCloud<pclPointType>);
+        current_scan_ptr.reset(new pcl::PointCloud<pclPointType>); // 当前帧点云
+        ds_current_scan_ptr.reset(new pcl::PointCloud<pclPointType>); // 当前帧降采样的点云
+        NDT_aligned_scan_ptr.reset(new pcl::PointCloud<pclPointType>); // 当前帧点云
+        current_scan_temp_ptr.reset(new pcl::PointCloud<pclPointType>); //  当前帧用于去畸变的中间点云
 
 //        EZLOG(INFO)<<"1.1 Handler------------------NOW we are in currentScanHandler()";
 //        EZLOG(INFO)<<"I hear from " << SensorConfig::pointCloudTopic;

@@ -22,7 +22,7 @@ STEP_SIZE: 1.1 #线搜索的最大步长，理论上这个值是网格分辨率�
 SIZE_RESOLUTION: 5.1 #NDT网格分辨率
 MAXMUN_INTERNUM: 35 #35
 
-DOWNSIZE_LEAF: 0.3 #体素滤波size，经验判断其值因该是点云跨度最大除以30
+DOWNSIZE_LEAF: 0.6 #体素滤波size，经验判断其值因该是点云跨度最大除以30
 
 
 

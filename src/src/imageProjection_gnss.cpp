@@ -227,7 +227,7 @@ public:
 
                     //5.pop used odom
                     odoLock.lock();
-                    while(poseQueue.front().ros_time_stamp < cloud_max_ros_timestamp - 0.05){
+                    while(poseQueue.front().ros_time_stamp < cloud_max_ros_timestamp - 0.1){
                         poseQueue.pop_front();
                     }
                     odoLock.unlock();

@@ -111,6 +111,8 @@ class MappingConfig{
         static double  surroundingkeyframeAddingAngleThreshold;
         static double surroundingKeyframeDensity;
         static double surroundingKeyframeSearchRadius;
+        static double localMap_searchRadius;
+        static int scan_2_prior_map;
 
         //Loop closure
         static bool  loopClosureEnableFlag;
@@ -168,6 +170,7 @@ std::string  SensorConfig::mapFrame="";
 
     //GPS Setting
 Eigen::Matrix4d SensorConfig::T_L_B = Eigen::Matrix4d::Identity();
+
 bool  SensorConfig::useGPS=false;
 bool   SensorConfig::updateOrigin=false;
 int  SensorConfig::gpsFrequence=-1;
@@ -243,6 +246,8 @@ double  MappingConfig::surroundingkeyframeAddingDistThreshold=-1;
 double  MappingConfig::surroundingkeyframeAddingAngleThreshold=-1;
 double MappingConfig::surroundingKeyframeDensity=-1;
 double MappingConfig::surroundingKeyframeSearchRadius=-1;
+double MappingConfig::localMap_searchRadius=-1;
+int MappingConfig::scan_2_prior_map = 1;
 
 //Loop closure
 bool  MappingConfig::loopClosureEnableFlag=false;
@@ -422,6 +427,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::surroundingkeyframeAddingAngleThreshold=mappingconfig["surroundingkeyframeAddingAngleThreshold"].as<double >();
         MappingConfig::surroundingKeyframeDensity=mappingconfig["surroundingKeyframeDensity"].as<double >();
         MappingConfig::surroundingKeyframeSearchRadius=mappingconfig["surroundingKeyframeSearchRadius"].as<double >();
+        MappingConfig::localMap_searchRadius = mappingconfig["localMap_searchRadius"].as<double >();
         std::cout<<MappingConfig::surroundingKeyframeSearchRadius<<std::endl;
 
         //Loop closure
@@ -432,6 +438,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::historyKeyframeSearchTimeDiff=mappingconfig["historyKeyframeSearchTimeDiff"].as<float >();
         MappingConfig::historyKeyframeSearchNum=mappingconfig["historyKeyframeSearchNum"].as<int >();
         MappingConfig::historyKeyframeFitnessScore=mappingconfig["historyKeyframeFitnessScore"].as<float >();
+        MappingConfig::scan_2_prior_map = mappingconfig["scan_2_prior_map"].as<int>();
         std::cout<<MappingConfig::historyKeyframeSearchNum<<std::endl;
 
         // Visualization

@@ -43,14 +43,15 @@
   imuRPYWeight: 0.01
 
   # Extrinsics (lidar -> IMU)
+#  evo: world->lidar
   imu_type: 0   # 0: 6axis, 1:9 axis
   #T_L_B
   extrinsicTrans: [ 0.0, 0.0, -0.5135 ]
   extrinsicRot: [ 0, 1, 0,
                   -1, 0, 0,
                   0, 0, 1 ]
-  extrinsicRPY: [ -1, 0, 0,
-                  0, -1, 0,
+  extrinsicRPY: [ 0, 1, 0,
+                  -1, 0, 0,
                   0, 0, 1 ]
 
   use_gnss_deskew: false
