@@ -195,7 +195,7 @@ public:
     PoseT(const Eigen::Matrix4d &T){
         pose = T;
     }
-    Eigen::Vector3d GetT() const{
+    Eigen::Vector3d GetXYZ() const{
         return pose.block<3,1>(0,3);
     }
     Eigen::Matrix3d GetR() const{

@@ -326,7 +326,7 @@ public:
         //pub gnss odometry in rviz
         nav_msgs::Odometry odom_msg;
         odom_msg.header.frame_id = "map";
-        Eigen::Vector3d t_w_l = T_w_l.GetT();
+        Eigen::Vector3d t_w_l = T_w_l.GetXYZ();
         Eigen::Quaterniond q_w_l = T_w_l.GetQ();
         odom_msg.pose.pose.position.x = t_w_l[0];
         odom_msg.pose.pose.position.y = t_w_l[1];
@@ -431,8 +431,8 @@ public:
                 double ktime = (cloudinfo.min_ros_timestamp - pose_deque[i - 1].ros_time_stamp) / (pose_deque[i].ros_time_stamp - pose_deque[i - 1].ros_time_stamp);
                 //平移插值
                 Eigen::Vector3d t_w_b_lidar_start;
-                t_w_b_lidar_start = pose_deque[i - 1].pose.GetT() +
-                                                    ktime * (pose_deque[i].pose.GetT() - pose_deque[i - 1].pose.GetT());
+                t_w_b_lidar_start = pose_deque[i - 1].pose.GetXYZ() +
+                                                    ktime * (pose_deque[i].pose.GetXYZ() - pose_deque[i - 1].pose.GetXYZ());
 
                 //旋转插值
                 Eigen::Quaterniond q_w_b_lidar_start;//旋转
@@ -442,13 +442,13 @@ public:
 
                  T_w_b_lidar_start  = PoseT (t_w_b_lidar_start , q_w_b_lidar_start);
 
-                 Eigen::Vector3d t_w_l_curlidar = T_w_b_lidar_start.GetT();
+                 Eigen::Vector3d t_w_l_curlidar = T_w_b_lidar_start.GetXYZ();
                  Eigen::Quaterniond q_w_l_curlidar = T_w_b_lidar_start.GetQ();
 
 
-                cloudInfo.T_w_l_curlidar.pose.pose.position.x = T_w_b_lidar_start.GetT()[0];
-                cloudInfo.T_w_l_curlidar.pose.pose.position.y = T_w_b_lidar_start.GetT()[1];
-                cloudInfo.T_w_l_curlidar.pose.pose.position.z = T_w_b_lidar_start.GetT()[2];
+                cloudInfo.T_w_l_curlidar.pose.pose.position.x = T_w_b_lidar_start.GetXYZ()[0];
+                cloudInfo.T_w_l_curlidar.pose.pose.position.y = T_w_b_lidar_start.GetXYZ()[1];
+                cloudInfo.T_w_l_curlidar.pose.pose.position.z = T_w_b_lidar_start.GetXYZ()[2];
                 cloudInfo.T_w_l_curlidar.pose.pose.orientation.x = T_w_b_lidar_start.GetQ().x();
                 cloudInfo.T_w_l_curlidar.pose.pose.orientation.y = T_w_b_lidar_start.GetQ().y();
                 cloudInfo.T_w_l_curlidar.pose.pose.orientation.z = T_w_b_lidar_start.GetQ().z();
@@ -592,8 +592,8 @@ public:
 
                 //平移插值
                 Eigen::Vector3d t_w_b_lidar_now;
-                t_w_b_lidar_now = pose_deque[i - 1].pose.GetT() +
-                                    k_time * (pose_deque[i].pose.GetT() - pose_deque[i - 1].pose.GetT());
+                t_w_b_lidar_now = pose_deque[i - 1].pose.GetXYZ() +
+                                    k_time * (pose_deque[i].pose.GetXYZ() - pose_deque[i - 1].pose.GetXYZ());
 
                 //旋转插值
                 Eigen::Quaterniond q_w_b_lidar_now;

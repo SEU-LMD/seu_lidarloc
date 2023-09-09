@@ -48,7 +48,7 @@ public:
         std::fstream stream(MappingConfig::save_map_path + "Opt_Poses.txt",std::fstream::out);
         stream.precision(6);
         for (int i = 0; i < opt_poses.size(); i++) {
-            Eigen::Vector3d p = opt_poses[i].GetT();
+            Eigen::Vector3d p = opt_poses[i].GetXYZ();
             Eigen::Quaterniond  q = opt_poses[i].GetQ();
             stream << i << " " << p.x() << " " << p.y() << " "
                    << p.z() << " " << q.x() << " " << q.y() << " " << q.z() << " "

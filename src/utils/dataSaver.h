@@ -6,12 +6,9 @@
 #include <gtsam/nonlinear/ISAM2.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/slam/dataset.h>
-//#include <libxml/parser.h>
-//#include <libxml/tree.h>
-//#include <libxml/xmlmemory.h>
-//#include <libxml/xmlstring.h>
-//#include <libxml/xpath.h>
+
 #include <nav_msgs/Odometry.h>
+
 #include <pcl/common/common.h>
 #include <pcl/common/transforms.h>
 #include <pcl/filters/crop_box.h>
