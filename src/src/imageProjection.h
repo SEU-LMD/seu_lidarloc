@@ -284,7 +284,7 @@ public:
     double CloudExtraction(const PoseT& T_w_l, CloudInfo& cloudInfo) {
 
         TicToc timer;
-        pcl::PointCloud<PointType>::Ptr   extractedCloud(new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointXYZICOLRANGE>::Ptr   extractedCloud(new pcl::PointCloud<PointXYZICOLRANGE>());
         int count = 0;
         // extract segmented cloud for lidar odometry
         for (int i = 0; i < SensorConfig::N_SCAN; ++i) {
@@ -295,11 +295,21 @@ public:
                 if (rangeMat.at<float>(i, j) != FLT_MAX) {
                     // mark the points' column index for marking occlusion later
                     //记录激光点对应的Horizon_SCAN方向上的索引
-                    cloudInfo.pointColInd[count] = j;
-                    // save range info  激光点距离
-                    cloudInfo.pointRange[count] = rangeMat.at<float>(i, j);
+                    PointXYZICOLRANGE pt_info;
+                    pt_info.col = j;
+                    pt_info.range = rangeMat.at<float>(i, j);
+                    auto& pt_tmp = deskewCloud_body->points[j + i * SensorConfig::Horizon_SCAN];
+                    pt_info.x = pt_tmp.x;
+                    pt_info.y = pt_tmp.y;
+                    pt_info.z = pt_tmp.z;
+                    pt_info.intensity = pt_tmp.intensity;
+
+//                    cloudInfo.pointColInd[count] = j;
+//                    // save range info  激光点距离
+//                    cloudInfo.pointRange[count] = rangeMat.at<float>(i, j);
                     // save extracted cloud 加入有效激光点
-                    extractedCloud->push_back(deskewCloud_body->points[j + i * SensorConfig::Horizon_SCAN]);
+
+                    extractedCloud->push_back(pt_info);
                     // size of extracted cloud
                     ++count;
                 }

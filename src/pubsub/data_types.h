@@ -34,8 +34,6 @@ POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZIRT,
                                     (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
                                     (uint16_t, ring, ring)(double, latency, latency))
 
-// Use the Velodyne point format as a common representation
-
 class CloudTypeXYZIRT: public BaseType{
     public:
         pcl::PointCloud<PointXYZIRT> cloud;
@@ -84,6 +82,17 @@ class PathType:public BaseType{
 };
 
 //used to commnicate with other thread
+
+struct PointXYZICOLRANGE {
+    PCL_ADD_POINT4D
+    uint8_t intensity;
+    float range;
+    uint16_t col;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+} EIGEN_ALIGN16;
+POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZICOLRANGE,
+                                    (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
+                                            (uint16_t, range, range)(uint16_t, col, col))
 class CloudInfo{
 public:
     int frame_id;
@@ -92,9 +101,9 @@ public:
     std::vector<int> startRingIndex;
     std::vector<int> endRingIndex;
 
-    std::vector<int> pointColInd;
-    std::vector<float> pointRange;
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr;
+//    std::vector<int> pointColInd;
+//    std::vector<float> pointRange;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ptr;
 };
 typedef std::shared_ptr<CloudInfo> CloudInfoPtr;
 
