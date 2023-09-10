@@ -13,6 +13,7 @@
 #include "imageProjection.h"
 #include "featureExtraction.h"
 #include "utils/config_helper.h"
+#include "OptMapping.h"
 
 class MappingManager{
 public:
@@ -20,6 +21,7 @@ public:
 
     ImageProjection img_proj;
     FeatureExtraction ft_extr;
+    OPTMapping opt_mapping;
 
     void CloudCallback(const BaseType& msg){
         const CloudTypeXYZIRT& cloud_data = *((CloudTypeXYZIRT*)&msg);
@@ -29,6 +31,7 @@ public:
     void GNSSINSCallback(const BaseType& msg){
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         img_proj.AddGNSSINSSData(gnssins_data);
+        opt_mapping.AddGNSSINSData(gnssins_data);
     }
 
 
@@ -38,9 +41,11 @@ public:
         //然后开启各个线程
         img_proj.Init(pubsub);
         ft_extr.Init(pubsub);
+        opt_mapping.Init(pubsub);
 
         //构建数据流关系
         img_proj.ft_extr_ptr = &ft_extr;
+        ft_extr.opt_mapping_ptr = &opt_mapping;
     }
 };
 #endif //SEU_LIDARLOC_MAPPING_MANAGER_H
