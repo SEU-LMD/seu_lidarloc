@@ -333,8 +333,6 @@ public:
         CloudInfo cloudinfo;
         cloudinfo.startRingIndex.assign(SensorConfig::N_SCAN, 0);//为cloudInfo中的startRingIndex、endRingIndex向量分配大小N_SCAN,并初始化为0
         cloudinfo.endRingIndex.assign(SensorConfig::N_SCAN, 0);
-        cloudinfo.pointColInd.assign(SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN, 0);//为pointColInd和pointRange向量分配N_SCAN * Horizon_SCAN大小,并初始化为0
-        cloudinfo.pointRange.assign(SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN, 0);
 
         while(1){
             if(deque_cloud.size()!=0){
