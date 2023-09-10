@@ -32,7 +32,9 @@
   surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses
   surroundingKeyframeSearchRadius: 50.0         # meters, within n meters scan-to-map optimization (when loop closure disabled)
   localMap_searchRadius: 30.0
-  scan_2_prior_map: 0
+  scan_2_prior_map: 0     # 0 for scan 2 localmap, 1 for scan 2 priormap, 2 for scan 2 scan
+  scan_2_scan_num_surf: 50000
+  scan_2_scan_num_corner: 30000
 
   # Loop closure
   loopClosureEnableFlag: true

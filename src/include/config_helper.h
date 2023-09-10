@@ -74,6 +74,7 @@ class SensorConfig{
     static Eigen::Quaterniond q_body_sensor;
 
     static bool use_gnss_deskew;
+    static int gtsamGNSSBetweenFactorDistance;
 };
 
 class MappingConfig{
@@ -130,6 +131,8 @@ class MappingConfig{
 
         //mapping
         static float globalMapLeafSize;//meiyong
+        static int scan_2_scan_num_corner;
+        static int scan_2_scan_num_surf;
     };
 class SerializeConfig{
    public:
@@ -211,6 +214,7 @@ Eigen::Matrix3d SensorConfig::extrinsicRPY;
 Eigen::Quaterniond SensorConfig::extrinsicQRPY;
 Eigen::Vector3d SensorConfig::t_body_sensor;
 Eigen::Quaterniond SensorConfig::q_body_sensor;
+int SensorConfig::gtsamGNSSBetweenFactorDistance = 10;
 
 bool SensorConfig::use_gnss_deskew=false;
 
@@ -249,6 +253,7 @@ double MappingConfig::surroundingKeyframeSearchRadius=-1;
 double MappingConfig::localMap_searchRadius=-1;
 int MappingConfig::scan_2_prior_map = 1;
 
+
 //Loop closure
 bool  MappingConfig::loopClosureEnableFlag=false;
 float  MappingConfig::loopClosureFrequency=-1;
@@ -265,6 +270,8 @@ float MappingConfig::globalMapVisualizationLeafSize=-1;
 
 //mapping
 float MappingConfig::globalMapLeafSize=-1;
+int  MappingConfig::scan_2_scan_num_surf = 1;
+int  MappingConfig::scan_2_scan_num_corner = 1;
 
 // offline mapping
 std::string SerializeConfig::map_in_path = "";
@@ -281,6 +288,7 @@ int SerializeConfig::lasercloud_num=0;
 std::string SerializeConfig::current_lidar_path = "";
 std::string SerializeConfig::prior_map_path = "";
 std::string SerializeConfig::prior_pose_path = "";
+
 
 double SerializeConfig::Tepsilion = 0.01;
 double SerializeConfig::step_size = 1.0;
@@ -378,6 +386,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     Eigen::Vector3d t_sensor_body = SensorConfig::extrinsicTrans;
     SensorConfig::q_body_sensor = q_sensor_body.inverse();
     SensorConfig::t_body_sensor = -(q_sensor_body.inverse() * t_sensor_body);
+    SensorConfig::gtsamGNSSBetweenFactorDistance = sensorconfig["gtsamGNSSBetweenFactorDistance"].as<int>();;
 
     std::cout<<"sensorconfig yaml success load"<<std::endl;
 }
@@ -450,6 +459,8 @@ void Load_Mapping_YAML(std::string mappingpath)
 
         //mapping
         MappingConfig:: globalMapLeafSize=mappingconfig["globalMapLeafSize"].as<float >();
+        MappingConfig:: scan_2_scan_num_surf=mappingconfig["scan_2_scan_num_surf"].as<float >();
+        MappingConfig:: scan_2_scan_num_corner=mappingconfig["scan_2_scan_num_corner"].as<float >();
         std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
 
         std::cout<<"mapping yaml success load"<<std::endl;

@@ -61,6 +61,8 @@ typedef PointXYZIRPYT PointTypePose;
 class Loc_mapOptimization {
 public:
     int flagLoadMap = 1;
+    int flag_load_localMap = 0;
+    int flag_scan_mode_change = 0;
     ros::NodeHandle nh;
     NonlinearFactorGraph gtSAMgraph;
     Values initialEstimate;
@@ -145,7 +147,7 @@ public:
     ros::Time timeLaserInfoStamp;
     double timeLaserInfoCur;
 
-    float current_T_l_m[6]; // roll pitch yaw x y z
+    float current_T_m_l[6]; // roll pitch yaw x y z
 
     std::mutex mtx;
     std::mutex mtxGpsInfo;
@@ -175,7 +177,11 @@ public:
 
     Eigen::Vector3d t_w_cur;
     Eigen::Quaterniond q_w_cur;
+    Eigen::Matrix3d q_w_cur_matrix;
     double q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
+    int frame_cnt = 0;
+    gtsam::Pose3 last_gnss_poses;
+    int Keyframe_Poses3D_last_num = 3;
 
     /**
      * 发布：
@@ -224,7 +230,7 @@ public:
 
 //        GPS factor
         subGPS = nh.subscribe<nav_msgs::Odometry>(
-                "gps_odom", 200, &Loc_mapOptimization::gpsHandler, this,
+                "/gnss_odom", 200, &Loc_mapOptimization::gpsHandler, this,
                 ros::TransportHints().tcpNoDelay());
 
         pubRecentKeyFrames = nh.advertise<sensor_msgs::PointCloud2>(
@@ -301,7 +307,7 @@ public:
         localMap_surf_ds.reset(new pcl::PointCloud<PointType>());
 
         for (int i = 0; i < 6; ++i) {
-            current_T_l_m[i] = 0;
+            current_T_m_l[i] = 0;
         }
 
         matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
@@ -393,20 +399,19 @@ public:
         pcl::fromROSMsg(msgIn->cloud_corner, *current_corner);
         pcl::fromROSMsg(msgIn->cloud_surface, *current_surf);
 
-        t_w_cur[0]= msgIn->T_w_l_curlidar.pose.pose.position.x;
-        t_w_cur[1]= msgIn->T_w_l_curlidar.pose.pose.position.y;
-        t_w_cur[2]= msgIn->T_w_l_curlidar.pose.pose.position.z;
+        t_w_cur[0] = msgIn->T_w_l_curlidar.pose.pose.position.x;
+        t_w_cur[1] = msgIn->T_w_l_curlidar.pose.pose.position.y;
+        t_w_cur[2] = msgIn->T_w_l_curlidar.pose.pose.position.z;
 //        EZLOG(INFO)<<"t_w_cur[0]"<<t_w_cur[0]<<std::endl;
 //        EZLOG(INFO)<<"t_w_cur[1]"<<t_w_cur[1]<<std::endl;
 //        EZLOG(INFO)<<"t_w_cur[2]"<<t_w_cur[2]<<std::endl;
 
-        q_w_cur.x()= msgIn->T_w_l_curlidar.pose.pose.orientation.x;
+        q_w_cur.x() = msgIn->T_w_l_curlidar.pose.pose.orientation.x;
         q_w_cur.y() = msgIn->T_w_l_curlidar.pose.pose.orientation.y;
-        q_w_cur.z()= msgIn->T_w_l_curlidar.pose.pose.orientation.z;
-        q_w_cur.w()= msgIn->T_w_l_curlidar.pose.pose.orientation.w;
+        q_w_cur.z() = msgIn->T_w_l_curlidar.pose.pose.orientation.z;
+        q_w_cur.w() = msgIn->T_w_l_curlidar.pose.pose.orientation.w;
         q_w_cur.normalize();
-
-        Eigen::Matrix3d q_w_cur_matrix = q_w_cur.toRotationMatrix();
+        q_w_cur_matrix = q_w_cur.toRotationMatrix();
         // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
         q_w_cur_pitch = asin(-q_w_cur_matrix(2, 0)); // 计算pitch
         if (cos(q_w_cur_pitch) != 0) {
@@ -618,7 +623,7 @@ public:
 
     void updateInitialGuess() {
         // save current transformation before any processing
-        incrementalOdometryAffineFront = trans2Affine3f(current_T_l_m);
+        incrementalOdometryAffineFront = trans2Affine3f(current_T_m_l);
         static Eigen::Affine3f lastImuTransformation;
 
         // initialization the first frame
@@ -689,10 +694,10 @@ public:
 //                    cloudInfo.T_w_l_curlidar.pose.pose.position
 //                    cloudInfo.T_w_l_curlidar.pose.pose.orientation
 
-                    current_T_l_m[0] = cloudInfo.imuRollInit;
-                    current_T_l_m[1] = cloudInfo.imuPitchInit;
-                    current_T_l_m[2] = cloudInfo.imuYawInit;
-                    if (!SensorConfig::useImuHeadingInitialization) current_T_l_m[2] = 0;
+                    current_T_m_l[0] = cloudInfo.imuRollInit;
+                    current_T_m_l[1] = cloudInfo.imuPitchInit;
+                    current_T_m_l[2] = cloudInfo.imuYawInit;
+                    if (!SensorConfig::useImuHeadingInitialization) current_T_m_l[2] = 0;
                     lastImuTransformation = pcl::getTransformation(
                             0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
                             cloudInfo.imuYawInit);
@@ -704,11 +709,11 @@ public:
 //                            << " , imuPitchInit: " << cloudInfo.imuPitchInit
 //                        << " , imuYawInit: " << cloudInfo.imuYawInit<<std::endl;
 //              cloudInfo 回调里直接收
-                current_T_l_m[0] = 0;
-                current_T_l_m[1] = 0;
-                current_T_l_m[2] = 0;
+                current_T_m_l[0] = 0;
+                current_T_m_l[1] = 0;
+                current_T_m_l[2] = 0;
 
-                if (!SensorConfig::useImuHeadingInitialization) current_T_l_m[2] = 0;
+                if (!SensorConfig::useImuHeadingInitialization) current_T_m_l[2] = 0;
 
                 lastImuTransformation = pcl::getTransformation(
                         0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
@@ -740,12 +745,12 @@ public:
         } else {
             Eigen::Affine3f transIncre =
                     lastImuPreTransformation.inverse() * transBack;
-            Eigen::Affine3f transTobe = trans2Affine3f(current_T_l_m);
+            Eigen::Affine3f transTobe = trans2Affine3f(current_T_m_l);
             Eigen::Affine3f transFinal = transTobe * transIncre;
             pcl::getTranslationAndEulerAngles(
-                    transFinal, current_T_l_m[3], current_T_l_m[4],
-                    current_T_l_m[5], current_T_l_m[0],
-                    current_T_l_m[1], current_T_l_m[2]);
+                    transFinal, current_T_m_l[3], current_T_m_l[4],
+                    current_T_m_l[5], current_T_m_l[0],
+                    current_T_m_l[1], current_T_m_l[2]);
 
             lastImuPreTransformation = transBack;
 
@@ -757,6 +762,22 @@ public:
 
 
     }
+    void MODE_SCAN_2_LOCALMAP()
+    {
+        ;
+    }
+    void MODE_SCAN_2_SCAN()
+    {
+        if(Keyframe_Poses3D->points.empty() != true)
+        {
+            EZLOG(INFO) << "MODE: Scan to SCAN!";
+            extractNearby();
+        }
+    }
+    void MODE_SCAN_2_PRIORMAP()
+    {
+        ;
+    }
 
 /**
  * extract init points from map
@@ -765,7 +786,8 @@ public:
         std::cout <<"Keyframe_Poses3D->points size : "<< Keyframe_Poses3D->points.size() <<std::endl;
 
         TicToc extract_from_priorMap;
-        if(MappingConfig::scan_2_prior_map == 1){ //init load local map from prior
+//        flag_scan_mode_change = 0 init
+        if(MappingConfig::scan_2_prior_map == 1 && flag_scan_mode_change == 1){ //init load local map from prior
             PointType init_point; //can be changed in gnss map
             if(Keyframe_Poses3D->points.empty() ){
                 init_point.x = 0.;
@@ -779,10 +801,12 @@ public:
                 init_point.z = cloudInfo.T_w_l_curlidar.pose.pose.position.z;
                 init_point.intensity = cloudInfo.T_w_l_curlidar.header.seq;
             }
+            EZLOG(INFO) << "MODE: Scan to Map!";
             // 添加标志位，需要下一帧再加载。现在可以先写着1.5s换一次local map
             current_lidar_frameID =  init_point.intensity;
-            if(current_lidar_frameID - last_lidar_frameID < 15){
-                return ; // 不需要重复加载localMap_corner_and_surf
+            if(current_lidar_frameID - last_lidar_frameID < 15 && flag_load_localMap){
+                flag_load_localMap = 1; // load local map
+                return ; // 不需要重复加载localMap_corner_and_surf,但是如果没有加载过localMap就加载一次
             }
             localMap_corner->clear();
             localMap_surf->clear();
@@ -811,30 +835,43 @@ public:
             }
 //            kdtree_localMap_corner->setInputCloud(localMap_corner);
             std::cout<<"extract_from_priorMap is in ms: " << extract_from_priorMap.toc() <<std::endl;
+            downSizeFilterCorner.setInputCloud(localMap_corner);
+            downSizeFilterCorner.filter(*localMap_corner_ds);
+            localMap_corner_ds_num = localMap_corner_ds->size();
+            // Downsample the surrounding surf key frames (or map)
+            downSizeFilterSurf.setInputCloud(localMap_surf);
+            downSizeFilterSurf.filter(*localMap_surf_ds);
+            localMap_surf_ds_num = localMap_surf_ds->size();
 
         }
-        else //else scan to scan_incremental
+        else //else scan to scan_incremental  flag_scan_mode_change == 0
         {
             if(Keyframe_Poses3D->points.empty() != true)
             {
+                EZLOG(INFO) << "MODE: Scan to SCAN!";
                 extractNearby();
             }
         }
 
-        downSizeFilterCorner.setInputCloud(localMap_corner);
-        downSizeFilterCorner.filter(*localMap_corner_ds);
-        localMap_corner_ds_num = localMap_corner_ds->size();
-        // Downsample the surrounding surf key frames (or map)
-        downSizeFilterSurf.setInputCloud(localMap_surf);
-        downSizeFilterSurf.filter(*localMap_surf_ds);
-        localMap_surf_ds_num = localMap_surf_ds->size();
+
         std::cout << " localMap_surf_ds_num is: "<<localMap_surf_ds_num
                   << " localMap_corner_ds_num is: "<<localMap_corner_ds_num<<std::endl;
+        if(localMap_surf_ds_num > MappingConfig::scan_2_scan_num_surf
+            ||localMap_corner_ds_num > MappingConfig::scan_2_scan_num_corner)
+        {
+            EZLOG(INFO) << "MODE: Change mode ->>>>>>>>> Scan to Map!";
+            flag_scan_mode_change = 0;//change loc mode to scan 2 map
+
+        }
 //        localMap_corner_and_surf[current_lidar_frameID] =
 //                make_pair(*localMap_corner_ds, *localMap_surf_ds);
 //        last_lidar_frameID = current_lidar_frameID;
 //        std::cout << "localMap_corner_and_surf size is :" << localMap_corner_and_surf.size() << std::endl;
 
+    }
+    void extractLastScan()
+    {
+        ;
     }
     /**
      * 根據輸入點雲構造KD树
@@ -871,18 +908,17 @@ public:
             pt.intensity = Keyframe_Poses3D->points[pointSearchInd[0]].intensity;
             std::cout<<"pt.intensity: "<<pt.intensity<<std::endl;
         }
-
         // also extract some latest key frames in case the robot rotates in one
         // position
 //        10s内的位置信息存入点云
         int numPoses = Keyframe_Poses3D->size();
         std::cout<<"num of HistroyPoses: "<<numPoses<<std::endl;
-//        for (int i = numPoses - 1 ; i >= 0; --i) {
-//            if (timeLaserInfoCur - Keyframe_Poses6D->points[i].time < 10.0)
-//                near_keyframe_poses_ds_temp->push_back(Keyframe_Poses3D->points[i]);
-//            else
-//                break;
-//        }
+        for (int i = numPoses - 1 ; i >= 0; --i) {
+            if (timeLaserInfoCur - Keyframe_Poses6D->points[i].time < 10.0)
+                near_keyframe_poses_ds_temp->push_back(Keyframe_Poses3D->points[i]);
+            else
+                break;
+        }
 //        surroundingKeyPosesDS这里只有激光的xyz，没有点云信息，需要把点云提取出来
         std::cout<<"num of near_keyframe_poses_ds_temp: "<<near_keyframe_poses_ds_temp->size()<<std::endl;
         extractCloud(near_keyframe_poses_ds_temp);
@@ -923,7 +959,15 @@ public:
 
             }
         }
+        downSizeFilterCorner.setInputCloud(localMap_corner);
+        downSizeFilterCorner.filter(*localMap_corner_ds);
+        localMap_corner_ds_num = localMap_corner_ds->size();
+        // Downsample the surrounding surf key frames (or map)
+        downSizeFilterSurf.setInputCloud(localMap_surf);
+        downSizeFilterSurf.filter(*localMap_surf_ds);
+        localMap_surf_ds_num = localMap_surf_ds->size();
 
+        if (localMap_corner_and_surf.size() > 1000) localMap_corner_and_surf.clear();
     }
 
     /**
@@ -946,7 +990,7 @@ public:
     }
 
     void updatePointAssociateToMap() {
-        transPointAssociateToMap = trans2Affine3f(current_T_l_m);
+        transPointAssociateToMap = trans2Affine3f(current_T_m_l);
     }
     void transforPoint2World() {
 
@@ -957,7 +1001,7 @@ public:
         T_wm.linear() = R_wm_temp.cast<float>();
         T_wm.translation() = t_wm_temp.cast<float>();
 
-        Eigen::Affine3f T_ml = trans2Affine3f(current_T_l_m);
+        Eigen::Affine3f T_ml = trans2Affine3f(current_T_m_l);
         T_wl = T_wm * T_ml; // T_wl = T_wm * T_ml
     }
 
@@ -1228,12 +1272,12 @@ public:
         // yaw = pitch          ---     yaw = roll
         std::cout<<"LMOptimization()!" << std::endl;
         // lidar -> camera
-        float srx = sin(current_T_l_m[1]);
-        float crx = cos(current_T_l_m[1]);
-        float sry = sin(current_T_l_m[2]);
-        float cry = cos(current_T_l_m[2]);
-        float srz = sin(current_T_l_m[0]);
-        float crz = cos(current_T_l_m[0]);
+        float srx = sin(current_T_m_l[1]);
+        float crx = cos(current_T_m_l[1]);
+        float sry = sin(current_T_m_l[2]);
+        float cry = cos(current_T_m_l[2]);
+        float srz = sin(current_T_m_l[0]);
+        float crz = cos(current_T_m_l[0]);
 
 
         int laserCloudSelNum = laserCloudOri->size();
@@ -1333,12 +1377,12 @@ public:
             matX = matP * matX2;
         }
 
-        current_T_l_m[0] += matX.at<float>(0, 0);
-        current_T_l_m[1] += matX.at<float>(1, 0);
-        current_T_l_m[2] += matX.at<float>(2, 0);
-        current_T_l_m[3] += matX.at<float>(3, 0);
-        current_T_l_m[4] += matX.at<float>(4, 0);
-        current_T_l_m[5] += matX.at<float>(5, 0);
+        current_T_m_l[0] += matX.at<float>(0, 0);
+        current_T_m_l[1] += matX.at<float>(1, 0);
+        current_T_m_l[2] += matX.at<float>(2, 0);
+        current_T_m_l[3] += matX.at<float>(3, 0);
+        current_T_m_l[4] += matX.at<float>(4, 0);
+        current_T_m_l[5] += matX.at<float>(5, 0);
 
         float deltaR = sqrt(pow(pcl::rad2deg(matX.at<float>(0, 0)), 2) +
                             pow(pcl::rad2deg(matX.at<float>(1, 0)), 2) +
@@ -1384,9 +1428,8 @@ public:
 
             transformUpdate();
         } else {
-            ROS_WARN(
-                    "Not enough features! Only %d edge and %d planar features available.",
-                    current_corner_ds_num, current_surf_ds_num);
+            EZLOG(INFO) <<"Not enough features! Only %d edge and %d planar features available."
+                        <<current_corner_ds_num, current_surf_ds_num;
         }
     }
 
@@ -1401,29 +1444,29 @@ public:
                 double rollMid, pitchMid, yawMid;
 
                 // slerp roll
-                transformQuaternion.setRPY(current_T_l_m[0], 0, 0);
+                transformQuaternion.setRPY(current_T_m_l[0], 0, 0);
                 imuQuaternion.setRPY(cloudInfo.imuRollInit, 0, 0);
                 tf::Matrix3x3(transformQuaternion.slerp(imuQuaternion, imuWeight))
                         .getRPY(rollMid, pitchMid, yawMid);
-                current_T_l_m[0] = rollMid;
+                current_T_m_l[0] = rollMid;
 
                 // slerp pitch
-                transformQuaternion.setRPY(0, current_T_l_m[1], 0);
+                transformQuaternion.setRPY(0, current_T_m_l[1], 0);
                 imuQuaternion.setRPY(0, cloudInfo.imuPitchInit, 0);
                 tf::Matrix3x3(transformQuaternion.slerp(imuQuaternion, imuWeight))
                         .getRPY(rollMid, pitchMid, yawMid);
-                current_T_l_m[1] = pitchMid;
+                current_T_m_l[1] = pitchMid;
             }
         }
 
-        current_T_l_m[0] =
-                constraintTransformation(current_T_l_m[0], MappingConfig::rotation_tollerance);
-        current_T_l_m[1] =
-                constraintTransformation(current_T_l_m[1], MappingConfig::rotation_tollerance);
-        current_T_l_m[5] =
-                constraintTransformation(current_T_l_m[5], MappingConfig::z_tollerance);
+        current_T_m_l[0] =
+                constraintTransformation(current_T_m_l[0], MappingConfig::rotation_tollerance);
+        current_T_m_l[1] =
+                constraintTransformation(current_T_m_l[1], MappingConfig::rotation_tollerance);
+        current_T_m_l[5] =
+                constraintTransformation(current_T_m_l[5], MappingConfig::z_tollerance);
 
-        incrementalOdometryAffineBack = trans2Affine3f(current_T_l_m);
+        incrementalOdometryAffineBack = trans2Affine3f(current_T_m_l);
     }
 
     float constraintTransformation(float value, float limit) {
@@ -1438,8 +1481,8 @@ public:
 
         Eigen::Affine3f transStart = pclPointToAffine3f(Keyframe_Poses6D->back());
         Eigen::Affine3f transFinal = pcl::getTransformation(
-                current_T_l_m[3], current_T_l_m[4], current_T_l_m[5],
-                current_T_l_m[0], current_T_l_m[1], current_T_l_m[2]);
+                current_T_m_l[3], current_T_m_l[4], current_T_m_l[5],
+                current_T_m_l[0], current_T_m_l[1], current_T_m_l[2]);
         Eigen::Affine3f transBetween = transStart.inverse() * transFinal;
         float x, y, z, roll, pitch, yaw;
         pcl::getTranslationAndEulerAngles(transBetween, x, y, z, roll, pitch, yaw);
@@ -1462,16 +1505,16 @@ public:
                             (Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8)
                                     .finished());  // rad*rad, meter*meter
 
-            gtSAMgraph.add(PriorFactor<Pose3>(0, trans2gtsamPose(current_T_l_m),
+            gtSAMgraph.add(PriorFactor<Pose3>(0, trans2gtsamPose(current_T_m_l),
                                               priorNoise));
-            initialEstimate.insert(0, trans2gtsamPose(current_T_l_m));
+            initialEstimate.insert(0, trans2gtsamPose(current_T_m_l));
         } else {
             noiseModel::Diagonal::shared_ptr odometryNoise =
                     noiseModel::Diagonal::Variances(
                             (Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
             gtsam::Pose3 poseFrom =
                     pclPointTogtsamPose3(Keyframe_Poses6D->points.back());
-            gtsam::Pose3 poseTo = trans2gtsamPose(current_T_l_m);
+            gtsam::Pose3 poseTo = trans2gtsamPose(current_T_m_l);
 
             mtxGraph.lock();
             gtSAMgraph.add(BetweenFactor<Pose3>(
@@ -1520,7 +1563,7 @@ public:
             geo_converter.Forward(LLA[0], LLA[1], LLA[2], gps_x, gps_y, gps_z);
 
             if (!SensorConfig::useGpsElevation) {
-                gps_z = current_T_l_m[5];
+                gps_z = current_T_m_l[5];
                 noise_z = 0.01;
             }
             // GPS not properly initialized (0,0,0)
@@ -1598,7 +1641,44 @@ public:
             }
         }
     }
+    void addGNSSBetweenFactor()
+    {
+        if (Keyframe_Poses3D->points.size() < 3) {
+            EZLOG(INFO) << "GNSS init start from frame 3!";
+            last_gnss_poses = gtsam::Pose3(gtsam::Rot3(q_w_cur_matrix), gtsam::Point3(t_w_cur));
+            Keyframe_Poses3D_last_num = Keyframe_Poses3D->points.size();
+            return;
+        }
+        gtsam::Pose3 current_gnss_poses;
+        frame_cnt++;
 
+        if (frame_cnt < SensorConfig::gtsamGNSSBetweenFactorDistance) {
+            EZLOG(INFO) << "control GNSS factor frequency!: "<<float(frame_cnt*1.0/5)*100 <<" %";
+            // void ,control frequency
+        } else {
+            EZLOG(INFO) << "ADD GNSS BETWEEN FACTOR!!!";
+            EZLOG(INFO) << "last_gnss_poses:"<<last_gnss_poses;
+            current_gnss_poses = gtsam::Pose3(gtsam::Rot3(q_w_cur_matrix), gtsam::Point3(t_w_cur));
+            EZLOG(INFO) << "current_gnss_poses:"<<current_gnss_poses;
+            EZLOG(INFO) << "last_gnss_poses No:"<<Keyframe_Poses3D_last_num;
+            EZLOG(INFO) << "current_gnss_poses No:"<<Keyframe_Poses3D->points.size();
+            frame_cnt = 0;
+            noiseModel::Diagonal::shared_ptr GNSS_noise =
+                    noiseModel::Diagonal::Variances(
+                            (Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
+            gtsam::Pose3 gnss_pose_From = last_gnss_poses;
+            gtsam::Pose3 gnss_pose_To = current_gnss_poses;
+
+            mtxGraph.lock();
+            gtSAMgraph.add(BetweenFactor<Pose3>(
+                    Keyframe_Poses3D_last_num, Keyframe_Poses3D->size(),
+                    gnss_pose_From.between(gnss_pose_To), GNSS_noise));
+            mtxGraph.unlock();
+            last_gnss_poses = current_gnss_poses;
+            Keyframe_Poses3D_last_num = Keyframe_Poses3D->points.size();
+        }
+
+    }
     void saveKeyFramesAndFactor() {
         if (saveFrame() == false) return;
 
@@ -1606,7 +1686,8 @@ public:
         addOdomFactor();
 
         // gps factor
-        if (SensorConfig::useGPS) addGPSFactor();
+        addGNSSBetweenFactor();
+//        if (SensorConfig::useGPS) addGPSFactor();
 
         cout << "****************************************************" << endl;
         gtSAMgraph.print("GTSAM Graph:\n");
@@ -1614,7 +1695,7 @@ public:
         // add raw odomd
         nav_msgs::Odometry laserOdometryROS;
         transformEiegn2Odom(timeLaserInfoCur, laserOdometryROS,
-                            current_T_l_m);
+                            current_T_m_l);
 
         // update iSAM
         isam->update(gtSAMgraph, initialEstimate);
@@ -1658,12 +1739,12 @@ public:
         poseCovariance = isam->marginalCovariance(isamCurrentEstimate.size() - 1);
 
         // save updated transform
-        current_T_l_m[0] = latestEstimate.rotation().roll();
-        current_T_l_m[1] = latestEstimate.rotation().pitch();
-        current_T_l_m[2] = latestEstimate.rotation().yaw();
-        current_T_l_m[3] = latestEstimate.translation().x();
-        current_T_l_m[4] = latestEstimate.translation().y();
-        current_T_l_m[5] = latestEstimate.translation().z();
+        current_T_m_l[0] = latestEstimate.rotation().roll();
+        current_T_m_l[1] = latestEstimate.rotation().pitch();
+        current_T_m_l[2] = latestEstimate.rotation().yaw();
+        current_T_m_l[3] = latestEstimate.translation().x();
+        current_T_m_l[4] = latestEstimate.translation().y();
+        current_T_m_l[5] = latestEstimate.translation().z();
 
         // save all the received edge and surf points
         pcl::PointCloud<PointType>::Ptr thisCornerKeyFrame(
@@ -1719,11 +1800,11 @@ public:
         // Publish odometry for ROS (global)
         nav_msgs::Odometry laserOdometryROS;
         nav_msgs::Odometry lidar_odom_world_ros;
-        Eigen::Affine3f Lidarodom_2_map = trans2Affine3f(current_T_l_m);//T_ml
+        Eigen::Affine3f Lidarodom_2_map = trans2Affine3f(current_T_m_l);//T_ml
         Eigen::Matrix4f map_2_world = SensorConfig::T_L_B.cast<float>(); //T_wm
         Eigen::Matrix4f Lidar_odom_world = map_2_world * Lidarodom_2_map.matrix();// T_wl = T_wm * T_ml
         transformEiegn2Odom(timeLaserInfoCur, laserOdometryROS,
-                            current_T_l_m);
+                            current_T_m_l);
         transformLidar2World(timeLaserInfoCur, lidar_odom_world_ros,
                           Lidar_odom_world);
 
@@ -1733,11 +1814,11 @@ public:
         // Publish TF
         static tf::TransformBroadcaster br;
         tf::Transform t_odom_to_lidar = tf::Transform(
-                tf::createQuaternionFromRPY(current_T_l_m[0],
-                                            current_T_l_m[1],
-                                            current_T_l_m[2]),
-                tf::Vector3(current_T_l_m[3], current_T_l_m[4],
-                            current_T_l_m[5]));
+                tf::createQuaternionFromRPY(current_T_m_l[0],
+                                            current_T_m_l[1],
+                                            current_T_m_l[2]),
+                tf::Vector3(current_T_m_l[3], current_T_m_l[4],
+                            current_T_m_l[5]));
         tf::StampedTransform trans_odom_to_lidar = tf::StampedTransform(
                 t_odom_to_lidar, timeLaserInfoStamp, SensorConfig::odometryFrame, "lidar_link");
         br.sendTransform(trans_odom_to_lidar);
@@ -1789,7 +1870,7 @@ public:
         if (lastIncreOdomPubFlag == false) {
             lastIncreOdomPubFlag = true;
             laserOdomIncremental = laserOdometryROS;
-            increOdomAffine = trans2Affine3f(current_T_l_m);
+            increOdomAffine = trans2Affine3f(current_T_m_l);
         } else {
             Eigen::Affine3f affineIncre = incrementalOdometryAffineFront.inverse() *
                                           incrementalOdometryAffineBack;
@@ -1847,7 +1928,7 @@ public:
         if (pubRecentKeyFrame.getNumSubscribers() != 0) {
             pcl::PointCloud<PointType>::Ptr cloudOut(
                     new pcl::PointCloud<PointType>());
-            PointTypePose thisPose6D = trans2PointTypePose(current_T_l_m);
+            PointTypePose thisPose6D = trans2PointTypePose(current_T_m_l);
             *cloudOut += *transformPointCloud(current_corner_ds, &thisPose6D);
             *cloudOut += *transformPointCloud(current_surf_ds, &thisPose6D);
             publishCloud(pubRecentKeyFrame, cloudOut, timeLaserInfoStamp,

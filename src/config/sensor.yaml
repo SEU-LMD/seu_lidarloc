@@ -20,6 +20,7 @@
   gpsCovThreshold: 8                        # m^2, threshold for using GPS data
   poseCovThreshold: 25.0                      # m^2, threshold for using GPS data
   gpsDistance: 0.5                           # the distance between two gps point used for optimization
+  gtsamGNSSBetweenFactorDistance: 10        # control GNSS between factor gap, like constraint (5,5+x)
 
   # debug setting
   debugLidarTimestamp: false
