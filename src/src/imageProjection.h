@@ -52,7 +52,7 @@ public:
     }
 
     void ResetParameters(){
-        deskewCloud_body.reset();
+//        deskewCloud_body.reset();
         rangeMat =  cv::Scalar::all(FLT_MAX);
     }
 
@@ -184,7 +184,6 @@ public:
         TicToc timer;
 
         int cloudSize = cloudinfo.cloud_ptr->cloud.points.size(); //获取原始点云大小
-
         pcl::PointCloud<PointType> deskewCloud_body_offset;
         // range image projection
         int valid_num = 0;
@@ -229,25 +228,23 @@ public:
                 col_outlier++;
                 continue;
             }
-
             //如果重复 那么只保存地一个点
             if (rangeMat.at<float>(rowIdn, columnIdn) != FLT_MAX){
                 rangemat_outlier++;
                 continue;
             }
-
             //very important function@!!!!!!!!!
-            if (SensorConfig::use_gnss_deskew){
-                thisPoint = DeskewPoint(&thisPoint,
-                                        cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp,
-                                        T_w_b_lidar_start,cloudinfo,
-                                        pose_deque);//进行点云去畸变
-            }
+//            if (SensorConfig::use_gnss_deskew){
+//                thisPoint = DeskewPoint(&thisPoint,
+//                                        cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp,
+//                                        T_w_b_lidar_start,cloudinfo,
+//                                        pose_deque);//进行点云去畸变
+//            }
 //            thisPoint = deskewPoint(&thisPoint, cloudinfo.cloud->points[i].latency - cloudinfo.min_latency_timestamp, T_w_b_lidar_start,cloudinfo,pose_deque);//进行点云去畸变
             rangeMat.at<float>(rowIdn, columnIdn) = range;//将去畸变后的点范围和坐标存入rangeMat
-
             int index = columnIdn + rowIdn * SensorConfig::Horizon_SCAN;//计算索引index,将去畸变后的点存入fullCloud
             deskewCloud_body->points[index] = thisPoint;
+
             //just for show
             auto thisPoint_offset = thisPoint;
             thisPoint_offset.z = thisPoint_offset.z + 20.0;
@@ -264,7 +261,6 @@ public:
 
         //for debug use
         {
-
             CloudTypeXYZI cloud_pub;
             cloud_pub.timestamp = cloudinfo.cloud_ptr->timestamp;
             cloud_pub.frame = "map";
@@ -274,7 +270,6 @@ public:
             //        EZLOG(INFO)<<"deskewCloud_body size = "<<deskewCloud_body->points.size()<<std::endl;
 //        EZLOG(INFO)<<"deskewCloud_body_offset size = "<<deskewCloud_body_offset.points.size()<<std::endl;
 //        EZLOG(INFO)<<"deskewCloud_w size = "<<deskewCloud_w.points.size()<<std::endl;
-
         }
 
         return timer.toc();
@@ -335,7 +330,7 @@ public:
 
         while(1){
             if(deque_cloud.size()!=0){
-
+//                EZLOG(INFO)<<"while*************"<<std::endl;
                 //do something
                 //0.
                 std::deque<OdometryType> odo_poses_copy;
@@ -354,16 +349,21 @@ public:
                 GetCloudTime(cur_scan , cloud_with_time);
                 double cloud_min_ros_timestamp = cloud_with_time.min_ros_timestamp;
                 double cloud_max_ros_timestamp = cloud_with_time.max_ros_timestamp;
-
+//                EZLOG(INFO)<<"odo_min_ros_time "<<odo_min_ros_time<<std::endl;
+//                EZLOG(INFO)<<"odo_max_ros_time "<<odo_max_ros_time<<std::endl;
+//                EZLOG(INFO)<<"cloud_min_ros_timestamp "<<cloud_min_ros_timestamp<<std::endl;
+//                EZLOG(INFO)<<"cloud_max_ros_timestamp "<<cloud_max_ros_timestamp<<std::endl;
+//                EZLOG(INFO)<<"odo_min_ros_time-cloud_min_ros_timestamp "<<odo_min_ros_time-cloud_min_ros_timestamp<<std::endl;
+//                EZLOG(INFO)<<"odo_max_ros_time-cloud_max_ros_timestamp "<<odo_max_ros_time-cloud_max_ros_timestamp<<std::endl;
                 //2.
                 if(odo_min_ros_time<cloud_min_ros_timestamp && odo_max_ros_time>cloud_max_ros_timestamp){
-
+                    EZLOG(INFO)<<"success!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
                         deque_cloud.pop_front();
                         cloud_mutex.unlock();
 
                         cloudinfo.frame_id = frame_id++;
                         cloudinfo.timestamp = cur_scan->timestamp;
-    //                    EZLOG(INFO)<<"odo_min_ros_time = "<<odo_min_ros_time - odo_min_ros_time<<std::endl;
+                        EZLOG(INFO)<<"cloudinfo.timestamp = "<<cloudinfo.timestamp<<std::endl;
     //                    EZLOG(INFO)<<"odo_max_ros_time = "<<odo_max_ros_time - odo_min_ros_time<<std::endl;
     //                    EZLOG(INFO)<<"cloud_min_ros_timestamp = "<<cloud_min_ros_timestamp - odo_min_ros_time<<std::endl;
     //                    EZLOG(INFO)<<"cloud_max_ros_timestamp = "<<cloud_max_ros_timestamp - odo_min_ros_time<<std::endl;
@@ -410,7 +410,7 @@ public:
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
-        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
+        CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
         *cloud_ptr = data;//深拷贝
         cloud_mutex.lock();
         deque_cloud.push_back(cloud_ptr);
@@ -477,6 +477,7 @@ public:
         pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
         do_work_thread = new std::thread(&ImageProjection::DoWork, this);
+        EZLOG(INFO)<<"initprojection*************"<<std::endl;
     }
 
 

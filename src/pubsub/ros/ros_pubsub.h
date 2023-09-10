@@ -109,12 +109,33 @@ public:
 
     void CloudROSCallback(const sensor_msgs::PointCloud2ConstPtr& data, const std::string& topic_name){
         CloudTypeXYZIRT data_out;
+        EZLOG(INFO)<<"CloudROSCallback*************"<<std::endl;
         convertROSCloudMsgToCloud(data, data_out);
         (this->cloud_callbacks[topic_name])(data_out);
     }
 
     //组合导航设备转换函数
     void convertROSGNSSINSMsgToGNSSINS(const gps_imu::ivsensorgpsConstPtr& gnss_ins_in, GNSSINSType& gnss_ins_out ){
+        gnss_ins_out.lla[0] = gnss_ins_in->lon;
+        gnss_ins_out.lla[1] = gnss_ins_in->lat;
+        gnss_ins_out.lla[2] = gnss_ins_in->height;
+
+        gnss_ins_out.pitch= gnss_ins_in->pitch;
+        gnss_ins_out.roll = gnss_ins_in->roll;
+        gnss_ins_out.yaw = gnss_ins_in->heading;
+
+        gnss_ins_out.imu_angular_v[0] = gnss_ins_in->angx;
+        gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy;
+        gnss_ins_out.imu_angular_v[2] = gnss_ins_in->yaw;
+
+        gnss_ins_out.imu_linear_v[0] = gnss_ins_in->accx;
+        gnss_ins_out.imu_linear_v[1] = gnss_ins_in->accy;
+        gnss_ins_out.imu_linear_v[2] = gnss_ins_in->accz;
+
+        gnss_ins_out.timestamp = gnss_ins_in->header.stamp.toSec();
+        gnss_ins_out.frame = gnss_ins_in->header.frame_id;
+
+        gnss_ins_out.gps_status = gnss_ins_in->status;
 
     }
     void GNSSINSROSCallback(const gps_imu::ivsensorgpsConstPtr& data, const std::string& topic_name){

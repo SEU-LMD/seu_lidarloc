@@ -6,6 +6,6 @@ if [ "$1" = "clear" ]; then
 fi
 cd build
 cmake ..
-make -j16
+make -j
 cd ..
 
