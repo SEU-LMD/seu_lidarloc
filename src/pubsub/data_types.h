@@ -102,8 +102,6 @@ class PathType:public BaseType{
 };
 
 //used to commnicate with other thread
-
-
 class CloudInfo{
 public:
     int frame_id;
@@ -112,19 +110,18 @@ public:
     std::vector<int> startRingIndex;
     std::vector<int> endRingIndex;
 
-//    std::vector<int> pointColInd;
-//    std::vector<float> pointRange;
     pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ptr;
 };
 typedef std::shared_ptr<CloudInfo> CloudInfoPtr;
 
-class CloudFt{
+class CloudFeature{
 public:
     int frame_id;
     double timestamp;
     PoseT pose;
-
+    pcl::PointCloud<PointType>::Ptr cornerCloud;
+    pcl::PointCloud<PointType>::Ptr surfaceCloud;
 };
-typedef std::shared_ptr<CloudFt> CloudFtPtr;
+typedef std::shared_ptr<CloudFeature> CloudCloudFeaturePtr;
 
 #endif //SEU_LIDARLOC_BASE_TYPE_H
