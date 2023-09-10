@@ -40,30 +40,38 @@ public:
     }
     //********************************************************************************************************
 
-    void addPublisher(const std::string& topic_name, const DataType& type){
+    void addPublisher(const std::string& topic_name, const DataType& type, int queue_size){
 
         if(type==DataType::LIDAR){
-            publishers[topic_name] = this->pNH->advertise<sensor_msgs::PointCloud2>(topic_name, 10);
+            publishers[topic_name] = this->pNH->advertise<sensor_msgs::PointCloud2>(topic_name, queue_size);
         }
         else if(type==DataType::ODOMETRY){
-            publishers[topic_name] = this->pNH->advertise<nav_msgs::Odometry>(topic_name, 10);
+            publishers[topic_name] = this->pNH->advertise<nav_msgs::Odometry>(topic_name, queue_size);
         }
 //        else if(type==DataType::PATH){
 //
 //        }
     }
 
-    void PublishCloud(const std::string& topic_name, const CloudType& data ){
+    void PublishCloud(const std::string& topic_name, const CloudTypeXYZIRT& data ){
         sensor_msgs::PointCloud2 ros_cloud;
-        pcl::toROSMsg(*data.cloud_ptr, ros_cloud);
-        ros_cloud.header.stamp = ros::Time().fromSec(data.timesamp);
+        pcl::toROSMsg(data.cloud, ros_cloud);
+        ros_cloud.header.stamp = ros::Time().fromSec(data.timestamp);
+        ros_cloud.header.frame_id = data.frame;
+        publishers[topic_name].publish(ros_cloud);
+    }
+
+    void PublishCloud(const std::string& topic_name, const CloudTypeXYZI& data ){
+        sensor_msgs::PointCloud2 ros_cloud;
+        pcl::toROSMsg(data.cloud, ros_cloud);
+        ros_cloud.header.stamp = ros::Time().fromSec(data.timestamp);
         ros_cloud.header.frame_id = data.frame;
         publishers[topic_name].publish(ros_cloud);
     }
 
     void PublishOdometry(const std::string& topic_name, const OdometryType& data){
         nav_msgs::Odometry ros_odom;
-        ros_odom.header.stamp = ros::Time().fromSec(data.timesamp);
+        ros_odom.header.stamp = ros::Time().fromSec(data.timestamp);
         ros_odom.header.frame_id = data.frame;
 
         Eigen::Quaterniond q = data.pose.GetQ();
@@ -81,19 +89,17 @@ public:
     //********************************************************************************************************
 
     //点云对应的转换函数
-    void convertROSCloudMsgToCloud(const sensor_msgs::PointCloud2ConstPtr cloud_in, CloudType& cloud_out ){
+    void convertROSCloudMsgToCloud(const sensor_msgs::PointCloud2ConstPtr cloud_in, CloudTypeXYZIRT& cloud_out ){
         cloud_out.frame = cloud_in->header.frame_id;
-        cloud_out.timesamp = cloud_in->header.stamp.toSec();
+        cloud_out.timestamp = cloud_in->header.stamp.toSec();
 
         sensor_msgs::PointCloud2 currentCloudMsg;
         currentCloudMsg = std::move(*cloud_in);
-        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
-        pcl::moveFromROSMsg(currentCloudMsg, *cloud_ptr);
-        cloud_out.cloud_ptr = cloud_ptr ;
+        pcl::moveFromROSMsg(currentCloudMsg, cloud_out.cloud);
     }
 
     void CloudROSCallback(const sensor_msgs::PointCloud2ConstPtr& data, const std::string& topic_name){
-        CloudType data_out;
+        CloudTypeXYZIRT data_out;
         convertROSCloudMsgToCloud(data, data_out);
         (this->cloud_callbacks[topic_name])(data_out);
     }

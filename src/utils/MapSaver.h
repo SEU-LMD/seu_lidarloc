@@ -18,7 +18,7 @@
 #include "./utility.h"
 #include "timer.h"
 
-struct CloudInfo{
+struct CloudInfoFt{
     pcl::PointCloud<PointType>::Ptr corner_cloud;
     pcl::PointCloud<PointType>::Ptr surf_cloud;
     int frame_id;
@@ -28,10 +28,10 @@ class MapSaver{
 public:
     std::string sav_root_path;
     std::mutex data_mutex;
-    std::deque<CloudInfo> pts_deque;
+    std::deque<CloudInfoFt> pts_deque;
 
 
-    void SaveCloud(const CloudInfo& cloud_info){
+    void SaveCloud(const CloudInfoFt& cloud_info){
         pcl::io::savePCDFileBinary(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_corner.pcd", *cloud_info.corner_cloud);
         pcl::io::savePCDFileBinary(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_surf.pcd", *cloud_info.surf_cloud);
     }
@@ -69,7 +69,7 @@ public:
         }
     }
 
-    void AddCloudToSave(const CloudInfo& cloud_info){
+    void AddCloudToSave(const CloudInfoFt& cloud_info){
         data_mutex.lock();
         pts_deque.push_back(cloud_info);
         data_mutex.unlock();

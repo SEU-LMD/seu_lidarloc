@@ -5,7 +5,7 @@
 #include "utils/config_helper.h"
 #include "easylogging++.h"
 #include "./mapping_manager.h"
-
+#include "utils/filesys.h"
 //选择中间件
 //#ifdef X86
 #include "pubsub/ros/ros_pubsub.h"
@@ -14,6 +14,8 @@
 INITIALIZE_EASYLOGGINGPP
 
 int main(int argc, char **argv) {
+
+    CreateDirWithDelete("./log");
 
     //1.初始化 log
     el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Format, "%level %file %line : %msg");
@@ -30,8 +32,6 @@ int main(int argc, char **argv) {
     //#endif
 
     pubsub->initPubSub(argc, argv, "mapping");
-    //订阅topic
-
 
     //3.初始化配置参数
     Load_Sensor_YAML("./config/sensor.yaml");

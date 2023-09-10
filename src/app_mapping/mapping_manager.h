@@ -10,7 +10,7 @@
 #include <deque>
 
 #include "pubsub/pubusb.h"
-#include "imageProjection_gnss.h"
+#include "imageProjection.h"
 #include "featureExtraction.h"
 #include "utils/config_helper.h"
 
@@ -21,18 +21,14 @@ public:
     ImageProjection img_proj;
     FeatureExtraction ft_extr;
 
-//    std::mutex cloud_mutex, gnssins_mutex;
-//    std::deque<CloudType> deque_cloud;
-//    std::deque<GNSSINSType> deque_gnssins;
-
     void CloudCallback(const BaseType& msg){
-        const CloudType& cloud_data = *((CloudType*)&msg);
-        img_proj.addCloudData(cloud_data);
+        const CloudTypeXYZIRT& cloud_data = *((CloudTypeXYZIRT*)&msg);
+        img_proj.AddCloudData(cloud_data);
     }
 
     void GNSSINSCallback(const BaseType& msg){
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
-//        deque_gnssins.push_back(gnssins_data);
+        img_proj.AddGNSSINSSData(gnssins_data);
     }
 
 

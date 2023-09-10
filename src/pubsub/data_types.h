@@ -1,0 +1,110 @@
+//
+// Created by fyy on 23-9-9.
+//
+
+#ifndef SEU_LIDARLOC_BASE_TYPE_H
+#define SEU_LIDARLOC_BASE_TYPE_H
+
+#include <string>
+
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
+#include "utils/utility.h"
+//所有数据的基类
+
+enum DataType {IMU, LIDAR, WHEEL, GNSS_INS,//from sensor
+                ODOMETRY, PATH};//common used type
+
+class BaseType{
+public:
+    double timestamp;
+    std::string frame;
+    virtual DataType getType() = 0;
+};
+
+struct PointXYZIRT {
+    PCL_ADD_POINT4D
+    uint8_t intensity;
+    uint16_t ring;
+    double latency;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+} EIGEN_ALIGN16;
+POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZIRT,
+                                    (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
+                                    (uint16_t, ring, ring)(double, latency, latency))
+
+// Use the Velodyne point format as a common representation
+
+class CloudTypeXYZIRT: public BaseType{
+    public:
+        pcl::PointCloud<PointXYZIRT> cloud;
+        DataType getType(){
+            return DataType::LIDAR;
+        }
+};
+typedef std::shared_ptr<CloudTypeXYZIRT> CloudTypeXYZIRTPtr;
+
+class CloudTypeXYZI: public BaseType{
+public:
+    pcl::PointCloud<pcl::PointXYZI> cloud;
+    DataType getType(){
+        return DataType::LIDAR;
+    }
+};
+typedef std::shared_ptr<CloudTypeXYZI> CloudTypeXYZIPtr;
+
+class OdometryType:public BaseType{
+    public:
+        PoseT pose;
+        DataType getType(){
+            return DataType::ODOMETRY;
+        }
+};
+
+class GNSSINSType:public BaseType{
+    public:
+        Eigen::Vector3d lla;
+        double roll,pitch,yaw;
+        Eigen::Vector3d imu_angular_v;
+        Eigen::Vector3d imu_linear_v;
+        Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
+        int gps_status;
+        DataType getType(){
+             return DataType::GNSS_INS;
+        }
+};
+
+class PathType:public BaseType{
+    public:
+        std::vector<PoseT> poses;
+        DataType getType(){
+            return DataType::PATH;
+        }
+};
+
+//used to commnicate with other thread
+class CloudInfo{
+public:
+    int frame_id;
+    double timestamp;
+    PoseT pose;
+    std::vector<int> startRingIndex;
+    std::vector<int> endRingIndex;
+
+    std::vector<int> pointColInd;
+    std::vector<float> pointRange;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr;
+};
+typedef std::shared_ptr<CloudInfo> CloudInfoPtr;
+
+class CloudFt{
+public:
+    int frame_id;
+    double timestamp;
+    PoseT pose;
+
+};
+typedef std::shared_ptr<CloudFt> CloudFtPtr;
+
+#endif //SEU_LIDARLOC_BASE_TYPE_H

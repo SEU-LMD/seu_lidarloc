@@ -9,7 +9,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-#include "pubsub_types.h"
+#include "data_types.h"
 
 //所有中间件的基类
 typedef std::function<void(const BaseType&)> CallBackT;
@@ -20,11 +20,12 @@ public:
 
     virtual void addSubscriber(const std::string &topic_name, const DataType &type, CallBackT callback) = 0;
 
-    virtual void addPublisher(const std::string &topic_name, const DataType &type) = 0;
+    virtual void addPublisher(const std::string &topic_name, const DataType &type, int queue_size) = 0;
 
     virtual void run() = 0;
 
-    virtual void PublishCloud(const std::string &topic_name, const CloudType &data) = 0;
+    virtual void PublishCloud(const std::string &topic_name, const CloudTypeXYZIRT &data) = 0;
+    virtual void PublishCloud(const std::string &topic_name, const CloudTypeXYZI &data) = 0;
 
     virtual void PublishOdometry(const std::string &topic_name, const OdometryType &data) = 0;
 };
