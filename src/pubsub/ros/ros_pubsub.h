@@ -69,6 +69,15 @@ public:
         publishers[topic_name].publish(ros_cloud);
     }
 
+    virtual void PublishCloud(const std::string &topic_name, const CloudTypeXYZICOLRANGE &data){
+        sensor_msgs::PointCloud2 ros_cloud;
+        pcl::toROSMsg(data.cloud, ros_cloud);
+        ros_cloud.header.stamp = ros::Time().fromSec(data.timestamp);
+        ros_cloud.header.frame_id = data.frame;
+        publishers[topic_name].publish(ros_cloud);
+    }
+
+
     void PublishOdometry(const std::string& topic_name, const OdometryType& data){
         nav_msgs::Odometry ros_odom;
         ros_odom.header.stamp = ros::Time().fromSec(data.timestamp);

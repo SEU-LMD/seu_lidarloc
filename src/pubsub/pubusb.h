@@ -26,6 +26,8 @@ public:
 
     virtual void PublishCloud(const std::string &topic_name, const CloudTypeXYZIRT &data) = 0;
     virtual void PublishCloud(const std::string &topic_name, const CloudTypeXYZI &data) = 0;
+    virtual void PublishCloud(const std::string &topic_name, const CloudTypeXYZICOLRANGE &data) = 0;
+
 
     virtual void PublishOdometry(const std::string &topic_name, const OdometryType &data) = 0;
 };

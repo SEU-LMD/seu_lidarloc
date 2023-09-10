@@ -34,6 +34,17 @@ POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZIRT,
                                     (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
                                     (uint16_t, ring, ring)(double, latency, latency))
 
+struct PointXYZICOLRANGE {
+    PCL_ADD_POINT4D
+    uint8_t intensity;
+    float range;
+    uint16_t col;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+} EIGEN_ALIGN16;
+POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZICOLRANGE,
+                                    (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
+                                            (uint16_t, range, range)(uint16_t, col, col))
+
 class CloudTypeXYZIRT: public BaseType{
     public:
         pcl::PointCloud<PointXYZIRT> cloud;
@@ -51,6 +62,15 @@ public:
     }
 };
 typedef std::shared_ptr<CloudTypeXYZI> CloudTypeXYZIPtr;
+
+class CloudTypeXYZICOLRANGE: public BaseType{
+public:
+    pcl::PointCloud<PointXYZICOLRANGE> cloud;
+    DataType getType(){
+        return DataType::LIDAR;
+    }
+};
+typedef std::shared_ptr<CloudTypeXYZICOLRANGE> CloudTypeXYZICOLRANGEPtr;
 
 class OdometryType:public BaseType{
     public:
@@ -83,16 +103,7 @@ class PathType:public BaseType{
 
 //used to commnicate with other thread
 
-struct PointXYZICOLRANGE {
-    PCL_ADD_POINT4D
-    uint8_t intensity;
-    float range;
-    uint16_t col;
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-} EIGEN_ALIGN16;
-POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZICOLRANGE,
-                                    (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
-                                            (uint16_t, range, range)(uint16_t, col, col))
+
 class CloudInfo{
 public:
     int frame_id;

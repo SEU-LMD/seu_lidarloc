@@ -308,7 +308,6 @@ public:
 //                    // save range info  激光点距离
 //                    cloudInfo.pointRange[count] = rangeMat.at<float>(i, j);
                     // save extracted cloud 加入有效激光点
-
                     extractedCloud->push_back(pt_info);
                     // size of extracted cloud
                     ++count;
@@ -320,7 +319,7 @@ public:
 
         //for debug use
         {
-            CloudTypeXYZI cloud_pub;
+            CloudTypeXYZICOLRANGE cloud_pub;
             cloud_pub.timestamp = cloudInfo.timestamp;
             cloud_pub.frame = "map";
             pcl::transformPointCloud(*extractedCloud, cloud_pub.cloud, T_w_l.pose.cast<float>());
