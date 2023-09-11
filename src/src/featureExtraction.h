@@ -256,7 +256,7 @@ public:
                 cloud_feature.cornerCloud = cornerCloud;
                 cloud_feature.surfaceCloud = surfaceCloud;
 
-                opt_mapping_ptr->AddCloudData(cloud_feature);
+//                opt_mapping_ptr->AddCloudData(cloud_feature);
                 //for debug use
                 {
                     CloudTypeXYZI corner_pub,surf_pub;

@@ -122,6 +122,6 @@ public:
     pcl::PointCloud<PointType>::Ptr cornerCloud;
     pcl::PointCloud<PointType>::Ptr surfaceCloud;
 };
-typedef std::shared_ptr<CloudFeature> CloudCloudFeaturePtr;
+typedef std::shared_ptr<CloudFeature> CloudFeaturePtr;
 
 #endif //SEU_LIDARLOC_BASE_TYPE_H

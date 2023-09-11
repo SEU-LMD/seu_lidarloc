@@ -83,7 +83,7 @@ public:
         cloud_with_time.min_latency_timestamp = min_timestamp;
 
         double cost_time = timer.toc();
-        EZLOG(INFO)<<"GetCloudTime cost time(ms) = "<<cost_time<<std::endl;
+//        EZLOG(INFO)<<"GetCloudTime cost time(ms) = "<<cost_time<<std::endl;
         return cost_time;
     }
 
@@ -234,12 +234,12 @@ public:
                 continue;
             }
             //very important function@!!!!!!!!!
-//            if (SensorConfig::use_gnss_deskew){
-//                thisPoint = DeskewPoint(&thisPoint,
-//                                        cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp,
-//                                        T_w_b_lidar_start,cloudinfo,
-//                                        pose_deque);//进行点云去畸变
-//            }
+            if (SensorConfig::use_gnss_deskew){
+                thisPoint = DeskewPoint(&thisPoint,
+                                        cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp,
+                                        T_w_b_lidar_start,cloudinfo,
+                                        pose_deque);//进行点云去畸变
+            }
 //            thisPoint = deskewPoint(&thisPoint, cloudinfo.cloud->points[i].latency - cloudinfo.min_latency_timestamp, T_w_b_lidar_start,cloudinfo,pose_deque);//进行点云去畸变
             rangeMat.at<float>(rowIdn, columnIdn) = range;//将去畸变后的点范围和坐标存入rangeMat
             int index = columnIdn + rowIdn * SensorConfig::Horizon_SCAN;//计算索引index,将去畸变后的点存入fullCloud
@@ -266,7 +266,6 @@ public:
             cloud_pub.frame = "map";
             pcl::transformPointCloud(deskewCloud_body_offset, cloud_pub.cloud, (T_w_b_lidar_start).pose.cast<float>());
             pubsub->PublishCloud(topic_deskew_cloud_world, cloud_pub);
-
             //        EZLOG(INFO)<<"deskewCloud_body size = "<<deskewCloud_body->points.size()<<std::endl;
 //        EZLOG(INFO)<<"deskewCloud_body_offset size = "<<deskewCloud_body_offset.points.size()<<std::endl;
 //        EZLOG(INFO)<<"deskewCloud_w size = "<<deskewCloud_w.points.size()<<std::endl;
@@ -330,7 +329,7 @@ public:
 
         while(1){
             if(deque_cloud.size()!=0){
-                EZLOG(INFO)<<"while*************"<<std::endl;
+//                EZLOG(INFO)<<"while*************"<<std::endl;
                 //do something
                 //0.
                 std::deque<OdometryType> odo_poses_copy;
@@ -363,7 +362,7 @@ public:
 
                         cloudinfo.frame_id = frame_id++;
                         cloudinfo.timestamp = cur_scan->timestamp;
-                        EZLOG(INFO)<<"cloudinfo.timestamp = "<<cloudinfo.timestamp<<std::endl;
+//                        EZLOG(INFO)<<"cloudinfo.timestamp = "<<cloudinfo.timestamp<<std::endl;
     //                    EZLOG(INFO)<<"odo_max_ros_time = "<<odo_max_ros_time - odo_min_ros_time<<std::endl;
     //                    EZLOG(INFO)<<"cloud_min_ros_timestamp = "<<cloud_min_ros_timestamp - odo_min_ros_time<<std::endl;
     //                    EZLOG(INFO)<<"cloud_max_ros_timestamp = "<<cloud_max_ros_timestamp - odo_min_ros_time<<std::endl;
@@ -386,7 +385,7 @@ public:
                         EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
 //
 //                        //4. send data to feature extraction node
-                       ft_extr_ptr->AddCloudData(cloudinfo);
+//                       ft_extr_ptr->AddCloudData(cloudinfo);
 //
 //                        //5.pop used odom
                         gnssins_mutex.lock();
@@ -412,7 +411,7 @@ public:
     void AddCloudData(const CloudTypeXYZIRT& data){
 
         EZLOG(INFO)<<"AddCloudData!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
-
+//        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
         CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
         *cloud_ptr = data;//深拷贝
         cloud_mutex.lock();
@@ -422,7 +421,7 @@ public:
 
     void AddGNSSINSSData(const GNSSINSType& data){
 
-        EZLOG(INFO)<<"AddGNSSINSSData!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
+//        EZLOG(INFO)<<"AddGNSSINSSData!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
 
 //        deque_gnssins.push_back(data);
         if(!init)

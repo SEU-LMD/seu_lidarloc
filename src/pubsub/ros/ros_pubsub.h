@@ -69,7 +69,7 @@ public:
         publishers[topic_name].publish(ros_cloud);
     }
 
-     void PublishCloud(const std::string &topic_name, const CloudTypeXYZICOLRANGE &data){
+    void PublishCloud(const std::string &topic_name, const CloudTypeXYZICOLRANGE &data){
         sensor_msgs::PointCloud2 ros_cloud;
         pcl::toROSMsg(data.cloud, ros_cloud);
         ros_cloud.header.stamp = ros::Time().fromSec(data.timestamp);
