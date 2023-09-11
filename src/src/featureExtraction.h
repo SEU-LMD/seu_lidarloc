@@ -5,6 +5,7 @@
 #include "pubsub/data_types.h"
 #include "utils/timer.h"
 #include "OptMapping.h"
+#include "LocMapping.h"
 
 struct smoothness_t {
     float value;
@@ -26,6 +27,7 @@ public:
     std::deque<CloudInfo> deque_cloud;
     std::thread* do_work_thread;
     OPTMapping* opt_mapping_ptr;
+    LOCMapping* loc_mapping_ptr;
 
     std::string topic_corner_world= "/cloud_corner";
     std::string topic_surf_world = "/cloud_surface";
@@ -259,6 +261,7 @@ public:
                 cloud_feature.surfaceCloud = surfaceCloud;
 
 //                opt_mapping_ptr->AddCloudData(cloud_feature);
+                loc_mapping_ptr->AddCloudData(cloud_feature);
 
                 //for debug use
                 {
