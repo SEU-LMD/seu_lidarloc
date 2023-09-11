@@ -252,19 +252,20 @@ public:
             valid_num++;
         }//end for
 
-//        use for debug
+////        use for debug
 //        EZLOG(INFO)<<"valid_num num = "<<valid_num<<std::endl;
 //        EZLOG(INFO)<<"range_outlier num = "<<range_outlier<<std::endl;
 //        EZLOG(INFO)<<"row_outlier num = "<<row_outlier<<std::endl;
 //        EZLOG(INFO)<<"col_outlier num = "<<col_outlier<<std::endl;
 //        EZLOG(INFO)<<"rangemat_outlier num = "<<rangemat_outlier<<std::endl;
 
-        //for debug use
+////        for debug use
         {
             CloudTypeXYZI cloud_pub;
             cloud_pub.timestamp = cloudinfo.cloud_ptr->timestamp;
             cloud_pub.frame = "map";
             pcl::transformPointCloud(deskewCloud_body_offset, cloud_pub.cloud, (T_w_b_lidar_start).pose.cast<float>());
+
             pubsub->PublishCloud(topic_deskew_cloud_world, cloud_pub);
             //        EZLOG(INFO)<<"deskewCloud_body size = "<<deskewCloud_body->points.size()<<std::endl;
 //        EZLOG(INFO)<<"deskewCloud_body_offset size = "<<deskewCloud_body_offset.points.size()<<std::endl;
@@ -311,7 +312,7 @@ public:
         }
         cloudInfo.cloud_ptr = extractedCloud;
 
-        //for debug use
+////        //for debug use
         {
             CloudTypeXYZICOLRANGE cloud_pub;
             cloud_pub.timestamp = cloudInfo.timestamp;
@@ -329,9 +330,8 @@ public:
 
         while(1){
             if(deque_cloud.size()!=0){
-//                EZLOG(INFO)<<"while*************"<<std::endl;
-                //do something
-                //0.
+
+                ///0.do something
                 std::deque<OdometryType> odo_poses_copy;
                 gnssins_mutex.lock();
                 odo_poses_copy = poseQueue;
@@ -339,7 +339,7 @@ public:
                 double odo_min_ros_time =  odo_poses_copy.front().timestamp;
                 double odo_max_ros_time =  odo_poses_copy.back().timestamp;
 
-                //1.get cloud max and min time stamp to
+                ///1.get cloud max and min time stamp to
                 CloudTypeXYZIRTPtr cur_scan;
                 cloud_mutex.lock();
                 cur_scan = deque_cloud.front();
@@ -348,46 +348,37 @@ public:
                 GetCloudTime(cur_scan , cloud_with_time);
                 double cloud_min_ros_timestamp = cloud_with_time.min_ros_timestamp;
                 double cloud_max_ros_timestamp = cloud_with_time.max_ros_timestamp;
-//                EZLOG(INFO)<<"odo_min_ros_time "<<odo_min_ros_time<<std::endl;
-//                EZLOG(INFO)<<"odo_max_ros_time "<<odo_max_ros_time<<std::endl;
-//                EZLOG(INFO)<<"cloud_min_ros_timestamp "<<cloud_min_ros_timestamp<<std::endl;
-//                EZLOG(INFO)<<"cloud_max_ros_timestamp "<<cloud_max_ros_timestamp<<std::endl;
-//                EZLOG(INFO)<<"odo_min_ros_time-cloud_min_ros_timestamp "<<odo_min_ros_time-cloud_min_ros_timestamp<<std::endl;
-//                EZLOG(INFO)<<"odo_max_ros_time-cloud_max_ros_timestamp "<<odo_max_ros_time-cloud_max_ros_timestamp<<std::endl;
-                //2.
+
+                ///2.
                 if(odo_min_ros_time<cloud_min_ros_timestamp && odo_max_ros_time>cloud_max_ros_timestamp){
-                    EZLOG(INFO)<<"success!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
+
                         deque_cloud.pop_front();
                         cloud_mutex.unlock();
 
                         cloudinfo.frame_id = frame_id++;
                         cloudinfo.timestamp = cur_scan->timestamp;
-//                        EZLOG(INFO)<<"cloudinfo.timestamp = "<<cloudinfo.timestamp<<std::endl;
-    //                    EZLOG(INFO)<<"odo_max_ros_time = "<<odo_max_ros_time - odo_min_ros_time<<std::endl;
-    //                    EZLOG(INFO)<<"cloud_min_ros_timestamp = "<<cloud_min_ros_timestamp - odo_min_ros_time<<std::endl;
-    //                    EZLOG(INFO)<<"cloud_max_ros_timestamp = "<<cloud_max_ros_timestamp - odo_min_ros_time<<std::endl;
 
-
+                        /// 1.FindLidarFirstPose
                         PoseT T_w_l_lidar_first_pose;
                         double cost_time_findpose = FindLidarFirstPose(cloud_with_time, odo_poses_copy,//in
                                                                        T_w_l_lidar_first_pose);//out
                         cloudinfo.pose = T_w_l_lidar_first_pose;
                         EZLOG(INFO) << "FindLidarFirstPose cost time(ms) = " << cost_time_findpose << std::endl;
 
-                        //2.imgprojection
-                        //update rangemat and deskewCloud_body
+                        ///2.imgprojection
+                        ///update rangemat and deskewCloud_body
                         double cost_time_projpc = ProjectPointCloud(cloud_with_time, odo_poses_copy, T_w_l_lidar_first_pose);
                         EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
-//
-//                       //3.cloudExtraction
 
+                        ///3.cloudExtraction
                         double cost_time_cloudextraction = CloudExtraction(T_w_l_lidar_first_pose, cloudinfo);
                         EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
-//
-//                        //4. send data to feature extraction node
-//                       ft_extr_ptr->AddCloudData(cloudinfo);
-//
-//                        //5.pop used odom
+
+                        ///4. send data to feature extraction node
+                        ft_extr_ptr->AddCloudData(cloudinfo);
+                        EZLOG(INFO)<<"cloudinfo.cloud_ptr->size() = "<<cloudinfo.cloud_ptr->size()<<std::endl;
+
+                        ///5.pop used odom
                         gnssins_mutex.lock();
                         while(poseQueue.front().timestamp < cloud_max_ros_timestamp - 0.1){
                             poseQueue.pop_front();
@@ -410,9 +401,9 @@ public:
 
     void AddCloudData(const CloudTypeXYZIRT& data){
 
-        EZLOG(INFO)<<"AddCloudData!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
 //        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
         CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
+
         *cloud_ptr = data;//深拷贝
         cloud_mutex.lock();
         deque_cloud.push_back(cloud_ptr);
@@ -420,8 +411,6 @@ public:
     }
 
     void AddGNSSINSSData(const GNSSINSType& data){
-
-//        EZLOG(INFO)<<"AddGNSSINSSData!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
 
 //        deque_gnssins.push_back(data);
         if(!init)
@@ -460,6 +449,7 @@ public:
         PoseT T_w_b(t_w_b, R_w_b);
 
         PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse()));
+
         OdometryType T_w_l_pub;
         T_w_l_pub.frame = "map";
         T_w_l_pub.timestamp = data.timestamp;
@@ -481,7 +471,7 @@ public:
         pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
         do_work_thread = new std::thread(&ImageProjection::DoWork, this);
-        EZLOG(INFO)<<"initprojection*************"<<std::endl;
+        EZLOG(INFO)<<"ImageProjection init success!"<<std::endl;
     }
 
 

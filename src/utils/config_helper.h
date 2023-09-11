@@ -306,7 +306,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::baselinkFrame=sensorconfig["baselinkFrame"].as<std::string>();
     SensorConfig::odometryFrame=sensorconfig["odometryFrame"].as<std::string>();
     SensorConfig::mapFrame=sensorconfig["mapFrame"].as<std::string>();
-    std::cout<<SensorConfig:: mapFrame<<std::endl;
+//    std::cout<<SensorConfig:: mapFrame<<std::endl;
 
 //     //GPS Setting
     SensorConfig::useGPS=sensorconfig["useGPS"].as<bool>();
@@ -317,13 +317,13 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::gpsCovThreshold=sensorconfig["gpsCovThreshold"].as<float >();
     SensorConfig::poseCovThreshold=sensorconfig["poseCovThreshold"].as<float >();
     SensorConfig::gpsDistance=sensorconfig["gpsDistance"].as<float >();
-    std::cout<<SensorConfig::gpsDistance<<std::endl;
+//    std::cout<<SensorConfig::gpsDistance<<std::endl;
 
     // //debu setting
     SensorConfig::debugLidarTimestamp=sensorconfig["debugLidarTimestamp"].as<bool >();
     SensorConfig::debugImu=sensorconfig["debugImu"].as<bool >();
     SensorConfig::debugGps=sensorconfig["debugGps"].as<bool >();
-    std::cout<<SensorConfig::debugGps<<std::endl;
+//    std::cout<<SensorConfig::debugGps<<std::endl;
 
     SensorConfig::sensor=sensorconfig["sensor"].as<std::string >();
     SensorConfig::N_SCAN=sensorconfig["N_SCAN"].as<int >();
@@ -331,7 +331,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::downsampleRate=sensorconfig["downsampleRate"].as<int >();
     SensorConfig::lidarMinRange=sensorconfig["lidarMinRange"].as<float >();
     SensorConfig::lidarMaxRange=sensorconfig["lidarMaxRange"].as<float >();
-    std::cout<<SensorConfig::lidarMaxRange<<std::endl;
+//    std::cout<<SensorConfig::lidarMaxRange<<std::endl;
 
 
     //IMU Settings
@@ -344,7 +344,7 @@ void Load_Sensor_YAML(std::string sensorpath)
 
     SensorConfig::use_gnss_deskew=sensorconfig["use_gnss_deskew"].as<bool >();
 
-    std::cout<<SensorConfig::imuRPYWeight<<std::endl;
+//    std::cout<<SensorConfig::imuRPYWeight<<std::endl;
 
 
 
@@ -399,30 +399,30 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::surfThreshold=mappingconfig["surfThreshold"].as<float >();
         MappingConfig::edgeFeatureMinValidNum=mappingconfig["edgeFeatureMinValidNum"].as<int >();
         MappingConfig::surfFeatureMinValidNum=mappingconfig["surfFeatureMinValidNum"].as<int >();
-        std::cout<<MappingConfig::surfFeatureMinValidNum<<std::endl;
+//        std::cout<<MappingConfig::surfFeatureMinValidNum<<std::endl;
 
         //voxel filter paprams
         MappingConfig::odometrySurfLeafSize=mappingconfig["odometrySurfLeafSize"].as<float >();
         MappingConfig::mappingCornerLeafSize=mappingconfig["mappingCornerLeafSize"].as<float >();
         MappingConfig::mappingSurfLeafSize=mappingconfig["mappingSurfLeafSize"].as<float >();
-        std::cout<<MappingConfig::mappingSurfLeafSize<<std::endl;
+//        std::cout<<MappingConfig::mappingSurfLeafSize<<std::endl;
 
         // robot motion constraint (in case you are using a 2D robot)
         MappingConfig::z_tollerance=mappingconfig["z_tollerance"].as<float >();
         MappingConfig::rotation_tollerance=mappingconfig["rotation_tollerance"].as<float >();
-        std::cout<<MappingConfig::rotation_tollerance<<std::endl;
+//        std::cout<<MappingConfig::rotation_tollerance<<std::endl;
 
         //CPU Params
         MappingConfig::numberOfCores=mappingconfig["numberOfCores"].as<int >();
         MappingConfig::mappingProcessInterval=mappingconfig["mappingProcessInterval"].as<float >();
-        std::cout<<MappingConfig::mappingProcessInterval<<std::endl;
+//        std::cout<<MappingConfig::mappingProcessInterval<<std::endl;
 
         //Surrounding map
         MappingConfig::surroundingkeyframeAddingDistThreshold=mappingconfig["surroundingkeyframeAddingDistThreshold"].as<double >();
         MappingConfig::surroundingkeyframeAddingAngleThreshold=mappingconfig["surroundingkeyframeAddingAngleThreshold"].as<double >();
         MappingConfig::surroundingKeyframeDensity=mappingconfig["surroundingKeyframeDensity"].as<double >();
         MappingConfig::surroundingKeyframeSearchRadius=mappingconfig["surroundingKeyframeSearchRadius"].as<double >();
-        std::cout<<MappingConfig::surroundingKeyframeSearchRadius<<std::endl;
+//        std::cout<<MappingConfig::surroundingKeyframeSearchRadius<<std::endl;
 
         //Loop closure
         MappingConfig::loopClosureEnableFlag=mappingconfig["loopClosureEnableFlag"].as<bool >();
@@ -432,18 +432,18 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::historyKeyframeSearchTimeDiff=mappingconfig["historyKeyframeSearchTimeDiff"].as<float >();
         MappingConfig::historyKeyframeSearchNum=mappingconfig["historyKeyframeSearchNum"].as<int >();
         MappingConfig::historyKeyframeFitnessScore=mappingconfig["historyKeyframeFitnessScore"].as<float >();
-        std::cout<<MappingConfig::historyKeyframeSearchNum<<std::endl;
+//        std::cout<<MappingConfig::historyKeyframeSearchNum<<std::endl;
 
         // Visualization
         MappingConfig::globalMapVisualizationSearchRadius=mappingconfig["globalMapVisualizationSearchRadius"].as<float >();
         MappingConfig::globalMapVisualizationPoseDensity=mappingconfig["globalMapVisualizationPoseDensity"].as<float >();
         MappingConfig::globalMapVisualizationLeafSize=mappingconfig["globalMapVisualizationLeafSize"].as<float >();
-        std::cout<<MappingConfig::globalMapVisualizationLeafSize<<std::endl;
+//        std::cout<<MappingConfig::globalMapVisualizationLeafSize<<std::endl;
 
 
         //mapping
         MappingConfig:: globalMapLeafSize=mappingconfig["globalMapLeafSize"].as<float >();
-        std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
+//        std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
 
         std::cout<<"mapping yaml success load"<<std::endl;
 

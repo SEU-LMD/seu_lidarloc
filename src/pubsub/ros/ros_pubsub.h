@@ -109,15 +109,14 @@ public:
 
     void CloudROSCallback(const sensor_msgs::PointCloud2ConstPtr& data, const std::string& topic_name){
         CloudTypeXYZIRT data_out;
-        EZLOG(INFO)<<"CloudROSCallback*************"<<std::endl;
         convertROSCloudMsgToCloud(data, data_out);
         (this->cloud_callbacks[topic_name])(data_out);
     }
 
     //组合导航设备转换函数
     void convertROSGNSSINSMsgToGNSSINS(const gps_imu::ivsensorgpsConstPtr& gnss_ins_in, GNSSINSType& gnss_ins_out ){
-        gnss_ins_out.lla[0] = gnss_ins_in->lon;
-        gnss_ins_out.lla[1] = gnss_ins_in->lat;
+        gnss_ins_out.lla[0] = gnss_ins_in->lat;
+        gnss_ins_out.lla[1] = gnss_ins_in->lon;
         gnss_ins_out.lla[2] = gnss_ins_in->height;
 
         gnss_ins_out.pitch= gnss_ins_in->pitch;
