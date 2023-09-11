@@ -330,7 +330,7 @@ public:
 
         while(1){
             if(deque_cloud.size()!=0){
-//                EZLOG(INFO)<<"while*************"<<std::endl;
+                EZLOG(INFO)<<"while*************"<<std::endl;
                 //do something
                 //0.
                 std::deque<OdometryType> odo_poses_copy;
@@ -410,6 +410,9 @@ public:
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
+
+        EZLOG(INFO)<<"AddCloudData!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
+
         CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
         *cloud_ptr = data;//深拷贝
         cloud_mutex.lock();
@@ -418,6 +421,8 @@ public:
     }
 
     void AddGNSSINSSData(const GNSSINSType& data){
+
+        EZLOG(INFO)<<"AddGNSSINSSData!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
 
 //        deque_gnssins.push_back(data);
         if(!init)
