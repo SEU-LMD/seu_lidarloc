@@ -27,8 +27,8 @@ public:
     std::thread* do_work_thread;
     OPTMapping* opt_mapping_ptr;
 
-    std::string topic_corner_world= "/cloud_surf";
-    std::string topic_surf_world = "/cloud_corner";
+    std::string topic_corner_world= "/cloud_corner";
+    std::string topic_surf_world = "/cloud_surface";
 
     std::vector<float> cloudCurvature;
     std::vector<int> cloudNeighborPicked;// 1:after process; 0:before process
@@ -74,8 +74,6 @@ public:
     void MarkOccludedPoints(const CloudInfo& cur_scan) {
 
         int cloudSize = cur_scan.cloud_ptr->points.size();
-
-        EZLOG(INFO)<<"***************cloudSize = "<<cloudSize<<std::endl;
 
         // mark occluded points and parallel beam points
         //find current and next point's range value
@@ -238,7 +236,11 @@ public:
                 CloudInfo cur_cloud;
                 cloud_mutex.lock();
                 cur_cloud = deque_cloud.front();
+                deque_cloud.pop_front();
                 cloud_mutex.unlock();
+
+                EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
+                EZLOG(INFO)<<"cur_cloud.frame_id = "<<cur_cloud.frame_id<<std::endl;
 
                 //do some work
                 TicToc timer;

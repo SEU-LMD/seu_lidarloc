@@ -376,7 +376,9 @@ public:
 
                         ///4. send data to feature extraction node
                         ft_extr_ptr->AddCloudData(cloudinfo);
+                        EZLOG(INFO)<<"cloudinfo.frame_id = "<<cloudinfo.frame_id<<std::endl;
                         EZLOG(INFO)<<"cloudinfo.cloud_ptr->size() = "<<cloudinfo.cloud_ptr->size()<<std::endl;
+
 
                         ///5.pop used odom
                         gnssins_mutex.lock();
