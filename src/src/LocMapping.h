@@ -58,6 +58,7 @@ public:
 
     std::string topic_priorMap_surf= "/priorMap_surf";
     std::string topic_priorMap_corner = "/priorMap_corner";
+    std::string topic_current_pose = "/current_pose";
 
     pcl::PointCloud<PointType>::Ptr Keyframe_Poses3D;  //历史关键帧 位置
     pcl::PointCloud<PointType>::Ptr cloudKeyGPSPoses3D;
@@ -1112,29 +1113,6 @@ public:
 //    IMU 初值
     void transformUpdate() {
         std::cout <<"transformUpdate " <<std::endl;
-//        if (cloudInfo.imuAvailable == true) {
-//            if (std::abs(cloudInfo.imuPitchInit) < 1.4) {
-//                double imuWeight = SensorConfig::imuRPYWeight;
-//                tf::Quaternion imuQuaternion;
-//                tf::Quaternion transformQuaternion;
-//                double rollMid, pitchMid, yawMid;
-//
-//                // slerp roll
-//                transformQuaternion.setRPY(current_T_m_l[0], 0, 0);
-//                imuQuaternion.setRPY(cloudInfo.imuRollInit, 0, 0);
-//                tf::Matrix3x3(transformQuaternion.slerp(imuQuaternion, imuWeight))
-//                        .getRPY(rollMid, pitchMid, yawMid);
-//                current_T_m_l[0] = rollMid;
-//
-//                // slerp pitch
-//                transformQuaternion.setRPY(0, current_T_m_l[1], 0);
-//                imuQuaternion.setRPY(0, cloudInfo.imuPitchInit, 0);
-//                tf::Matrix3x3(transformQuaternion.slerp(imuQuaternion, imuWeight))
-//                        .getRPY(rollMid, pitchMid, yawMid);
-//                current_T_m_l[1] = pitchMid;
-//            }
-//        }
-
         current_T_m_l[0] =
                 constraintTransformation(current_T_m_l[0], MappingConfig::rotation_tollerance);
         current_T_m_l[1] =
@@ -1368,11 +1346,6 @@ public:
         cout << "****************************************************" << endl;
         gtSAMgraph.print("GTSAM Graph:\n");
 
-        // add raw odomd
-        nav_msgs::Odometry laserOdometryROS;
-        transformEiegn2Odom(timeLaserInfoCur, laserOdometryROS,
-                            current_T_m_l);
-
         // update iSAM
         isam->update(gtSAMgraph, initialEstimate);
         isam->update();
@@ -1407,12 +1380,6 @@ public:
         thisPose6D.yaw = latestEstimate.rotation().yaw();
         thisPose6D.time = timeLaserInfoCur;
         Keyframe_Poses6D->push_back(thisPose6D);
-
-        // cout << "****************************************************" << endl;
-        // cout << "Pose covariance:" << endl;
-        // cout << isam->marginalCovariance(isamCurrentEstimate.size()-1) << endl <<
-        // endl;
-        poseCovariance = isam->marginalCovariance(isamCurrentEstimate.size() - 1);
 
         // save updated transform
         current_T_m_l[0] = latestEstimate.rotation().roll();
@@ -1473,79 +1440,22 @@ public:
     }
 
     void publishOdometry() {
-        // Publish odometry for ROS (global)
-        nav_msgs::Odometry laserOdometryROS;
-        nav_msgs::Odometry lidar_odom_world_ros;
+        // Publish odometry in world
+        OdometryType current_lidar_pose_world;
         Eigen::Affine3f Lidarodom_2_map = trans2Affine3f(current_T_m_l);//T_ml
-        Eigen::Matrix4f map_2_world = SensorConfig::T_L_B.cast<float>(); //T_wm
-        Eigen::Matrix4f Lidar_odom_world = map_2_world * Lidarodom_2_map.matrix();// T_wl = T_wm * T_ml
-        transformEiegn2Odom(timeLaserInfoCur, laserOdometryROS,
-                            current_T_m_l);
-        transformLidar2World(timeLaserInfoCur, lidar_odom_world_ros,
-                             Lidar_odom_world);
+        Eigen::Matrix4d map_2_world = SensorConfig::T_L_B; //T_wm
+        Eigen::Matrix4d Lidar_odom_world = map_2_world * Lidarodom_2_map.matrix().cast<double>();// T_wl = T_wm * T_ml
 
-//        pubLaserOdometryGlobal.publish(laserOdometryROS);
-//        publidar_odom_World.publish(lidar_odom_world_ros);
-
-        // Publish TF
-        static tf::TransformBroadcaster br;
-        tf::Transform t_odom_to_lidar = tf::Transform(
-                tf::createQuaternionFromRPY(current_T_m_l[0],
-                                            current_T_m_l[1],
-                                            current_T_m_l[2]),
-                tf::Vector3(current_T_m_l[3], current_T_m_l[4],
-                            current_T_m_l[5]));
-//        tf::StampedTransform trans_odom_to_lidar = tf::StampedTransform(
-//                t_odom_to_lidar, timeLaserInfoStamp, SensorConfig::odometryFrame, "lidar_link");
-//        br.sendTransform(trans_odom_to_lidar);
-
-        if (SensorConfig::useGPS) {
-            if (gpsTransfromInit && SensorConfig::updateOrigin) {
-                /** we first update the initial GPS origin points since it may not fix here */
-                Eigen::Vector3d origin_point(Keyframe_Poses6D->at(0).x,
-                                             Keyframe_Poses6D->at(0).y,
-                                             Keyframe_Poses6D->at(0).z);
-                // ENU->LLA
-                Eigen::Vector3d update_origin_lla;
-                geo_converter.Reverse(origin_point[0], origin_point[1], origin_point[2], update_origin_lla[0],
-                                      update_origin_lla[1],
-                                      update_origin_lla[2]);
-                geo_converter.Reset(update_origin_lla[0], update_origin_lla[1], update_origin_lla[2]);
-                std::cout << " origin points: " << originLLA.transpose() << std::endl;
-                std::cout << " update origin points: " << update_origin_lla.transpose() << std::endl;
-                originLLA = update_origin_lla;
-                SensorConfig::updateOrigin = false;
-                ROS_WARN("UPDATE MAP ORIGIN SUCCESS!");
-            }
-
-            /** we transform the optimized ENU point to LLA point for visualization with rviz_satellite*/
-            Eigen::Vector3d curr_point(Keyframe_Poses6D->back().x,
-                                       Keyframe_Poses6D->back().y,
-                                       Keyframe_Poses6D->back().z);
-            Eigen::Vector3d curr_lla;
-            // ENU->LLA
-            geo_converter.Reverse(curr_point[0], curr_point[1], curr_point[2], curr_lla[0], curr_lla[1],
-                                  curr_lla[2]);
-            //                std::cout << std::setprecision(9)
-            //                          << "CURR LLA: " << originLLA.transpose() << std::endl;
-            //                std::cout << std::setprecision(9)
-            //                          << "update LLA: " << curr_lla.transpose() << std::endl;
-            sensor_msgs::NavSatFix fix_msgs;
-            fix_msgs.header.stamp = ros::Time().fromSec(timeLaserInfoCur);
-            fix_msgs.header.frame_id = SensorConfig::odometryFrame;
-            fix_msgs.latitude = curr_lla[0];
-            fix_msgs.longitude = curr_lla[1];
-            fix_msgs.altitude = curr_lla[2];
-//            pubGPSOdometry.publish(fix_msgs);
-        }
+        current_lidar_pose_world.frame = "map";
+        current_lidar_pose_world.timestamp = timeLaserInfoCur;
+        current_lidar_pose_world.pose = Lidar_odom_world;
+        pubsub->PublishOdometry(topic_priorMap_surf, current_lidar_pose_world);
 
         // Publish odometry for ROS (incremental)
         static bool lastIncreOdomPubFlag = false;
-        static nav_msgs::Odometry laserOdomIncremental;  // incremental odometry msg
         static Eigen::Affine3f increOdomAffine;  // incremental odometry in affine
         if (lastIncreOdomPubFlag == false) {
             lastIncreOdomPubFlag = true;
-            laserOdomIncremental = laserOdometryROS;
             increOdomAffine = trans2Affine3f(current_T_m_l);
         } else {
             Eigen::Affine3f affineIncre = incrementalOdometryAffineFront.inverse() *
@@ -1554,90 +1464,12 @@ public:
             float x, y, z, roll, pitch, yaw;
             pcl::getTranslationAndEulerAngles(increOdomAffine, x, y, z, roll, pitch,
                                               yaw);
-//            if (cloudInfo.imuAvailable == true) {
-//                if (std::abs(cloudInfo.imuPitchInit) < 1.4) {
-//                    double imuWeight = 0.1;
-//                    tf::Quaternion imuQuaternion;
-//                    tf::Quaternion transformQuaternion;
-//                    double rollMid, pitchMid, yawMid;
 //
-//                    // slerp roll
-//                    transformQuaternion.setRPY(roll, 0, 0);
-//                    imuQuaternion.setRPY(cloudInfo.imuRollInit, 0, 0);
-//                    tf::Matrix3x3(transformQuaternion.slerp(imuQuaternion, imuWeight))
-//                            .getRPY(rollMid, pitchMid, yawMid);
-//                    roll = rollMid;
-//
-//                    // slerp pitch
-//                    transformQuaternion.setRPY(0, pitch, 0);
-//                    imuQuaternion.setRPY(0, cloudInfo.imuPitchInit, 0);
-//                    tf::Matrix3x3(transformQuaternion.slerp(imuQuaternion, imuWeight))
-//                            .getRPY(rollMid, pitchMid, yawMid);
-//                    pitch = pitchMid;
-//                }
-//            }
 //            laserOdomIncremental.header.stamp = timeLaserInfoStamp;
-            laserOdomIncremental.header.frame_id = SensorConfig::odometryFrame;
-            laserOdomIncremental.child_frame_id = "odom_mapping";
-            laserOdomIncremental.pose.pose.position.x = x;
-            laserOdomIncremental.pose.pose.position.y = y;
-            laserOdomIncremental.pose.pose.position.z = z;
-            laserOdomIncremental.pose.pose.orientation =
-                    tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, yaw);
-            if (isDegenerate)
-                laserOdomIncremental.pose.covariance[0] = 1;
-            else
-                laserOdomIncremental.pose.covariance[0] = 0;
         }
 //        pubLaserOdometryIncremental.publish(laserOdomIncremental);
     }
 
-    void publishFrames() {
-        if (Keyframe_Poses3D->points.empty()) return;
-        // publish key poses
-//        publishCloud(pubKeyPoses, Keyframe_Poses3D, timeLaserInfoStamp,
-//                     SensorConfig::odometryFrame);
-//        // Publish surrounding key frames
-//        publishCloud(pubRecentKeyFrames, localMap_surf_ds,
-//                     timeLaserInfoStamp, SensorConfig::odometryFrame);
-        // publish registered key frame
-//        if (pubRecentKeyFrame.getNumSubscribers() != 0) {
-//            pcl::PointCloud<PointType>::Ptr cloudOut(
-//                    new pcl::PointCloud<PointType>());
-//            PointTypePose thisPose6D = trans2PointTypePose(current_T_m_l);
-//            *cloudOut += *transformPointCloud(current_corner_ds, &thisPose6D);
-//            *cloudOut += *transformPointCloud(current_surf_ds, &thisPose6D);
-//            publishCloud(pubRecentKeyFrame, cloudOut, timeLaserInfoStamp,
-//                         SensorConfig::odometryFrame);
-//        }
-
-        // publish path
-        // publish SLAM infomation for 3rd-party usage
-        static int lastSLAMInfoPubSize = -1;
-//        if (pubSLAMInfo.getNumSubscribers() != 0) {
-//            if (lastSLAMInfoPubSize != Keyframe_Poses6D->size()) {
-//                lio_sam_6axis::cloud_info slamInfo;
-//                slamInfo.header.stamp = timeLaserInfoStamp;
-//                pcl::PointCloud<PointType>::Ptr cloudOut(
-//                        new pcl::PointCloud<PointType>());
-//                *cloudOut += *current_corner_ds;
-//                *cloudOut += *current_surf_ds;
-//                slamInfo.key_frame_cloud = publishCloud(ros::Publisher(), cloudOut,
-//                                                        timeLaserInfoStamp, SensorConfig::lidarFrame);
-//                slamInfo.key_frame_poses =
-//                        publishCloud(ros::Publisher(), Keyframe_Poses6D, timeLaserInfoStamp,
-//                                     SensorConfig::odometryFrame);
-//                pcl::PointCloud<PointType>::Ptr localMapOut(
-//                        new pcl::PointCloud<PointType>());
-//                *localMapOut += *localMap_corner_ds;
-//                *localMapOut += *localMap_surf_ds;
-//                slamInfo.key_frame_map = publishCloud(
-//                        ros::Publisher(), localMapOut, timeLaserInfoStamp, SensorConfig::odometryFrame);
-//                pubSLAMInfo.publish(slamInfo);
-//                lastSLAMInfoPubSize = Keyframe_Poses6D->size();
-//            }
-//        }
-    }
     void DoWork(){
         allocateMemory();
         while(1){
@@ -1693,10 +1525,6 @@ public:
                         saveKeyFramesAndFactor();
 
                         publishOdometry();
-
-                        publishFrames();
-
-
                     }
                 }
 
@@ -1717,6 +1545,7 @@ public:
 
         pubsub->addPublisher(topic_priorMap_corner, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_priorMap_surf, DataType::LIDAR, 10);
+        pubsub->addPublisher(topic_current_pose, DataType::ODOMETRY, 10);
         do_work_thread = new std::thread(&LOCMapping::DoWork, this);
 
     }
