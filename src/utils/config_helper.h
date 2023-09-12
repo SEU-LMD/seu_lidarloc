@@ -74,6 +74,7 @@ class SensorConfig{
     static Eigen::Quaterniond q_body_sensor;
 
     static bool use_gnss_deskew;
+    static int gtsamGNSSBetweenFactorDistance;
 };
 
 class MappingConfig{
@@ -111,6 +112,10 @@ class MappingConfig{
         static double  surroundingkeyframeAddingAngleThreshold;
         static double surroundingKeyframeDensity;
         static double surroundingKeyframeSearchRadius;
+        static double localMap_searchRadius;
+        static int scan_2_prior_map;
+        static std::string prior_map_surf;
+        static std::string prior_map_corner;
 
         //Loop closure
         static bool  loopClosureEnableFlag;
@@ -128,6 +133,8 @@ class MappingConfig{
 
         //mapping
         static float globalMapLeafSize;//meiyong
+        static int scan_2_scan_num_corner;
+        static int scan_2_scan_num_surf;
     };
 class SerializeConfig{
    public:
@@ -208,6 +215,7 @@ Eigen::Matrix3d SensorConfig::extrinsicRPY;
 Eigen::Quaterniond SensorConfig::extrinsicQRPY;
 Eigen::Vector3d SensorConfig::t_body_sensor;
 Eigen::Quaterniond SensorConfig::q_body_sensor;
+int SensorConfig::gtsamGNSSBetweenFactorDistance = 10;
 
 bool SensorConfig::use_gnss_deskew=false;
 
@@ -217,6 +225,8 @@ std::string MappingConfig::save_map_path = "";
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
 bool  MappingConfig::savePCD=false;
 std::string  MappingConfig::savePCDDirectory="";
+std::string MappingConfig::prior_map_surf = " ";
+std::string MappingConfig::prior_map_corner = " ";
 
 // LOAM feature threshold
 float MappingConfig::edgeThreshold=-1;
@@ -243,6 +253,8 @@ double  MappingConfig::surroundingkeyframeAddingDistThreshold=-1;
 double  MappingConfig::surroundingkeyframeAddingAngleThreshold=-1;
 double MappingConfig::surroundingKeyframeDensity=-1;
 double MappingConfig::surroundingKeyframeSearchRadius=-1;
+double MappingConfig::localMap_searchRadius=-1;
+int MappingConfig::scan_2_prior_map = 1;
 
 //Loop closure
 bool  MappingConfig::loopClosureEnableFlag=false;
@@ -260,6 +272,8 @@ float MappingConfig::globalMapVisualizationLeafSize=-1;
 
 //mapping
 float MappingConfig::globalMapLeafSize=-1;
+int  MappingConfig::scan_2_scan_num_surf = 1;
+int  MappingConfig::scan_2_scan_num_corner = 1;
 
 // offline mapping
 std::string SerializeConfig::map_in_path = "";
@@ -373,6 +387,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     Eigen::Vector3d t_sensor_body = SensorConfig::extrinsicTrans;
     SensorConfig::q_body_sensor = q_sensor_body.inverse();
     SensorConfig::t_body_sensor = -(q_sensor_body.inverse() * t_sensor_body);
+    SensorConfig::gtsamGNSSBetweenFactorDistance = sensorconfig["gtsamGNSSBetweenFactorDistance"].as<int>();
 
     std::cout<<"sensorconfig yaml success load"<<std::endl;
 }
@@ -432,7 +447,11 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::historyKeyframeSearchTimeDiff=mappingconfig["historyKeyframeSearchTimeDiff"].as<float >();
         MappingConfig::historyKeyframeSearchNum=mappingconfig["historyKeyframeSearchNum"].as<int >();
         MappingConfig::historyKeyframeFitnessScore=mappingconfig["historyKeyframeFitnessScore"].as<float >();
-//        std::cout<<MappingConfig::historyKeyframeSearchNum<<std::endl;
+        MappingConfig::scan_2_prior_map = mappingconfig["scan_2_prior_map"].as<int>();
+        MappingConfig::localMap_searchRadius = mappingconfig["localMap_searchRadius"].as<double >();
+        MappingConfig::prior_map_corner = mappingconfig["prior_corner_map_path"].as<std::string>();
+        MappingConfig::prior_map_surf = mappingconfig["prior_surf_map_path"].as<std::string>();
+        std::cout<<MappingConfig::historyKeyframeSearchNum<<std::endl;
 
         // Visualization
         MappingConfig::globalMapVisualizationSearchRadius=mappingconfig["globalMapVisualizationSearchRadius"].as<float >();
@@ -443,6 +462,9 @@ void Load_Mapping_YAML(std::string mappingpath)
 
         //mapping
         MappingConfig:: globalMapLeafSize=mappingconfig["globalMapLeafSize"].as<float >();
+//        std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
+        MappingConfig:: scan_2_scan_num_surf=mappingconfig["scan_2_scan_num_surf"].as<float >();
+        MappingConfig:: scan_2_scan_num_corner=mappingconfig["scan_2_scan_num_corner"].as<float >();
 //        std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
 
         std::cout<<"mapping yaml success load"<<std::endl;

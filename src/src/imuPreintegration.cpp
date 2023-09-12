@@ -86,7 +86,7 @@ public:
     Eigen::Affine3f odom2affine(nav_msgs::Odometry odom) {
             Eigen::Vector3d t(odom.pose.pose.position.x,odom.pose.pose.position.y,odom.pose.pose.position.z);
             Eigen::Quaterniond q = odom.pose.pose.orientation;
-            return PoseT(t,q)
+            return PoseT(t,q);
 //        double x, y, z, roll, pitch, yaw;
 //        x = odom.pose.pose.position.x;
 //        y = odom.pose.pose.position.y;

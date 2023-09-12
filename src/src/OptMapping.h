@@ -32,6 +32,7 @@ public:
     }
 
     void DoWork(){
+//        内存初始化
         while(1){
             if(deque_cloud.size()==0){
                 CloudFeature cur_ft;
@@ -41,6 +42,7 @@ public:
                 cloud_mutex.unlock();
 
                 //just do something
+//                code
 
             }
         }
@@ -48,6 +50,7 @@ public:
 
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
+//        填发布
 //        pubsub->addPublisher(topic_corner_world, DataType::LIDAR, 10);
 //        pubsub->addPublisher(topic_surf_world, DataType::LIDAR, 10);
         do_work_thread = new std::thread(&OPTMapping::DoWork, this);
