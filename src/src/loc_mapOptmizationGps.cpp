@@ -414,6 +414,7 @@ public:
         t_w_cur[1] = msgIn->T_w_l_curlidar.pose.pose.position.y;
         t_w_cur[2] = msgIn->T_w_l_curlidar.pose.pose.position.z;
 
+
         q_w_cur.x() = msgIn->T_w_l_curlidar.pose.pose.orientation.x;
         q_w_cur.y() = msgIn->T_w_l_curlidar.pose.pose.orientation.y;
         q_w_cur.z() = msgIn->T_w_l_curlidar.pose.pose.orientation.z;

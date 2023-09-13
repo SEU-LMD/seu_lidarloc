@@ -32,9 +32,12 @@ public:
 
 
     void SaveCloud(const CloudInfo& cloud_info){
-        pcl::io::savePCDFileBinary(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_corner.pcd", *cloud_info.corner_cloud);
-        pcl::io::savePCDFileBinary(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_surf.pcd", *cloud_info.surf_cloud);
+       // pcl::io::savePCDFileBinary(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_corner.pcd", *cloud_info.corner_cloud);
+      //  pcl::io::savePCDFileBinary(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_surf.pcd", *cloud_info.surf_cloud);
+        pcl::io::savePCDFileBinary(MappingConfig::save_map_path+"global_corner.pcd", *cloud_info.corner_cloud);
+        pcl::io::savePCDFileBinary(MappingConfig::save_map_path+"global_surf.pcd", *cloud_info.surf_cloud);
     }
+
 
     static void SaveOriginLLA(const Eigen::Vector3d gps_point){
         std::fstream originStream( MappingConfig::save_map_path +"Origin.txt", std::fstream::out);
