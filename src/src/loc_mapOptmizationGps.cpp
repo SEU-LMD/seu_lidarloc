@@ -76,15 +76,15 @@ public:
     Values isamCurrentEstimate; // 所有关键帧位姿的优化结果
     Eigen::MatrixXd poseCovariance;
 
-    ros::Publisher pubLaserCloudSurround;
-    ros::Publisher pubLaserOdometryGlobal;
+//    ros::Publisher pubLaserCloudSurround;
+//    ros::Publisher pubLaserOdometryGlobal;
     ros::Publisher publidar_odom_World;
     ros::Publisher pubLaserOdometryIncremental;
-    ros::Publisher pubKeyPoses;
+//    ros::Publisher pubKeyPoses;
     ros::Publisher pubGPSOdometry;
 
-    ros::Publisher pubRecentKeyFrames;
-    ros::Publisher pubRecentKeyFrame;
+//    ros::Publisher pubRecentKeyFrames;
+//    ros::Publisher pubRecentKeyFrame;
     ros::Publisher pubSurfFromMap;
     ros::Publisher pubCornerFromMap;
     ros::Publisher pubLocalMapSurf;
@@ -94,7 +94,7 @@ public:
     sensor_msgs::PointCloud2 pcl_LocalMap_surf_msg;
     sensor_msgs::PointCloud2 pcl_LocalMap_corner_msg;
 
-    ros::Publisher pubSLAMInfo;
+//    ros::Publisher pubSLAMInfo;
 
     ros::Subscriber subCloud;
     ros::Subscriber subGPS;
@@ -224,12 +224,12 @@ public:
             pubGPSOdometry = nh.advertise<sensor_msgs::NavSatFix>("lio_sam_6axis/mapping/odometry_gps", 1);
         }
 
-        pubKeyPoses = nh.advertise<sensor_msgs::PointCloud2>(
-                "lio_sam_6axis/mapping/trajectory", 1);
-        pubLaserOdometryGlobal =
-                nh.advertise<nav_msgs::Odometry>("lio_sam_6axis/mapping/odometry", 1);
-        pubLaserOdometryIncremental = nh.advertise<nav_msgs::Odometry>(
-                "lio_sam_6axis/mapping/odometry_incremental", 1);
+//        pubKeyPoses = nh.advertise<sensor_msgs::PointCloud2>(
+//                "lio_sam_6axis/mapping/trajectory", 1);
+//        pubLaserOdometryGlobal =
+//                nh.advertise<nav_msgs::Odometry>("lio_sam_6axis/mapping/odometry", 1);
+//        pubLaserOdometryIncremental = nh.advertise<nav_msgs::Odometry>(
+//                "lio_sam_6axis/mapping/odometry_incremental", 1);
         publidar_odom_World =
                 nh.advertise<nav_msgs::Odometry>("lidar_odometry_world", 1);
 
@@ -243,8 +243,8 @@ public:
                 "/gnss_odom", 200, &Loc_mapOptimization::gpsHandler, this,
                 ros::TransportHints().tcpNoDelay());
 
-        pubRecentKeyFrames = nh.advertise<sensor_msgs::PointCloud2>(
-                "lio_sam_6axis/mapping/map_local", 1);
+//        pubRecentKeyFrames = nh.advertise<sensor_msgs::PointCloud2>(
+//                "lio_sam_6axis/mapping/map_local", 1);
 
         pubSurfFromMap = nh.advertise<sensor_msgs::PointCloud2>(
                 "surf_fromMap", 1);
@@ -255,8 +255,8 @@ public:
         pubLocalMapCorner = nh.advertise<sensor_msgs::PointCloud2>(
                 "localMap_corner", 1);
 
-        pubSLAMInfo = nh.advertise<lio_sam_6axis::cloud_info>(
-                "lio_sam_6axis/mapping/slam_info", 1);
+//        pubSLAMInfo = nh.advertise<lio_sam_6axis::cloud_info>(
+//                "lio_sam_6axis/mapping/slam_info", 1);
 
         downSizeFilterCorner.setLeafSize(MappingConfig::mappingCornerLeafSize,
                                          MappingConfig::mappingCornerLeafSize,
@@ -662,7 +662,7 @@ public:
                 init_point.z = t_w_cur.z();
                 init_point.intensity = current_frameID;
             }
-            EZLOG(INFO) << "MODE: Scan to Map!";
+//            EZLOG(INFO) << "MODE: Scan to Map!";
             // 添加标志位，需要下一帧再加载。现在可以先写着1.5s换一次local map
             current_lidar_frameID =  init_point.intensity;
 //            flag_load_localMap = 1; // unecessary to load local map
@@ -676,7 +676,7 @@ public:
             std::vector<int> pointSearchInd;
             std::vector<float> pointSearchSqDis;
 //            world frame
-            EZLOG(INFO)<<"init_point is: " << init_point; // be aware of init_point's frame
+//            EZLOG(INFO)<<"init_point is: " << init_point; // be aware of init_point's frame
 
             kdtree_priorMap_surf->setInputCloud(priorMap_surf);
             kdtree_priorMap_surf->radiusSearch(
@@ -741,7 +741,7 @@ public:
         {
             if(Keyframe_Poses3D->points.empty() != true)
             {
-                EZLOG(INFO) << "MODE: Scan to SCAN!";
+//                EZLOG(INFO) << "MODE: Scan to SCAN!";
                 extractNearby();
             }
         }
@@ -750,7 +750,7 @@ public:
         if(localMap_surf_ds_num > MappingConfig::scan_2_scan_num_surf
             ||localMap_corner_ds_num > MappingConfig::scan_2_scan_num_corner)
         {
-            EZLOG(INFO) << "MODE: Change mode ->>>>>>>>> Scan to Map!";
+//            EZLOG(INFO) << "MODE: Change mode ->>>>>>>>> Scan to Map!";
             flag_scan_mode_change = 1;//change loc mode to scan 2 map
         }
 //        localMap_corner_and_surf[current_lidar_frameID] =
@@ -901,19 +901,19 @@ public:
     void cornerOptimization() {
         switch (current_frame) {
             case WORLD:
-                EZLOG(INFO)<<"cal in World frame";
+//                EZLOG(INFO)<<"cal in World frame";
                 transforPoint2World();
                 break;
             case LIDAR:
-                EZLOG(INFO)<<"cal in Lidar frame";
+//                EZLOG(INFO)<<"cal in Lidar frame";
                 updatePointAssociateToMap();
                 break;
             default:
                 EZLOG(INFO)<<"ERROR! Wrong current_frame Type!!!";
                 break;
         }
-        EZLOG(INFO)<<" transPointAssociateToMap: ";
-        EZLOG(INFO)<<transPointAssociateToMap.matrix();
+//        EZLOG(INFO)<<" transPointAssociateToMap: ";
+//        EZLOG(INFO)<<transPointAssociateToMap.matrix();
 
 //#pragma omp parallel for num_threads(numberOfCores)
         for (int i = 0; i < current_corner_ds_num; i++) {
@@ -924,11 +924,11 @@ public:
 //            激光系转地图系
             switch (current_frame) {
                 case WORLD:
-                    EZLOG(INFO)<<"current_T_m_l already in  world_corner";
+//                    EZLOG(INFO)<<"current_T_m_l already in  world_corner";
                     pointAssociateToWorld_noTrans(&pointOri, &pointSel);
                     break;
                 case LIDAR:
-                    EZLOG(INFO)<<"change current_T_m_l to world_corner";
+//                    EZLOG(INFO)<<"change current_T_m_l to world_corner";
                     pointAssociateToWorld_withTrans(&pointOri, &pointSel);
                     break;
                 default:
@@ -1057,11 +1057,11 @@ public:
     void surfOptimization() {
         switch (current_frame) {
             case WORLD:
-                EZLOG(INFO)<<"current_T_m_l already in world_surf";
+//                EZLOG(INFO)<<"current_T_m_l already in world_surf";
                 transforPoint2World();
                 break;
             case LIDAR:
-                EZLOG(INFO)<<"change current_T_m_l to world_surf";
+//                EZLOG(INFO)<<"change current_T_m_l to world_surf";
                 updatePointAssociateToMap();
                 break;
             default:
@@ -1081,11 +1081,11 @@ public:
             //            激光系转地图系
             switch (current_frame) {
                 case WORLD:
-                    EZLOG(INFO)<<"current_T_m_l already in world_surf";
+//                    EZLOG(INFO)<<"current_T_m_l already in world_surf";
                     pointAssociateToWorld_noTrans(&pointOri, &pointSel);
                     break;
                 case LIDAR:
-                    EZLOG(INFO)<<"change current_T_m_l to world_surf";
+//                    EZLOG(INFO)<<"change current_T_m_l to world_surf";
                     pointAssociateToWorld_withTrans(&pointOri, &pointSel);
                     break;
                 default:
@@ -1326,8 +1326,8 @@ public:
         if (Keyframe_Poses3D->points.empty()) return;
 
 //        当前帧特征点
-        EZLOG(INFO) << "current_corner_ds_num: " << current_corner_ds_num
-                    << " current_surf_ds_num: " << current_surf_ds_num;
+//        EZLOG(INFO) << "current_corner_ds_num: " << current_corner_ds_num
+//                    << " current_surf_ds_num: " << current_surf_ds_num;
 
         if (current_corner_ds_num > MappingConfig::edgeFeatureMinValidNum &&
             current_surf_ds_num > MappingConfig::surfFeatureMinValidNum) {
@@ -1351,8 +1351,8 @@ public:
             }
             transformUpdate();
         } else {
-            EZLOG(INFO) <<"Not enough features! Only %d edge and %d planar features available."
-                        <<current_corner_ds_num, current_surf_ds_num;
+//            EZLOG(INFO) <<"Not enough features! Only %d edge and %d planar features available."
+//                        <<current_corner_ds_num, current_surf_ds_num;
         }
     }
 
@@ -1567,7 +1567,7 @@ public:
     void addGNSSBetweenFactor()
     {
         if (Keyframe_Poses3D->points.size() < 3) {
-            EZLOG(INFO) << "GNSS init start from frame 3!";
+//            EZLOG(INFO) << "GNSS init start from frame 3!";
             last_gnss_poses = gtsam::Pose3(gtsam::Rot3(q_w_cur_matrix), gtsam::Point3(t_w_cur));
             Keyframe_Poses3D_last_num = Keyframe_Poses3D->points.size();
             return;
@@ -1576,15 +1576,15 @@ public:
         frame_cnt++;
 
         if (frame_cnt < SensorConfig::gtsamGNSSBetweenFactorDistance) {
-            EZLOG(INFO) << "control GNSS factor frequency!: "<<float(frame_cnt*1.0/5)*100 <<" %";
+//            EZLOG(INFO) << "control GNSS factor frequency!: "<<float(frame_cnt*1.0/5)*100 <<" %";
             // void ,control frequency
         } else {
-            EZLOG(INFO) << "ADD GNSS BETWEEN FACTOR!!!";
-            EZLOG(INFO) << "last_gnss_poses:"<<last_gnss_poses;
+//            EZLOG(INFO) << "ADD GNSS BETWEEN FACTOR!!!";
+//            EZLOG(INFO) << "last_gnss_poses:"<<last_gnss_poses;
             current_gnss_poses = gtsam::Pose3(gtsam::Rot3(q_w_cur_matrix), gtsam::Point3(t_w_cur));
-            EZLOG(INFO) << "current_gnss_poses:"<<current_gnss_poses;
-            EZLOG(INFO) << "last_gnss_poses No:"<<Keyframe_Poses3D_last_num;
-            EZLOG(INFO) << "current_gnss_poses No:"<<Keyframe_Poses3D->points.size();
+//            EZLOG(INFO) << "current_gnss_poses:"<<current_gnss_poses;
+//            EZLOG(INFO) << "last_gnss_poses No:"<<Keyframe_Poses3D_last_num;
+//            EZLOG(INFO) << "current_gnss_poses No:"<<Keyframe_Poses3D->points.size();
             frame_cnt = 0;
             noiseModel::Diagonal::shared_ptr GNSS_noise =
                     noiseModel::Diagonal::Variances(
@@ -1721,17 +1721,33 @@ public:
 
     void publishOdometry() {
         // Publish odometry for ROS (global)
-        nav_msgs::Odometry laserOdometryROS;
+//        nav_msgs::Odometry laserOdometryROS;
         nav_msgs::Odometry lidar_odom_world_ros;
         Eigen::Affine3f Lidarodom_2_map = trans2Affine3f(current_T_m_l);//T_ml
         Eigen::Matrix4f map_2_world = SensorConfig::T_L_B.cast<float>(); //T_wm
         Eigen::Matrix4f Lidar_odom_world = map_2_world * Lidarodom_2_map.matrix();// T_wl = T_wm * T_ml
-        transformEiegn2Odom(timeLaserInfoCur, laserOdometryROS,
-                            current_T_m_l);
-        transformLidar2World(timeLaserInfoCur, lidar_odom_world_ros,
-                          Lidar_odom_world);
+        switch (current_frame) {
+            default:
+                EZLOG(INFO)<<"ERROR! Wrong current_frame Type!!!";
+                break;
+            case WORLD:
+            {
+                //                already in world frame
+                transformLidar2World(timeLaserInfoCur, lidar_odom_world_ros,Lidarodom_2_map.matrix());
+                break;
+            }
+            case LIDAR:
+            {
+                transformLidar2World(timeLaserInfoCur, lidar_odom_world_ros,Lidar_odom_world);
+                break;
+            }
+//                already in world frame
+        };
 
-        pubLaserOdometryGlobal.publish(laserOdometryROS);
+//        transformEiegn2Odom(timeLaserInfoCur, laserOdometryROS,
+//                            current_T_m_l);
+//        pubLaserOdometryGlobal.publish(laserOdometryROS);
+
         publidar_odom_World.publish(lidar_odom_world_ros);
 
         // Publish TF
@@ -1787,103 +1803,103 @@ public:
         }
 
         // Publish odometry for ROS (incremental)
-        static bool lastIncreOdomPubFlag = false;
-        static nav_msgs::Odometry laserOdomIncremental;  // incremental odometry msg
-        static Eigen::Affine3f increOdomAffine;  // incremental odometry in affine
-        if (lastIncreOdomPubFlag == false) {
-            lastIncreOdomPubFlag = true;
-            laserOdomIncremental = laserOdometryROS;
-            increOdomAffine = trans2Affine3f(current_T_m_l);
-        } else {
-            Eigen::Affine3f affineIncre = incrementalOdometryAffineFront.inverse() *
-                                          incrementalOdometryAffineBack;
-            increOdomAffine = increOdomAffine * affineIncre;
-            float x, y, z, roll, pitch, yaw;
-            pcl::getTranslationAndEulerAngles(increOdomAffine, x, y, z, roll, pitch,
-                                              yaw);
-            if (cloudInfo.imuAvailable == true) {
-                if (std::abs(cloudInfo.imuPitchInit) < 1.4) {
-                    double imuWeight = 0.1;
-                    tf::Quaternion imuQuaternion;
-                    tf::Quaternion transformQuaternion;
-                    double rollMid, pitchMid, yawMid;
-
-                    // slerp roll
-                    transformQuaternion.setRPY(roll, 0, 0);
-                    imuQuaternion.setRPY(cloudInfo.imuRollInit, 0, 0);
-                    tf::Matrix3x3(transformQuaternion.slerp(imuQuaternion, imuWeight))
-                            .getRPY(rollMid, pitchMid, yawMid);
-                    roll = rollMid;
-
-                    // slerp pitch
-                    transformQuaternion.setRPY(0, pitch, 0);
-                    imuQuaternion.setRPY(0, cloudInfo.imuPitchInit, 0);
-                    tf::Matrix3x3(transformQuaternion.slerp(imuQuaternion, imuWeight))
-                            .getRPY(rollMid, pitchMid, yawMid);
-                    pitch = pitchMid;
-                }
-            }
-            laserOdomIncremental.header.stamp = timeLaserInfoStamp;
-            laserOdomIncremental.header.frame_id = SensorConfig::odometryFrame;
-            laserOdomIncremental.child_frame_id = "odom_mapping";
-            laserOdomIncremental.pose.pose.position.x = x;
-            laserOdomIncremental.pose.pose.position.y = y;
-            laserOdomIncremental.pose.pose.position.z = z;
-            laserOdomIncremental.pose.pose.orientation =
-                    tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, yaw);
-            if (isDegenerate)
-                laserOdomIncremental.pose.covariance[0] = 1;
-            else
-                laserOdomIncremental.pose.covariance[0] = 0;
-        }
-        pubLaserOdometryIncremental.publish(laserOdomIncremental);
+//        static bool lastIncreOdomPubFlag = false;
+//        static nav_msgs::Odometry laserOdomIncremental;  // incremental odometry msg
+//        static Eigen::Affine3f increOdomAffine;  // incremental odometry in affine
+//        if (lastIncreOdomPubFlag == false) {
+//            lastIncreOdomPubFlag = true;
+//            laserOdomIncremental = laserOdometryROS;
+//            increOdomAffine = trans2Affine3f(current_T_m_l);
+//        } else {
+//            Eigen::Affine3f affineIncre = incrementalOdometryAffineFront.inverse() *
+//                                          incrementalOdometryAffineBack;
+//            increOdomAffine = increOdomAffine * affineIncre;
+//            float x, y, z, roll, pitch, yaw;
+//            pcl::getTranslationAndEulerAngles(increOdomAffine, x, y, z, roll, pitch,
+//                                              yaw);
+//            if (cloudInfo.imuAvailable == true) {
+//                if (std::abs(cloudInfo.imuPitchInit) < 1.4) {
+//                    double imuWeight = 0.1;
+//                    tf::Quaternion imuQuaternion;
+//                    tf::Quaternion transformQuaternion;
+//                    double rollMid, pitchMid, yawMid;
+//
+//                    // slerp roll
+//                    transformQuaternion.setRPY(roll, 0, 0);
+//                    imuQuaternion.setRPY(cloudInfo.imuRollInit, 0, 0);
+//                    tf::Matrix3x3(transformQuaternion.slerp(imuQuaternion, imuWeight))
+//                            .getRPY(rollMid, pitchMid, yawMid);
+//                    roll = rollMid;
+//
+//                    // slerp pitch
+//                    transformQuaternion.setRPY(0, pitch, 0);
+//                    imuQuaternion.setRPY(0, cloudInfo.imuPitchInit, 0);
+//                    tf::Matrix3x3(transformQuaternion.slerp(imuQuaternion, imuWeight))
+//                            .getRPY(rollMid, pitchMid, yawMid);
+//                    pitch = pitchMid;
+//                }
+//            }
+//            laserOdomIncremental.header.stamp = timeLaserInfoStamp;
+//            laserOdomIncremental.header.frame_id = SensorConfig::odometryFrame;
+//            laserOdomIncremental.child_frame_id = "odom_mapping";
+//            laserOdomIncremental.pose.pose.position.x = x;
+//            laserOdomIncremental.pose.pose.position.y = y;
+//            laserOdomIncremental.pose.pose.position.z = z;
+//            laserOdomIncremental.pose.pose.orientation =
+//                    tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, yaw);
+//            if (isDegenerate)
+//                laserOdomIncremental.pose.covariance[0] = 1;
+//            else
+//                laserOdomIncremental.pose.covariance[0] = 0;
+//        }
+//        pubLaserOdometryIncremental.publish(laserOdomIncremental);
     }
 
     void publishFrames() {
         if (Keyframe_Poses3D->points.empty()) return;
         // publish key poses
-        publishCloud(pubKeyPoses, Keyframe_Poses3D, timeLaserInfoStamp,
-                     SensorConfig::odometryFrame);
+//        publishCloud(pubKeyPoses, Keyframe_Poses3D, timeLaserInfoStamp,
+//                     SensorConfig::odometryFrame);
         // Publish surrounding key frames
-        publishCloud(pubRecentKeyFrames, localMap_surf_ds,
-                     timeLaserInfoStamp, SensorConfig::odometryFrame);
+//        publishCloud(pubRecentKeyFrames, localMap_surf_ds,
+//                     timeLaserInfoStamp, SensorConfig::odometryFrame);
         // publish registered key frame
-        if (pubRecentKeyFrame.getNumSubscribers() != 0) {
-            pcl::PointCloud<PointType>::Ptr cloudOut(
-                    new pcl::PointCloud<PointType>());
-            PointTypePose thisPose6D = trans2PointTypePose(current_T_m_l);
-            *cloudOut += *transformPointCloud(current_corner_ds, &thisPose6D);
-            *cloudOut += *transformPointCloud(current_surf_ds, &thisPose6D);
-            publishCloud(pubRecentKeyFrame, cloudOut, timeLaserInfoStamp,
-                         SensorConfig::odometryFrame);
-        }
+//        if (pubRecentKeyFrame.getNumSubscribers() != 0) {
+//            pcl::PointCloud<PointType>::Ptr cloudOut(
+//                    new pcl::PointCloud<PointType>());
+//            PointTypePose thisPose6D = trans2PointTypePose(current_T_m_l);
+//            *cloudOut += *transformPointCloud(current_corner_ds, &thisPose6D);
+//            *cloudOut += *transformPointCloud(current_surf_ds, &thisPose6D);
+//            publishCloud(pubRecentKeyFrame, cloudOut, timeLaserInfoStamp,
+//                         SensorConfig::odometryFrame);
+//        }
 
         // publish path
         // publish SLAM infomation for 3rd-party usage
-        static int lastSLAMInfoPubSize = -1;
-        if (pubSLAMInfo.getNumSubscribers() != 0) {
-            if (lastSLAMInfoPubSize != Keyframe_Poses6D->size()) {
-                lio_sam_6axis::cloud_info slamInfo;
-                slamInfo.header.stamp = timeLaserInfoStamp;
-                pcl::PointCloud<PointType>::Ptr cloudOut(
-                        new pcl::PointCloud<PointType>());
-                *cloudOut += *current_corner_ds;
-                *cloudOut += *current_surf_ds;
-                slamInfo.key_frame_cloud = publishCloud(ros::Publisher(), cloudOut,
-                                                        timeLaserInfoStamp, SensorConfig::lidarFrame);
-                slamInfo.key_frame_poses =
-                        publishCloud(ros::Publisher(), Keyframe_Poses6D, timeLaserInfoStamp,
-                                     SensorConfig::odometryFrame);
-                pcl::PointCloud<PointType>::Ptr localMapOut(
-                        new pcl::PointCloud<PointType>());
-                *localMapOut += *localMap_corner_ds;
-                *localMapOut += *localMap_surf_ds;
-                slamInfo.key_frame_map = publishCloud(
-                        ros::Publisher(), localMapOut, timeLaserInfoStamp, SensorConfig::odometryFrame);
-                pubSLAMInfo.publish(slamInfo);
-                lastSLAMInfoPubSize = Keyframe_Poses6D->size();
-            }
-        }
+//        static int lastSLAMInfoPubSize = -1;
+//        if (pubSLAMInfo.getNumSubscribers() != 0) {
+//            if (lastSLAMInfoPubSize != Keyframe_Poses6D->size()) {
+//                lio_sam_6axis::cloud_info slamInfo;
+//                slamInfo.header.stamp = timeLaserInfoStamp;
+//                pcl::PointCloud<PointType>::Ptr cloudOut(
+//                        new pcl::PointCloud<PointType>());
+//                *cloudOut += *current_corner_ds;
+//                *cloudOut += *current_surf_ds;
+//                slamInfo.key_frame_cloud = publishCloud(ros::Publisher(), cloudOut,
+//                                                        timeLaserInfoStamp, SensorConfig::lidarFrame);
+//                slamInfo.key_frame_poses =
+//                        publishCloud(ros::Publisher(), Keyframe_Poses6D, timeLaserInfoStamp,
+//                                     SensorConfig::odometryFrame);
+//                pcl::PointCloud<PointType>::Ptr localMapOut(
+//                        new pcl::PointCloud<PointType>());
+//                *localMapOut += *localMap_corner_ds;
+//                *localMapOut += *localMap_surf_ds;
+//                slamInfo.key_frame_map = publishCloud(
+//                        ros::Publisher(), localMapOut, timeLaserInfoStamp, SensorConfig::odometryFrame);
+//                pubSLAMInfo.publish(slamInfo);
+//                lastSLAMInfoPubSize = Keyframe_Poses6D->size();
+//            }
+//        }
     }
 };
 

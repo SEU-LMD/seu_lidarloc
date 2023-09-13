@@ -108,6 +108,6 @@ target_link_libraries(loc_mapOptmizationGps ${catkin_LIBRARIES} ${PCL_LIBRARIES}
 #target_link_libraries(priorMapLoc ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES}  gtsam  libGeographic  ${YAML_LIB})
 
 # IMU Preintegrations
-#add_executable(imuPreintegration src/imuPreintegration.cpp)
-#target_link_libraries(imuPreintegration ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam  ${YAML_LIB})
+add_executable(imuPreintegration src/imuPreintegration.cpp)
+target_link_libraries(imuPreintegration ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam  ${YAML_LIB})
 

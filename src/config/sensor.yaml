@@ -36,8 +36,8 @@
   lidarMaxRange: 1000.0
 
   # IMU Settings
-  imuAccNoise: 3.7686306102624571e-02
-  imuGyrNoise: 2.3417543020438883e-03
+  imuAccNoise: 7.5499e-04
+  imuGyrNoise: 4.304897e-04
   imuAccBiasN: 1.1416642385952368e-03
   imuGyrBiasN: 1.4428407712885209e-05
   imuGravity: 0.0

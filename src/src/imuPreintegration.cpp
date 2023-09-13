@@ -53,21 +53,9 @@ public:
     deque<nav_msgs::Odometry> imuOdomQueue;
 
     TransformFusion() {
-        //need transformation between lidarFrame and baselinkFrame
-        if (SensorConfig::lidarFrame != SensorConfig::baselinkFrame) {
-            try {
-                tfListener.waitForTransform(SensorConfig::lidarFrame, SensorConfig::baselinkFrame, ros::Time(0),
-                                            ros::Duration(3.0));
-                //trans from lidar to baselink
-                tfListener.lookupTransform(SensorConfig::lidarFrame, SensorConfig::baselinkFrame, ros::Time(0),
-                                           lidar2Baselink);
-            } catch (tf::TransformException ex) {
-                ROS_ERROR("%s", ex.what());
-            }
-        }
         //subscribe LO,from mapOptimization
         subLaserOdometry = nh.subscribe<nav_msgs::Odometry>(
-                "lio_sam_6axis/mapping/odometry", 5,
+                "lidar_odometry_world", 5,
                 &TransformFusion::lidarOdometryHandler, this,
                 ros::TransportHints().tcpNoDelay());
         //subscribe IMU odometry,from IMUPreintegration
@@ -249,13 +237,14 @@ public:
                 SensorConfig::imuTopic, 2000, &IMUPreintegration::imuHandler, this,
                 ros::TransportHints().tcpNoDelay());
         subOdometry = nh.subscribe<nav_msgs::Odometry>(
-                "lio_sam_6axis/mapping/odometry_incremental", 5,
+                "lidar_odometry_world", 5,
                 &IMUPreintegration::odometryHandler, this,
                 ros::TransportHints().tcpNoDelay());
 
         pubImuOdometry =
                 nh.advertise<nav_msgs::Odometry>(SensorConfig::odomTopic + "_incremental", 2000);
 
+        // imu预积分的噪声协方差
         boost::shared_ptr<gtsam::PreintegrationParams> p =
                 gtsam::PreintegrationParams::MakeSharedU(SensorConfig::imuGravity);
         p->accelerometerCovariance =
@@ -287,24 +276,15 @@ public:
                 SensorConfig::imuAccBiasN, SensorConfig::imuGyrBiasN, SensorConfig::imuGyrBiasN, SensorConfig::imuGyrBiasN)
                 .finished();
 
-//    if (sensor == SensorType::HESAI) {
-//      //      p->n_gravity = gtsam::Vector3(imuGravity_N[0], imuGravity_N[1],
-//      //      imuGravity_N[2]);
-//      noiseModelBetweenBias =
-//          (gtsam::Vector(6) << imuAccBias_N[0], imuAccBias_N[1],
-//           imuAccBias_N[2], imuGyrBias_N[0], imuGyrBias_N[1], imuGyrBias_N[2])
-//              .finished();
-//    } else {
         noiseModelBetweenBias =
                 (gtsam::Vector(6) << SensorConfig::imuAccBiasN, SensorConfig::imuAccBiasN, SensorConfig::imuAccBiasN,
                         SensorConfig::imuGyrBiasN, SensorConfig::imuGyrBiasN, SensorConfig::imuGyrBiasN)
                         .finished();
-//    }
 
         imuIntegratorImu_ = new gtsam::PreintegratedImuMeasurements(
                 p,
                 prior_imu_bias);  // setting up the IMU integration for IMU message
-        // thread
+//        // thread
         imuIntegratorOpt_ = new gtsam::PreintegratedImuMeasurements(
                 p, prior_imu_bias);  // setting up the IMU integration for optimization
     }
@@ -558,15 +538,25 @@ public:
     void imuHandler(const gps_imu::ivsensorgpsConstPtr &gnssImu_raw) {
         std::lock_guard<std::mutex> lock(mtx);
 
+//        in world Frame
         sensor_msgs::Imu::Ptr imu_raw(new sensor_msgs::Imu());
         imu_raw->header = gnssImu_raw->header;
         imu_raw->linear_acceleration.x = gnssImu_raw->accx;
         imu_raw->linear_acceleration.y = gnssImu_raw->accy;
         imu_raw->linear_acceleration.z = gnssImu_raw->accz;
 
-        imu_raw->angular_velocity.x = gnssImu_raw->angx;
-        imu_raw->angular_velocity.y = gnssImu_raw->angy;
-        imu_raw->angular_velocity.z = gnssImu_raw->yaw;
+        imu_raw->angular_velocity.x = gnssImu_raw->angx * 3.1415926535 / 180.0;
+        imu_raw->angular_velocity.y = gnssImu_raw->angy * 3.1415926535 / 180.0;
+        imu_raw->angular_velocity.z = gnssImu_raw->yaw * 3.1415926535 / 180.0;
+
+        Eigen::Quaterniond orientation_quaternion;
+        orientation_quaternion = Eigen::AngleAxisd(gnssImu_raw->roll * 3.1415926535 / 180.0, Eigen::Vector3d::UnitX())
+                                 *Eigen::AngleAxisd(gnssImu_raw->pitch* 3.1415926535 / 180.0, Eigen::Vector3d::UnitY())
+                                 *Eigen::AngleAxisd(gnssImu_raw->heading* 3.1415926535 / 180.0, Eigen::Vector3d::UnitZ());
+        imu_raw->orientation.x = orientation_quaternion.x();
+        imu_raw->orientation.y = orientation_quaternion.y();
+        imu_raw->orientation.z = orientation_quaternion.z();
+        imu_raw->orientation.w = orientation_quaternion.w();
 
         sensor_msgs::Imu thisImu = imuConverter(*imu_raw);
 
@@ -582,6 +572,8 @@ public:
         //    std::cout << "dt: " << dt << std::endl;
 
         // integrate this single imu message
+        // imu预积分器添加一帧imu数据，注：这个预积分器的起始时刻是上一帧激光里程计时刻
+//        由GTSAM计算IMU位姿
         imuIntegratorImu_->integrateMeasurement(
                 gtsam::Vector3(thisImu.linear_acceleration.x,
                                thisImu.linear_acceleration.y,
@@ -591,6 +583,7 @@ public:
                 dt);
 
         // predict odometry
+        // 用上一帧激光里程计时刻对应的状态、偏置，施加从该时刻开始到当前时刻的imu预计分量，得到当前时刻的状态
         gtsam::NavState currentState =
                 imuIntegratorImu_->predict(prevStateOdom, prevBiasOdom);
 
@@ -638,6 +631,7 @@ int main(int argc, char **argv) {
 #endif
 
     ros::init(argc, argv, "imu_pre");
+
     Load_Sensor_YAML("./config/sensor.yaml");
     Load_Mapping_YAML("./config/mapping.yaml");
 
@@ -645,10 +639,10 @@ int main(int argc, char **argv) {
 
     TransformFusion TF;
 
-    ROS_INFO("\033[1;32m----> IMU Preintegration Started.\033[0m");
-
-    ros::MultiThreadedSpinner spinner(4);
-    spinner.spin();
+    EZLOG(INFO)<<"IMU Preintegration Started!";
+    ros::spin();
+//    ros::MultiThreadedSpinner spinner(4);
+//    spinner.spin();
 
     return 0;
 }
