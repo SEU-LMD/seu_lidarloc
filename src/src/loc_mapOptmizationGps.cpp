@@ -60,6 +60,11 @@ typedef PointXYZIRPYT PointTypePose;
 
 class Loc_mapOptimization {
 public:
+    enum FRAME {
+        LIDAR,    // 0
+        WORLD    // 1
+    };
+    FRAME current_frame = WORLD;
     int flagLoadMap = 1;
     int flag_load_localMap = 0;
     int flag_scan_mode_change = 0;
@@ -82,8 +87,12 @@ public:
     ros::Publisher pubRecentKeyFrame;
     ros::Publisher pubSurfFromMap;
     ros::Publisher pubCornerFromMap;
+    ros::Publisher pubLocalMapSurf;
+    ros::Publisher pubLocalMapCorner;
     sensor_msgs::PointCloud2 pcl_SurfMapMsg;
     sensor_msgs::PointCloud2 pcl_CornerMapMsg;
+    sensor_msgs::PointCloud2 pcl_LocalMap_surf_msg;
+    sensor_msgs::PointCloud2 pcl_LocalMap_corner_msg;
 
     ros::Publisher pubSLAMInfo;
 
@@ -128,9 +137,8 @@ public:
     pcl::PointCloud<PointType>::Ptr localMap_surf_ds;
     pcl::PointCloud<PointType>::Ptr priorMap_corner;// 先验地图角点
     pcl::PointCloud<PointType>::Ptr priorMap_surf; // 先验地图面点
-
-    pcl::PointCloud<PointType>::Ptr Surrounding_surf; //局部 匹配点云 面点
-    pcl::PointCloud<PointType>::Ptr Surrounding_corner;//局部 匹配点云 角点
+    pcl::PointCloud<PointType>::Ptr priorMap_corner_lidarFrame;// 先验地图角点
+    pcl::PointCloud<PointType>::Ptr priorMap_surf_lidarFrame; // 先验地图面点
 
     pcl::KdTreeFLANN<PointType>::Ptr kdtree_priorMap_surf;
     pcl::KdTreeFLANN<PointType>::Ptr kdtree_priorMap_corner;
@@ -167,6 +175,7 @@ public:
     int current_surf_ds_num = 0;
     int current_lidar_frameID = 0;
     int last_lidar_frameID = 0;
+    int flag_use_world_localMap = 1;
 
 
     map<int, int> gpsIndexContainer;   // from new to old
@@ -179,6 +188,7 @@ public:
     Eigen::Quaterniond q_w_cur;
     Eigen::Matrix3d q_w_cur_matrix;
     double q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
+    int current_frameID = 0;
     int frame_cnt = 0;
     gtsam::Pose3 last_gnss_poses;
     int Keyframe_Poses3D_last_num = 3;
@@ -201,12 +211,12 @@ public:
 
         priorMap_corner.reset(new pcl::PointCloud<PointType>); // 先验地图角点
         priorMap_surf.reset(new pcl::PointCloud<PointType>);    // 先验地图面点
-        Surrounding_surf.reset(new pcl::PointCloud<PointType>);
-        Surrounding_corner.reset(new pcl::PointCloud<PointType>);
         kdtree_priorMap_surf.reset(new pcl::KdTreeFLANN<PointType>);
         kdtree_priorMap_corner.reset(new pcl::KdTreeFLANN<PointType>);
         kdtree_localMap_surf.reset(new pcl::KdTreeFLANN<PointType>);
         kdtree_localMap_corner.reset(new pcl::KdTreeFLANN<PointType>);
+        priorMap_corner_lidarFrame.reset(new pcl::PointCloud<PointType>); // 先验地图角点->激光系
+        priorMap_surf_lidarFrame.reset(new pcl::PointCloud<PointType>);    // 先验地图面点->激光系
 
         allocateMemory();
 
@@ -240,6 +250,10 @@ public:
                 "surf_fromMap", 1);
         pubCornerFromMap = nh.advertise<sensor_msgs::PointCloud2>(
                 "Corner_fromMap", 1);
+        pubLocalMapSurf = nh.advertise<sensor_msgs::PointCloud2>(
+                "localMap_surf", 1);
+        pubLocalMapCorner = nh.advertise<sensor_msgs::PointCloud2>(
+                "localMap_corner", 1);
 
         pubSLAMInfo = nh.advertise<lio_sam_6axis::cloud_info>(
                 "lio_sam_6axis/mapping/slam_info", 1);
@@ -289,13 +303,6 @@ public:
         coeffSelSurfVec.resize(SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN);
         laserCloudOriSurfFlag.resize(SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN);
 
-//        laserCloudOriCornerVec.reserve(N_SCAN * Horizon_SCAN);
-//        coeffSelCornerVec.reserve(N_SCAN * Horizon_SCAN);
-//        laserCloudOriCornerFlag.reserve(N_SCAN * Horizon_SCAN);
-//        laserCloudOriSurfVec.reserve(N_SCAN * Horizon_SCAN);
-//        coeffSelSurfVec.reserve(N_SCAN * Horizon_SCAN);
-//        laserCloudOriSurfFlag.reserve(N_SCAN * Horizon_SCAN);
-
         std::fill(laserCloudOriCornerFlag.begin(), laserCloudOriCornerFlag.end(),
                   false);
         std::fill(laserCloudOriSurfFlag.begin(), laserCloudOriSurfFlag.end(),
@@ -329,8 +336,9 @@ public:
             std::cout << "Could not read Map!"<<std::endl;
             return ;
         }
-        pcl::transformPointCloud(*_priorMap_corner, *_priorMap_corner, SensorConfig::T_L_B);
-        kdtree_priorMap_corner->setInputCloud(_priorMap_corner);//kdtreeCornerFromMap
+//        if map is in lidar frame
+//        pcl::transformPointCloud(*_priorMap_corner, *_priorMap_corner, SensorConfig::T_L_B);
+//        kdtree_priorMap_corner->setInputCloud(_priorMap_corner);//kdtreeCornerFromMap
         std::cout << "Read Corner Map!"<<std::endl;
 
     }
@@ -346,14 +354,15 @@ public:
             std::cout << "Could not read Map!"<<std::endl;
             return ;
         }
-//        change Map from lidar axis to world axis
-        pcl::transformPointCloud(*_priorMap_surf, *_priorMap_surf, SensorConfig::T_L_B);
-        kdtree_priorMap_surf->setInputCloud(_priorMap_surf);//kdtreeSurfFromMap
+
         std::cout << "Read Surf Map!"<<std::endl;
     }
 
     void pub_CornerAndSurfFromMap()
     {
+//        if Maps are in lidar frame, change it to world frame
+//        pcl::transformPointCloud(*priorMap_corner, *priorMap_corner, SensorConfig::T_L_B);
+//        pcl::transformPointCloud(*priorMap_surf, *priorMap_surf, SensorConfig::T_L_B);
         if (pubSurfFromMap.getNumSubscribers() != 0)
         {
             pcl::PointCloud<pcl::PointXYZI> pub_cloud;
@@ -399,12 +408,11 @@ public:
         pcl::fromROSMsg(msgIn->cloud_corner, *current_corner);
         pcl::fromROSMsg(msgIn->cloud_surface, *current_surf);
 
+        current_frameID = msgIn->T_w_l_curlidar.header.seq;
+//       t q in world frame
         t_w_cur[0] = msgIn->T_w_l_curlidar.pose.pose.position.x;
         t_w_cur[1] = msgIn->T_w_l_curlidar.pose.pose.position.y;
         t_w_cur[2] = msgIn->T_w_l_curlidar.pose.pose.position.z;
-//        EZLOG(INFO)<<"t_w_cur[0]"<<t_w_cur[0]<<std::endl;
-//        EZLOG(INFO)<<"t_w_cur[1]"<<t_w_cur[1]<<std::endl;
-//        EZLOG(INFO)<<"t_w_cur[2]"<<t_w_cur[2]<<std::endl;
 
         q_w_cur.x() = msgIn->T_w_l_curlidar.pose.pose.orientation.x;
         q_w_cur.y() = msgIn->T_w_l_curlidar.pose.pose.orientation.y;
@@ -435,24 +443,9 @@ public:
             if (systemInitialized) {
                 if(flagLoadMap){
 //                    从晓强接收
-                    Load_PriorMap_Surf("/home/sy/SEU_WS/backup/seu_lidarloc_8.25/src/globalmap_lidar_feature_surf.pcd",priorMap_surf);
-                    Load_PriorMap_Corner("/home/sy/SEU_WS/backup/seu_lidarloc_8.25/src/globalmap_lidar_feature_corner.pcd",priorMap_corner);
-
-//                    PointType init_point_3D; //can be changed in gnss map
-//                    init_point_3D.x = 0.;
-//                    init_point_3D.y = 0.;
-//                    init_point_3D.z = 0.;
-//                    init_point_3D.intensity = 0;
-//                    PointTypePose init_point_6D; //can be changed in gnss map
-//                    init_point_6D.x = 0.;
-//                    init_point_6D.y = 0.;
-//                    init_point_6D.z = 0.;
-//                    init_point_6D.roll = 0.;
-//                    init_point_6D.pitch = 0.;
-//                    init_point_6D.yaw = 0.;
-//                    init_point_6D.time = timeLaserInfoCur;
-//                    Keyframe_Poses3D->push_back(init_point_3D);
-//                    Keyframe_Poses6D->push_back(init_point_6D);
+//                  be attention Prior Map are in world frame
+                    Load_PriorMap_Surf(MappingConfig::prior_map_surf,priorMap_surf);
+                    Load_PriorMap_Corner(MappingConfig::prior_map_corner,priorMap_corner);
 
                     flagLoadMap = 0;
                 }
@@ -470,7 +463,6 @@ public:
 
                 publishFrames();
 
-
             }
         }
     }
@@ -482,9 +474,26 @@ public:
             mtxGpsInfo.unlock();
         }
     }
+    void pointAssociateToWorld_noTrans(PointType const *const pi, PointType *const po){
+//        accord with current_T_m_l
+        po->x = transPointAssociateToMap(0, 0) * pi->x +
+                transPointAssociateToMap(0, 1) * pi->y +
+                transPointAssociateToMap(0, 2) * pi->z +
+                transPointAssociateToMap(0, 3);
+        po->y = transPointAssociateToMap(1, 0) * pi->x +
+                transPointAssociateToMap(1, 1) * pi->y +
+                transPointAssociateToMap(1, 2) * pi->z +
+                transPointAssociateToMap(1, 3);
+        po->z = transPointAssociateToMap(2, 0) * pi->x +
+                transPointAssociateToMap(2, 1) * pi->y +
+                transPointAssociateToMap(2, 2) * pi->z +
+                transPointAssociateToMap(2, 3);
+        po->intensity = pi->intensity;
+    }
 
-    void pointAssociateToMap(PointType const *const pi, PointType *const po) {
-        if(MappingConfig::scan_2_prior_map == 1){
+    void pointAssociateToWorld_withTrans(PointType const *const pi, PointType *const po) {
+//              change current_T_m_l from lidar to world
+//        T_wl -> from evo * lidar = T_wl
             po->x = T_wl(0, 0) * pi->x +
                     T_wl(0, 1) * pi->y +
                     T_wl(0, 2) * pi->z +
@@ -498,22 +507,6 @@ public:
                     T_wl(2, 2) * pi->z +
                     T_wl(2, 3);
             po->intensity = pi->intensity;
-        }
-        else{
-            po->x = transPointAssociateToMap(0, 0) * pi->x +
-                    transPointAssociateToMap(0, 1) * pi->y +
-                    transPointAssociateToMap(0, 2) * pi->z +
-                    transPointAssociateToMap(0, 3);
-            po->y = transPointAssociateToMap(1, 0) * pi->x +
-                    transPointAssociateToMap(1, 1) * pi->y +
-                    transPointAssociateToMap(1, 2) * pi->z +
-                    transPointAssociateToMap(1, 3);
-            po->z = transPointAssociateToMap(2, 0) * pi->x +
-                    transPointAssociateToMap(2, 1) * pi->y +
-                    transPointAssociateToMap(2, 2) * pi->z +
-                    transPointAssociateToMap(2, 3);
-            po->intensity = pi->intensity;
-        }
     }
 
     pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::Ptr cloudIn,
@@ -582,45 +575,6 @@ public:
         return thisPose6D;
     }
 
-    bool syncGPS(std::deque<nav_msgs::Odometry> &gpsBuf,
-                 nav_msgs::Odometry &aligedGps, double timestamp,
-                 double eps_cam) {
-        bool hasGPS = false;
-        while (!gpsQueue.empty()) {
-            mtxGpsInfo.lock();
-            if (gpsQueue.front().header.stamp.toSec() < timestamp - eps_cam) {
-                // message too old
-                gpsQueue.pop_front();
-                mtxGpsInfo.unlock();
-            } else if (gpsQueue.front().header.stamp.toSec() > timestamp + eps_cam) {
-                // message too new
-                mtxGpsInfo.unlock();
-                break;
-            } else {
-                hasGPS = true;
-                aligedGps = gpsQueue.front();
-                gpsQueue.pop_front();
-//                if (debugGps)
-//                    ROS_INFO("GPS time offset %f ",
-//                             aligedGps.header.stamp.toSec() - timestamp);
-                mtxGpsInfo.unlock();
-            }
-        }
-
-        if (hasGPS)
-            return true;
-        else
-            return false;
-    }
-
-    void visualizeGlobalMapThread() {
-        ros::Rate rate(0.2);
-        while (ros::ok()) {
-            rate.sleep();
-//            publishGlobalMap();
-        }
-    }
-
     void updateInitialGuess() {
         // save current transformation before any processing
         incrementalOdometryAffineFront = trans2Affine3f(current_T_m_l);
@@ -631,79 +585,7 @@ public:
         if (Keyframe_Poses3D->points.empty()) {
             systemInitialized = false;
             if (SensorConfig::useGPS) {
-                ROS_INFO("GPS use to init pose");
-                /** when you align gnss and lidar timestamp, make sure (1.0/gpsFrequence) is small encougn
-                 *  no need to care about the real gnss frquency. time alignment fail will cause
-                 *  "[ERROR] [1689196991.604771416]: sysyem need to be initialized"
-                 * */
-                nav_msgs::Odometry alignedGPS;
-//                有做gps时间同步，并控制gps频率
-                if (syncGPS(gpsQueue, alignedGPS, timeLaserInfoCur,
-                            1.0 / SensorConfig::gpsFrequence)) {
-                    /** we store the origin wgs84 coordinate points in covariance[1]-[3] */
-                    originLLA.setIdentity();
-                    originLLA = Eigen::Vector3d(alignedGPS.pose.covariance[1],
-                                                alignedGPS.pose.covariance[2],
-                                                alignedGPS.pose.covariance[3]);
-                    /** set your map origin points */
-                    geo_converter.Reset(originLLA[0], originLLA[1], originLLA[2]);
-                    // WGS84->ENU, must be (0,0,0)
-                    Eigen::Vector3d enu;
-                    geo_converter.Forward(originLLA[0], originLLA[1], originLLA[2], enu[0], enu[1], enu[2]);
-
-                    if (SensorConfig::debugGps) {
-                        double roll, pitch, yaw;
-                        tf::Matrix3x3(tf::Quaternion(alignedGPS.pose.pose.orientation.x,
-                                                     alignedGPS.pose.pose.orientation.y,
-                                                     alignedGPS.pose.pose.orientation.z,
-                                                     alignedGPS.pose.pose.orientation.w))
-                                .getRPY(roll, pitch, yaw);
-                        std::cout << "initial gps yaw: " << yaw << std::endl;
-                        std::cout << "GPS Position: " << enu.transpose() << std::endl;
-                        std::cout << "GPS LLA: " << originLLA.transpose() << std::endl;
-                    }
-
-                    /** add the first factor, we need this origin GPS point for prior map based localization,
-                     * but we need to optimize its value by pose graph if the origin gps RTK status is not fixed.*/
-                    PointType gnssPoint;
-                    gnssPoint.x = enu[0],
-                    gnssPoint.y = enu[1],
-                    gnssPoint.z = enu[2];
-                    float noise_x = alignedGPS.pose.covariance[0];
-                    float noise_y = alignedGPS.pose.covariance[7];
-                    float noise_z = alignedGPS.pose.covariance[14];
-
-                    /** if we get reliable origin point, we adjust the weight of this gps factor */
-                    if (!SensorConfig::updateOrigin) {
-                        noise_x *= 1e-4;
-                        noise_y *= 1e-4;
-                        noise_z *= 1e-4;
-                    }
-                    gtsam::Vector Vector3(3);
-                    Vector3 << noise_x, noise_y, noise_z;
-                    noiseModel::Diagonal::shared_ptr gps_noise =
-                            noiseModel::Diagonal::Variances(Vector3);
-                    gtsam::GPSFactor gps_factor(
-                            0, gtsam::Point3(gnssPoint.x, gnssPoint.y, gnssPoint.z),
-                            gps_noise);
-                    keyframeGPSfactor.push_back(gps_factor);
-                    cloudKeyGPSPoses3D->points.push_back(gnssPoint);
-
-//                    cloudInfo.T_w_l_curlidar.header.seq;id
-//                    cloudInfo.T_w_l_curlidar.header.stamp;time
-//                    cloudInfo.T_w_l_curlidar.pose.pose.position
-//                    cloudInfo.T_w_l_curlidar.pose.pose.orientation
-
-                    current_T_m_l[0] = cloudInfo.imuRollInit;
-                    current_T_m_l[1] = cloudInfo.imuPitchInit;
-                    current_T_m_l[2] = cloudInfo.imuYawInit;
-                    if (!SensorConfig::useImuHeadingInitialization) current_T_m_l[2] = 0;
-                    lastImuTransformation = pcl::getTransformation(
-                            0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
-                            cloudInfo.imuYawInit);
-                    systemInitialized = true;
-                    ROS_WARN("GPS init success");
-                }
+                ;
             } else {
 //                std::cout << "cloudInfo.imuRollInit: " << cloudInfo.imuRollInit
 //                            << " , imuPitchInit: " << cloudInfo.imuPitchInit
@@ -729,37 +611,16 @@ public:
             return;
         }
 
-        // if not the first frame
-        // use imu pre-integration estimation for pose guess
-//----------------------Use Gnss for pose guess
-        static bool lastImuPreTransAvailable = false;
-        static Eigen::Affine3f lastImuPreTransformation;
-
-        Eigen::Affine3f transBack = pcl::getTransformation(
+//      世界系
+        Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
                 t_w_cur[0], t_w_cur[1], t_w_cur[2],q_w_cur_roll,
                 q_w_cur_pitch , q_w_cur_yaw);
-
-        if (lastImuPreTransAvailable == false) {
-            lastImuPreTransformation = transBack;
-            lastImuPreTransAvailable = true;
-        } else {
-            Eigen::Affine3f transIncre =
-                    lastImuPreTransformation.inverse() * transBack;
-            Eigen::Affine3f transTobe = trans2Affine3f(current_T_m_l);
-            Eigen::Affine3f transFinal = transTobe * transIncre;
-            pcl::getTranslationAndEulerAngles(
-                    transFinal, current_T_m_l[3], current_T_m_l[4],
-                    current_T_m_l[5], current_T_m_l[0],
-                    current_T_m_l[1], current_T_m_l[2]);
-
-            lastImuPreTransformation = transBack;
-
-            lastImuTransformation = pcl::getTransformation(
-                    0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
-                    cloudInfo.imuYawInit);  // save imu before return;
-            return;
-        }
-
+//      current_T_m_l -> 世界系
+        pcl::getTranslationAndEulerAngles(
+                pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
+                current_T_m_l[5], current_T_m_l[0],
+                current_T_m_l[1], current_T_m_l[2]);
+        current_frame = WORLD;
 
     }
     void MODE_SCAN_2_LOCALMAP()
@@ -786,53 +647,59 @@ public:
         std::cout <<"Keyframe_Poses3D->points size : "<< Keyframe_Poses3D->points.size() <<std::endl;
 
         TicToc extract_from_priorMap;
-//        flag_scan_mode_change = 0 init
-        if(MappingConfig::scan_2_prior_map == 1 && flag_scan_mode_change == 1){ //init load local map from prior
+//        flag_scan_mode_change = 0 init || flag_scan_mode_change == 1
+        if(MappingConfig::scan_2_prior_map == 1 ){ //init load local map from prior
             PointType init_point; //can be changed in gnss map
             if(Keyframe_Poses3D->points.empty() ){
                 init_point.x = 0.;
                 init_point.y = 0.;
                 init_point.z = 0.;
-                init_point.intensity = 0.;
+                init_point.intensity = 0;
             }
             else{
-                init_point.x = cloudInfo.T_w_l_curlidar.pose.pose.position.x;
-                init_point.y = cloudInfo.T_w_l_curlidar.pose.pose.position.y;
-                init_point.z = cloudInfo.T_w_l_curlidar.pose.pose.position.z;
-                init_point.intensity = cloudInfo.T_w_l_curlidar.header.seq;
+                init_point.x = t_w_cur.x();
+                init_point.y = t_w_cur.y();
+                init_point.z = t_w_cur.z();
+                init_point.intensity = current_frameID;
             }
             EZLOG(INFO) << "MODE: Scan to Map!";
             // 添加标志位，需要下一帧再加载。现在可以先写着1.5s换一次local map
             current_lidar_frameID =  init_point.intensity;
-            if(current_lidar_frameID - last_lidar_frameID < 15 && flag_load_localMap){
-                flag_load_localMap = 1; // load local map
+//            flag_load_localMap = 1; // unecessary to load local map
+            if(current_lidar_frameID - last_lidar_frameID < MappingConfig::LocalMap_updata_perframe
+                && flag_load_localMap == 1){
+                EZLOG(INFO)<<"already have local map and don't need to update";
                 return ; // 不需要重复加载localMap_corner_and_surf,但是如果没有加载过localMap就加载一次
             }
             localMap_corner->clear();
             localMap_surf->clear();
             std::vector<int> pointSearchInd;
             std::vector<float> pointSearchSqDis;
-            EZLOG(INFO)<<"init_point is: " << init_point;
+//            world frame
+            EZLOG(INFO)<<"init_point is: " << init_point; // be aware of init_point's frame
+
+            kdtree_priorMap_surf->setInputCloud(priorMap_surf);
             kdtree_priorMap_surf->radiusSearch(
-                    init_point, (double) MappingConfig::localMap_searchRadius,
+                    init_point, (double) MappingConfig::localMap_searchRadius_surf,
                     pointSearchInd, pointSearchSqDis);
             std::cout<<"surf points in local map  : "<<pointSearchInd.size()<<std::endl;
             for (int i = 0; i < (int) pointSearchInd.size(); ++i) {
                 int id = pointSearchInd[i];
                 localMap_surf->push_back(priorMap_surf->points[id]);
             }
-
             pointSearchInd.clear();
             pointSearchSqDis.clear();
-
+            kdtree_priorMap_corner->setInputCloud(priorMap_corner);
             kdtree_priorMap_corner->radiusSearch(
-                    init_point, (double) MappingConfig::surroundingKeyframeSearchRadius,
+                    init_point, (double) MappingConfig::localMap_searchRadius_corner,
                     pointSearchInd, pointSearchSqDis);
             std::cout<<"corner points in local map ?  : "<<pointSearchInd.size()<<std::endl;
             for (int i = 0; i < (int) pointSearchInd.size(); ++i) {
                 int id = pointSearchInd[i];
                 localMap_corner->push_back(priorMap_corner->points[id]);
             }
+//            pub local map
+
 //            kdtree_localMap_corner->setInputCloud(localMap_corner);
             std::cout<<"extract_from_priorMap is in ms: " << extract_from_priorMap.toc() <<std::endl;
             downSizeFilterCorner.setInputCloud(localMap_corner);
@@ -842,7 +709,33 @@ public:
             downSizeFilterSurf.setInputCloud(localMap_surf);
             downSizeFilterSurf.filter(*localMap_surf_ds);
             localMap_surf_ds_num = localMap_surf_ds->size();
-
+            if (pubLocalMapSurf.getNumSubscribers() != 0)
+            {
+                pcl::PointCloud<pcl::PointXYZI> pub_cloud;
+                pub_cloud = *localMap_surf_ds;
+                pcl::toROSMsg(pub_cloud, pcl_LocalMap_surf_msg);
+                pcl_LocalMap_surf_msg.header.frame_id = "map";
+                pcl_LocalMap_surf_msg.header.stamp = ros::Time::now();
+                pubLocalMapSurf.publish(pcl_LocalMap_surf_msg);
+                std::cout << "Pub Local Surf Map!"<<std::endl;
+            }
+            if (pubLocalMapCorner.getNumSubscribers() != 0)
+            {
+                pcl::PointCloud<pcl::PointXYZI> pub_cloud;
+                pub_cloud = *localMap_corner_ds;
+                pcl::toROSMsg(pub_cloud, pcl_LocalMap_corner_msg);
+                pcl_LocalMap_corner_msg.header.frame_id = "map";
+                pcl_LocalMap_corner_msg.header.stamp = ros::Time::now();
+                pubLocalMapCorner.publish(pcl_LocalMap_corner_msg);
+                std::cout << "Pub Local Corner Map!"<<std::endl;
+            }
+            //P_l = (T_wl)^-1 * P_w
+//            如果先验地图是世界系的，需要转换成激光雷达系
+            Eigen::Matrix4f T_matrix_L_B = SensorConfig::T_L_B.cast<float>();
+            pcl::transformPointCloud(*localMap_surf_ds, *localMap_surf_ds, T_matrix_L_B.inverse());
+            pcl::transformPointCloud(*localMap_corner_ds, *localMap_corner_ds, T_matrix_L_B.inverse());
+            flag_use_world_localMap = 1;
+            flag_load_localMap = 1; // load prior local map
         }
         else //else scan to scan_incremental  flag_scan_mode_change == 0
         {
@@ -852,16 +745,13 @@ public:
                 extractNearby();
             }
         }
-
-
         std::cout << " localMap_surf_ds_num is: "<<localMap_surf_ds_num
                   << " localMap_corner_ds_num is: "<<localMap_corner_ds_num<<std::endl;
         if(localMap_surf_ds_num > MappingConfig::scan_2_scan_num_surf
             ||localMap_corner_ds_num > MappingConfig::scan_2_scan_num_corner)
         {
             EZLOG(INFO) << "MODE: Change mode ->>>>>>>>> Scan to Map!";
-            flag_scan_mode_change = 0;//change loc mode to scan 2 map
-
+            flag_scan_mode_change = 1;//change loc mode to scan 2 map
         }
 //        localMap_corner_and_surf[current_lidar_frameID] =
 //                make_pair(*localMap_corner_ds, *localMap_surf_ds);
@@ -977,6 +867,7 @@ public:
     void downsampleCurrentScan() {
 
         // Downsample cloud from current scan
+//        同一个降采样器，可以先后对两个点云降采样吗？
         current_corner_ds->clear();
         downSizeFilterCorner.setInputCloud(current_corner);
         downSizeFilterCorner.filter(*current_corner_ds);
@@ -992,45 +883,60 @@ public:
     void updatePointAssociateToMap() {
         transPointAssociateToMap = trans2Affine3f(current_T_m_l);
     }
-    void transforPoint2World() {
 
+    /**
+     * change current lidar from map to world.
+     */
+    void transforPoint2World() {
         Eigen::Matrix4d T_wm_temp = SensorConfig::T_L_B;
         Eigen::Matrix3d R_wm_temp = T_wm_temp.cast<double>().block<3, 3>(0, 0);
         Eigen::Vector3d t_wm_temp = T_wm_temp.cast<double>().block<3, 1>(0, 3);
         Eigen::Affine3f T_wm;
         T_wm.linear() = R_wm_temp.cast<float>();
         T_wm.translation() = t_wm_temp.cast<float>();
-
         Eigen::Affine3f T_ml = trans2Affine3f(current_T_m_l);
         T_wl = T_wm * T_ml; // T_wl = T_wm * T_ml
     }
-
+//    change everything to lidar frame
     void cornerOptimization() {
-        if(MappingConfig::scan_2_prior_map == 1){
-            transforPoint2World();
+        switch (current_frame) {
+            case WORLD:
+                EZLOG(INFO)<<"cal in World frame";
+                transforPoint2World();
+                break;
+            case LIDAR:
+                EZLOG(INFO)<<"cal in Lidar frame";
+                updatePointAssociateToMap();
+                break;
+            default:
+                EZLOG(INFO)<<"ERROR! Wrong current_frame Type!!!";
+                break;
         }
-        else{
-            updatePointAssociateToMap();
-        }
-
-//        std::cout<<" transPointAssociateToMap: "<<std::endl;
-//        std::cout<<transPointAssociateToMap.matrix()<<std::endl;
+        EZLOG(INFO)<<" transPointAssociateToMap: ";
+        EZLOG(INFO)<<transPointAssociateToMap.matrix();
 
 //#pragma omp parallel for num_threads(numberOfCores)
         for (int i = 0; i < current_corner_ds_num; i++) {
             PointType pointOri, pointSel, coeff;
             std::vector<int> pointSearchInd;
             std::vector<float> pointSearchSqDis;
-
             pointOri = current_corner_ds->points[i];
 //            激光系转地图系
-
-            pointAssociateToMap(&pointOri, &pointSel);
-//            std::cout<<"pointOri: "<<pointOri<<" pointSel: "<<pointSel<<std::endl;
-//            std::cout<<"pointOri: "<<pointOri<<" pointSel: "<<pointSel<<std::endl;
+            switch (current_frame) {
+                case WORLD:
+                    EZLOG(INFO)<<"current_T_m_l already in  world_corner";
+                    pointAssociateToWorld_noTrans(&pointOri, &pointSel);
+                    break;
+                case LIDAR:
+                    EZLOG(INFO)<<"change current_T_m_l to world_corner";
+                    pointAssociateToWorld_withTrans(&pointOri, &pointSel);
+                    break;
+                default:
+                    EZLOG(INFO)<<"ERROR! Wrong current_frame Type!!!";
+                    break;
+            }
             kdtree_localMap_corner->nearestKSearch(pointSel, 5, pointSearchInd,
                                                    pointSearchSqDis);
-//            std::cout<<"pointSearchSqDis[4]  "<<pointSearchSqDis[4]<<std::endl;
             cv::Mat matA1(3, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matD1(1, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matV1(3, 3, CV_32F, cv::Scalar::all(0));
@@ -1128,7 +1034,7 @@ public:
                     coeff.y = s * lb;
                     coeff.z = s * lc;
                     coeff.intensity = s * ld2;
-
+//                  可以调参
                     if (s > 0.1) {
 //                        resize之后，指针在队尾，所以push_back的位置在末尾，而不是初始位置
 //                          并且push_back效率要远低于提前分配内存之后按照索引赋值，push_back会检查内存是否足够，以及申请内存
@@ -1149,12 +1055,18 @@ public:
     }
 
     void surfOptimization() {
-        std::cout<<"surfOptimization()!" << std::endl;
-        if(MappingConfig::scan_2_prior_map == 1){
-            transforPoint2World();
-        }
-        else{
-            updatePointAssociateToMap();
+        switch (current_frame) {
+            case WORLD:
+                EZLOG(INFO)<<"current_T_m_l already in world_surf";
+                transforPoint2World();
+                break;
+            case LIDAR:
+                EZLOG(INFO)<<"change current_T_m_l to world_surf";
+                updatePointAssociateToMap();
+                break;
+            default:
+                EZLOG(INFO)<<"ERROR! Wrong current_frame Type!!!";
+                break;
         }
 
 // long startTime= System.currentTimeMillis();
@@ -1166,7 +1078,20 @@ public:
             std::vector<float> pointSearchSqDis;
 
             pointOri = current_surf_ds->points[i];
-            pointAssociateToMap(&pointOri, &pointSel);
+            //            激光系转地图系
+            switch (current_frame) {
+                case WORLD:
+                    EZLOG(INFO)<<"current_T_m_l already in world_surf";
+                    pointAssociateToWorld_noTrans(&pointOri, &pointSel);
+                    break;
+                case LIDAR:
+                    EZLOG(INFO)<<"change current_T_m_l to world_surf";
+                    pointAssociateToWorld_withTrans(&pointOri, &pointSel);
+                    break;
+                default:
+                    EZLOG(INFO)<<"ERROR! Wrong current_frame Type!!!";
+                    break;
+            }
             kdtree_localMap_surf->nearestKSearch(pointSel, 5, pointSearchInd,
                                                  pointSearchSqDis);
 
@@ -1401,8 +1326,8 @@ public:
         if (Keyframe_Poses3D->points.empty()) return;
 
 //        当前帧特征点
-        std::cout << "current_corner_ds_num: " << current_corner_ds_num
-                  << " current_surf_ds_num: " << current_surf_ds_num << std::endl;
+        EZLOG(INFO) << "current_corner_ds_num: " << current_corner_ds_num
+                    << " current_surf_ds_num: " << current_surf_ds_num;
 
         if (current_corner_ds_num > MappingConfig::edgeFeatureMinValidNum &&
             current_surf_ds_num > MappingConfig::surfFeatureMinValidNum) {
@@ -1416,7 +1341,6 @@ public:
 
                 cornerOptimization();
                 surfOptimization();
-
                 combineOptimizationCoeffs();
 
                 if (LMOptimization(iterCount) == true) {
@@ -1425,7 +1349,6 @@ public:
                     break;
                 }
             }
-
             transformUpdate();
         } else {
             EZLOG(INFO) <<"Not enough features! Only %d edge and %d planar features available."
@@ -1545,7 +1468,7 @@ public:
         // last gps position
         static PointType lastGPSPoint;
         nav_msgs::Odometry thisGPS;
-        if (syncGPS(gpsQueue, thisGPS, timeLaserInfoCur, 1.0 / SensorConfig::gpsFrequence)) {
+
             // GPS too noisy, skip
             float noise_x = thisGPS.pose.covariance[0];
             float noise_y = thisGPS.pose.covariance[7];
@@ -1639,7 +1562,7 @@ public:
                 gpsIndexContainer[Keyframe_Poses3D->size()] =
                         cloudKeyGPSPoses3D->size() - 1;
             }
-        }
+
     }
     void addGNSSBetweenFactor()
     {
@@ -1687,7 +1610,7 @@ public:
 
         // gps factor
         addGNSSBetweenFactor();
-//        if (SensorConfig::useGPS) addGPSFactor();
+        //        if (SensorConfig::useGPS) addGPSFactor();
 
         cout << "****************************************************" << endl;
         gtSAMgraph.print("GTSAM Graph:\n");
@@ -1981,11 +1904,7 @@ int main(int argc, char **argv) {
     Loc_mapOptimization LMO;
     EZLOG(INFO)<<"Prior Map Loc Optimization Started!";
 
-    std::thread visualizeMapThread(&Loc_mapOptimization::visualizeGlobalMapThread, &LMO);
-
     ros::spin();
-
-    visualizeMapThread.join();
 
     return 0;
 }

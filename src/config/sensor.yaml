@@ -41,7 +41,7 @@
   imuAccBiasN: 1.1416642385952368e-03
   imuGyrBiasN: 1.4428407712885209e-05
   imuGravity: 0.0
-  imuRPYWeight: 0.01
+  imuRPYWeight: 0.000001
 
   # Extrinsics (lidar -> IMU)
 #  evo: world->lidar

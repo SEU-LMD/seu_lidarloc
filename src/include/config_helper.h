@@ -112,8 +112,12 @@ class MappingConfig{
         static double  surroundingkeyframeAddingAngleThreshold;
         static double surroundingKeyframeDensity;
         static double surroundingKeyframeSearchRadius;
-        static double localMap_searchRadius;
+        static double localMap_searchRadius_surf;
+        static double localMap_searchRadius_corner;
+        static int LocalMap_updata_perframe;
         static int scan_2_prior_map;
+        static std::string prior_map_surf;
+        static std::string prior_map_corner;
 
         //Loop closure
         static bool  loopClosureEnableFlag;
@@ -220,6 +224,8 @@ bool SensorConfig::use_gnss_deskew=false;
 
 
 std::string MappingConfig::save_map_path = "";
+std::string MappingConfig::prior_map_surf = " ";
+std::string MappingConfig::prior_map_corner = " ";
 
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
 bool  MappingConfig::savePCD=false;
@@ -250,7 +256,9 @@ double  MappingConfig::surroundingkeyframeAddingDistThreshold=-1;
 double  MappingConfig::surroundingkeyframeAddingAngleThreshold=-1;
 double MappingConfig::surroundingKeyframeDensity=-1;
 double MappingConfig::surroundingKeyframeSearchRadius=-1;
-double MappingConfig::localMap_searchRadius=-1;
+double MappingConfig::localMap_searchRadius_surf=-1;
+double MappingConfig::localMap_searchRadius_corner=-1;
+int MappingConfig::LocalMap_updata_perframe=-1;
 int MappingConfig::scan_2_prior_map = 1;
 
 
@@ -386,7 +394,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     Eigen::Vector3d t_sensor_body = SensorConfig::extrinsicTrans;
     SensorConfig::q_body_sensor = q_sensor_body.inverse();
     SensorConfig::t_body_sensor = -(q_sensor_body.inverse() * t_sensor_body);
-    SensorConfig::gtsamGNSSBetweenFactorDistance = sensorconfig["gtsamGNSSBetweenFactorDistance"].as<int>();;
+    SensorConfig::gtsamGNSSBetweenFactorDistance = sensorconfig["gtsamGNSSBetweenFactorDistance"].as<int>();
 
     std::cout<<"sensorconfig yaml success load"<<std::endl;
 }
@@ -436,7 +444,11 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::surroundingkeyframeAddingAngleThreshold=mappingconfig["surroundingkeyframeAddingAngleThreshold"].as<double >();
         MappingConfig::surroundingKeyframeDensity=mappingconfig["surroundingKeyframeDensity"].as<double >();
         MappingConfig::surroundingKeyframeSearchRadius=mappingconfig["surroundingKeyframeSearchRadius"].as<double >();
-        MappingConfig::localMap_searchRadius = mappingconfig["localMap_searchRadius"].as<double >();
+        MappingConfig::localMap_searchRadius_surf = mappingconfig["localMap_searchRadius_surf"].as<double >();
+        MappingConfig::localMap_searchRadius_corner = mappingconfig["localMap_searchRadius_corner"].as<double >();
+        MappingConfig::LocalMap_updata_perframe = mappingconfig["LocalMap_updata_perframe"].as<int>();
+        MappingConfig::prior_map_corner = mappingconfig["prior_corner_map_path"].as<std::string>();
+        MappingConfig::prior_map_surf = mappingconfig["prior_surf_map_path"].as<std::string>();
         std::cout<<MappingConfig::surroundingKeyframeSearchRadius<<std::endl;
 
         //Loop closure
