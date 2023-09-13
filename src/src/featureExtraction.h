@@ -278,6 +278,7 @@ public:
                 EZLOG(INFO)<<"feature extraction cost time(ms) = "<<timer.toc()<<std::endl;
 
             }
+
             else{
                 sleep(0.01);
             }

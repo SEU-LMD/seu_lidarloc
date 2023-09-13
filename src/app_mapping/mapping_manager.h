@@ -40,13 +40,18 @@ public:
 
         //然后开启各个线程
         img_proj.Init(pubsub);
+        EZLOG(INFO)<< "img_proj success!!"<<endl;
+
         ft_extr.Init(pubsub);
-//        opt_mapping.Init(pubsub);
+        EZLOG(INFO)<< "ft_extr success!!"<<endl;
+        opt_mapping.Init(pubsub);
+        EZLOG(INFO)<< "opt_mapping success!!"<<endl;
 
         //构建数据流关系
         img_proj.ft_extr_ptr = &ft_extr;
         img_proj.opt_mapping_ptr = &opt_mapping;
         ft_extr.opt_mapping_ptr = &opt_mapping;
+        //opt_mapping.im
     }
 };
 #endif //SEU_LIDARLOC_MAPPING_MANAGER_H

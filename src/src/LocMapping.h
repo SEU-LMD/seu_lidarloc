@@ -1480,6 +1480,7 @@ public:
                 EZLOG(INFO)<<"cur_ft.frame_id:  "<<cur_ft.frame_id;
                 deque_cloud.pop_front();
                 cloud_mutex.unlock();
+
                 //just do something
 //                timeLaserInfoStamp = msgIn->header.stamp;
                 timeLaserInfoCur = cur_ft.timestamp;
@@ -1540,9 +1541,6 @@ public:
 
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
-//        pubsub->addPublisher(topic_corner_world, DataType::LIDAR, 10);
-//        pubsub->addPublisher(topic_surf_world, DataType::LIDAR, 10);
-
         pubsub->addPublisher(topic_priorMap_corner, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_priorMap_surf, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_current_pose, DataType::ODOMETRY, 10);
