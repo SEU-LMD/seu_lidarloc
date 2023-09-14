@@ -542,7 +542,7 @@ public:
                 timer_mutex.lock();
                 double delta_time = timer_cloud.toc();
                 timer_mutex.unlock();
-                EZLOG(INFO)<<"delta_time = "<<delta_time<<std::endl;
+//                EZLOG(INFO)<<"delta_time = "<<delta_time<<std::endl;
                 if(delta_time>5000){
 
 
@@ -571,11 +571,11 @@ public:
                         utm[2] = utm_coor.z_;
 
                         dataSaverPtr->saveOriginGPS(utm);
-                        EZLOG(INFO)<<" lat_lon = "<<utm <<endl;
+//                        EZLOG(INFO)<<" lat_lon = "<<utm <<endl;
                     }
 
                     dataSaverPtr->saveOptimizedVerticesTUM(isamCurrentEstimate);
-                    EZLOG(INFO) << "Saving poses completed! " << endl;
+//                    EZLOG(INFO) << "Saving poses completed! " << endl;
                     while(1);
                 }
             }//end if(delta_time>5000)

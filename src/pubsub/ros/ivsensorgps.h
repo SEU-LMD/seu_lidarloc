@@ -29,11 +29,11 @@ struct ivsensorgps_
     , lon(0.0)
     , lat(0.0)
     , height(0.0)
-    , mode(0)
+    , mode(0) //解的类型
     , heading(0.0)
     , velocity(0.0)
     , status()
-    , satenum(0)
+    , satenum(0)// 卫星数
     , isvalid(0)
     , acceleration(0.0)
     , pitch(0.0)
