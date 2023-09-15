@@ -127,9 +127,9 @@ public:
         gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy;
         gnss_ins_out.imu_angular_v[2] = gnss_ins_in->yaw;
 
-        gnss_ins_out.imu_linear_v[0] = gnss_ins_in->accx;
-        gnss_ins_out.imu_linear_v[1] = gnss_ins_in->accy;
-        gnss_ins_out.imu_linear_v[2] = gnss_ins_in->accz;
+        gnss_ins_out.imu_linear_acc[0] = gnss_ins_in->accx;
+        gnss_ins_out.imu_linear_acc[1] = gnss_ins_in->accy;
+        gnss_ins_out.imu_linear_acc[2] = gnss_ins_in->accz;
 
         gnss_ins_out.timestamp = gnss_ins_in->header.stamp.toSec();
         gnss_ins_out.frame = gnss_ins_in->header.frame_id;

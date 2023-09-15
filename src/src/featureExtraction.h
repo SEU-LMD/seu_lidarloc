@@ -4,7 +4,7 @@
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
 #include "utils/timer.h"
-#include "OptMapping.h"
+#include "opt_mapping.h"
 #include "LocMapping.h"
 
 struct smoothness_t {
