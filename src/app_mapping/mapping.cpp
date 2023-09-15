@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
     pubsub->addSubscriber(SensorConfig::pointCloudTopic, DataType::LIDAR, cloud_callback);
     pubsub->addSubscriber(SensorConfig::gpsTopic, DataType::GNSS_INS, gnssins_callback);
 
+
     //开始运行程序
     pubsub->run();
 }

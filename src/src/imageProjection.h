@@ -31,7 +31,7 @@ public:
     std::deque<OdometryType> poseQueue;
 
     FeatureExtraction* ft_extr_ptr;
-    OPTMapping* opt_mapping_ptr;
+//    OPTMapping* opt_mapping_ptr;
 
     bool init = false;
     GeographicLib::LocalCartesian geoConverter;
@@ -462,7 +462,7 @@ public:
         T_w_l_to_mapopt.lla[0] = T_w_l.GetXYZ()[0];
         T_w_l_to_mapopt.lla[1] = T_w_l.GetXYZ()[1];
         T_w_l_to_mapopt.lla[2] = T_w_l.GetXYZ()[2];
-        opt_mapping_ptr->AddGNSSINSData(T_w_l_to_mapopt);
+//        opt_mapping_ptr->AddGNSSINSData(T_w_l_to_mapopt);
 
         gnssins_mutex.lock();
         poseQueue.push_back(T_w_l_pub);

@@ -29,59 +29,6 @@ using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
 
-class IMUOptimization  {
-public:
-    PubSubInterface* pubsub;
-    std::mutex odom_mutex;
-    std::mutex gnssins_mutex;
-
-    std::thread* do_work_thread;
-
-    std::deque<OdometryTypePtr> poseQueue;
-
-    std::string topic_imu_raw_odom = "/imu_odom_raw";
-    std::string topic_imu_raw_opt = "/imu_odom_opt";
-
-
-    void DoWork(){
-        CloudInfo cloudinfo;
-        cloudinfo.startRingIndex.assign(SensorConfig::N_SCAN, 0);//为cloudInfo中的startRingIndex、endRingIndex向量分配大小N_SCAN,并初始化为0
-        cloudinfo.endRingIndex.assign(SensorConfig::N_SCAN, 0);
-
-        while(1){
-            if(poseQueue.size()!=0){
-                OdometryTypePtr cur_ft;
-                odom_mutex.lock();
-                cur_ft = poseQueue.front();
-                poseQueue.pop_front();
-                odom_mutex.unlock();
-
-            }//end if(deque_cloud.size()!=0){
-            else{
-                sleep(0.01);//线程休息10ms
-            }
-        }
-    }
-
-    void AddOdomData(const OdometryType& data){
-
-        OdometryTypePtr odom_ptr(new OdometryType());
-
-        *odom_ptr = data;//深拷贝
-        odom_mutex.lock();
-        poseQueue.push_back(odom_ptr);
-        odom_mutex.unlock();
-    }
-
-    void Init(PubSubInterface* pubsub_){
-//        AllocateMemory();
-        pubsub = pubsub_;
-        pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
-        do_work_thread = new std::thread(&IMUOptimization::DoWork, this);
-    }
-
-};
-
 class IMUPreintegration  {
 public:
     PubSubInterface* pubsub;
@@ -91,13 +38,11 @@ public:
     std::thread* do_imu_thread;
     std::thread* do_lidar_thread;
 
-    std::deque<OdometryTypePtr> lidar_poseQueue;
+//    std::deque<OdometryTypePtr> lidar_poseQueue;
+    std::deque<OdometryType> lidar_poseQueue;
     std::deque<GNSSINSType> deque_gnssins;
 
     std::string topic_imu_raw_odom = "/imu_odom_raw";
-    std::string topic_imu_raw_opt = "/imu_odom_opt";
-
-    IMUOptimization* imu_opt_ptr;
 
     ros::NodeHandle nh;
 
@@ -145,22 +90,21 @@ public:
             gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0),
                          gtsam::Point3(SensorConfig::extrinsicTrans.x(), SensorConfig::extrinsicTrans.y(), SensorConfig::extrinsicTrans.z()));
 
-    void AddOdomData(const OdometryType& data){
+    void AddOdomData(const OdometryType &data){
 
-        OdometryTypePtr odom_ptr(new OdometryType());
-        *odom_ptr = data;//深拷贝
+//        OdometryTypePtr odom_ptr(new OdometryType());
+//        *odom_ptr = data;//深拷贝
         odom_mutex.lock();
-        lidar_poseQueue.push_back(odom_ptr);
+        lidar_poseQueue.push_back(data);
+        EZLOG(INFO)<<"lidar_poseQueue size: "<<lidar_poseQueue.size();
         odom_mutex.unlock();
     }
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
         gnssins_mutex.lock();
         deque_gnssins.push_back(gnss_ins_data);
+//        EZLOG(INFO)<<"deque_gnssins size: "<<deque_gnssins.size();
         gnssins_mutex.unlock();
-    }
-    void allocateLidarMemory(){
-
     }
     void allocateIMUMemory(){
         boost::shared_ptr<gtsam::PreintegrationParams> p =
@@ -242,28 +186,33 @@ public:
         systemInitialized = false;
     }
     void DoLidar(){
-        allocateLidarMemory();
+        EZLOG(INFO)<<"DoLidar ";
         while(1){
             if(lidar_poseQueue.size()!=0){
-                OdometryTypePtr cur_lidar_odom;
+                OdometryType cur_lidar_odom;
                 odom_mutex.lock();
                 cur_lidar_odom = lidar_poseQueue.front();
                 lidar_poseQueue.pop_front();
                 odom_mutex.unlock();
 
-                double currentCorrectionTime = cur_lidar_odom->timestamp;
+                double currentCorrectionTime = cur_lidar_odom.timestamp;
 
                 // make sure we have imu data to integrate
-                if (imuQueOpt.empty()) return;
+                if (imuQueOpt.empty())
+                {
+                    return;
+                }
 
-                float p_x = cur_lidar_odom->pose.pose(0,3);
+
                 bool degenerate = 0;
                 gtsam::Pose3 lidarPose =
-                        gtsam::Pose3(gtsam::Rot3::Quaternion(cur_lidar_odom->pose.GetQ().w(),
-                                                             cur_lidar_odom->pose.GetQ().x(),
-                                                             cur_lidar_odom->pose.GetQ().y(),
-                                                             cur_lidar_odom->pose.GetQ().z()),
-                                     gtsam::Point3(cur_lidar_odom->pose.GetXYZ()));
+                        gtsam::Pose3(gtsam::Rot3::Quaternion(cur_lidar_odom.pose.GetQ().w(),
+                                                             cur_lidar_odom.pose.GetQ().x(),
+                                                             cur_lidar_odom.pose.GetQ().y(),
+                                                             cur_lidar_odom.pose.GetQ().z()),
+                                     gtsam::Point3(cur_lidar_odom.pose.GetXYZ()));
+
+                EZLOG(INFO)<< "lidarPose: "<< lidarPose.matrix();
 
                 // 0. initialize system
                 if (systemInitialized == false) {
@@ -443,15 +392,14 @@ public:
                 doneFirstOpt = true;
 
             }//end if(deque_cloud.size()!=0){
-            else{
-                sleep(0.01);//线程休息10ms
-            }
         }
     }
     void DoIMU(){
+        EZLOG(INFO)<<"DoIMU ";
         allocateIMUMemory();
         while(1){
             if(deque_gnssins.size()!=0){
+                EZLOG(INFO)<<"deque_gnssins size: "<<deque_gnssins.size();
                 GNSSINSType gnss_ins_data;
                 odom_mutex.lock();
                 gnss_ins_data = deque_gnssins.front();
@@ -470,6 +418,9 @@ public:
                 double imuTime = imu_raw->timestamp;
                 imuQueOpt.push_back(imu_raw);
                 imuQueImu.push_back(imu_raw);
+
+                EZLOG(INFO) << "imuQueOpt size: "<<imuQueOpt.size() << " imuQueImu size: "<<imuQueImu.size()
+                            <<" doneFirstOpt: "<<doneFirstOpt;
 
                 if (doneFirstOpt == false) return;
 
@@ -500,15 +451,14 @@ public:
                 // transform imu pose to ldiar
                 gtsam::Pose3 imuPose =
                         gtsam::Pose3(currentState.quaternion(), currentState.position());
+                EZLOG(INFO)<< "imuPose: "<<imuPose.matrix();
                 gtsam::Pose3 lidarPose = imuPose.compose(imu2Lidar);
                 PoseT imu_now_pose(lidarPose.translation().vector(),lidarPose.rotation().matrix());
                 Odometry_imuPredict_pub.pose = imu_now_pose;
+                EZLOG(INFO)<< "imu_now_pose: "<<imu_now_pose.pose;
                 pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
 
             }//end if(deque_cloud.size()!=0){
-            else{
-                sleep(0.01);//线程休息10ms
-            }
         }
     }
 

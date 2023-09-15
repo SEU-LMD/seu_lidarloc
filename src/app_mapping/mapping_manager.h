@@ -23,7 +23,7 @@ public:
     ImageProjection img_proj;
     FeatureExtraction ft_extr;
 //    DeadReckoning dead_reckoning;
-    OPTMapping opt_mapping;
+//    OPTMapping opt_mapping;
 
     void CloudCallback(const BaseType& msg){
         const CloudTypeXYZIRT& cloud_data = *((CloudTypeXYZIRT*)&msg);
@@ -33,7 +33,7 @@ public:
     void GNSSINSCallback(const BaseType& msg){
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         img_proj.AddGNSSINSSData(gnssins_data);
-        opt_mapping.AddGNSSINSData(gnssins_data);
+//        opt_mapping.AddGNSSINSData(gnssins_data);
 //        dead_reckoning.AddGNSSINSSData(gnssins_data);
     }
 
@@ -49,13 +49,13 @@ public:
 //        dead_reckoning.Init(pubsub);
 //        opt_mapping.Init(pubsub);
         EZLOG(INFO)<< "ft_extr success!!"<<endl;
-        opt_mapping.Init(pubsub);
+//        opt_mapping.Init(pubsub);
         EZLOG(INFO)<< "opt_mapping success!!"<<endl;
 
         //构建数据流关系
         img_proj.ft_extr_ptr = &ft_extr;
-        img_proj.opt_mapping_ptr = &opt_mapping;
-        ft_extr.opt_mapping_ptr = &opt_mapping;
+//        img_proj.opt_mapping_ptr = &opt_mapping;
+//        ft_extr.opt_mapping_ptr = &opt_mapping;
         //opt_mapping.im
     }
 };

@@ -260,8 +260,9 @@ public:
                 cloud_feature.cornerCloud = cornerCloud;
                 cloud_feature.surfaceCloud = surfaceCloud;
 
-                opt_mapping_ptr->AddCloudData(cloud_feature);
-//                loc_mapping_ptr->AddCloudData(cloud_feature);
+//                switch it when you test your code
+//                opt_mapping_ptr->AddCloudData(cloud_feature);
+                loc_mapping_ptr->AddCloudData(cloud_feature);
 
                 //for debug use
                 {

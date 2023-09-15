@@ -1494,6 +1494,7 @@ public:
                 break;
 
         }
+        imu_pre_ptr->AddOdomData(current_lidar_pose_world);
         pubsub->PublishOdometry(topic_lidar_odometry, current_lidar_pose_world);
     }
 
@@ -1553,6 +1554,8 @@ public:
                         saveKeyFramesAndFactor();
 
                         publishOdometry();
+
+
                     }
                 }
 

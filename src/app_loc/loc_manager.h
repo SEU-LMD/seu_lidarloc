@@ -38,19 +38,19 @@ public:
         imu_pre.AddGNSSINSData(gnssins_data);
     }
 
-//    sub lidar odom, save in imu_pre and imu_opt
-    void OdomCallback(const BaseType& msg){
-        const OdometryType& odom_data = *((OdometryType*)&msg);
-        imu_pre.AddOdomData(odom_data);
-//        imu_opt.AddOdomData(odom_data);
-    }
+////    sub lidar odom, save in imu_pre and imu_opt
+//    void OdomCallback(const BaseType& msg){
+//        const OdometryType& odom_data = *((OdometryType*)&msg);
+//        imu_pre.AddOdomData(odom_data);
+////        imu_opt.AddOdomData(odom_data);
+//    }
 
 //    sub imu_pre, save in imu_opt
-    void imuCallback(const BaseType& msg){
-        const OdometryType& odom_data = *((OdometryType*)&msg);
-//        imu_opt.AddOdomData(odom_data);
-
-    }
+//    void imuCallback(const BaseType& msg){
+//        const OdometryType& odom_data = *((OdometryType*)&msg);
+////        imu_opt.AddOdomData(odom_data);
+//
+//    }
 
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
