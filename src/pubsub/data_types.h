@@ -81,7 +81,8 @@ class OdometryType:public BaseType{
 };
 typedef std::shared_ptr<OdometryType> OdometryTypePtr;
 
-class GNSSINSType:public BaseType{
+class
+GNSSINSType:public BaseType{
     public:
         Eigen::Vector3d lla;
         double roll,pitch,yaw;

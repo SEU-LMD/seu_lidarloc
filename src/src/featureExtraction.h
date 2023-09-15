@@ -260,8 +260,8 @@ public:
                 cloud_feature.cornerCloud = cornerCloud;
                 cloud_feature.surfaceCloud = surfaceCloud;
 
-//                opt_mapping_ptr->AddCloudData(cloud_feature);
-                loc_mapping_ptr->AddCloudData(cloud_feature);
+                opt_mapping_ptr->AddCloudData(cloud_feature);
+//                loc_mapping_ptr->AddCloudData(cloud_feature);
 
                 //for debug use
                 {
@@ -278,6 +278,7 @@ public:
                 EZLOG(INFO)<<"feature extraction cost time(ms) = "<<timer.toc()<<std::endl;
 
             }
+
             else{
                 sleep(0.01);
             }
