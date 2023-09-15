@@ -14,7 +14,7 @@
 #include "featureExtraction.h"
 #include "utils/config_helper.h"
 #include "opt_mapping.h"
-#include "dead_reckoning.h"
+//#include "dead_reckoning.h"
 
 class MappingManager{
 public:
@@ -22,7 +22,7 @@ public:
 
     ImageProjection img_proj;
     FeatureExtraction ft_extr;
-    DeadReckoning dead_reckoning;
+//    DeadReckoning dead_reckoning;
     OPTMapping opt_mapping;
 
     void CloudCallback(const BaseType& msg){
@@ -34,7 +34,7 @@ public:
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         img_proj.AddGNSSINSSData(gnssins_data);
         opt_mapping.AddGNSSINSData(gnssins_data);
-        dead_reckoning.AddGNSSINSSData(gnssins_data);
+//        dead_reckoning.AddGNSSINSSData(gnssins_data);
     }
 
 
@@ -46,7 +46,7 @@ public:
         EZLOG(INFO)<< "img_proj success!!"<<endl;
 
         ft_extr.Init(pubsub);
-        dead_reckoning.Init(pubsub);
+//        dead_reckoning.Init(pubsub);
 //        opt_mapping.Init(pubsub);
         EZLOG(INFO)<< "ft_extr success!!"<<endl;
         opt_mapping.Init(pubsub);

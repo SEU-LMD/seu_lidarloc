@@ -459,7 +459,7 @@ public:
                 odom_mutex.unlock();
                 IMURawDataPtr imu_raw (new IMURawData);
                 imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
-                imu_raw->imu_linear_v = gnss_ins_data.imu_linear_v;
+                imu_raw->imu_linear_v = gnss_ins_data.imu_linear_acc;
                 imu_raw->timestamp = gnss_ins_data.timestamp;
                 Eigen::Quaterniond orientation_quaternion;
                 orientation_quaternion = Eigen::AngleAxisd(gnss_ins_data.roll * 3.1415926535 / 180.0, Eigen::Vector3d::UnitX())
