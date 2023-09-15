@@ -1182,7 +1182,7 @@ public:
 
             transformUpdate();
         } else {
-            EZLOG(INFO) <<"Not enough features! Only %d edge and %d planar features available."
+            EZLOG(INFO) <<"Not enough features! : "
                         <<current_corner_ds_num, current_surf_ds_num;
         }
     }
@@ -1495,6 +1495,7 @@ public:
 
         }
         imu_pre_ptr->AddOdomData(current_lidar_pose_world);
+        EZLOG(INFO)<<"imu_pre_ptr->AddOdomData "<<std::endl;
         pubsub->PublishOdometry(topic_lidar_odometry, current_lidar_pose_world);
     }
 

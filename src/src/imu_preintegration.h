@@ -34,6 +34,7 @@ public:
     PubSubInterface* pubsub;
     std::mutex odom_mutex;
     std::mutex gnssins_mutex;
+    std::mutex lidarodom_mutex;
 
     std::thread* do_imu_thread;
     std::thread* do_lidar_thread;
@@ -43,10 +44,6 @@ public:
     std::deque<GNSSINSType> deque_gnssins;
 
     std::string topic_imu_raw_odom = "/imu_odom_raw";
-
-    ros::NodeHandle nh;
-
-    std::mutex mtx;
 
     bool systemInitialized = false;
     // 噪声协方差
@@ -94,17 +91,80 @@ public:
 
 //        OdometryTypePtr odom_ptr(new OdometryType());
 //        *odom_ptr = data;//深拷贝
-        odom_mutex.lock();
+        lidarodom_mutex.lock();
         lidar_poseQueue.push_back(data);
-        EZLOG(INFO)<<"lidar_poseQueue size: "<<lidar_poseQueue.size();
-        odom_mutex.unlock();
+//        EZLOG(INFO)<<"lidar_poseQueue.size() "<<lidar_poseQueue.size()<<std::endl;
+        lidarodom_mutex.unlock();
+
     }
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
+
+//        gnssins_mutex.lock();
+//        deque_gnssins.push_back(gnss_ins_data);
+//        EZLOG(INFO)<<"deque_gnssins.size() =  "<<deque_gnssins.size()<<std::endl;
+//        gnssins_mutex.unlock();
+//        GNSSINSType gnss_ins_data;
+//        odom_mutex.lock();
+//        gnss_ins_data = deque_gnssins.front();
+//        deque_gnssins.pop_front();
+//        odom_mutex.unlock();
+
+        IMURawDataPtr imu_raw (new IMURawData);
+        imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
+        imu_raw->imu_linear_v = gnss_ins_data.imu_linear_acc;
+        imu_raw->timestamp = gnss_ins_data.timestamp;
+        Eigen::Quaterniond orientation_quaternion;
+        orientation_quaternion = Eigen::AngleAxisd(gnss_ins_data.roll * 3.1415926535 / 180.0, Eigen::Vector3d::UnitX())
+                                 *Eigen::AngleAxisd(gnss_ins_data.pitch * 3.1415926535 / 180.0, Eigen::Vector3d::UnitY())
+                                 *Eigen::AngleAxisd(gnss_ins_data.yaw * 3.1415926535 / 180.0, Eigen::Vector3d::UnitZ());
+        imu_raw->orientation = orientation_quaternion;
+
+        double imuTime = imu_raw->timestamp;
         gnssins_mutex.lock();
-        deque_gnssins.push_back(gnss_ins_data);
-//        EZLOG(INFO)<<"deque_gnssins size: "<<deque_gnssins.size();
+        imuQueOpt.push_back(imu_raw);
+        imuQueImu.push_back(imu_raw);
         gnssins_mutex.unlock();
+
+//        EZLOG(INFO) << "imuQueOpt size: "<<imuQueOpt.size() << " imuQueImu size: "<<imuQueImu.size()
+//                    <<" doneFirstOpt: "<<doneFirstOpt;
+
+        if (doneFirstOpt == false) return;
+
+        double dt = (lastImuT_imu < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_imu);
+        lastImuT_imu = imuTime;
+        //    std::cout << "dt: " << dt << std::endl;
+        // integrate this single imu message
+        // imu预积分器添加一帧imu数据，注：这个预积分器的起始时刻是上一帧激光里程计时刻
+//        由GTSAM计算IMU位姿
+        imuIntegratorImu_->integrateMeasurement(
+                gtsam::Vector3(imu_raw->imu_linear_v.x(),
+                               imu_raw->imu_linear_v.y(),
+                               imu_raw->imu_linear_v.z()),
+                gtsam::Vector3(imu_raw->imu_angular_v.x(),
+                               imu_raw->imu_angular_v.y(),
+                               imu_raw->imu_angular_v.z()),
+                dt);
+        // predict odometry
+        // 用上一帧激光里程计时刻对应的状态、偏置，施加从该时刻开始到当前时刻的imu预计分量，得到当前时刻的状态
+        gtsam::NavState currentState =
+                imuIntegratorImu_->predict(prevStateOdom, prevBiasOdom);
+
+        // publish odometry
+        OdometryType Odometry_imuPredict_pub;
+        Odometry_imuPredict_pub.timestamp = imu_raw->timestamp;
+        Odometry_imuPredict_pub.frame = "map";
+
+        // transform imu pose to ldiar
+        gtsam::Pose3 imuPose =
+                gtsam::Pose3(currentState.quaternion(), currentState.position());
+//        EZLOG(INFO)<< "imuPose: "<<imuPose.matrix();
+        gtsam::Pose3 lidarPose = imuPose.compose(imu2Lidar);
+        PoseT imu_now_pose(lidarPose.translation().vector(),lidarPose.rotation().matrix());
+        Odometry_imuPredict_pub.pose = imu_now_pose;
+//        EZLOG(INFO)<< "imu_now_pose: "<<imu_now_pose.pose;
+        pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
+
     }
     void allocateIMUMemory(){
         boost::shared_ptr<gtsam::PreintegrationParams> p =
@@ -165,7 +225,7 @@ public:
                           const gtsam::imuBias::ConstantBias &biasCur) {
         Eigen::Vector3f vel(velCur.x(), velCur.y(), velCur.z());
         if (vel.norm() > 30) {
-            EZLOG(INFO)<<"Large velocity, reset IMU-preintegration!";
+//            EZLOG(INFO)<<"Large velocity, reset IMU-preintegration!";
             return true;
         }
 
@@ -174,7 +234,7 @@ public:
         Eigen::Vector3f bg(biasCur.gyroscope().x(), biasCur.gyroscope().y(),
                            biasCur.gyroscope().z());
         if (ba.norm() > 1.0 || bg.norm() > 1.0) {
-            EZLOG(INFO) <<"Large bias, reset IMU-preintegration!";
+//            EZLOG(INFO) <<"Large bias, reset IMU-preintegration!";
             return true;
         }
 
@@ -186,24 +246,25 @@ public:
         systemInitialized = false;
     }
     void DoLidar(){
-        EZLOG(INFO)<<"DoLidar ";
+        allocateIMUMemory();
+//        EZLOG(INFO)<<"DoLidar ";
         while(1){
             if(lidar_poseQueue.size()!=0){
+
+                EZLOG(INFO)<< "DoLidar!! "<<std::endl;
+
                 OdometryType cur_lidar_odom;
-                odom_mutex.lock();
+                lidarodom_mutex.lock();
                 cur_lidar_odom = lidar_poseQueue.front();
                 lidar_poseQueue.pop_front();
-                odom_mutex.unlock();
+                lidarodom_mutex.unlock();
 
                 double currentCorrectionTime = cur_lidar_odom.timestamp;
-
                 // make sure we have imu data to integrate
                 if (imuQueOpt.empty())
                 {
-                    return;
+                    continue;
                 }
-
-
                 bool degenerate = 0;
                 gtsam::Pose3 lidarPose =
                         gtsam::Pose3(gtsam::Rot3::Quaternion(cur_lidar_odom.pose.GetQ().w(),
@@ -212,17 +273,19 @@ public:
                                                              cur_lidar_odom.pose.GetQ().z()),
                                      gtsam::Point3(cur_lidar_odom.pose.GetXYZ()));
 
-                EZLOG(INFO)<< "lidarPose: "<< lidarPose.matrix();
+//                EZLOG(INFO)<< "lidarPose: "<< lidarPose.matrix();
 
                 // 0. initialize system
                 if (systemInitialized == false) {
                     resetOptimization();
-
                     // pop old IMU message
                     while (!imuQueOpt.empty()) {
-                        if (*(&imuQueOpt.front()->timestamp) < currentCorrectionTime - delta_t) {
-                            lastImuT_opt = *(&imuQueOpt.front()->timestamp);
+//                        EZLOG(INFO)<<"imuQueOpt.size()"<<imuQueOpt.size()<<std::endl;
+                        if (imuQueOpt.front()->timestamp < currentCorrectionTime - delta_t) {
+//                            EZLOG(INFO)<<"imuQueOpt.front()->timestamp - currentCorrectionTime = "<<imuQueOpt.front()->timestamp - currentCorrectionTime<<std::endl;
+                            lastImuT_opt = imuQueOpt.front()->timestamp;
                             imuQueOpt.pop_front();
+//                            EZLOG(INFO)<<"imuQueOpt.size()"<<imuQueOpt.size()<<std::endl;
                         } else
                             break;
                     }
@@ -255,9 +318,8 @@ public:
 
                     key = 1;
                     systemInitialized = true;
-                    return;
+                    continue;
                 }
-
                 // reset graph for speed
                 if (key == 100) {
                     // get updated noise before reset
@@ -295,7 +357,6 @@ public:
 
                     key = 1;
                 }
-
                 // 1. integrate imu data and optimize
                 while (!imuQueOpt.empty()) {
                     // pop and integrate imu data that is between two optimizations
@@ -355,7 +416,7 @@ public:
                 // check optimization
                 if (failureDetection(prevVel_, prevBias_)) {
                     resetParams();
-                    return;
+                    continue;
                 }
 
                 // 2. after optiization, re-propagate imu odometry preintegration
@@ -390,16 +451,20 @@ public:
 
                 ++key;
                 doneFirstOpt = true;
-
             }//end if(deque_cloud.size()!=0){
         }
     }
     void DoIMU(){
         EZLOG(INFO)<<"DoIMU ";
-        allocateIMUMemory();
+
         while(1){
+//            EZLOG(INFO)<<"DoIMU ";
+//            EZLOG(INFO)<<"deque_gnssins size: "<<deque_gnssins.size();
             if(deque_gnssins.size()!=0){
-                EZLOG(INFO)<<"deque_gnssins size: "<<deque_gnssins.size();
+//                EZLOG(INFO)<<"deque_gnssins size: "<<deque_gnssins.size();
+
+                EZLOG(INFO)<< "DoIMU!! "<<std::endl;
+
                 GNSSINSType gnss_ins_data;
                 odom_mutex.lock();
                 gnss_ins_data = deque_gnssins.front();
@@ -419,10 +484,10 @@ public:
                 imuQueOpt.push_back(imu_raw);
                 imuQueImu.push_back(imu_raw);
 
-                EZLOG(INFO) << "imuQueOpt size: "<<imuQueOpt.size() << " imuQueImu size: "<<imuQueImu.size()
-                            <<" doneFirstOpt: "<<doneFirstOpt;
+//                EZLOG(INFO) << "imuQueOpt size: "<<imuQueOpt.size() << " imuQueImu size: "<<imuQueImu.size()
+//                            <<" doneFirstOpt: "<<doneFirstOpt;
 
-                if (doneFirstOpt == false) return;
+                if (doneFirstOpt == false) continue;
 
                 double dt = (lastImuT_imu < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_imu);
                 lastImuT_imu = imuTime;
@@ -451,11 +516,11 @@ public:
                 // transform imu pose to ldiar
                 gtsam::Pose3 imuPose =
                         gtsam::Pose3(currentState.quaternion(), currentState.position());
-                EZLOG(INFO)<< "imuPose: "<<imuPose.matrix();
+//                EZLOG(INFO)<< "imuPose: "<<imuPose.matrix();
                 gtsam::Pose3 lidarPose = imuPose.compose(imu2Lidar);
                 PoseT imu_now_pose(lidarPose.translation().vector(),lidarPose.rotation().matrix());
                 Odometry_imuPredict_pub.pose = imu_now_pose;
-                EZLOG(INFO)<< "imu_now_pose: "<<imu_now_pose.pose;
+//                EZLOG(INFO)<< "imu_now_pose: "<<imu_now_pose.pose;
                 pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
 
             }//end if(deque_cloud.size()!=0){
@@ -467,7 +532,7 @@ public:
         pubsub = pubsub_;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
         do_lidar_thread = new std::thread(&IMUPreintegration::DoLidar, this);
-        do_imu_thread = new std::thread(&IMUPreintegration::DoIMU, this);
+//        do_imu_thread = new std::thread(&IMUPreintegration::DoIMU, this);
     }
 
 };
