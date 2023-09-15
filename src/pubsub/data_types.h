@@ -79,6 +79,7 @@ class OdometryType:public BaseType{
             return DataType::ODOMETRY;
         }
 };
+typedef std::shared_ptr<OdometryType> OdometryTypePtr;
 
 class GNSSINSType:public BaseType{
     public:
@@ -123,5 +124,14 @@ public:
     pcl::PointCloud<PointType>::Ptr surfaceCloud;
 };
 typedef std::shared_ptr<CloudFeature> CloudFeaturePtr;
+
+class IMURawData{
+public:
+    double timestamp;
+    Eigen::Vector3d imu_angular_v;
+    Eigen::Vector3d imu_linear_v;
+    Eigen::Quaterniond orientation;
+};
+typedef std::shared_ptr<IMURawData> IMURawDataPtr;
 
 #endif //SEU_LIDARLOC_BASE_TYPE_H

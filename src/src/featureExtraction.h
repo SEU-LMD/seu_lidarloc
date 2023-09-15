@@ -302,6 +302,7 @@ public:
         pubsub->addPublisher(topic_corner_world, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_surf_world, DataType::LIDAR, 10);
         do_work_thread = new std::thread(&FeatureExtraction::DoWork, this);
+
     }
 
 };

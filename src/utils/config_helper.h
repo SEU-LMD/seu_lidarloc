@@ -113,6 +113,9 @@ class MappingConfig{
         static double surroundingKeyframeDensity;
         static double surroundingKeyframeSearchRadius;
         static double localMap_searchRadius;
+        static double localMap_searchRadius_surf;
+        static double localMap_searchRadius_corner;
+        static int LocalMap_updata_perframe;
         static int scan_2_prior_map;
         static std::string prior_map_surf;
         static std::string prior_map_corner;
@@ -253,8 +256,11 @@ double  MappingConfig::surroundingkeyframeAddingDistThreshold=-1;
 double  MappingConfig::surroundingkeyframeAddingAngleThreshold=-1;
 double MappingConfig::surroundingKeyframeDensity=-1;
 double MappingConfig::surroundingKeyframeSearchRadius=-1;
-double MappingConfig::localMap_searchRadius=-1;
 int MappingConfig::scan_2_prior_map = 1;
+double MappingConfig::localMap_searchRadius=-1;
+double MappingConfig::localMap_searchRadius_surf=-1;
+double MappingConfig::localMap_searchRadius_corner=-1;
+int MappingConfig::LocalMap_updata_perframe=-1;
 
 //Loop closure
 bool  MappingConfig::loopClosureEnableFlag=false;
@@ -447,6 +453,9 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::historyKeyframeSearchTimeDiff=mappingconfig["historyKeyframeSearchTimeDiff"].as<float >();
         MappingConfig::historyKeyframeSearchNum=mappingconfig["historyKeyframeSearchNum"].as<int >();
         MappingConfig::historyKeyframeFitnessScore=mappingconfig["historyKeyframeFitnessScore"].as<float >();
+        MappingConfig::localMap_searchRadius_surf = mappingconfig["localMap_searchRadius_surf"].as<double >();
+        MappingConfig::localMap_searchRadius_corner = mappingconfig["localMap_searchRadius_corner"].as<double >();
+        MappingConfig::LocalMap_updata_perframe = mappingconfig["LocalMap_updata_perframe"].as<int>();
         MappingConfig::scan_2_prior_map = mappingconfig["scan_2_prior_map"].as<int>();
         MappingConfig::localMap_searchRadius = mappingconfig["localMap_searchRadius"].as<double >();
         MappingConfig::prior_map_corner = mappingconfig["prior_corner_map_path"].as<std::string>();
