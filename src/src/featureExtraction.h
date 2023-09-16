@@ -5,7 +5,7 @@
 #include "pubsub/data_types.h"
 #include "utils/timer.h"
 #include "opt_mapping.h"
-#include "LocMapping.h"
+#include "opt_lopc.h"
 
 struct smoothness_t {
     float value;

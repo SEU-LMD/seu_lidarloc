@@ -2,8 +2,8 @@
 // Created by fyy on 23-9-10.
 //
 
-#ifndef SEU_LIDARLOC_LOCMAPPING_H
-#define SEU_LIDARLOC_LOCMAPPING_H
+#ifndef SEU_LIDARLOC_OPT_LOPC_H
+#define SEU_LIDARLOC_OPT_LOPC_H
 
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
@@ -1577,4 +1577,4 @@ public:
 
     }
 };
-#endif //SEU_LIDARLOC_LOCMAPPING_H
+#endif //SEU_LIDARLOC_OPT_LOPC_H
