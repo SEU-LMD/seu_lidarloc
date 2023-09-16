@@ -139,6 +139,7 @@ public:
         odometry.twist.twist.angular.z =
                 thisImu.angular_velocity.z + prevBiasOdom.gyroscope().z();
         pubImuOdometry.publish(odometry);
+
         EZLOG(INFO)<<"pre-integration cost time(ms) = "<<timer.toc()<<std::endl;
     }
 

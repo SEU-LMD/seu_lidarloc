@@ -13,7 +13,7 @@
 #include "featureExtraction.h"
 #include "imu_preintegration.h"
 #include "utils/config_helper.h"
-#include "LocMapping.h"
+#include "opt_lopc.h"
 
 class LocManager{
 public:
