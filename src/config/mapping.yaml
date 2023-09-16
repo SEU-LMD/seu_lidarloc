@@ -1,6 +1,6 @@
 
   # the path of map save
-  save_map_path: "/home/lsy/map/"
+  save_map_path: "/home/wxy/seu/noros/seu_lidarloc/src/result"
 
   # Export settings
   savePCD: false                              # https://github.com/TixiaoShan/LIO-SAM/issues/3
@@ -24,7 +24,7 @@
 
   # CPU Params
   numberOfCores: 8                              # number of cores for mapping optimization
-  mappingProcessInterval: 0.15                  # seconds, regulate mapping frequency
+  mappingProcessInterval: 0.2                  # seconds, regulate mapping frequency
 
   # Surrounding map
   surroundingkeyframeAddingDistThreshold: 0.5  # meters, regulate keyframe adding threshold

@@ -14,6 +14,7 @@
 #include "featureExtraction.h"
 #include "utils/config_helper.h"
 #include "opt_mapping.h"
+
 //#include "dead_reckoning.h"
 
 class MappingManager{
@@ -23,8 +24,8 @@ public:
     ImageProjection img_proj;
     FeatureExtraction ft_extr;
 //    DeadReckoning dead_reckoning;
-    IMUPreintegration imu_pre;
     OPTMapping opt_mapping;
+    IMUPreintegration imu_pre;
 
     void CloudCallback(const BaseType& msg){
         const CloudTypeXYZIRT& cloud_data = *((CloudTypeXYZIRT*)&msg);
