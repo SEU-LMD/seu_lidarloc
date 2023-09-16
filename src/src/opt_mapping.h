@@ -1846,6 +1846,7 @@ public:
             current_gnss_pose.timestamp = timeLaserInfoCur;
             current_gnss_pose.pose = PoseT(gnss_pose.matrix().cast<double>());
             pubsub->PublishOdometry(topic_gnss_pose, current_gnss_pose);
+            imu_pre_ptr->AddOdomData(current_gnss_pose);//new
 
         }
         // Publish odometry (incremental)
