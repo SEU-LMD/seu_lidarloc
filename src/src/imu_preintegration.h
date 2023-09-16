@@ -100,70 +100,70 @@ public:
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
 
-        gnssins_mutex.lock();
-        deque_gnssins.push_back(gnss_ins_data);
-        EZLOG(INFO)<<"deque_gnssins.size() =  "<<deque_gnssins.size()<<std::endl;
-        gnssins_mutex.unlock();
+//        gnssins_mutex.lock();
+//        deque_gnssins.push_back(gnss_ins_data);
+//        EZLOG(INFO)<<"deque_gnssins.size() =  "<<deque_gnssins.size()<<std::endl;
+//        gnssins_mutex.unlock();
 //        GNSSINSType gnss_ins_data;
 //        odom_mutex.lock();
 //        gnss_ins_data = deque_gnssins.front();
 //        deque_gnssins.pop_front();
 //        odom_mutex.unlock();
 
-//        IMURawDataPtr imu_raw (new IMURawData);
-//        imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
-//        imu_raw->imu_linear_v = gnss_ins_data.imu_linear_acc;
-//        imu_raw->timestamp = gnss_ins_data.timestamp;
-//        Eigen::Quaterniond orientation_quaternion;
-//        orientation_quaternion = Eigen::AngleAxisd(gnss_ins_data.roll * 3.1415926535 / 180.0, Eigen::Vector3d::UnitX())
-//                                 *Eigen::AngleAxisd(gnss_ins_data.pitch * 3.1415926535 / 180.0, Eigen::Vector3d::UnitY())
-//                                 *Eigen::AngleAxisd(gnss_ins_data.yaw * 3.1415926535 / 180.0, Eigen::Vector3d::UnitZ());
-//        imu_raw->orientation = orientation_quaternion;
-//
-//        double imuTime = imu_raw->timestamp;
-//        gnssins_mutex.lock();
-//        imuQueOpt.push_back(imu_raw);
-//        imuQueImu.push_back(imu_raw);
-//        gnssins_mutex.unlock();
-//
-////        EZLOG(INFO) << "imuQueOpt size: "<<imuQueOpt.size() << " imuQueImu size: "<<imuQueImu.size()
-////                    <<" doneFirstOpt: "<<doneFirstOpt;
-//
-//        if (doneFirstOpt == false) return;
-//
-//        double dt = (lastImuT_imu < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_imu);
-//        lastImuT_imu = imuTime;
-//        //    std::cout << "dt: " << dt << std::endl;
-//        // integrate this single imu message
-//        // imu预积分器添加一帧imu数据，注：这个预积分器的起始时刻是上一帧激光里程计时刻
-////        由GTSAM计算IMU位姿
-//        imuIntegratorImu_->integrateMeasurement(
-//                gtsam::Vector3(imu_raw->imu_linear_v.x(),
-//                               imu_raw->imu_linear_v.y(),
-//                               imu_raw->imu_linear_v.z()),
-//                gtsam::Vector3(imu_raw->imu_angular_v.x(),
-//                               imu_raw->imu_angular_v.y(),
-//                               imu_raw->imu_angular_v.z()),
-//                dt);
-//        // predict odometry
-//        // 用上一帧激光里程计时刻对应的状态、偏置，施加从该时刻开始到当前时刻的imu预计分量，得到当前时刻的状态
-//        gtsam::NavState currentState =
-//                imuIntegratorImu_->predict(prevStateOdom, prevBiasOdom);
-//
-//        // publish odometry
-//        OdometryType Odometry_imuPredict_pub;
-//        Odometry_imuPredict_pub.timestamp = imu_raw->timestamp;
-//        Odometry_imuPredict_pub.frame = "map";
-//
-//        // transform imu pose to ldiar
-//        gtsam::Pose3 imuPose =
-//                gtsam::Pose3(currentState.quaternion(), currentState.position());
-////        EZLOG(INFO)<< "imuPose: "<<imuPose.matrix();
-//        gtsam::Pose3 lidarPose = imuPose.compose(imu2Lidar);
-//        PoseT imu_now_pose(lidarPose.translation().vector(),lidarPose.rotation().matrix());
-//        Odometry_imuPredict_pub.pose = imu_now_pose;
-////        EZLOG(INFO)<< "imu_now_pose: "<<imu_now_pose.pose;
-//        pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
+        IMURawDataPtr imu_raw (new IMURawData);
+        imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
+        imu_raw->imu_linear_v = gnss_ins_data.imu_linear_acc;
+        imu_raw->timestamp = gnss_ins_data.timestamp;
+        Eigen::Quaterniond orientation_quaternion;
+        orientation_quaternion = Eigen::AngleAxisd(gnss_ins_data.roll * 3.1415926535 / 180.0, Eigen::Vector3d::UnitX())
+                                 *Eigen::AngleAxisd(gnss_ins_data.pitch * 3.1415926535 / 180.0, Eigen::Vector3d::UnitY())
+                                 *Eigen::AngleAxisd(gnss_ins_data.yaw * 3.1415926535 / 180.0, Eigen::Vector3d::UnitZ());
+        imu_raw->orientation = orientation_quaternion;
+
+        double imuTime = imu_raw->timestamp;
+        gnssins_mutex.lock();
+        imuQueOpt.push_back(imu_raw);
+        imuQueImu.push_back(imu_raw);
+        gnssins_mutex.unlock();
+
+//        EZLOG(INFO) << "imuQueOpt size: "<<imuQueOpt.size() << " imuQueImu size: "<<imuQueImu.size()
+//                    <<" doneFirstOpt: "<<doneFirstOpt;
+
+        if (doneFirstOpt == false) return;
+
+        double dt = (lastImuT_imu < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_imu);
+        lastImuT_imu = imuTime;
+        //    std::cout << "dt: " << dt << std::endl;
+        // integrate this single imu message
+        // imu预积分器添加一帧imu数据，注：这个预积分器的起始时刻是上一帧激光里程计时刻
+//        由GTSAM计算IMU位姿
+        imuIntegratorImu_->integrateMeasurement(
+                gtsam::Vector3(imu_raw->imu_linear_v.x(),
+                               imu_raw->imu_linear_v.y(),
+                               imu_raw->imu_linear_v.z()),
+                gtsam::Vector3(imu_raw->imu_angular_v.x(),
+                               imu_raw->imu_angular_v.y(),
+                               imu_raw->imu_angular_v.z()),
+                dt);
+        // predict odometry
+        // 用上一帧激光里程计时刻对应的状态、偏置，施加从该时刻开始到当前时刻的imu预计分量，得到当前时刻的状态
+        gtsam::NavState currentState =
+                imuIntegratorImu_->predict(prevStateOdom, prevBiasOdom);
+
+        // publish odometry
+        OdometryType Odometry_imuPredict_pub;
+        Odometry_imuPredict_pub.timestamp = imu_raw->timestamp;
+        Odometry_imuPredict_pub.frame = "map";
+
+        // transform imu pose to ldiar
+        gtsam::Pose3 imuPose =
+                gtsam::Pose3(currentState.quaternion(), currentState.position());
+//        EZLOG(INFO)<< "imuPose: "<<imuPose.matrix();
+        gtsam::Pose3 lidarPose = imuPose.compose(imu2Lidar);
+        PoseT imu_now_pose(lidarPose.translation().vector(),lidarPose.rotation().matrix());
+        Odometry_imuPredict_pub.pose = imu_now_pose;
+//        EZLOG(INFO)<< "imu_now_pose: "<<imu_now_pose.pose;
+        pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
 
     }
     void allocateIMUMemory(){
@@ -538,7 +538,7 @@ public:
         pubsub = pubsub_;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
         do_lidar_thread = new std::thread(&IMUPreintegration::DoLidar, this);
-        do_imu_thread = new std::thread(&IMUPreintegration::DoIMU, this);
+//        do_imu_thread = new std::thread(&IMUPreintegration::DoIMU, this);
     }
 
 };
