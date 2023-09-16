@@ -364,21 +364,21 @@ public:
                         double cost_time_findpose = FindLidarFirstPose(cloud_with_time, odo_poses_copy,//in
                                                                        T_w_l_lidar_first_pose);//out
                         cloudinfo.pose = T_w_l_lidar_first_pose;
-                        EZLOG(INFO) << "FindLidarFirstPose cost time(ms) = " << cost_time_findpose << std::endl;
+//                        EZLOG(INFO) << "FindLidarFirstPose cost time(ms) = " << cost_time_findpose << std::endl;
 
                         ///2.imgprojection
                         ///update rangemat and deskewCloud_body
                         double cost_time_projpc = ProjectPointCloud(cloud_with_time, odo_poses_copy, T_w_l_lidar_first_pose);
-                        EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
+//                        EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
 
                         ///3.cloudExtraction
                         double cost_time_cloudextraction = CloudExtraction(T_w_l_lidar_first_pose, cloudinfo);
-                        EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
+//                        EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
 
                         ///4. send data to feature extraction node
                         ft_extr_ptr->AddCloudData(cloudinfo);
-                        EZLOG(INFO)<<"cloudinfo.frame_id = "<<cloudinfo.frame_id<<std::endl;
-                        EZLOG(INFO)<<"cloudinfo.cloud_ptr->size() = "<<cloudinfo.cloud_ptr->size()<<std::endl;
+//                        EZLOG(INFO)<<"cloudinfo.frame_id = "<<cloudinfo.frame_id<<std::endl;
+//                        EZLOG(INFO)<<"cloudinfo.cloud_ptr->size() = "<<cloudinfo.cloud_ptr->size()<<std::endl;
 
 
                         ///5.pop used odom
