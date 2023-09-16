@@ -40,7 +40,6 @@
 class OPTMapping{
 public:
     PubSubInterface* pubsub;
-    IMUPreintegration* imu_pre_ptr;
     std::thread* do_work_thread;
     std::thread* loop_thread;
     std::thread* save_Map_thread;

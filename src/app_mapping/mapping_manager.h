@@ -14,7 +14,6 @@
 #include "featureExtraction.h"
 #include "utils/config_helper.h"
 #include "opt_mapping.h"
-
 //#include "dead_reckoning.h"
 
 class MappingManager{
@@ -23,9 +22,8 @@ public:
 
     ImageProjection img_proj;
     FeatureExtraction ft_extr;
-//    DeadReckoning dead_reckoning;
-    OPTMapping opt_mapping;
     IMUPreintegration imu_pre;
+    OPTMapping opt_mapping;
 
     void CloudCallback(const BaseType& msg){
         const CloudTypeXYZIRT& cloud_data = *((CloudTypeXYZIRT*)&msg);
@@ -33,11 +31,12 @@ public:
     }
 
     void GNSSINSCallback(const BaseType& msg){
+        TicToc timer;
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         img_proj.AddGNSSINSSData(gnssins_data);
         opt_mapping.AddGNSSINSData(gnssins_data);
         imu_pre.AddGNSSINSData(gnssins_data);
-//        dead_reckoning.AddGNSSINSSData(gnssins_data);
+        EZLOG(INFO)<<"GNSSINSCallback cost time(ms)"<<timer.toc()<<std::endl;
     }
 
 
@@ -53,12 +52,11 @@ public:
         EZLOG(INFO)<< "opt_mapping success!!"<<endl;
         imu_pre.Init(pubsub);
         EZLOG(INFO)<< "imu_pre success!!"<<endl;
+
         //构建数据流关系
         img_proj.ft_extr_ptr = &ft_extr;
-//        img_proj.opt_mapping_ptr = &opt_mapping;
         ft_extr.opt_mapping_ptr = &opt_mapping;
         opt_mapping.imu_pre_ptr = &imu_pre;
-        //opt_mapping.im
     }
 };
 #endif //SEU_LIDARLOC_MAPPING_MANAGER_H

@@ -43,6 +43,7 @@
   imuGyrBiasN: 1.4428407712885209e-05
   imuGravity: 0.0
   imuRPYWeight: 0.01
+  imuHZ: 100
 
   # Extrinsics (lidar -> IMU)
   imu_type: 0   # 0: 6axis, 1:9 axis

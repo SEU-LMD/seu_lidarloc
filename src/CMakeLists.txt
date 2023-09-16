@@ -29,9 +29,9 @@ find_package(GTSAM REQUIRED)
 
 set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/../env/opencv-3.4.16-install/share/OpenCV)
 find_package(OpenCV REQUIRED)
-       
 
-set(PCL_DIR "/usr/lib/x86_64-linux-gnu/cmake/pcl")
+
+#set(PCL_DIR "/usr/lib/x86_64-linux-gnu/cmake/pcl")
 find_package(PCL REQUIRED)
 
 set(YAML_CPP_DIR "${CMAKE_SOURCE_DIR}/../env/yaml-cpp-install/lib/cmake/yaml-cpp")
@@ -69,33 +69,5 @@ MESSAGE(STATUS "------------${PCL_LIBRARY_DIRS}------------------")
 add_executable(mapping app_mapping/mapping.cpp)
 target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
 
-add_executable(loc app_loc/loc.cpp)
-target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
-
-
-## # # Range Image Projection
-#add_executable(imageProjection src/imageProjection_gnss.cpp)
-#add_dependencies(imageProjection ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(imageProjection ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  ${YAML_LIB})#YAML_CPP_LIBRARIES
-##
-### Feature Association
-#add_executable(featureExtraction src/featureExtraction.cpp)
-#add_dependencies(featureExtraction ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-#target_link_libraries(featureExtraction ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES}  ${YAML_LIB})
-#
-## Mapping Optimization
-#add_executable(mapOptmization src/mapOptmizationGps.cpp )
-#add_dependencies(mapOptmization ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-#target_compile_options(mapOptmization PRIVATE ${OpenMP_CXX_FLAGS})
-#target_link_libraries(mapOptmization ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES}  gtsam  libGeographic  ${YAML_LIB})
-#
-### Prior Map based localization
-##add_executable(priorMapLoc src/priorMapLoc.cpp )
-###add_dependencies(priorMapLoc ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-###target_compile_options(priorMapLoc PRIVATE ${OpenMP_CXX_FLAGS})
-##target_link_libraries(priorMapLoc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES}  gtsam  libGeographic  ${YAML_LIB})
-#
-##IMU Preintegrations
-#add_executable(imuPreintegration src/imuPreintegration.cpp)
-#target_link_libraries(imuPreintegration ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam  ${YAML_LIB})
-
+#add_executable(loc app_loc/loc.cpp)
+#target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
