@@ -442,7 +442,7 @@ public:
 
                 TicToc t4;
                 saveKeyFramesAndFactor();
-                times_extractLocalMap_file << t4.toc()<<" ";
+//                times_extractLocalMap_file << t4.toc()<<" ";
 
                 publishOdometry();
 
@@ -450,7 +450,7 @@ public:
 
             }
         }
-        times_extractLocalMap_file << T_all.toc() << std::endl;
+//        times_extractLocalMap_file << T_all.toc() << std::endl;
     }
 
     void gpsHandler(const nav_msgs::Odometry::ConstPtr &gpsMsg) {
@@ -693,10 +693,10 @@ public:
 
 //            kdtree_localMap_corner->setInputCloud(localMap_corner);
 //            std::cout << "extract_from_priorMap is in ms: " << extract_from_priorMap.toc() << std::endl;
-            times_extractLocalMap_file << setprecision(6);
-            times_extractLocalMap_file << extract_from_priorMap.toc()<<" "
-                                        <<localMap_corner->size()<<" "
-                                        <<localMap_surf->size()<<" ";
+//            times_extractLocalMap_file << setprecision(6);
+//            times_extractLocalMap_file << extract_from_priorMap.toc()<<" "
+//                                        <<localMap_corner->size()<<" "
+//                                        <<localMap_surf->size()<<" ";
 
             TicToc t2;
             downSizeFilterCorner.setInputCloud(localMap_corner);
@@ -732,10 +732,10 @@ public:
             pcl::transformPointCloud(*localMap_corner_ds, *localMap_corner_ds, T_matrix_L_B.inverse());
 
 //            DS and pcl transformation
-            times_extractLocalMap_file << setprecision(6);
-            times_extractLocalMap_file << t2.toc() << " "
-                                       << localMap_corner_ds_num<<" "
-                                       << localMap_surf_ds_num <<" ";
+//            times_extractLocalMap_file << setprecision(6);
+//            times_extractLocalMap_file << t2.toc() << " "
+//                                       << localMap_corner_ds_num<<" "
+//                                       << localMap_surf_ds_num <<" ";
 
             flag_use_world_localMap = 1;
             flag_load_localMap = 1; // load prior local map
@@ -877,12 +877,12 @@ public:
         downSizeFilterSurf.filter(*current_surf_ds);
         current_surf_ds_num = current_surf_ds->size();
 
-        times_extractLocalMap_file << setprecision(6);
-        times_extractLocalMap_file << t1.toc()<<" "
-                                    << current_surf->size()<<" "
-                                    << current_corner->size()<<" "
-                                    << current_surf_ds->size()<<" "
-                                    << current_corner_ds->size()<<" ";
+//        times_extractLocalMap_file << setprecision(6);
+//        times_extractLocalMap_file << t1.toc()<<" "
+//                                    << current_surf->size()<<" "
+//                                    << current_corner->size()<<" "
+//                                    << current_surf_ds->size()<<" "
+//                                    << current_corner_ds->size()<<" ";
 
     }
 
@@ -1358,9 +1358,9 @@ public:
                     break;
                 }
             }
-            times_extractLocalMap_file << setprecision(6);
-            times_extractLocalMap_file << t1.toc()<<" "
-                                        << iterCount_viewer<<" ";
+//            times_extractLocalMap_file << setprecision(6);
+//            times_extractLocalMap_file << t1.toc()<<" "
+//                                        << iterCount_viewer<<" ";
             transformUpdate();
         } else {
 //            EZLOG(INFO) <<"Not enough features! Only %d edge and %d planar features available."

@@ -256,7 +256,8 @@ public:
         p->integrationCovariance =
                 gtsam::Matrix33::Identity(3, 3) *
                 pow(1e-4,
-                    2);  // error committed in integrating position from velocities
+                    2);  /// error committed in integrating position from velocities
+        ///TODO
         gtsam::imuBias::ConstantBias prior_imu_bias(
                 (gtsam::Vector(6) << 0, 0, 0, 0, 0, 0).finished());;  // assume zero initial bias
 
@@ -310,7 +311,7 @@ public:
 
     void odometryHandler(const nav_msgs::Odometry::ConstPtr &odomMsg) {
         std::lock_guard<std::mutex> lock(mtx);
-
+        EZLOG(INFO)<<"odometryHandler"<<std::endl;
         double currentCorrectionTime = ROS_TIME(odomMsg);
 
         // make sure we have imu data to integrate
@@ -331,6 +332,7 @@ public:
         // 0. initialize system
         if (systemInitialized == false) {
             resetOptimization();
+            EZLOG(INFO)<<"0. initialize system"<<std::endl;
 
             // pop old IMU message
             while (!imuQueOpt.empty()) {
@@ -340,6 +342,7 @@ public:
                 } else
                     break;
             }
+            EZLOG(INFO)<<"111111111"<<std::endl;
             // initial pose
             prevPose_ = lidarPose.compose(lidar2Imu);
             gtsam::PriorFactor<gtsam::Pose3> priorPose(X(0), prevPose_,
@@ -360,7 +363,9 @@ public:
             graphValues.insert(V(0), prevVel_);
             graphValues.insert(B(0), prevBias_);
             // optimize once
+            EZLOG(INFO)<<"before update"<<std::endl;
             optimizer.update(graphFactors, graphValues);
+            EZLOG(INFO)<<"after update"<<std::endl;
             graphFactors.resize(0);
             graphValues.clear();
 
@@ -369,6 +374,7 @@ public:
 
             key = 1;
             systemInitialized = true;
+            EZLOG(INFO)<<"end init"<<std::endl;
             return;
         }
 
@@ -411,14 +417,19 @@ public:
         }
 
         // 1. integrate imu data and optimize
+        EZLOG(INFO)<<"imuQueOpt.size() = "<<imuQueOpt.size()<<std::endl;
         while (!imuQueOpt.empty()) {
+            EZLOG(INFO)<<"1. integrate imu data and optimize"<<std::endl;
             // pop and integrate imu data that is between two optimizations
             sensor_msgs::Imu *thisImu = &imuQueOpt.front();
             double imuTime = ROS_TIME(thisImu);
             // std::cout << " delta_t: " << imuTime -lastImuT_opt << std::endl;
+//            TODO prevBias_,
+            EZLOG(INFO)<<"prevBias_.vector() = "<<prevBias_.vector()<<std::endl;
+            imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
             if (imuTime < currentCorrectionTime - delta_t) {
                 double dt =
-                        (lastImuT_opt < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_opt);
+                        (lastImuT_opt < 0) ? (1.0 / 100.0) : (imuTime - lastImuT_opt);
                 //        double dt = (lastImuT_opt < 0) ? (1.0 / imuFrequence) :
                 //        (imuTime - lastImuT_opt);
                 imuIntegratorOpt_->integrateMeasurement(
@@ -459,6 +470,7 @@ public:
         graphValues.insert(V(key), propState_.v());
         graphValues.insert(B(key), prevBias_);
         // optimize
+        EZLOG(INFO)<<"before update!"<<std::endl;
         optimizer.update(graphFactors, graphValues);
         optimizer.update();
         graphFactors.resize(0);
@@ -470,7 +482,7 @@ public:
         prevState_ = gtsam::NavState(prevPose_, prevVel_);
         prevBias_ = result.at<gtsam::imuBias::ConstantBias>(B(key));
         // Reset the optimization preintegration object.
-        imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
+//        imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
         // check optimization
         if (failureDetection(prevVel_, prevBias_)) {
             resetParams();
@@ -482,18 +494,24 @@ public:
         prevBiasOdom = prevBias_;
         // first pop imu message older than current correction data
         double lastImuQT = -1;
-        while (!imuQueImu.empty() &&
-               ROS_TIME(&imuQueImu.front()) < currentCorrectionTime - delta_t) {
-            lastImuQT = ROS_TIME(&imuQueImu.front());
-            imuQueImu.pop_front();
-        }
+//        while (!imuQueImu.empty() &&
+//               ROS_TIME(&imuQueImu.front()) < currentCorrectionTime - delta_t) {
+//            lastImuQT = ROS_TIME(&imuQueImu.front());
+//            imuQueImu.pop_front();
+//        }
+//        while (!imuQueOpt.empty() &&
+//               ROS_TIME(&imuQueOpt.front()) < currentCorrectionTime - delta_t) {
+//            lastImuQT = ROS_TIME(&imuQueOpt.front());
+//            imuQueOpt.pop_front();
+//        }
+
         // repropogate
-        if (!imuQueImu.empty()) {
+        if (!imuQueOpt.empty()) {
             // reset bias use the newly optimized bias
             imuIntegratorImu_->resetIntegrationAndSetBias(prevBiasOdom);
             // integrate imu message from the beginning of this optimization
-            for (int i = 0; i < (int) imuQueImu.size(); ++i) {
-                sensor_msgs::Imu *thisImu = &imuQueImu[i];
+            for (int i = 0; i < (int) imuQueOpt.size(); ++i) {
+                sensor_msgs::Imu *thisImu = &imuQueOpt[i];
                 double imuTime = ROS_TIME(thisImu);
                 double dt = (lastImuQT < 0) ? (1.0 / 500.0) : (imuTime - lastImuQT);
                 //        double dt = (lastImuQT < 0) ? (1.0 / imuFrequence) : (imuTime
@@ -537,7 +555,6 @@ public:
 
     void imuHandler(const gps_imu::ivsensorgpsConstPtr &gnssImu_raw) {
         std::lock_guard<std::mutex> lock(mtx);
-
 //        in world Frame
         sensor_msgs::Imu::Ptr imu_raw(new sensor_msgs::Imu());
         imu_raw->header = gnssImu_raw->header;
@@ -561,12 +578,12 @@ public:
         sensor_msgs::Imu thisImu = imuConverter(*imu_raw);
 
         imuQueOpt.push_back(thisImu);
-        imuQueImu.push_back(thisImu);
+//        imuQueImu.push_back(thisImu);
 
         if (doneFirstOpt == false) return;
 
         double imuTime = ROS_TIME(&thisImu);
-        double dt = (lastImuT_imu < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_imu);
+        double dt = (lastImuT_imu < 0) ? (1.0 / 100.0) : (imuTime - lastImuT_imu);
         lastImuT_imu = imuTime;
 
         //    std::cout << "dt: " << dt << std::endl;
@@ -574,13 +591,13 @@ public:
         // integrate this single imu message
         // imu预积分器添加一帧imu数据，注：这个预积分器的起始时刻是上一帧激光里程计时刻
 //        由GTSAM计算IMU位姿
-        imuIntegratorImu_->integrateMeasurement(
-                gtsam::Vector3(thisImu.linear_acceleration.x,
-                               thisImu.linear_acceleration.y,
-                               thisImu.linear_acceleration.z),
-                gtsam::Vector3(thisImu.angular_velocity.x, thisImu.angular_velocity.y,
-                               thisImu.angular_velocity.z),
-                dt);
+//        imuIntegratorImu_->integrateMeasurement(
+//                gtsam::Vector3(thisImu.linear_acceleration.x,
+//                               thisImu.linear_acceleration.y,
+//                               thisImu.linear_acceleration.z),
+//                gtsam::Vector3(thisImu.angular_velocity.x, thisImu.angular_velocity.y,
+//                               thisImu.angular_velocity.z),
+//                dt);
 
         // predict odometry
         // 用上一帧激光里程计时刻对应的状态、偏置，施加从该时刻开始到当前时刻的imu预计分量，得到当前时刻的状态
