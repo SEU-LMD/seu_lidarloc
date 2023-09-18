@@ -341,11 +341,13 @@ public:
                     break;
             }
             // initial pose
+//            change Lidar to IMU
             prevPose_ = lidarPose.compose(lidar2Imu);
             gtsam::PriorFactor<gtsam::Pose3> priorPose(X(0), prevPose_,
                                                        priorPoseNoise);
             graphFactors.add(priorPose);
             // initial velocity
+//            速度初值可以给组合导航的输出
             prevVel_ = gtsam::Vector3(0, 0, 0);
             gtsam::PriorFactor<gtsam::Vector3> priorVel(V(0), prevVel_,
                                                         priorVelNoise);
@@ -418,9 +420,10 @@ public:
             // std::cout << " delta_t: " << imuTime -lastImuT_opt << std::endl;
             if (imuTime < currentCorrectionTime - delta_t) {
                 double dt =
-                        (lastImuT_opt < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_opt);
+                        (lastImuT_opt < 0) ? (1.0 / 100.0) : (imuTime - lastImuT_opt); // 100Hz
                 //        double dt = (lastImuT_opt < 0) ? (1.0 / imuFrequence) :
                 //        (imuTime - lastImuT_opt);
+//                积分器
                 imuIntegratorOpt_->integrateMeasurement(
                         gtsam::Vector3(thisImu->linear_acceleration.x,
                                        thisImu->linear_acceleration.y,
@@ -487,6 +490,14 @@ public:
             lastImuQT = ROS_TIME(&imuQueImu.front());
             imuQueImu.pop_front();
         }
+
+        //注意，这里是要“删除”当前帧“之前”的imu数据，是想根据当前帧“之后”的累积递推。
+        //而前面imuIntegratorOpt_做的事情是，“提取”当前帧“之前”的imu数据，用两帧之间的imu数据进行积分。处理过的就弹出来。
+        //因此，新到一帧激光帧里程计数据时，imuQueOpt队列变化如下：
+        //当前帧之前的数据被提出来做积分，用一个删一个（这样下一帧到达后，队列中就不会有现在这帧之前的数据了）
+        //那么在更新完以后，imuQueOpt队列不再变化，剩下的原始imu数据用作下一次优化时的数据。
+        //而imuQueImu队列则是把当前帧之前的imu数据都给直接剔除掉，仅保留当前帧之后的imu数据，
+
         // repropogate
         if (!imuQueImu.empty()) {
             // reset bias use the newly optimized bias
@@ -535,6 +546,14 @@ public:
         return false;
     }
 
+
+    /**
+     * 订阅imu原始数据
+     * 1、用上一帧激光里程计时刻对应的状态、偏置，
+     * 施加从该时刻开始到当前时刻的imu预计分量，得到当前时刻的状态，也就是imu里程计
+     * 2、imu里程计位姿转到lidar系，发布里程计
+    */
+
     void imuHandler(const gps_imu::ivsensorgpsConstPtr &gnssImu_raw) {
         std::lock_guard<std::mutex> lock(mtx);
 
@@ -566,7 +585,7 @@ public:
         if (doneFirstOpt == false) return;
 
         double imuTime = ROS_TIME(&thisImu);
-        double dt = (lastImuT_imu < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_imu);
+        double dt = (lastImuT_imu < 0) ? (1.0 / 100.0) : (imuTime - lastImuT_imu);
         lastImuT_imu = imuTime;
 
         //    std::cout << "dt: " << dt << std::endl;

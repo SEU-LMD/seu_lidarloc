@@ -231,9 +231,6 @@ public:
                 "/gnss_odom", 200, &Loc_mapOptimization::gpsHandler, this,
                 ros::TransportHints().tcpNoDelay());
 
-//        pubRecentKeyFrames = nh.advertise<sensor_msgs::PointCloud2>(
-//                "lio_sam_6axis/mapping/map_local", 1);
-
         pubSurfFromMap = nh.advertise<sensor_msgs::PointCloud2>(
                 "surf_fromMap", 1);
         pubCornerFromMap = nh.advertise<sensor_msgs::PointCloud2>(
@@ -242,9 +239,6 @@ public:
                 "localMap_surf", 1);
         pubLocalMapCorner = nh.advertise<sensor_msgs::PointCloud2>(
                 "localMap_corner", 1);
-
-//        pubSLAMInfo = nh.advertise<lio_sam_6axis::cloud_info>(
-//                "lio_sam_6axis/mapping/slam_info", 1);
 
         downSizeFilterCorner.setLeafSize(MappingConfig::mappingCornerLeafSize,
                                          MappingConfig::mappingCornerLeafSize,
@@ -256,7 +250,6 @@ public:
                 MappingConfig::surroundingKeyframeDensity,
                 MappingConfig::surroundingKeyframeDensity,
                 MappingConfig::surroundingKeyframeDensity);  // for surrounding key poses of
-        // scan-to-map optimization
     }
 
     void allocateMemory() {
@@ -443,7 +436,7 @@ public:
 
                 TicToc t4;
                 saveKeyFramesAndFactor();
-                times_extractLocalMap_file << t4.toc()<<" ";
+//                times_extractLocalMap_file << t4.toc()<<" ";
 
                 publishOdometry();
 
@@ -451,7 +444,7 @@ public:
 
             }
         }
-        times_extractLocalMap_file << T_all.toc() << std::endl;
+//        times_extractLocalMap_file << T_all.toc() << std::endl;
     }
 
     void gpsHandler(const nav_msgs::Odometry::ConstPtr &gpsMsg) {
@@ -550,17 +543,6 @@ public:
         return pcl::getTransformation(transformIn[3], transformIn[4],
                                       transformIn[5], transformIn[0],
                                       transformIn[1], transformIn[2]);
-    }
-
-    PointTypePose trans2PointTypePose(float transformIn[]) {
-        PointTypePose thisPose6D;
-        thisPose6D.x = transformIn[3];
-        thisPose6D.y = transformIn[4];
-        thisPose6D.z = transformIn[5];
-        thisPose6D.roll = transformIn[0];
-        thisPose6D.pitch = transformIn[1];
-        thisPose6D.yaw = transformIn[2];
-        return thisPose6D;
     }
 
     void updateInitialGuess() {
@@ -694,10 +676,10 @@ public:
 
 //            kdtree_localMap_corner->setInputCloud(localMap_corner);
 //            std::cout << "extract_from_priorMap is in ms: " << extract_from_priorMap.toc() << std::endl;
-            times_extractLocalMap_file << setprecision(6);
-            times_extractLocalMap_file << extract_from_priorMap.toc()<<" "
-                                        <<localMap_corner->size()<<" "
-                                        <<localMap_surf->size()<<" ";
+//            times_extractLocalMap_file << setprecision(6);
+//            times_extractLocalMap_file << extract_from_priorMap.toc()<<" "
+//                                        <<localMap_corner->size()<<" "
+//                                        <<localMap_surf->size()<<" ";
 
             TicToc t2;
             downSizeFilterCorner.setInputCloud(localMap_corner);
@@ -733,10 +715,10 @@ public:
             pcl::transformPointCloud(*localMap_corner_ds, *localMap_corner_ds, T_matrix_L_B.inverse());
 
 //            DS and pcl transformation
-            times_extractLocalMap_file << setprecision(6);
-            times_extractLocalMap_file << t2.toc() << " "
-                                       << localMap_corner_ds_num<<" "
-                                       << localMap_surf_ds_num <<" ";
+//            times_extractLocalMap_file << setprecision(6);
+//            times_extractLocalMap_file << t2.toc() << " "
+//                                       << localMap_corner_ds_num<<" "
+//                                       << localMap_surf_ds_num <<" ";
 
             flag_use_world_localMap = 1;
             flag_load_localMap = 1; // load prior local map
@@ -878,12 +860,12 @@ public:
         downSizeFilterSurf.filter(*current_surf_ds);
         current_surf_ds_num = current_surf_ds->size();
 
-        times_extractLocalMap_file << setprecision(6);
-        times_extractLocalMap_file << t1.toc()<<" "
-                                    << current_surf->size()<<" "
-                                    << current_corner->size()<<" "
-                                    << current_surf_ds->size()<<" "
-                                    << current_corner_ds->size()<<" ";
+//        times_extractLocalMap_file << setprecision(6);
+//        times_extractLocalMap_file << t1.toc()<<" "
+//                                    << current_surf->size()<<" "
+//                                    << current_corner->size()<<" "
+//                                    << current_surf_ds->size()<<" "
+//                                    << current_corner_ds->size()<<" ";
 
     }
 
@@ -1359,9 +1341,9 @@ public:
                     break;
                 }
             }
-            times_extractLocalMap_file << setprecision(6);
-            times_extractLocalMap_file << t1.toc()<<" "
-                                        << iterCount_viewer<<" ";
+//            times_extractLocalMap_file << setprecision(6);
+//            times_extractLocalMap_file << t1.toc()<<" "
+//                                        << iterCount_viewer<<" ";
             transformUpdate();
         } else {
 //            EZLOG(INFO) <<"Not enough features! Only %d edge and %d planar features available."
@@ -1372,29 +1354,6 @@ public:
 //    IMU 初值
     void transformUpdate() {
 //        std::cout << "transformUpdate " << std::endl;
-        if (cloudInfo.imuAvailable == true) {
-            if (std::abs(cloudInfo.imuPitchInit) < 1.4) {
-                double imuWeight = SensorConfig::imuRPYWeight;
-                tf::Quaternion imuQuaternion;
-                tf::Quaternion transformQuaternion;
-                double rollMid, pitchMid, yawMid;
-
-                // slerp roll
-                transformQuaternion.setRPY(current_T_m_l[0], 0, 0);
-                imuQuaternion.setRPY(cloudInfo.imuRollInit, 0, 0);
-                tf::Matrix3x3(transformQuaternion.slerp(imuQuaternion, imuWeight))
-                        .getRPY(rollMid, pitchMid, yawMid);
-                current_T_m_l[0] = rollMid;
-
-                // slerp pitch
-                transformQuaternion.setRPY(0, current_T_m_l[1], 0);
-                imuQuaternion.setRPY(0, cloudInfo.imuPitchInit, 0);
-                tf::Matrix3x3(transformQuaternion.slerp(imuQuaternion, imuWeight))
-                        .getRPY(rollMid, pitchMid, yawMid);
-                current_T_m_l[1] = pitchMid;
-            }
-        }
-
         current_T_m_l[0] =
                 constraintTransformation(current_T_m_l[0], MappingConfig::rotation_tollerance);
         current_T_m_l[1] =
@@ -1673,19 +1632,6 @@ public:
         current_T_m_l[4] = latestEstimate.translation().y();
         current_T_m_l[5] = latestEstimate.translation().z();
 
-        // save all the received edge and surf points
-//        pcl::PointCloud<PointType>::Ptr thisCornerKeyFrame(
-//                new pcl::PointCloud<PointType>());
-//        pcl::PointCloud<PointType>::Ptr thisSurfKeyFrame(
-//                new pcl::PointCloud<PointType>());
-//
-//        pcl::copyPointCloud(*current_corner_ds, *thisCornerKeyFrame);
-//        pcl::copyPointCloud(*current_surf_ds, *thisSurfKeyFrame);
-
-        // save key frame cloud, lidar frame
-//        Keyframe_corner_ds.push_back(thisCornerKeyFrame);
-//        Keyframe_surf_ds.push_back(thisSurfKeyFrame);
-
     }
 
     void correctPoses() {
@@ -1753,6 +1699,114 @@ public:
     }
 };
 
+class loc_GICP{
+public:
+    ros::NodeHandle nh;
+    ros::Subscriber subLaserCloudInfo;
+
+    lio_sam_6axis::cloud_info cloudInfo;
+    std_msgs::Header cloudHeader;
+    pcl::PointCloud<PointType>::Ptr extractedCloud_raw;
+    pcl::PointCloud<PointType>::Ptr extractedCloud_withoutNaN;
+    pcl::PointCloud<PointType>::Ptr current_scan;
+    pcl::CropBox<PointType> crop;
+    pcl::VoxelGrid<PointType> vf_scan;
+    pcl::VoxelGrid<PointType> vf_submap;
+    double crop_size;
+    double vf_scan_res;
+    double vf_submap_res;
+
+    loc_GICP(){
+        subLaserCloudInfo = nh.subscribe<lio_sam_6axis::cloud_info>(
+                "lio_sam_6axis/deskew/cloud_info", 1,
+                &loc_GICP::laserCloudInfoHandler, this,
+                ros::TransportHints().tcpNoDelay());
+
+        this->crop.setNegative(true);
+        this->crop.setMin(Eigen::Vector4f(-this->crop_size, -this->crop_size, -this->crop_size, 1.0));
+        this->crop.setMax(Eigen::Vector4f(this->crop_size, this->crop_size, this->crop_size, 1.0));
+
+        this->vf_scan.setLeafSize(this->vf_scan_res, this->vf_scan_res, this->vf_scan_res);
+        this->vf_submap.setLeafSize(this->vf_submap_res, this->vf_submap_res, this->vf_submap_res);
+    }
+
+/**
+ * Get pcl from rosmsg and DS current scan
+ */
+    void preprocessPoints() {
+
+        pcl::PointCloud<PointType>::iterator it = extractedCloud_raw->points.begin();
+        while (it != extractedCloud_raw->points.end())
+        {
+            float x, y, z, rgb;
+            x = it->x;
+            y = it->y;
+            z = it->z;
+            if (!pcl_isfinite(x) || !pcl_isfinite(y) || !pcl_isfinite(z))
+            {
+                it = extractedCloud_raw->points.erase(it);
+            }
+            else
+                ++it;
+        }
+        // Remove NaNs
+        std::vector<int> idx;
+        this->extractedCloud_raw->is_dense = false;
+        pcl::removeNaNFromPointCloud(*this->extractedCloud_raw, *this->extractedCloud_raw, idx);
+        // 逐点拷贝点云
+        extractedCloud_withoutNaN->width = extractedCloud_raw->width;
+        extractedCloud_withoutNaN->height = extractedCloud_raw->height;
+        extractedCloud_withoutNaN->points.resize(extractedCloud_withoutNaN->width * extractedCloud_withoutNaN->height);
+        for (size_t i = 0; i < extractedCloud_raw->points.size(); ++i) {
+            extractedCloud_withoutNaN->points[i] = extractedCloud_raw->points[i];
+        }
+        int cloudSize = extractedCloud_withoutNaN->points.size();
+        EZLOG(INFO) << "After earse NaN points cur_scan_cloud_body pts NOW size = "
+                    << cloudSize;
+
+        *this->current_scan = *this->extractedCloud_withoutNaN;
+
+        // Crop Box Filter
+        this->crop.setInputCloud(this->current_scan);
+        this->crop.filter(*this->current_scan);
+
+        // Voxel Grid Filter
+        this->vf_scan.setInputCloud(this->current_scan);
+        this->vf_scan.filter(*this->current_scan);
+
+    }
+
+    void laserCloudInfoHandler(const lio_sam_6axis::cloud_infoConstPtr &msgIn) {
+
+        TicToc timer;
+
+        EZLOG(INFO)<<"GICP ---laserCloudInfoHandler "<<std::endl;
+
+        cloudInfo = *msgIn;           // new cloud info
+        cloudHeader = msgIn->header;  // new cloud header
+        pcl::fromROSMsg(msgIn->cloud_deskewed,
+                        *extractedCloud_raw);  // new cloud for extraction
+
+//        去除坏点和无限点
+        //1.calculate point curvature and store in cloudSmoothness
+        preprocessPoints();
+
+        //2.mark point which does not extract features
+        markOccludedPoints();
+
+        //3.extract corner and surface point
+        extractFeatures();
+//      double time_featureextraction = timer.toc();
+//      EZLOG(INFO)<<"***************time_featureextraction "<<time_featureextraction<<std::endl;
+        //4.publish cloud
+        publishFeatureCloud();
+
+        double time_featureextraction = timer.toc();
+        EZLOG(INFO)<<"***************time_featureextraction "<<time_featureextraction<<std::endl;
+
+    }
+
+};
 int main(int argc, char **argv) {
 
     el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Format, "%level %file %line : %msg");
@@ -1767,7 +1821,22 @@ int main(int argc, char **argv) {
     Load_Sensor_YAML("./config/sensor.yaml");
     Load_Mapping_YAML("./config/mapping.yaml");
 
-    Loc_mapOptimization LMO;
+    switch (MappingConfig::BackEndModeSwitch) {
+        case 0:
+        {
+            Loc_mapOptimization LMO;
+            break;
+        }
+        case 1:
+        {
+            loc_GICP LGICP;
+            break;
+        }
+        default:
+            break;
+    }
+    
+
     EZLOG(INFO)<<"Prior Map Loc Optimization Started!";
 
     ros::spin();

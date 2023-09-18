@@ -1,6 +1,7 @@
 
   # the path of map save
   save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/map/"
+  BackEndModeSwitch: 1 #0 default. 1 G-ICP
 
   # Export settings
   savePCD: false                              # https://github.com/TixiaoShan/LIO-SAM/issues/3
@@ -24,7 +25,7 @@
 
   # CPU Params
   numberOfCores: 12                              # number of cores for mapping optimization
-  mappingProcessInterval: 0.15                  # seconds, regulate mapping frequency
+  mappingProcessInterval: 0.23                  # seconds, regulate mapping frequency ,降低控制频率
 
   # Surrounding map
   surroundingkeyframeAddingDistThreshold: 0.5  # meters, regulate keyframe adding threshold
@@ -56,3 +57,8 @@
 
   # mapping
   globalMapLeafSize: 0.5                        # saved map voxgrid size
+
+#  GICP
+  crop_size: 1
+  vf_scan_res: 1
+  vf_submap_res: 1

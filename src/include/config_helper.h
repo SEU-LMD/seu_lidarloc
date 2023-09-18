@@ -81,6 +81,7 @@ class MappingConfig{
     public:
         static Eigen::Vector3d origin_gnss;
         static bool use_deskew;
+        static int BackEndModeSwitch;
         // save map
         static std::string save_map_path;
 
@@ -137,6 +138,11 @@ class MappingConfig{
         static float globalMapLeafSize;//meiyong
         static int scan_2_scan_num_corner;
         static int scan_2_scan_num_surf;
+
+//        GICP
+        static double crop_size;
+        static double vf_scan_res;
+        static double vf_submap_res;
     };
 class SerializeConfig{
    public:
@@ -222,7 +228,7 @@ int SensorConfig::gtsamGNSSBetweenFactorDistance = 10;
 
 bool SensorConfig::use_gnss_deskew=false;
 
-
+int MappingConfig::BackEndModeSwitch = 0;
 std::string MappingConfig::save_map_path = "";
 std::string MappingConfig::prior_map_surf = " ";
 std::string MappingConfig::prior_map_corner = " ";
@@ -304,6 +310,10 @@ float SerializeConfig::size_resolution = 10.0;
 double SerializeConfig::max_inter_num = 35;
 double SerializeConfig::setLeafSize = 0.6;
 double SerializeConfig::sequence_num = 271;
+
+double MappingConfig::crop_size = 1;
+double MappingConfig::vf_scan_res;
+double MappingConfig::vf_submap_res;
 
 
 
@@ -410,6 +420,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         }
 
         MappingConfig::use_deskew=mappingconfig["use_deskew"].as<bool >();
+        MappingConfig::BackEndModeSwitch=mappingconfig["BackEndModeSwitch"].as<int>();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();
         // //Export settings
@@ -475,7 +486,14 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig:: scan_2_scan_num_corner=mappingconfig["scan_2_scan_num_corner"].as<float >();
         std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
 
+//        GICP
+        MappingConfig::crop_size = mappingconfig["crop_size"].as<double>();
+        MappingConfig::vf_scan_res = mappingconfig["vf_scan_res"].as<double>();
+        MappingConfig::vf_submap_res = mappingconfig["vf_submap_res"].as<double>();
+
+
         std::cout<<"mapping yaml success load"<<std::endl;
+
 
 }//end function Load_Mapping_YAML
 
