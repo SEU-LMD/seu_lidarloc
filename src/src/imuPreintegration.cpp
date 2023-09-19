@@ -335,6 +335,7 @@ public:
             EZLOG(INFO)<<"0. initialize system"<<std::endl;
 
             // pop old IMU message
+//            imuQueOptfront||||^(pop) <   currentCorrectionTime|||||||||||
             while (!imuQueOpt.empty()) {
                 if (ROS_TIME(&imuQueOpt.front()) < currentCorrectionTime - delta_t) {
                     lastImuT_opt = ROS_TIME(&imuQueOpt.front());
@@ -426,12 +427,13 @@ public:
             // std::cout << " delta_t: " << imuTime -lastImuT_opt << std::endl;
 //            TODO prevBias_,
             EZLOG(INFO)<<"prevBias_.vector() = "<<prevBias_.vector()<<std::endl;
-            imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
+//            imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
             if (imuTime < currentCorrectionTime - delta_t) {
                 double dt =
                         (lastImuT_opt < 0) ? (1.0 / 100.0) : (imuTime - lastImuT_opt);
                 //        double dt = (lastImuT_opt < 0) ? (1.0 / imuFrequence) :
                 //        (imuTime - lastImuT_opt);
+                EZLOG(INFO)<<"dt: "<<dt;
                 imuIntegratorOpt_->integrateMeasurement(
                         gtsam::Vector3(thisImu->linear_acceleration.x,
                                        thisImu->linear_acceleration.y,
@@ -447,12 +449,16 @@ public:
                 break;
         }
         // add imu factor to graph
+        EZLOG(INFO)<<"before update!"<<std::endl;
         const gtsam::PreintegratedImuMeasurements &preint_imu =
                 dynamic_cast<const gtsam::PreintegratedImuMeasurements &>(
                         *imuIntegratorOpt_);
+
         gtsam::ImuFactor imu_factor(X(key - 1), V(key - 1), X(key), V(key),
                                     B(key - 1), preint_imu);
+
         graphFactors.add(imu_factor);
+
         // add imu bias between factor
         graphFactors.add(gtsam::BetweenFactor<gtsam::imuBias::ConstantBias>(
                 B(key - 1), B(key), gtsam::imuBias::ConstantBias(),
@@ -460,9 +466,11 @@ public:
                         sqrt(imuIntegratorOpt_->deltaTij()) * noiseModelBetweenBias)));
         // add pose factor
         gtsam::Pose3 curPose = lidarPose.compose(lidar2Imu);
+
         gtsam::PriorFactor<gtsam::Pose3> pose_factor(
                 X(key), curPose, degenerate ? correctionNoise2 : correctionNoise);
         graphFactors.add(pose_factor);
+        EZLOG(INFO)<<"before update5!"<<std::endl;
         // insert predicted values
         gtsam::NavState propState_ =
                 imuIntegratorOpt_->predict(prevState_, prevBias_);
@@ -470,25 +478,28 @@ public:
         graphValues.insert(V(key), propState_.v());
         graphValues.insert(B(key), prevBias_);
         // optimize
-        EZLOG(INFO)<<"before update!"<<std::endl;
         optimizer.update(graphFactors, graphValues);
+        EZLOG(INFO)<<"before update1!"<<std::endl;
         optimizer.update();
+        EZLOG(INFO)<<"before update2!"<<std::endl;
         graphFactors.resize(0);
         graphValues.clear();
         // Overwrite the beginning of the preintegration for the next step.
+        EZLOG(INFO)<<"before update3!"<<std::endl;
         gtsam::Values result = optimizer.calculateEstimate();
         prevPose_ = result.at<gtsam::Pose3>(X(key));
         prevVel_ = result.at<gtsam::Vector3>(V(key));
         prevState_ = gtsam::NavState(prevPose_, prevVel_);
         prevBias_ = result.at<gtsam::imuBias::ConstantBias>(B(key));
         // Reset the optimization preintegration object.
-//        imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
+        imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
         // check optimization
         if (failureDetection(prevVel_, prevBias_)) {
             resetParams();
+            EZLOG(INFO)<<"return"<<std::endl;
             return;
         }
-
+        EZLOG(INFO)<<"before update4!"<<std::endl;
         // 2. after optiization, re-propagate imu odometry preintegration
         prevStateOdom = prevState_;
         prevBiasOdom = prevBias_;
@@ -504,16 +515,18 @@ public:
 //            lastImuQT = ROS_TIME(&imuQueOpt.front());
 //            imuQueOpt.pop_front();
 //        }
+        lastImuQT = lastImuT_opt;
 
         // repropogate
         if (!imuQueOpt.empty()) {
+            EZLOG(INFO)<<"repropogate!"<<std::endl;
             // reset bias use the newly optimized bias
             imuIntegratorImu_->resetIntegrationAndSetBias(prevBiasOdom);
             // integrate imu message from the beginning of this optimization
             for (int i = 0; i < (int) imuQueOpt.size(); ++i) {
                 sensor_msgs::Imu *thisImu = &imuQueOpt[i];
                 double imuTime = ROS_TIME(thisImu);
-                double dt = (lastImuQT < 0) ? (1.0 / 500.0) : (imuTime - lastImuQT);
+                double dt = (lastImuQT < 0) ? (1.0 / 100.0) : (imuTime - lastImuQT);
                 //        double dt = (lastImuQT < 0) ? (1.0 / imuFrequence) : (imuTime
                 //        - lastImuQT);
 
@@ -591,13 +604,13 @@ public:
         // integrate this single imu message
         // imu预积分器添加一帧imu数据，注：这个预积分器的起始时刻是上一帧激光里程计时刻
 //        由GTSAM计算IMU位姿
-//        imuIntegratorImu_->integrateMeasurement(
-//                gtsam::Vector3(thisImu.linear_acceleration.x,
-//                               thisImu.linear_acceleration.y,
-//                               thisImu.linear_acceleration.z),
-//                gtsam::Vector3(thisImu.angular_velocity.x, thisImu.angular_velocity.y,
-//                               thisImu.angular_velocity.z),
-//                dt);
+        imuIntegratorImu_->integrateMeasurement(
+                gtsam::Vector3(thisImu.linear_acceleration.x,
+                               thisImu.linear_acceleration.y,
+                               thisImu.linear_acceleration.z),
+                gtsam::Vector3(thisImu.angular_velocity.x, thisImu.angular_velocity.y,
+                               thisImu.angular_velocity.z),
+                dt);
 
         // predict odometry
         // 用上一帧激光里程计时刻对应的状态、偏置，施加从该时刻开始到当前时刻的imu预计分量，得到当前时刻的状态
