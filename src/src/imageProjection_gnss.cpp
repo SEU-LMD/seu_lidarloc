@@ -165,7 +165,7 @@ public:
 
             if(cloudQueue.size()!=0){
 
-                EZLOG(INFO) << "do_work " << std::endl;
+//                EZLOG(INFO) << "do_work " << std::endl;
 
                 odoLock.lock();
                 std::deque<PoseWithTime> odo_poses_copy;
