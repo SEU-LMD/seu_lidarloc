@@ -282,9 +282,9 @@ public:
                         SensorConfig::imuGyrBiasN, SensorConfig::imuGyrBiasN, SensorConfig::imuGyrBiasN)
                         .finished();
 
-        imuIntegratorImu_ = new gtsam::PreintegratedImuMeasurements(
-                p,
-                prior_imu_bias);  // setting up the IMU integration for IMU message
+//        imuIntegratorImu_ = new gtsam::PreintegratedImuMeasurements(
+//                p,
+//                prior_imu_bias);  // setting up the IMU integration for IMU message
 //        // thread
         imuIntegratorOpt_ = new gtsam::PreintegratedImuMeasurements(
                 p, prior_imu_bias);  // setting up the IMU integration for optimization
@@ -370,7 +370,7 @@ public:
             graphFactors.resize(0);
             graphValues.clear();
 
-            imuIntegratorImu_->resetIntegrationAndSetBias(prevBias_);
+//            imuIntegratorImu_->resetIntegrationAndSetBias(prevBias_);
             imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
 
             key = 1;
@@ -518,10 +518,14 @@ public:
         lastImuQT = lastImuT_opt;
 
         // repropogate
+        EZLOG(INFO)<<" remian imuQueOpt.size(): "<<imuQueOpt.size();
         if (!imuQueOpt.empty()) {
             EZLOG(INFO)<<"repropogate!"<<std::endl;
             // reset bias use the newly optimized bias
-            imuIntegratorImu_->resetIntegrationAndSetBias(prevBiasOdom);
+//            imuIntegratorImu_->resetIntegrationAndSetBias(prevBiasOdom);
+            imuIntegratorOpt_->resetIntegrationAndSetBias(prevBiasOdom);
+            nav_msgs::Odometry odometry;
+
             // integrate imu message from the beginning of this optimization
             for (int i = 0; i < (int) imuQueOpt.size(); ++i) {
                 sensor_msgs::Imu *thisImu = &imuQueOpt[i];
@@ -530,7 +534,7 @@ public:
                 //        double dt = (lastImuQT < 0) ? (1.0 / imuFrequence) : (imuTime
                 //        - lastImuQT);
 
-                imuIntegratorImu_->integrateMeasurement(
+                imuIntegratorOpt_->integrateMeasurement(
                         gtsam::Vector3(thisImu->linear_acceleration.x,
                                        thisImu->linear_acceleration.y,
                                        thisImu->linear_acceleration.z),
@@ -539,8 +543,21 @@ public:
                                        thisImu->angular_velocity.z),
                         dt);
                 lastImuQT = imuTime;
+
+                odometry.header.stamp = thisImu->header.stamp;
+                odometry.header.frame_id = SensorConfig::odometryFrame;
+                odometry.child_frame_id = "odom_imu";
+                odometry.pose.pose.position.x = lidarPose.translation().x();
+                odometry.pose.pose.position.y = lidarPose.translation().y();
+                odometry.pose.pose.position.z = lidarPose.translation().z();
+                odometry.pose.pose.orientation.x = lidarPose.rotation().toQuaternion().x();
+                odometry.pose.pose.orientation.y = lidarPose.rotation().toQuaternion().y();
+                odometry.pose.pose.orientation.z = lidarPose.rotation().toQuaternion().z();
+                odometry.pose.pose.orientation.w = lidarPose.rotation().toQuaternion().w();
+                pubImuOdometry.publish(odometry);
             }
         }
+
 
         ++key;
         doneFirstOpt = true;
@@ -591,9 +608,10 @@ public:
         sensor_msgs::Imu thisImu = imuConverter(*imu_raw);
 
         imuQueOpt.push_back(thisImu);
-//        imuQueImu.push_back(thisImu);
 
-        if (doneFirstOpt == false) return;
+        if (doneFirstOpt == false) { return; }
+
+//     -------------------------------------------------------- init complish
 
         double imuTime = ROS_TIME(&thisImu);
         double dt = (lastImuT_imu < 0) ? (1.0 / 100.0) : (imuTime - lastImuT_imu);
@@ -604,7 +622,7 @@ public:
         // integrate this single imu message
         // imu预积分器添加一帧imu数据，注：这个预积分器的起始时刻是上一帧激光里程计时刻
 //        由GTSAM计算IMU位姿
-        imuIntegratorImu_->integrateMeasurement(
+        imuIntegratorOpt_->integrateMeasurement(
                 gtsam::Vector3(thisImu.linear_acceleration.x,
                                thisImu.linear_acceleration.y,
                                thisImu.linear_acceleration.z),
@@ -615,7 +633,7 @@ public:
         // predict odometry
         // 用上一帧激光里程计时刻对应的状态、偏置，施加从该时刻开始到当前时刻的imu预计分量，得到当前时刻的状态
         gtsam::NavState currentState =
-                imuIntegratorImu_->predict(prevStateOdom, prevBiasOdom);
+                imuIntegratorOpt_->predict(prevStateOdom, prevBiasOdom);
 
         // publish odometry
         nav_msgs::Odometry odometry;
