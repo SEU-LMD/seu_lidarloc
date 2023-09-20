@@ -58,7 +58,7 @@ public:
     gtsam::PreintegratedImuMeasurements *imuIntegratorImu_;
 
     std::deque<IMURawDataPtr> imuQueOpt;
-    std::deque<IMURawDataPtr> imuQueImu;
+//    std::deque<IMURawDataPtr> imuQueImu;
 
     gtsam::Pose3 prevPose_;
     gtsam::Vector3 prevVel_;
@@ -123,7 +123,6 @@ public:
         double imuTime = imu_raw->timestamp;
         gnssins_mutex.lock();
         imuQueOpt.push_back(imu_raw);
-        imuQueImu.push_back(imu_raw);
         gnssins_mutex.unlock();
 
 //        EZLOG(INFO) << "imuQueOpt size: "<<imuQueOpt.size() << " imuQueImu size: "<<imuQueImu.size()
@@ -131,7 +130,7 @@ public:
 
         if (doneFirstOpt == false) return;
 
-        double dt = (lastImuT_imu < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_imu);
+        double dt = (lastImuT_imu < 0) ? (1.0 / 100.0) : (imuTime - lastImuT_imu);
         lastImuT_imu = imuTime;
         //    std::cout << "dt: " << dt << std::endl;
         // integrate this single imu message
@@ -321,7 +320,7 @@ public:
                     continue;
                 }
                 // reset graph for speed
-                if (key == 100) {
+                if (key == 50) {
                     // get updated noise before reset
                     gtsam::noiseModel::Gaussian::shared_ptr updatedPoseNoise =
                             gtsam::noiseModel::Gaussian::Covariance(
@@ -365,7 +364,7 @@ public:
                     // std::cout << " delta_t: " << imuTime -lastImuT_opt << std::endl;
                     if (imuTime < currentCorrectionTime - delta_t) {
                         double dt =
-                                (lastImuT_opt < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_opt);
+                                (lastImuT_opt < 0) ? (1.0 / 100.0) : (imuTime - lastImuT_opt);
                         //        double dt = (lastImuT_opt < 0) ? (1.0 / imuFrequence) :
                         //        (imuTime - lastImuT_opt);
                         imuIntegratorOpt_->integrateMeasurement(
@@ -424,18 +423,19 @@ public:
                 prevBiasOdom = prevBias_;
                 // first pop imu message older than current correction data
                 double lastImuQT = -1;
-                while (!imuQueImu.empty() &&
-                       *(&imuQueImu.front()->timestamp) < currentCorrectionTime - delta_t) {
-                    lastImuQT = *(&imuQueImu.front()->timestamp);
-                    imuQueImu.pop_front();
-                }
+//                while (!imuQueImu.empty() &&
+//                       *(&imuQueImu.front()->timestamp) < currentCorrectionTime - delta_t) {
+//                    lastImuQT = *(&imuQueImu.front()->timestamp);
+//                    imuQueImu.pop_front();
+//                }
+                lastImuQT = lastImuT_opt;
                 // repropogate
-                if (!imuQueImu.empty()) {
+                if (!imuQueOpt.empty()) {
                     // reset bias use the newly optimized bias
                     imuIntegratorImu_->resetIntegrationAndSetBias(prevBiasOdom);
                     // integrate imu message from the beginning of this optimization
-                    for (int i = 0; i < (int) imuQueImu.size(); ++i) {
-                        IMURawData thisImu = *imuQueImu[i];
+                    for (int i = 0; i < (int) imuQueOpt.size(); ++i) {
+                        IMURawData thisImu = *imuQueOpt[i];
                         double imuTime = thisImu.timestamp;
                         double dt = (lastImuQT < 0) ? (1.0 / 500.0) : (imuTime - lastImuQT);
                         //        double dt = (lastImuQT < 0) ? (1.0 / imuFrequence) : (imuTime
@@ -485,7 +485,7 @@ public:
 
                 double imuTime = imu_raw->timestamp;
                 imuQueOpt.push_back(imu_raw);
-                imuQueImu.push_back(imu_raw);
+//                imuQueImu.push_back(imu_raw);
 
 //                EZLOG(INFO) << "imuQueOpt size: "<<imuQueOpt.size() << " imuQueImu size: "<<imuQueImu.size()
 //                            <<" doneFirstOpt: "<<doneFirstOpt;
