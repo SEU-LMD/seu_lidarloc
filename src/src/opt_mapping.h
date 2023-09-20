@@ -25,6 +25,7 @@
 
 #include <std_srvs/Empty.h>
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
+#include "imu_preintegration.h"
 //#include "GeoGraphicLibInclude/Geocentric.hpp"
 //#include "GeoGraphicLibInclude/LocalCartesian.hpp"
 //#include "GeoGraphicLibInclude/Geoid.hpp"
@@ -39,7 +40,6 @@
 class OPTMapping{
 public:
     PubSubInterface* pubsub;
-    IMUPreintegration* imu_pre_ptr;
     std::thread* do_work_thread;
     std::thread* loop_thread;
     std::thread* save_Map_thread;
@@ -56,7 +56,6 @@ public:
     std::string topic_map_surf = "/map_cloud_surf_global";
     std::string topic_map_corner = "/map_cloud_corner_global";
     std::string topic_current_pose = "/current_pose";
-    std::string topic_current_pose_incremental ="/current_pose_incremental";
     std::string topic_gnss_pose = "/gnss_pose";
 
 
@@ -70,6 +69,7 @@ public:
     pcl::PointCloud<PointType>::Ptr copy_cloudKeyPoses3D;
     pcl::PointCloud<PointType>::Ptr copy_cloudKeyPoses2D;
     pcl::PointCloud<PointTypePose>::Ptr copy_cloudKeyPoses6D;
+    IMUPreintegration* imu_pre_ptr;
 
     pcl::PointCloud<PointType>::Ptr globalCornerCloud;
     pcl::PointCloud<PointType>::Ptr globalCornerCloudDS;
@@ -146,6 +146,7 @@ public:
     int laserCloudCornerLastDSNum = 0;
     int laserCloudSurfLastDSNum = 0;
     int current_frame_id;
+    int frame_id = -1;
 
     float q_w_roll, q_w_pitch, q_w_yaw;
     float transformTobeMapped[6]; // roll pitch yaw x y z
@@ -348,72 +349,44 @@ public:
 
     //如果5秒内没有接收到点云数据，就会自动保存
     // isam
-    void savePathThread() {
-        while (1) {
+//    void savePathThread() {
+//        while (1) {
+//
+//            //保证有了位姿数据
+//            if (timer_start == true) {
+//
+//                timer_mutex.lock();
+//                double delta_time = timer_cloud.toc();
+//                timer_mutex.unlock();
+//                //EZLOG(INFO) << "delta_time = " << delta_time << std::endl;
+//                if (delta_time > 5000) {
+//                   map_saver.SavePoses(opt_poses);
+//                    EZLOG(INFO) << "Saving poses completed! " << endl;
+//                   // while (1);
+//                }
+//            }//end if(delta_time>5000)
+//            else{
+//                sleep(0.01);
+//            }
+//
+//        }
+//    }
 
-            //保证有了位姿数据
-            if (timer_start == true) {
-
-                timer_mutex.lock();
-                double delta_time = timer_cloud.toc();
-                timer_mutex.unlock();
-                //EZLOG(INFO) << "delta_time = " << delta_time << std::endl;
-                if (delta_time > 5000) {
-
-                    if (SensorConfig::useGPS) {
-                        Eigen::Vector3d optimized_lla;
-                        Eigen::Vector3d first_point(cloudKeyPoses6D->at(0).x,
-                                                    cloudKeyPoses6D->at(0).y,
-                                                    cloudKeyPoses6D->at(0).z);
-                        // we save optimized origin gps point
-                        geoConverter.Reverse(first_point[0], first_point[1], first_point[2],
-                                              optimized_lla[0], optimized_lla[1], optimized_lla[2]);
-
-                        sad::UTMCoordinate utm_coor;
-                        Eigen::Vector2d lat_lon;
-                        Eigen::Vector3d utm;
-                        //将经度和纬度给到lat_lon
-                        lat_lon << optimized_lla[0], optimized_lla[1];
-
-                        std::cout << std::setprecision(15) << "optimized_lla" << optimized_lla << std::endl;
-                        //调用utm_convert.h中的函数将精度纬度转换到UTM坐标系下
-                        sad::LatLon2UTM(lat_lon.head<2>(), utm_coor);
-                        utm_coor.z_ = optimized_lla[2];
-
-                        utm[0] = utm_coor.xy_[0];
-                        utm[1] = utm_coor.xy_[1];
-                        utm[2] = utm_coor.z_;
-
-                         map_saver.SaveOriginLLA(utm);
-                        EZLOG(INFO) << " lat_lon = " << utm << endl;
-                    }
-                   map_saver.SavePoses(opt_poses);
-                    EZLOG(INFO) << "Saving poses completed! " << endl;
-                    while (1);
-                }
-            }//end if(delta_time>5000)
-
-            sleep(0.1);
-
-
-        }
-    }
-
-    void loopClosureThread() {
-        if (MappingConfig::loopClosureEnableFlag == false) return;
-        //设置回环检测的频率 loopClosureFrequency默认为 1hz
-        ros::Rate rate(MappingConfig::loopClosureFrequency);
-        while (ros::ok()) {
-            ros::spinOnce();
-
-            performLoopClosure();
-            //visualizeLoopClosure();
-
-           // if (SensorConfig::useGPS) visualGPSConstraint();
-
-            rate.sleep();
-        }
-    }
+//    void loopClosureThread() {
+//        if (MappingConfig::loopClosureEnableFlag == false) return;
+//        设置回环检测的频率 loopClosureFrequency默认为 1hz
+//        ros::Rate rate(MappingConfig::loopClosureFrequency);
+//        while (ros::ok()) {
+//            ros::spinOnce();
+//
+//            performLoopClosure();
+//            visualizeLoopClosure();
+//
+//            if (SensorConfig::useGPS) visualGPSConstraint();
+//
+//            rate.sleep();
+//        }
+//    }
 
     void loopInfoHandler(const std_msgs::Float64MultiArray::ConstPtr &loopMsg) {
         std::lock_guard <std::mutex> lock(mtxLoopInfo);
@@ -424,228 +397,228 @@ public:
         while (loopInfoVec.size() > 5) loopInfoVec.pop_front();
     }
 
-    void performLoopClosure() {
-        if (cloudKeyPoses3D->points.empty() == true) return;
-
-        mtx.lock();
-        //把存储关键帧额位姿的点云copy出来，避免线程冲突
-        *copy_cloudKeyPoses3D = *cloudKeyPoses3D;
-        *copy_cloudKeyPoses2D = *cloudKeyPoses3D;
-        *copy_cloudKeyPoses6D = *cloudKeyPoses6D;
-        mtx.unlock();
-
-        // find keys
-        int loopKeyCur;
-        int loopKeyPre;
-
-        //外部通知的回环信息
-        //if (detectLoopClosureExternal(&loopKeyCur, &loopKeyPre) == false)
-        //在历史关键帧中查找与当前关键帧距离最近的关键帧集合，选择时间相隔较远的一帧作为候选闭环帧
-        if (detectLoopClosureDistance(&loopKeyCur, &loopKeyPre) == false) return;
-
-        // extract cloud
-        //检测回环存在后则可以计算检测出这两帧的位姿变换
-        pcl::PointCloud<PointType>::Ptr cureKeyframeCloud(
-                new pcl::PointCloud<PointType>());//声明当前关键帧的点云
-        pcl::PointCloud<PointType>::Ptr prevKeyframeCloud(
-                new pcl::PointCloud<PointType>());//和历史回环帧周围的点云（局部地图）
-        {
-            //回环帧把自己提取出来
-            loopFindNearKeyframes(cureKeyframeCloud, loopKeyCur, 0);
-            //回环帧把自己周围一些点云取出来，也就是构成一个帧局部地图的一个匹配问题
-            loopFindNearKeyframes(prevKeyframeCloud, loopKeyPre,
-                                  MappingConfig::historyKeyframeSearchNum);
-            if (cureKeyframeCloud->size() < 300 || prevKeyframeCloud->size() < 1000)
-                return;
-        }
-        //现在有了当前关键帧投到地图坐标系下的点云和历史回环帧投到地图坐标系下的局部地图，那么接下来就可以进行两者的icp位姿变换求解
-        // ICP Settings
-        static pcl::IterativeClosestPoint <PointType, PointType> icp;//使用简单的icp来进行帧到局部地图的配准
-        //设置最大相关距离 15m
-        icp.setMaxCorrespondenceDistance(MappingConfig::historyKeyframeSearchRadius * 2);
-        //最大优化次数
-        icp.setMaximumIterations(100);
-        //单次变换范围
-        icp.setTransformationEpsilon(1e-6);
-        //残差设置
-        icp.setEuclideanFitnessEpsilon(1e-6);
-        icp.setRANSACIterations(0);
-
-        // Align clouds
-        //设置两个点云
-        icp.setInputSource(cureKeyframeCloud);
-        icp.setInputTarget(prevKeyframeCloud);
-        //执行配准
-        pcl::PointCloud<PointType>::Ptr unused_result(
-                new pcl::PointCloud<PointType>());
-        icp.align(*unused_result);
-        //检测icp是否收敛 且 得分是否满足要求
-        if (icp.hasConverged() == false ||
-            icp.getFitnessScore() > MappingConfig::historyKeyframeFitnessScore)
-            return;
-
-        // publish corrected cloud
-        //把修正后的当前点云发布供可视化使用
-//        if (pubIcpKeyFrames.getNumSubscribers() != 0) {
-//            pcl::PointCloud<PointType>::Ptr closed_cloud(
-//                    new pcl::PointCloud<PointType>());
-//            pcl::transformPointCloud(*cureKeyframeCloud, *closed_cloud,
-//                                     icp.getFinalTransformation());
-//            publishCloud(pubIcpKeyFrames, closed_cloud, timeLaserInfoStamp,
-//                         SensorConfig::odometryFrame);
+ //   void performLoopClosure() {
+//        if (cloudKeyPoses3D->points.empty() == true) return;
+//
+//        mtx.lock();
+//        //把存储关键帧额位姿的点云copy出来，避免线程冲突
+//        *copy_cloudKeyPoses3D = *cloudKeyPoses3D;
+//        *copy_cloudKeyPoses2D = *cloudKeyPoses3D;
+//        *copy_cloudKeyPoses6D = *cloudKeyPoses6D;
+//        mtx.unlock();
+//
+//        // find keys
+//        int loopKeyCur;
+//        int loopKeyPre;
+//
+//        //外部通知的回环信息
+//        //if (detectLoopClosureExternal(&loopKeyCur, &loopKeyPre) == false)
+//        //在历史关键帧中查找与当前关键帧距离最近的关键帧集合，选择时间相隔较远的一帧作为候选闭环帧
+//        if (detectLoopClosureDistance(&loopKeyCur, &loopKeyPre) == false) return;
+//
+//        // extract cloud
+//        //检测回环存在后则可以计算检测出这两帧的位姿变换
+//        pcl::PointCloud<PointType>::Ptr cureKeyframeCloud(
+//                new pcl::PointCloud<PointType>());//声明当前关键帧的点云
+//        pcl::PointCloud<PointType>::Ptr prevKeyframeCloud(
+//                new pcl::PointCloud<PointType>());//和历史回环帧周围的点云（局部地图）
+//        {
+//            //回环帧把自己提取出来
+//            loopFindNearKeyframes(cureKeyframeCloud, loopKeyCur, 0);
+//            //回环帧把自己周围一些点云取出来，也就是构成一个帧局部地图的一个匹配问题
+//            loopFindNearKeyframes(prevKeyframeCloud, loopKeyPre,
+//                                  MappingConfig::historyKeyframeSearchNum);
+//            if (cureKeyframeCloud->size() < 300 || prevKeyframeCloud->size() < 1000)
+//                return;
 //        }
-
-        // Get pose transformation
-        float x_lidar, y_lidar, z_lidar, roll_lidar, yaw_lidar, pitch_lidar;
-        Eigen::Affine3f correctionLidarFrame;
-        //获得两个点云的变换矩阵结果，
-        correctionLidarFrame = icp.getFinalTransformation();
-        // transform from world origin to wrong pose
-        //取出当前帧的位姿
-        Eigen::Affine3f tWrong =
-                pclPointToAffine3f(copy_cloudKeyPoses6D->points[loopKeyCur]);
-        // transform from world origin to corrected pose
-        //将icp结果补偿过去，就是当前帧的更为准确的位姿结果
-        Eigen::Affine3f tCorrect =
-                correctionLidarFrame *
-                tWrong;  // pre-multiplying -> successive rotation about a fixed frame
-//          Eigen::Matrix4f map_2_world = SensorConfig::T_L_B.cast<float>(); //T_wm
-//          Eigen::Matrix4f tCorrect_world = map_2_world * tCorrect.matrix();// T_wl = T_wm * T_ml
-//          Eigen::Transform<float, 3, Eigen::Affine> a3f_transform (tCorrect_world);
-
-        pcl::getTranslationAndEulerAngles(tCorrect, x_lidar, y_lidar, z_lidar,roll_lidar,pitch_lidar,yaw_lidar);
-
-        //将当前帧补偿后的位姿 转换成 gtsam的形式
-        //From 和 To相当于帧间约束的因子，To是历史回环帧的位姿
-        gtsam::Pose3 poseFrom =
-                gtsam::Pose3(gtsam::Rot3::RzRyRx(roll_lidar, pitch_lidar, yaw_lidar), gtsam::Point3(x_lidar, y_lidar, z_lidar));
-
-        gtsam::Pose3 poseTo =
-                pclPointTogtsamPose3(copy_cloudKeyPoses6D->points[loopKeyPre]);
-
-        //使用icp的得分作为他们的约束噪声项
-        gtsam::Vector Vector6(6);
-        float noiseScore = icp.getFitnessScore();
-        Vector6 << noiseScore, noiseScore, noiseScore, noiseScore, noiseScore,
-                noiseScore;
-        gtsam::noiseModel::Diagonal::shared_ptr constraintNoise =
-                gtsam::noiseModel::Diagonal::Variances(Vector6);
-
-        // Add pose constraint
-        //将两帧索引，两帧相对位姿和噪声作为回环约束 送入对列
-        mtx.lock();
-        loopIndexQueue.push_back(make_pair(loopKeyCur, loopKeyPre));//两帧索引
-        loopPoseQueue.push_back(poseFrom.between(poseTo));//当前帧与历史回环帧的相对位姿
-        loopNoiseQueue.push_back(constraintNoise);//
-        mtx.unlock();
-
-        // add loop constriant
-        //保存已经存在的约束对
-        loopIndexContainer[loopKeyCur] = loopKeyPre;
-        lastLoopIndex = loopKeyCur;
-    }
+//        //现在有了当前关键帧投到地图坐标系下的点云和历史回环帧投到地图坐标系下的局部地图，那么接下来就可以进行两者的icp位姿变换求解
+//        // ICP Settings
+//        static pcl::IterativeClosestPoint <PointType, PointType> icp;//使用简单的icp来进行帧到局部地图的配准
+//        //设置最大相关距离 15m
+//        icp.setMaxCorrespondenceDistance(MappingConfig::historyKeyframeSearchRadius * 2);
+//        //最大优化次数
+//        icp.setMaximumIterations(100);
+//        //单次变换范围
+//        icp.setTransformationEpsilon(1e-6);
+//        //残差设置
+//        icp.setEuclideanFitnessEpsilon(1e-6);
+//        icp.setRANSACIterations(0);
+//
+//        // Align clouds
+//        //设置两个点云
+//        icp.setInputSource(cureKeyframeCloud);
+//        icp.setInputTarget(prevKeyframeCloud);
+//        //执行配准
+//        pcl::PointCloud<PointType>::Ptr unused_result(
+//                new pcl::PointCloud<PointType>());
+//        icp.align(*unused_result);
+//        //检测icp是否收敛 且 得分是否满足要求
+//        if (icp.hasConverged() == false ||
+//            icp.getFitnessScore() > MappingConfig::historyKeyframeFitnessScore)
+//            return;
+//
+//        // publish corrected cloud
+//        //把修正后的当前点云发布供可视化使用
+////        if (pubIcpKeyFrames.getNumSubscribers() != 0) {
+////            pcl::PointCloud<PointType>::Ptr closed_cloud(
+////                    new pcl::PointCloud<PointType>());
+////            pcl::transformPointCloud(*cureKeyframeCloud, *closed_cloud,
+////                                     icp.getFinalTransformation());
+////            publishCloud(pubIcpKeyFrames, closed_cloud, timeLaserInfoStamp,
+////                         SensorConfig::odometryFrame);
+////        }
+//
+//        // Get pose transformation
+//        float x_lidar, y_lidar, z_lidar, roll_lidar, yaw_lidar, pitch_lidar;
+//        Eigen::Affine3f correctionLidarFrame;
+//        //获得两个点云的变换矩阵结果，
+//        correctionLidarFrame = icp.getFinalTransformation();
+//        // transform from world origin to wrong pose
+//        //取出当前帧的位姿
+//        Eigen::Affine3f tWrong =
+//                pclPointToAffine3f(copy_cloudKeyPoses6D->points[loopKeyCur]);
+//        // transform from world origin to corrected pose
+//        //将icp结果补偿过去，就是当前帧的更为准确的位姿结果
+//        Eigen::Affine3f tCorrect =
+//                correctionLidarFrame *
+//                tWrong;  // pre-multiplying -> successive rotation about a fixed frame
+////          Eigen::Matrix4f map_2_world = SensorConfig::T_L_B.cast<float>(); //T_wm
+////          Eigen::Matrix4f tCorrect_world = map_2_world * tCorrect.matrix();// T_wl = T_wm * T_ml
+////          Eigen::Transform<float, 3, Eigen::Affine> a3f_transform (tCorrect_world);
+//
+//        pcl::getTranslationAndEulerAngles(tCorrect, x_lidar, y_lidar, z_lidar,roll_lidar,pitch_lidar,yaw_lidar);
+//
+//        //将当前帧补偿后的位姿 转换成 gtsam的形式
+//        //From 和 To相当于帧间约束的因子，To是历史回环帧的位姿
+//        gtsam::Pose3 poseFrom =
+//                gtsam::Pose3(gtsam::Rot3::RzRyRx(roll_lidar, pitch_lidar, yaw_lidar), gtsam::Point3(x_lidar, y_lidar, z_lidar));
+//
+//        gtsam::Pose3 poseTo =
+//                pclPointTogtsamPose3(copy_cloudKeyPoses6D->points[loopKeyPre]);
+//
+//        //使用icp的得分作为他们的约束噪声项
+//        gtsam::Vector Vector6(6);
+//        float noiseScore = icp.getFitnessScore();
+//        Vector6 << noiseScore, noiseScore, noiseScore, noiseScore, noiseScore,
+//                noiseScore;
+//        gtsam::noiseModel::Diagonal::shared_ptr constraintNoise =
+//                gtsam::noiseModel::Diagonal::Variances(Vector6);
+//
+//        // Add pose constraint
+//        //将两帧索引，两帧相对位姿和噪声作为回环约束 送入对列
+//        mtx.lock();
+//        loopIndexQueue.push_back(make_pair(loopKeyCur, loopKeyPre));//两帧索引
+//        loopPoseQueue.push_back(poseFrom.between(poseTo));//当前帧与历史回环帧的相对位姿
+//        loopNoiseQueue.push_back(constraintNoise);//
+//        mtx.unlock();
+//
+//        // add loop constriant
+//        //保存已经存在的约束对
+//        loopIndexContainer[loopKeyCur] = loopKeyPre;
+//        lastLoopIndex = loopKeyCur;
+ //   }
 
      //kdtree问题
-    bool detectLoopClosureDistance(int *latestID, int *closestID) {
+ //   bool detectLoopClosureDistance(int *latestID, int *closestID) {
         //检测最新帧是否和其它帧形成回环
-        int loopKeyCur = copy_cloudKeyPoses3D->size() - 1;
-        int loopKeyPre = -1;
+//        int loopKeyCur = copy_cloudKeyPoses3D->size() - 1;
+//        int loopKeyPre = -1;
+//
+//        // check loop constraint added before
+//        //检查一下较晚帧是否和别的形成了回环，如果有就算了
+//        //因为当前帧刚刚出现，不会和其它帧形成回环，所以基本不会触发
+//        auto it = loopIndexContainer.find(loopKeyCur);
+//        if (it != loopIndexContainer.end()) return false;
+//
+//        // tricks
+//        // Two consecutive loop edges represent the closed loop of the same scene.
+//        // Adding all of them to the pose graph has little meaning and may reduce
+//        // the accuracy.
+//
+//        if (abs(lastLoopIndex - loopKeyCur) < 5 && lastLoopIndex != -1)
+//            return false;
+//
+//        // tricks
+//        // sometimes we need to find the corressponding loop pairs
+//        // but we do not need to care about the z values of these poses.
+//        // Pls note that this is not work for stair case
+//        //b不需要关注z值，将其设置为0
+//        for (int i = 0; i < copy_cloudKeyPoses2D->size(); ++i) {
+//            copy_cloudKeyPoses2D->at(i).z = 0;
+//        }
+//
+//        // find the closest history key frame
+//        std::vector<int> pointSearchIndLoop;
+//        std::vector<float> pointSearchSqDisLoop;
+//
+//        kdtreeHistoryKeyPoses->setInputCloud(copy_cloudKeyPoses2D);
+//        //根据最后一个关键帧的平移信息，寻找离他一定距离内的其它关键帧，搜索范围15米
+//        kdtreeHistoryKeyPoses->radiusSearch(
+//                copy_cloudKeyPoses2D->back(), MappingConfig::historyKeyframeSearchRadius,
+//                pointSearchIndLoop, pointSearchSqDisLoop, 0);
+//        //
+//        for (int i = 0; i < (int) pointSearchIndLoop.size(); ++i) {
+//            int id = pointSearchIndLoop[i];
+//            //历史帧，必须比当前帧间隔30s以上
+//            if (abs(copy_cloudKeyPoses6D->points[id].time- timeLaserInfoCur) >
+//                MappingConfig::historyKeyframeSearchTimeDiff) {
+//                loopKeyPre = id;
+//                break;
+//            }
+//        }
+//        //如果没有找到回环或者回环找到自己身上去了，就认为是本次回环寻找失败
+//        if (loopKeyPre == -1 || loopKeyCur == loopKeyPre) return false;
+//
+//        // we also need to care about the accumulated distance between keyframe;
+//        // LOOPs that are too close together have no meaning and may reduce
+//        // accuracy. For example, the lidar starts to move after being stationary
+//        // for 30s in a certain place. At this time, the IMU should be trusted more
+//        // than the lidar.
+//        //关键帧间的距离应该大于12
+//        if (keyframeDistances.size() >= loopKeyCur) {
+//            double distance = 0.0;
+//            for (int j = loopKeyPre; j < loopKeyCur; ++j) {
+//                distance += keyframeDistances.at(j);
+//            }
+//            if (distance < 12) {
+//                std::cout << "CLOSE FRAME MUST FILTER OUT " << distance << std::endl;
+//                return false;
+//            }
+//        }
+//        //找到了当前关键帧和历史回环帧，赋值当前帧和历史回环帧的id;
+//        *latestID = loopKeyCur;
+//        *closestID = loopKeyPre;
+//
+//        return true;
+ //   }
 
-        // check loop constraint added before
-        //检查一下较晚帧是否和别的形成了回环，如果有就算了
-        //因为当前帧刚刚出现，不会和其它帧形成回环，所以基本不会触发
-        auto it = loopIndexContainer.find(loopKeyCur);
-        if (it != loopIndexContainer.end()) return false;
-
-        // tricks
-        // Two consecutive loop edges represent the closed loop of the same scene.
-        // Adding all of them to the pose graph has little meaning and may reduce
-        // the accuracy.
-
-        if (abs(lastLoopIndex - loopKeyCur) < 5 && lastLoopIndex != -1)
-            return false;
-
-        // tricks
-        // sometimes we need to find the corressponding loop pairs
-        // but we do not need to care about the z values of these poses.
-        // Pls note that this is not work for stair case
-        //b不需要关注z值，将其设置为0
-        for (int i = 0; i < copy_cloudKeyPoses2D->size(); ++i) {
-            copy_cloudKeyPoses2D->at(i).z = 0;
-        }
-
-        // find the closest history key frame
-        std::vector<int> pointSearchIndLoop;
-        std::vector<float> pointSearchSqDisLoop;
-
-        kdtreeHistoryKeyPoses->setInputCloud(copy_cloudKeyPoses2D);
-        //根据最后一个关键帧的平移信息，寻找离他一定距离内的其它关键帧，搜索范围15米
-        kdtreeHistoryKeyPoses->radiusSearch(
-                copy_cloudKeyPoses2D->back(), MappingConfig::historyKeyframeSearchRadius,
-                pointSearchIndLoop, pointSearchSqDisLoop, 0);
-        //
-        for (int i = 0; i < (int) pointSearchIndLoop.size(); ++i) {
-            int id = pointSearchIndLoop[i];
-            //历史帧，必须比当前帧间隔30s以上
-            if (abs(copy_cloudKeyPoses6D->points[id].time- timeLaserInfoCur) >
-                MappingConfig::historyKeyframeSearchTimeDiff) {
-                loopKeyPre = id;
-                break;
-            }
-        }
-        //如果没有找到回环或者回环找到自己身上去了，就认为是本次回环寻找失败
-        if (loopKeyPre == -1 || loopKeyCur == loopKeyPre) return false;
-
-        // we also need to care about the accumulated distance between keyframe;
-        // LOOPs that are too close together have no meaning and may reduce
-        // accuracy. For example, the lidar starts to move after being stationary
-        // for 30s in a certain place. At this time, the IMU should be trusted more
-        // than the lidar.
-        //关键帧间的距离应该大于12
-        if (keyframeDistances.size() >= loopKeyCur) {
-            double distance = 0.0;
-            for (int j = loopKeyPre; j < loopKeyCur; ++j) {
-                distance += keyframeDistances.at(j);
-            }
-            if (distance < 12) {
-                std::cout << "CLOSE FRAME MUST FILTER OUT " << distance << std::endl;
-                return false;
-            }
-        }
-        //找到了当前关键帧和历史回环帧，赋值当前帧和历史回环帧的id;
-        *latestID = loopKeyCur;
-        *closestID = loopKeyPre;
-
-        return true;
-    }
-
-    void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes,
-                               const int &key, const int &searchNum) {
-        // extract near keyframes
-        nearKeyframes->clear();
-        int cloudSize = copy_cloudKeyPoses6D->size();
-        //通过-searchNum 到 +searchNum遍历帧的搜索范围
-        for (int i = -searchNum; i <= searchNum; ++i) {
-            int keyNear = key + i;
-            if (keyNear < 0 || keyNear >= cloudSize) continue;
-            //把对应角点和面点的点云转到世界坐标系下去
-            *nearKeyframes +=
-                    *transformPointCloud(cornerCloudKeyFrames[keyNear],
-                                         &copy_cloudKeyPoses6D->points[keyNear]);
-            *nearKeyframes += *transformPointCloud(
-                    surfCloudKeyFrames[keyNear], &copy_cloudKeyPoses6D->points[keyNear]);
-        }
-
-        if (nearKeyframes->empty()) return;
-
-        // downsample near keyframes
-        //把点云下采样，存放到cloud_temp
-        pcl::PointCloud<PointType>::Ptr cloud_temp(
-                new pcl::PointCloud<PointType>());
-        downSizeFilterICP.setInputCloud(nearKeyframes);
-        downSizeFilterICP.filter(*cloud_temp);
-        *nearKeyframes = *cloud_temp;
-    }
+//    void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes,
+//                               const int &key, const int &searchNum) {
+//        // extract near keyframes
+//        nearKeyframes->clear();
+//        int cloudSize = copy_cloudKeyPoses6D->size();
+//        //通过-searchNum 到 +searchNum遍历帧的搜索范围
+//        for (int i = -searchNum; i <= searchNum; ++i) {
+//            int keyNear = key + i;
+//            if (keyNear < 0 || keyNear >= cloudSize) continue;
+//            //把对应角点和面点的点云转到世界坐标系下去
+//            *nearKeyframes +=
+//                    *transformPointCloud(cornerCloudKeyFrames[keyNear],
+//                                         &copy_cloudKeyPoses6D->points[keyNear]);
+//            *nearKeyframes += *transformPointCloud(
+//                    surfCloudKeyFrames[keyNear], &copy_cloudKeyPoses6D->points[keyNear]);
+//        }
+//
+//        if (nearKeyframes->empty()) return;
+//
+//        // downsample near keyframes
+//        //把点云下采样，存放到cloud_temp
+//        pcl::PointCloud<PointType>::Ptr cloud_temp(
+//                new pcl::PointCloud<PointType>());
+//        downSizeFilterICP.setInputCloud(nearKeyframes);
+//        downSizeFilterICP.filter(*cloud_temp);
+//        *nearKeyframes = *cloud_temp;
+//    }
 
     void updateInitialGuess() {
         //每帧激光初位姿,将四元数转换到欧拉角
@@ -729,12 +702,12 @@ public:
                     transformTobeMapped[5], transformTobeMapped[0],
                     transformTobeMapped[1], transformTobeMapped[2]);
 
-            EZLOG(INFO) << "Translation x" << transformTobeMapped[3] << std::endl;
-            EZLOG(INFO) << "Translation y" << transformTobeMapped[4] << std::endl;
-            EZLOG(INFO) << "Translation z" << transformTobeMapped[5] << std::endl;
-            EZLOG(INFO) << "roll" << transformTobeMapped[0] << std::endl;
-            EZLOG(INFO) << "pitch" << transformTobeMapped[1] << std::endl;
-            EZLOG(INFO) << "yaw" << transformTobeMapped[2] << std::endl;
+//            EZLOG(INFO) << "Translation x" << transformTobeMapped[3] << std::endl;
+//            EZLOG(INFO) << "Translation y" << transformTobeMapped[4] << std::endl;
+//            EZLOG(INFO) << "Translation z" << transformTobeMapped[5] << std::endl;
+//            EZLOG(INFO) << "roll" << transformTobeMapped[0] << std::endl;
+//            EZLOG(INFO) << "pitch" << transformTobeMapped[1] << std::endl;
+//            EZLOG(INFO) << "yaw" << transformTobeMapped[2] << std::endl;
             double updateinit_cost_time = timer.toc();
             EZLOG(INFO)<<"updateinit_cost_time"<<updateinit_cost_time<<endl;
             //ROS_WARN("transformtobemapped success！！！");
@@ -1632,6 +1605,7 @@ public:
         PoseT latest_Estimate_lidar;
          latest_Estimate_lidar = latestEstimate.matrix();
         opt_poses.push_back(latest_Estimate_lidar);
+        map_saver.SavePoses(opt_poses);
         // cout << "****************************************************" << endl;
         // isamCurrentEstimate.print("Current estimate: ");
         //平移信息取出来保存进clouKeyPoses 3D这个结构中，其中索引作为 intensity
@@ -1685,43 +1659,43 @@ public:
         cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
         surfCloudKeyFrames.push_back(thisSurfKeyFrame);
 
-        pcl::PointCloud<PointType>::Ptr globalCornerCloud(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr globalCornerCloudDS(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr globalSurfCloud(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr globalSurfCloudDS(
-                new pcl::PointCloud<PointType>());
+        CloudInfoFt cloud_info;
+        cloud_info.frame_id = ++frame_id;
+        cloud_info.corner_cloud = thisCornerKeyFrame;
+        cloud_info.surf_cloud = thisSurfKeyFrame;
+        map_saver.AddCloudToSave(cloud_info);
 
-        for (int i = 0; i < (int) cloudKeyPoses3D->size(); i++) {
-            *globalCornerCloud += *transformPointCloud(cornerCloudKeyFrames[i],
-                                                       &cloudKeyPoses6D->points[i]);
-            *globalSurfCloud += *transformPointCloud(surfCloudKeyFrames[i],
-                                                     &cloudKeyPoses6D->points[i]);
-        }
+//        pcl::PointCloud<PointType>::Ptr globalCornerCloud(
+//                new pcl::PointCloud<PointType>());
+//        pcl::PointCloud<PointType>::Ptr globalCornerCloudDS(
+//                new pcl::PointCloud<PointType>());
+//        pcl::PointCloud<PointType>::Ptr globalSurfCloud(
+//                new pcl::PointCloud<PointType>());
+//        pcl::PointCloud<PointType>::Ptr globalSurfCloudDS(
+//                new pcl::PointCloud<PointType>());
+//
+//        for (int i = 0; i < (int) cloudKeyPoses3D->size(); i++) {
+//            *globalCornerCloud += *transformPointCloud(cornerCloudKeyFrames[i],
+//                                                       &cloudKeyPoses6D->points[i]);
+//            *globalSurfCloud += *transformPointCloud(surfCloudKeyFrames[i],
+//                                                     &cloudKeyPoses6D->points[i]);
+//        }
+//
+//        downSizeFilterCorner.setInputCloud(globalCornerCloud);
+//        downSizeFilterCorner.setLeafSize(MappingConfig::globalMapLeafSize, MappingConfig::globalMapLeafSize, MappingConfig::globalMapLeafSize);
+//        downSizeFilterCorner.filter(*globalCornerCloudDS);
+//        // dataSaverPtr->saveCornerClouMap(*globalCornerCloudDS);
+//
+//        downSizeFilterSurf.setInputCloud(globalSurfCloud);
+//        downSizeFilterSurf.setLeafSize(MappingConfig::globalMapLeafSize, MappingConfig::globalMapLeafSize, MappingConfig::globalMapLeafSize);
+//        downSizeFilterSurf.filter(*globalSurfCloudDS);
 
-        downSizeFilterCorner.setInputCloud(globalCornerCloud);
-        downSizeFilterCorner.setLeafSize(MappingConfig::globalMapLeafSize, MappingConfig::globalMapLeafSize, MappingConfig::globalMapLeafSize);
-        downSizeFilterCorner.filter(*globalCornerCloudDS);
-        // dataSaverPtr->saveCornerClouMap(*globalCornerCloudDS);
-
-        downSizeFilterSurf.setInputCloud(globalSurfCloud);
-        downSizeFilterSurf.setLeafSize(MappingConfig::globalMapLeafSize, MappingConfig::globalMapLeafSize, MappingConfig::globalMapLeafSize);
-        downSizeFilterSurf.filter(*globalSurfCloudDS);
-
-        std::cout << "start push cloud to map saver" << std::endl;
-        /***
-         * 保存点云地图 ,后续需要确定指针
-         */
-//        CloudInfo cloud_info;
+//        CloudInfoFt cloud_info;
 //        cloud_info.frame_id = ++frame_id;
 //        cloud_info.corner_cloud = globalCornerCloudDS;
 //        cloud_info.surf_cloud = globalSurfCloudDS;
 //        map_saver.AddCloudToSave(cloud_info);
-         double addfactors_cost_time = timer.toc();
-         EZLOG(INFO)<<"addfactors_cost_time"<<addfactors_cost_time<<endl;
-        //根据当前最新位姿更新rviz可视化
+
         updatePath(thisPose6D);
     }
 
@@ -1847,30 +1821,9 @@ public:
             current_gnss_pose.pose = PoseT(gnss_pose.matrix().cast<double>());
             pubsub->PublishOdometry(topic_gnss_pose, current_gnss_pose);
             imu_pre_ptr->AddOdomData(current_gnss_pose);//new
+            imu_pre_ptr->AddOdomData(current_gnss_pose);
 
         }
-        // Publish odometry (incremental)
-        OdometryType current_lidar_pose_incremental;
-        OdometryType last_lidar_pose_incremental;
-        static bool lastIncreOdomPubFlag = false;
-        //static nav_msgs::Odometry laserOdomIncremental;  // incremental odometry msg
-        static Eigen::Affine3f increOdomAffine;  // incremental odometry in affine
-        if (lastIncreOdomPubFlag == false) {
-            lastIncreOdomPubFlag = true;
-            last_lidar_pose_incremental = current_lidar_pose_world;
-            increOdomAffine = trans2Affine3f(transformTobeMapped);
-        } else {
-            Eigen::Affine3f affineIncre = incrementalOdometryAffineFront.inverse() *
-                                          incrementalOdometryAffineBack;
-            increOdomAffine = increOdomAffine * affineIncre;
-
-            current_lidar_pose_incremental.frame = "map";
-            current_lidar_pose_incremental.timestamp = timeLaserInfoCur;
-            current_lidar_pose_incremental.pose = PoseT(increOdomAffine.matrix().cast<double>());
-        }
-        pubsub->PublishOdometry(topic_gnss_pose, current_lidar_pose_incremental);
-        double publish_odometry_cost_time = timer.toc();
-        EZLOG(INFO)<< "publish_odometry_cost_time"<<publish_odometry_cost_time<<endl;
     }
 
     void pub_CornerAndSurfGlobalMap()
@@ -1880,7 +1833,7 @@ public:
         CloudTypeXYZI Global_Map_surf_pub;
         Global_Map_surf_pub.frame = "map";
         Global_Map_surf_pub.timestamp = timeLaserInfoCur;
-        Global_Map_surf_pub.cloud = *globalSurfCloudDS;
+        Global_Map_surf_pub.cloud = *laserCloudCornerLastDS;
         pubsub->PublishCloud(topic_map_surf, Global_Map_surf_pub);
         std::cout << "Pub Surf Global Map!"<<std::endl;
 
@@ -1888,7 +1841,7 @@ public:
         CloudTypeXYZI Global_Map_corner_pub;
         Global_Map_corner_pub.frame = "map";
         Global_Map_corner_pub.timestamp = timeLaserInfoCur;
-        Global_Map_corner_pub.cloud = *globalCornerCloudDS;
+        Global_Map_corner_pub.cloud = *laserCloudSurfLastDS;
         pubsub->PublishCloud(topic_map_corner, Global_Map_corner_pub);
         std::cout << "Pub Corner Map!"<<std::endl;
        double pub_map_cost_time = timer.toc();
@@ -1962,12 +1915,12 @@ public:
         pubsub->addPublisher(topic_map_surf,DataType::LIDAR,10);
         pubsub->addPublisher(topic_map_corner,DataType::LIDAR,10);
         pubsub->addPublisher(topic_current_pose,DataType::ODOMETRY,10);
-        pubsub->addPublisher(topic_current_pose_incremental,DataType::ODOMETRY,2000);
-        pubsub->addPublisher(topic_gnss_pose,DataType::ODOMETRY,2000);
+        pubsub->addPublisher(topic_gnss_pose,DataType::ODOMETRY,10);
+
         do_work_thread = new std::thread(&OPTMapping::DoWork, this);
-        loop_thread =new std::thread(&OPTMapping::loopClosureThread, this);
-        save_Map_thread = new std::thread(&OPTMapping::savePathThread,this);
-        save_path_thread = new std::thread (&OPTMapping::savePathThread, this);
+       // loop_thread =new std::thread(&OPTMapping::loopClosureThread, this);
+        //save_Map_thread = new std::thread(&MapSaver::do_work, &(OPTMapping::map_saver));
+        //save_path_thread = new std::thread (&OPTMapping::savePathThread, this);
 
     }
 };

@@ -25,7 +25,7 @@ class SensorConfig{
     static std::string imuTopic;
     static  std::string  odomTopic;
     static  std::string  gpsTopic;
-
+    static double imuHZ;
     //Frame
     static std::string  lidarFrame;
     static std::string  baselinkFrame;
@@ -139,6 +139,8 @@ class MappingConfig{
         static int scan_2_scan_num_corner;
         static int scan_2_scan_num_surf;
     };
+
+
 class SerializeConfig{
    public:
       static std::string map_in_path;
@@ -176,7 +178,7 @@ std::string SensorConfig::baselinkFrame="";
 std::string  SensorConfig::odometryFrame="";
 std::string  SensorConfig::mapFrame="";
 
-    //GPS Setting
+//GPS Setting
 Eigen::Matrix4d SensorConfig::T_L_B = Eigen::Matrix4d::Identity();
 bool  SensorConfig::useGPS=false;
 bool   SensorConfig::updateOrigin=false;
@@ -187,13 +189,12 @@ float  SensorConfig::gpsCovThreshold=-1;
 float  SensorConfig::poseCovThreshold=-1;
 float  SensorConfig::gpsDistance=-1;
 
-    //debu setting
+//debu setting
 bool SensorConfig::debugLidarTimestamp=false;
 bool SensorConfig::debugImu=false;
 bool  SensorConfig::debugGps=false;
 
-    //Export settings
-
+//Export settings
 std::string SensorConfig::sensor="";
 int SensorConfig::N_SCAN=-1;
 int  SensorConfig::Horizon_SCAN=-1;
@@ -209,6 +210,7 @@ double  SensorConfig::imuAccBiasN=-1;
 double  SensorConfig::imuGyrBiasN=-1;
 double SensorConfig:: imuGravity=-1;
 double SensorConfig::imuRPYWeight=-1;
+double  SensorConfig::imuHZ = -1;
 
 
 int SensorConfig::imu_type=-1;
@@ -361,7 +363,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::  imuGyrBiasN=sensorconfig["imuGyrBiasN"].as<double >();
     SensorConfig::  imuGravity=sensorconfig["imuGravity"].as<double >();
     SensorConfig::  imuRPYWeight=sensorconfig["imuRPYWeight"].as<double >();
-
+    SensorConfig::imuHZ = sensorconfig["imuHZ"].as<double >();
     SensorConfig::use_gnss_deskew=sensorconfig["use_gnss_deskew"].as<bool >();
 
 //    std::cout<<SensorConfig::imuRPYWeight<<std::endl;

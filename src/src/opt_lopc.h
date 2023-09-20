@@ -1574,7 +1574,6 @@ public:
         pubsub->addPublisher(topic_priorMap_surf, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_lidar_odometry, DataType::ODOMETRY, 10);
         do_work_thread = new std::thread(&LOCMapping::DoWork, this);
-
     }
 };
 #endif //SEU_LIDARLOC_OPT_LOPC_H
