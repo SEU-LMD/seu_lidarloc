@@ -422,6 +422,7 @@ public:
 //                    imuQueImu.pop_front();
 //                }
                 lastImuQT = lastImuT_opt;
+
                 // repropogate
                 if (!imuQueOpt.empty()) {
                     // reset bias use the newly optimized bias
