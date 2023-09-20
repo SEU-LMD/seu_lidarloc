@@ -36,7 +36,6 @@ public:
     std::mutex gnssins_mutex;
     std::mutex lidarodom_mutex;
 
-    std::thread* do_imu_thread;
     std::thread* do_lidar_thread;
 
 //    std::deque<OdometryTypePtr> lidar_poseQueue;
@@ -357,7 +356,7 @@ public:
                     // std::cout << " delta_t: " << imuTime -lastImuT_opt << std::endl;
                     if (imuTime < currentCorrectionTime - delta_t) {
                         double dt =
-                                (lastImuT_opt < 0) ? (1.0 / 100.0) : (imuTime - lastImuT_opt);
+                                (lastImuT_opt < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_opt);
                         //        double dt = (lastImuT_opt < 0) ? (1.0 / imuFrequence) :
                         //        (imuTime - lastImuT_opt);
                         imuIntegratorOpt_->integrateMeasurement(
@@ -463,7 +462,6 @@ public:
         pubsub = pubsub_;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
         do_lidar_thread = new std::thread(&IMUPreintegration::DoLidar, this);
-//        do_imu_thread = new std::thread(&IMUPreintegration::DoIMU, this);
     }
 };
 
