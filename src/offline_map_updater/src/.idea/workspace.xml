@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="5564f8f0-5250-480a-bfa0-c0e707557874" name="更改" comment="">
+      <change beforePath="$PROJECT_DIR$/../../../CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../../../CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../include/erasor/OfflineMapUpdater.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../../include/erasor/OfflineMapUpdater.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../include/erasor/erasor.h" beforeDir="false" afterPath="$PROJECT_DIR$/../../../include/erasor/erasor.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../compare_map.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../compare_map.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../main_in_your_env.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../main_in_your_env.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/OfflineMapUpdater.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/OfflineMapUpdater.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/erasor.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/erasor.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../utils/compare_complement.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../utils/compare_complement.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../utils/compare_map.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../utils/compare_map.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../utils/fill_removert_intensity.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../utils/fill_removert_intensity.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../utils/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../utils/main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../utils/merge_map.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../utils/merge_map.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../utils/parse_data.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../utils/parse_data.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../utils/pub_marker.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../utils/pub_marker.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../utils/pub_polygon.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../utils/pub_polygon.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../utils/speed_check.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../utils/speed_check.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../utils/viz_kitti_map.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../utils/viz_kitti_map.cpp" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="ProjectApplicationVersion">
+    <option name="ide" value="CLion" />
+    <option name="majorVersion" value="2023" />
+    <option name="minorVersion" value="2" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 0
+}]]></component>
+  <component name="ProjectId" id="2VZOheixU1R2BbFFUmsJeCU39zX" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="应用程序级" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="5564f8f0-5250-480a-bfa0-c0e707557874" name="更改" comment="" />
+      <created>1695040256340</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1695040256340</updated>
+      <workItem from="1695040257817" duration="2000" />
+    </task>
+    <servers />
+  </component>
+</project>
