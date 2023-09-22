@@ -57,7 +57,6 @@ public:
     gtsam::PreintegratedImuMeasurements *imuIntegratorImu_;
 
     std::deque<IMURawDataPtr> imuQueOpt;
-//    std::deque<IMURawDataPtr> imuQueImu;
 
     gtsam::Pose3 prevPose_;
     gtsam::Vector3 prevVel_;
@@ -164,6 +163,11 @@ public:
     void SetIMUPreParamter(){
 
         boost::shared_ptr<gtsam::PreintegrationParams> p =  gtsam::PreintegrationParams::MakeSharedU(SensorConfig::imuGravity);
+        // Realistic MEMS white noise characteristics. Angular and velocity random walk
+        // expressed in degrees respectively m/s per sqrt(hr). 弧度制,米
+//   example:
+//          kGyroSigma = radians(0.5) / 60;     // 0.5 degree ARW,
+//          kAccelSigma = 0.1 / 60;             // 10 cm VRW
         p->accelerometerCovariance =  gtsam::Matrix33::Identity(3, 3) *  pow(SensorConfig::imuAccNoise, 2);  // acc white noise in continuous
         p->gyroscopeCovariance =      gtsam::Matrix33::Identity(3, 3) *  pow(SensorConfig::imuGyrNoise, 2);  // gyro white noise in continuous
         p->integrationCovariance =    gtsam::Matrix33::Identity(3, 3) *  pow(1e-4,2);  // error committed in integrating position from velocities
@@ -177,9 +181,11 @@ public:
 
         //TODO!!! what finihsed use for???
         //below parameters are used for opt bias
+//       对角平方根协方差矩阵
         priorPoseNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished());  // rad,rad,rad,m, m, m
         priorVelNoise = gtsam::noiseModel::Isotropic::Sigma(3, 1e4);  // m/s
         priorBiasNoise = gtsam::noiseModel::Isotropic::Sigma(6, 1e-3);  // 1e-2 ~ 1e-3 seems to be good
+//        EZLOG(INFO)<<"priorBiasNoise: "<< priorBiasNoise->R();
         correctionNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 0.05, 0.05, 0.05, 0.1, 0.1, 0.1).finished());  // rad,rad,rad,m, m, m
         correctionNoise2 = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1, 1, 1, 1, 1, 1) .finished());  // rad,rad,rad,m, m, m
         //TODO correct!!!!!

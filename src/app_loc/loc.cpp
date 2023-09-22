@@ -44,13 +44,9 @@ int main(int argc, char **argv) {
     //5.设置mapping manager的回调函数
     auto cloud_callback = std::bind(&LocManager::CloudCallback, &loc_manager,std::placeholders::_1);
     auto gnssins_callback = std::bind(&LocManager::GNSSINSCallback, &loc_manager,std::placeholders::_1);
-//    auto odom_callback = std::bind(&LocManager::OdomCallback, &loc_manager,std::placeholders::_1);
-//    auto imu_callback = std::bind(&LocManager::imuCallback, &loc_manager,std::placeholders::_1);
 
     pubsub->addSubscriber(SensorConfig::pointCloudTopic, DataType::LIDAR, cloud_callback);
     pubsub->addSubscriber(SensorConfig::gpsTopic, DataType::GNSS_INS, gnssins_callback);
-//    pubsub->addSubscriber(SensorConfig::odomTopic, DataType::ODOMETRY, odom_callback);
-//    pubsub->addSubscriber(SensorConfig::SensorConfig::imuTopic, DataType::ODOMETRY, imu_callback);
 
     //开始运行程序
     pubsub->run();
