@@ -42,6 +42,8 @@
   imuGyrBiasN: 6.2044746e-06
   imuGravity: 0.0
   imuRPYWeight: 0.000001
+  imuWindowsSize: 50
+  imuPreInit: 0 # imu Preintegation for init pose guess
 
   # Extrinsics (lidar -> IMU)
 #  evo: world->lidar

@@ -57,7 +57,8 @@ struct cloud_info_
     , key_frame_color()
     , key_frame_poses()
     , key_frame_map()
-    , T_w_l_curlidar()  {
+    , T_w_l_curlidar()
+    , T_w_b_curimuPre(){
     }
   cloud_info_(const ContainerAllocator& _alloc)
     : header(_alloc)
@@ -83,7 +84,8 @@ struct cloud_info_
     , key_frame_color(_alloc)
     , key_frame_poses(_alloc)
     , key_frame_map(_alloc)
-    , T_w_l_curlidar(_alloc)  {
+    , T_w_l_curlidar(_alloc)
+    , T_w_b_curimuPre(_alloc){
   (void)_alloc;
     }
 
@@ -161,6 +163,9 @@ struct cloud_info_
    typedef  ::nav_msgs::Odometry_<ContainerAllocator>  _T_w_l_curlidar_type;
   _T_w_l_curlidar_type T_w_l_curlidar;
 
+  typedef  ::nav_msgs::Odometry_<ContainerAllocator>  _T_w_b_curimuPre_type;
+  _T_w_b_curimuPre_type T_w_b_curimuPre;
+
 
 
 
@@ -212,7 +217,8 @@ bool operator==(const ::lio_sam_6axis::cloud_info_<ContainerAllocator1> & lhs, c
     lhs.key_frame_color == rhs.key_frame_color &&
     lhs.key_frame_poses == rhs.key_frame_poses &&
     lhs.key_frame_map == rhs.key_frame_map &&
-    lhs.T_w_l_curlidar == rhs.T_w_l_curlidar;
+    lhs.T_w_l_curlidar == rhs.T_w_l_curlidar &&
+    lhs.T_w_b_curimuPre == rhs.T_w_b_curimuPre;
 }
 
 template<typename ContainerAllocator1, typename ContainerAllocator2>
@@ -331,7 +337,7 @@ struct Definition< ::lio_sam_6axis::cloud_info_<ContainerAllocator> >
 "\n"
 "# trans to mapopt\n"
 "nav_msgs/Odometry T_w_l_curlidar\n"
-"\n"
+"nav_msgs/Odometry T_w_b_curimuPre\n"
 "\n"
 "\n"
 "\n"
@@ -517,6 +523,7 @@ namespace serialization
       stream.next(m.key_frame_poses);
       stream.next(m.key_frame_map);
       stream.next(m.T_w_l_curlidar);
+      stream.next(m.T_w_b_curimuPre);
     }
 
     ROS_DECLARE_ALLINONE_SERIALIZER
@@ -608,6 +615,9 @@ struct Printer< ::lio_sam_6axis::cloud_info_<ContainerAllocator> >
     s << indent << "T_w_l_curlidar: ";
     s << std::endl;
     Printer< ::nav_msgs::Odometry_<ContainerAllocator> >::stream(s, indent + "  ", v.T_w_l_curlidar);
+    s << indent << "T_w_b_curimuPre: ";
+    s << std::endl;
+    Printer< ::nav_msgs::Odometry_<ContainerAllocator> >::stream(s, indent + "  ", v.T_w_b_curimuPre);
   }
 };
 

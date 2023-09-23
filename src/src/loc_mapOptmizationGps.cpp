@@ -59,8 +59,8 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(
 typedef PointXYZIRPYT PointTypePose;
 
 // 从先验地图提取角点面点localMap的时间
-std::ofstream times_extractLocalMap_file("/home/sy/SEU_WS/seu_ros/seu_lidarloc/src/times_extractLocalMap.txt", std::ios::app);
-std::ofstream times_opt_file("/home/sy/SEU_WS/seu_ros/seu_lidarloc/src/times_loadPriorMap.txt", std::ios::app);
+//std::ofstream times_extractLocalMap_file("/home/sy/SEU_WS/seu_ros/seu_lidarloc/src/times_extractLocalMap.txt", std::ios::app);
+//std::ofstream times_opt_file("/home/sy/SEU_WS/seu_ros/seu_lidarloc/src/times_loadPriorMap.txt", std::ios::app);
 
 class Loc_mapOptimization {
 public:
@@ -182,10 +182,10 @@ public:
     Eigen::Affine3f incrementalOdometryAffineFront;
     Eigen::Affine3f incrementalOdometryAffineBack;
 
-    Eigen::Vector3d t_w_cur;
-    Eigen::Quaterniond q_w_cur;
-    Eigen::Matrix3d q_w_cur_matrix;
-    double q_w_cur_roll, q_w_cur_pitch, q_w_cur_yaw;
+    Eigen::Vector3d t_w_cur,t_b_cur;
+    Eigen::Quaterniond q_w_cur,q_b_cur;
+    Eigen::Matrix3d q_w_cur_matrix,q_b_cur_matrix;
+    double q_w_cur_roll, q_w_cur_pitch, q_w_cur_yaw,q_b_cur_roll,q_b_cur_pitch,q_b_cur_yaw;
     int current_frameID = 0;
     int frame_cnt = 0;
     gtsam::Pose3 last_gnss_poses;
@@ -395,13 +395,23 @@ public:
         t_w_cur[0] = msgIn->T_w_l_curlidar.pose.pose.position.x;
         t_w_cur[1] = msgIn->T_w_l_curlidar.pose.pose.position.y;
         t_w_cur[2] = msgIn->T_w_l_curlidar.pose.pose.position.z;
+        t_b_cur[0] = msgIn->T_w_b_curimuPre.pose.pose.position.x;
+        t_b_cur[1] = msgIn->T_w_b_curimuPre.pose.pose.position.y;
+        t_b_cur[2] = msgIn->T_w_b_curimuPre.pose.pose.position.z;
 
         q_w_cur.x() = msgIn->T_w_l_curlidar.pose.pose.orientation.x;
         q_w_cur.y() = msgIn->T_w_l_curlidar.pose.pose.orientation.y;
         q_w_cur.z() = msgIn->T_w_l_curlidar.pose.pose.orientation.z;
         q_w_cur.w() = msgIn->T_w_l_curlidar.pose.pose.orientation.w;
         q_w_cur.normalize();
+//        q_b_cur.x() = msgIn->T_w_b_curimuPre.pose.pose.orientation.x;
+//        q_b_cur.y() = msgIn->T_w_b_curimuPre.pose.pose.orientation.y;
+//        q_b_cur.z() = msgIn->T_w_b_curimuPre.pose.pose.orientation.z;
+//        q_b_cur.w() = msgIn->T_w_b_curimuPre.pose.pose.orientation.w;
+//        q_b_cur.normalize();
+
         q_w_cur_matrix = q_w_cur.toRotationMatrix();
+//        q_b_cur_matrix = q_b_cur.toRotationMatrix();
         // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
         q_w_cur_pitch = asin(-q_w_cur_matrix(2, 0)); // 计算pitch
         if (cos(q_w_cur_pitch) != 0) {
@@ -412,10 +422,23 @@ public:
             q_w_cur_yaw = atan2(-q_w_cur_matrix(0, 1), q_w_cur_matrix(1, 1)); // 计算yaw
         }
 
+//        q_b_cur_pitch = asin(-q_b_cur_matrix(2, 0)); // 计算pitch
+//        if (cos(q_b_cur_pitch) != 0) {
+//            q_b_cur_roll = atan2(q_b_cur_matrix(2, 1), q_b_cur_matrix(2, 2)); // 计算roll
+//            q_b_cur_yaw = atan2(q_b_cur_matrix(1, 0), q_b_cur_matrix(0, 0));  // 计算yaw
+//        } else {
+//            q_b_cur_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
+//            q_b_cur_yaw = atan2(-q_b_cur_matrix(0, 1), q_b_cur_matrix(1, 1)); // 计算yaw
+//        }
+//        EZLOG(INFO)<<"t_w_cur: "<<t_w_cur
+//                    <<" t_b_cur: "<<t_b_cur
+//                    <<" q_w_cur:  "<<q_w_cur
+//                    <<" q_b_cur: "<<q_b_cur;
         std::lock_guard<std::mutex> lock(mtx);
 
         static double timeLastProcessing = -1;
 //        激光点的更新频率，控制处理频率 mappingProcessInterval= 6.667 Hz , 0.15s
+//      控制频率低了，imu预积分会漂，得不到及时的修正
         TicToc T_all;
         if (timeLaserInfoCur - timeLastProcessing >= MappingConfig::mappingProcessInterval) {
             timeLastProcessing = timeLaserInfoCur;
@@ -587,7 +610,6 @@ public:
 
 
 //                if (!SensorConfig::useImuHeadingInitialization) current_T_m_l[2] = 0;
-
 //                lastImuTransformation = pcl::getTransformation(
 //                        0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
 //                        cloudInfo.imuYawInit);
@@ -602,16 +624,66 @@ public:
             return;
         }
 
-//      世界系
-        Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
-                t_w_cur[0], t_w_cur[1], t_w_cur[2], q_w_cur_roll,
-                q_w_cur_pitch, q_w_cur_yaw);
-//      current_T_m_l -> 世界系
-        pcl::getTranslationAndEulerAngles(
-                pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
-                current_T_m_l[5], current_T_m_l[0],
-                current_T_m_l[1], current_T_m_l[2]);
-        current_frame = WORLD;
+
+//        gnss for init
+        EZLOG(INFO)<< "SensorConfig::imuPreInit : "<<SensorConfig::imuPreInit;
+                    Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
+                    t_w_cur[0], t_w_cur[1], t_w_cur[2], q_w_cur_roll,
+                    q_w_cur_pitch, q_w_cur_yaw);
+            //      current_T_m_l -> 世界系
+            pcl::getTranslationAndEulerAngles(
+                    pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
+                    current_T_m_l[5], current_T_m_l[0],
+                    current_T_m_l[1], current_T_m_l[2]);
+            current_frame = WORLD;
+
+//        if(SensorConfig::imuPreInit == 0){
+//            //      世界系
+//            Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
+//                    t_w_cur[0], t_w_cur[1], t_w_cur[2], q_w_cur_roll,
+//                    q_w_cur_pitch, q_w_cur_yaw);
+//            //      current_T_m_l -> 世界系
+//            pcl::getTranslationAndEulerAngles(
+//                    pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
+//                    current_T_m_l[5], current_T_m_l[0],
+//                    current_T_m_l[1], current_T_m_l[2]);
+//            current_frame = WORLD;
+//        }
+//        else{ // imu preintegration for init
+////            Eigen::Affine3f transBack = pcl::getTransformation(
+////                    cloudInfo.initialGuessX, cloudInfo.initialGuessY,
+////                    cloudInfo.initialGuessZ, cloudInfo.initialGuessRoll,
+////                    cloudInfo.initialGuessPitch, cloudInfo.initialGuessYaw);
+////            if (lastImuPreTransAvailable == false) {
+////                lastImuPreTransformation = transBack;
+////                lastImuPreTransAvailable = true;
+////            } else {
+////                Eigen::Affine3f transIncre =
+////                        lastImuPreTransformation.inverse() * transBack;
+////                Eigen::Affine3f transTobe = trans2Affine3f(currentInit_R_l_w);
+////                Eigen::Affine3f transFinal = transTobe * transIncre;
+////                pcl::getTranslationAndEulerAngles(
+////                        transFinal, currentInit_R_l_w[3], currentInit_R_l_w[4],
+////                        currentInit_R_l_w[5], currentInit_R_l_w[0],
+////                        currentInit_R_l_w[1], currentInit_R_l_w[2]);
+////
+////                lastImuPreTransformation = transBack;
+////
+////                lastImuTransformation = pcl::getTransformation(
+////                        0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
+////                        cloudInfo.imuYawInit);  // save imu before return;
+////            }
+//            Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
+//                    t_b_cur[0], t_b_cur[1], t_b_cur[2], q_b_cur_roll,
+//                    q_b_cur_pitch, q_b_cur_yaw);
+//            //      current_T_m_l -> 世界系
+//            pcl::getTranslationAndEulerAngles(
+//                    pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
+//                    current_T_m_l[5], current_T_m_l[0],
+//                    current_T_m_l[1], current_T_m_l[2]);
+//            current_frame = WORLD;
+//        }
+
 
     }
 

@@ -62,6 +62,8 @@ class SensorConfig{
     static double  imuGyrBiasN;
     static double  imuGravity;
     static double imuRPYWeight;
+    static int imuWindowsSize;
+    static int imuPreInit;
 
     //Extrinsics (lidar -> IMU)
     static int imu_type;//meiyong buyiyang********
@@ -209,6 +211,8 @@ double  SensorConfig::imuAccBiasN=-1;
 double  SensorConfig::imuGyrBiasN=-1;
 double SensorConfig:: imuGravity=-1;
 double SensorConfig::imuRPYWeight=-1;
+int SensorConfig::imuWindowsSize = 50 ;
+int SensorConfig::imuPreInit = 0;
 
 
 int SensorConfig::imu_type=-1;
@@ -362,7 +366,8 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::  imuGyrBiasN=sensorconfig["imuGyrBiasN"].as<double >();
     SensorConfig::  imuGravity=sensorconfig["imuGravity"].as<double >();
     SensorConfig::  imuRPYWeight=sensorconfig["imuRPYWeight"].as<double >();
-
+    SensorConfig::imuWindowsSize = sensorconfig["imuWindowsSize"].as<int >();
+    SensorConfig::imuPreInit = sensorconfig["imuPreInit"].as<int >();
     SensorConfig::use_gnss_deskew=sensorconfig["use_gnss_deskew"].as<bool >();
 
     std::cout<<SensorConfig::imuRPYWeight<<std::endl;

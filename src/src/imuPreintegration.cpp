@@ -376,7 +376,7 @@ public:
         }
 
         // reset graph for speed
-        if (key == 50) {
+        if (key == SensorConfig::imuWindowsSize) {
             // get updated noise before reset
             gtsam::noiseModel::Gaussian::shared_ptr updatedPoseNoise =
                     gtsam::noiseModel::Gaussian::Covariance(

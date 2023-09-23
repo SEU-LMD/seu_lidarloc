@@ -40,6 +40,7 @@
   scan_2_scan_num_surf: 50000
   scan_2_scan_num_corner: 30000
 
+
   # Loop closure
   loopClosureEnableFlag: true
   loopClosureFrequency: 1.0                     # Hz, regulate loop closure constraint add frequency
