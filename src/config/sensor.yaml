@@ -37,10 +37,10 @@
   gtsamGNSSBetweenFactorDistance: 10
 
   # IMU Settings
-  imuAccNoise: 3.7686306102624571e-02         #
-  imuGyrNoise: 2.3417543020438883e-03         #
-  imuAccBiasN: 1.1416642385952368e-03         #
-  imuGyrBiasN: 1.4428407712885209e-05         #
+  imuAccNoise: 0.035 #VRW,加速度计随机游走。0.035m/s/√h 0.000583333
+  imuGyrNoise: 0.006108652 # ARW,角度随机游走。弧度 / sqrt(hr) 0.35°/√h 0.000029089 0.006108652
+  imuAccBiasN: 7.5499190771189349e-04
+  imuGyrBiasN: 4.3048975399536245e-04
   imuGravity: 0.0
   imuRPYWeight: 0.01
   imuHZ: 100
@@ -48,12 +48,12 @@
   # Extrinsics (lidar -> IMU)
   imu_type: 0   # 0: 6axis, 1:9 axis
   #T_L_B
-  extrinsicTrans: [ 0.0, 0.0, -0.5135 ]
+  extrinsicTrans: [ 0.0, 0.0, -0.5135 ] # -0.5135
   extrinsicRot: [ 0, 1, 0,
                   -1, 0, 0,
                   0, 0, 1 ]
-  extrinsicRPY: [ -1, 0, 0,
-                  0, -1, 0,
+  extrinsicRPY: [ 0, 1, 0,
+                  -1, 0, 0,
                   0, 0, 1 ]
 
   use_gnss_deskew: false

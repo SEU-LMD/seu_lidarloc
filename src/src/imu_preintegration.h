@@ -21,14 +21,11 @@
 
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
-//#include "imageProjection.h"
 #include "featureExtraction.h"
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
 
-
-
-using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz)
+using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p,y)
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
 
@@ -100,6 +97,7 @@ public:
         lidar_poseQueue.push_back(data);
 //        EZLOG(INFO)<<"lidar_poseQueue.size() "<<lidar_poseQueue.size()<<std::endl;
         lidarodom_mutex.unlock();
+
     }
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
@@ -161,7 +159,6 @@ public:
             Odometry_imuPredict_pub.frame = "map";
             Odometry_imuPredict_pub.pose = lidar_preditct_pose;
             pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
-            Function_AddimuToImgproj(Odometry_imuPredict_pub);
         }
 
 //        {
@@ -179,6 +176,11 @@ public:
     void SetIMUPreParamter(){
 
         boost::shared_ptr<gtsam::PreintegrationParams> p =  gtsam::PreintegrationParams::MakeSharedU(SensorConfig::imuGravity);
+        // Realistic MEMS white noise characteristics. Angular and velocity random walk
+        // expressed in degrees respectively m/s per sqrt(hr). 弧度制,米
+//   example:
+//          kGyroSigma = radians(0.5) / 60;     // 0.5 degree ARW,
+//          kAccelSigma = 0.1 / 60;             // 10 cm VRW
         p->accelerometerCovariance =  gtsam::Matrix33::Identity(3, 3) *  pow(SensorConfig::imuAccNoise, 2);  // acc white noise in continuous
         p->gyroscopeCovariance =      gtsam::Matrix33::Identity(3, 3) *  pow(SensorConfig::imuGyrNoise, 2);  // gyro white noise in continuous
         p->integrationCovariance =    gtsam::Matrix33::Identity(3, 3) *  pow(1e-4,2);  // error committed in integrating position from velocities
@@ -194,14 +196,11 @@ public:
         //TODO!!! what finihsed use for???
         ///check whether vector is filled correctly
         //below parameters are used for opt bias
-        priorPoseNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished());  //  6*6 rad,rad,rad,m, m, m
-        EZLOG(INFO)<<"priorPoseNoise = "<<priorPoseNoise.get();
-        priorVelNoise = gtsam::noiseModel::Isotropic::Sigma(3, 1e4);  //  3*3 matrix m/s
-        EZLOG(INFO)<<"priorVelNoise = "<<priorVelNoise.get();
+//       对角平方根协方差矩阵
+        priorPoseNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished());  // rad,rad,rad,m, m, m
+        priorVelNoise = gtsam::noiseModel::Isotropic::Sigma(3, 1e4);  // m/s
         priorBiasNoise = gtsam::noiseModel::Isotropic::Sigma(6, 1e-3);  // 1e-2 ~ 1e-3 seems to be good
-        EZLOG(INFO)<<"priorBiasNoise = "<<priorBiasNoise;
         correctionNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 0.05, 0.05, 0.05, 0.1, 0.1, 0.1).finished());  // rad,rad,rad,m, m, m
-        EZLOG(INFO)<<"correctionNoise = "<<correctionNoise;
         correctionNoise2 = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1, 1, 1, 1, 1, 1) .finished());  // rad,rad,rad,m, m, m
         //TODO correct!!!!!
         noiseModelBetweenBias = (gtsam::Vector(6) << SensorConfig::imuAccBiasN,
@@ -210,7 +209,7 @@ public:
                                                         SensorConfig::imuGyrBiasN,
                                                         SensorConfig::imuGyrBiasN,
                                                         SensorConfig::imuGyrBiasN).finished();
-        EZLOG(INFO)<<"noiseModelBetweenBias = "<<noiseModelBetweenBias;
+
     }
 
 

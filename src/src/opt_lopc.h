@@ -58,7 +58,6 @@ public:
     PubSubInterface* pubsub;
     IMUPreintegration* imu_pre_ptr;
 
-
     std::thread* do_work_thread;
     std::mutex cloud_mutex;
     std::mutex gnss_ins_mutex;

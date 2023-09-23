@@ -25,7 +25,7 @@ class SensorConfig{
     static std::string imuTopic;
     static  std::string  odomTopic;
     static  std::string  gpsTopic;
-    static double imuHZ;
+    static int imuHZ;
     //Frame
     static std::string  lidarFrame;
     static std::string  baselinkFrame;
@@ -210,7 +210,7 @@ double  SensorConfig::imuAccBiasN=-1;
 double  SensorConfig::imuGyrBiasN=-1;
 double SensorConfig:: imuGravity=-1;
 double SensorConfig::imuRPYWeight=-1;
-double  SensorConfig::imuHZ = -1;
+int  SensorConfig::imuHZ = -1;
 
 
 int SensorConfig::imu_type=-1;
@@ -363,7 +363,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::  imuGyrBiasN=sensorconfig["imuGyrBiasN"].as<double >();
     SensorConfig::  imuGravity=sensorconfig["imuGravity"].as<double >();
     SensorConfig::  imuRPYWeight=sensorconfig["imuRPYWeight"].as<double >();
-    SensorConfig::imuHZ = sensorconfig["imuHZ"].as<double >();
+    SensorConfig::imuHZ = sensorconfig["imuHZ"].as<int >();
     SensorConfig::use_gnss_deskew=sensorconfig["use_gnss_deskew"].as<bool >();
 
 //    std::cout<<SensorConfig::imuRPYWeight<<std::endl;
