@@ -182,10 +182,10 @@ public:
     Eigen::Affine3f incrementalOdometryAffineFront;
     Eigen::Affine3f incrementalOdometryAffineBack;
 
-    Eigen::Vector3d t_w_cur,t_b_cur;
-    Eigen::Quaterniond q_w_cur,q_b_cur;
-    Eigen::Matrix3d q_w_cur_matrix,q_b_cur_matrix;
-    double q_w_cur_roll, q_w_cur_pitch, q_w_cur_yaw,q_b_cur_roll,q_b_cur_pitch,q_b_cur_yaw;
+    Eigen::Vector3d t_w_cur;
+    Eigen::Quaterniond q_w_cur;
+    Eigen::Matrix3d q_w_cur_matrix;
+    double q_w_cur_roll, q_w_cur_pitch, q_w_cur_yaw;
     int current_frameID = 0;
     int frame_cnt = 0;
     gtsam::Pose3 last_gnss_poses;
@@ -395,23 +395,13 @@ public:
         t_w_cur[0] = msgIn->T_w_l_curlidar.pose.pose.position.x;
         t_w_cur[1] = msgIn->T_w_l_curlidar.pose.pose.position.y;
         t_w_cur[2] = msgIn->T_w_l_curlidar.pose.pose.position.z;
-        t_b_cur[0] = msgIn->T_w_b_curimuPre.pose.pose.position.x;
-        t_b_cur[1] = msgIn->T_w_b_curimuPre.pose.pose.position.y;
-        t_b_cur[2] = msgIn->T_w_b_curimuPre.pose.pose.position.z;
 
         q_w_cur.x() = msgIn->T_w_l_curlidar.pose.pose.orientation.x;
         q_w_cur.y() = msgIn->T_w_l_curlidar.pose.pose.orientation.y;
         q_w_cur.z() = msgIn->T_w_l_curlidar.pose.pose.orientation.z;
         q_w_cur.w() = msgIn->T_w_l_curlidar.pose.pose.orientation.w;
         q_w_cur.normalize();
-//        q_b_cur.x() = msgIn->T_w_b_curimuPre.pose.pose.orientation.x;
-//        q_b_cur.y() = msgIn->T_w_b_curimuPre.pose.pose.orientation.y;
-//        q_b_cur.z() = msgIn->T_w_b_curimuPre.pose.pose.orientation.z;
-//        q_b_cur.w() = msgIn->T_w_b_curimuPre.pose.pose.orientation.w;
-//        q_b_cur.normalize();
-
         q_w_cur_matrix = q_w_cur.toRotationMatrix();
-//        q_b_cur_matrix = q_b_cur.toRotationMatrix();
         // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
         q_w_cur_pitch = asin(-q_w_cur_matrix(2, 0)); // 计算pitch
         if (cos(q_w_cur_pitch) != 0) {
@@ -422,23 +412,10 @@ public:
             q_w_cur_yaw = atan2(-q_w_cur_matrix(0, 1), q_w_cur_matrix(1, 1)); // 计算yaw
         }
 
-//        q_b_cur_pitch = asin(-q_b_cur_matrix(2, 0)); // 计算pitch
-//        if (cos(q_b_cur_pitch) != 0) {
-//            q_b_cur_roll = atan2(q_b_cur_matrix(2, 1), q_b_cur_matrix(2, 2)); // 计算roll
-//            q_b_cur_yaw = atan2(q_b_cur_matrix(1, 0), q_b_cur_matrix(0, 0));  // 计算yaw
-//        } else {
-//            q_b_cur_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
-//            q_b_cur_yaw = atan2(-q_b_cur_matrix(0, 1), q_b_cur_matrix(1, 1)); // 计算yaw
-//        }
-//        EZLOG(INFO)<<"t_w_cur: "<<t_w_cur
-//                    <<" t_b_cur: "<<t_b_cur
-//                    <<" q_w_cur:  "<<q_w_cur
-//                    <<" q_b_cur: "<<q_b_cur;
         std::lock_guard<std::mutex> lock(mtx);
 
         static double timeLastProcessing = -1;
 //        激光点的更新频率，控制处理频率 mappingProcessInterval= 6.667 Hz , 0.15s
-//      控制频率低了，imu预积分会漂，得不到及时的修正
         TicToc T_all;
         if (timeLaserInfoCur - timeLastProcessing >= MappingConfig::mappingProcessInterval) {
             timeLastProcessing = timeLaserInfoCur;
@@ -498,7 +475,14 @@ public:
                 transPointAssociateToMap(2, 1) * pi->y +
                 transPointAssociateToMap(2, 2) * pi->z +
                 transPointAssociateToMap(2, 3);
+
+//        if(std::isnan(po->x)|| std::isnan(po->y)|| std::isnan(po->z)){
+//            EZLOG(INFO)<<"pointAssociateToWorld_noTrans NAN FUCK!!!"<<std::endl;
+//            exit(-1);
+//        }
+
         po->intensity = pi->intensity;
+
     }
 
     void pointAssociateToWorld_withTrans(PointType const *const pi, PointType *const po) {
@@ -610,6 +594,7 @@ public:
 
 
 //                if (!SensorConfig::useImuHeadingInitialization) current_T_m_l[2] = 0;
+
 //                lastImuTransformation = pcl::getTransformation(
 //                        0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
 //                        cloudInfo.imuYawInit);
@@ -624,66 +609,16 @@ public:
             return;
         }
 
-
-//        gnss for init
-        EZLOG(INFO)<< "SensorConfig::imuPreInit : "<<SensorConfig::imuPreInit;
-                    Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
-                    t_w_cur[0], t_w_cur[1], t_w_cur[2], q_w_cur_roll,
-                    q_w_cur_pitch, q_w_cur_yaw);
-            //      current_T_m_l -> 世界系
-            pcl::getTranslationAndEulerAngles(
-                    pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
-                    current_T_m_l[5], current_T_m_l[0],
-                    current_T_m_l[1], current_T_m_l[2]);
-            current_frame = WORLD;
-
-//        if(SensorConfig::imuPreInit == 0){
-//            //      世界系
-//            Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
-//                    t_w_cur[0], t_w_cur[1], t_w_cur[2], q_w_cur_roll,
-//                    q_w_cur_pitch, q_w_cur_yaw);
-//            //      current_T_m_l -> 世界系
-//            pcl::getTranslationAndEulerAngles(
-//                    pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
-//                    current_T_m_l[5], current_T_m_l[0],
-//                    current_T_m_l[1], current_T_m_l[2]);
-//            current_frame = WORLD;
-//        }
-//        else{ // imu preintegration for init
-////            Eigen::Affine3f transBack = pcl::getTransformation(
-////                    cloudInfo.initialGuessX, cloudInfo.initialGuessY,
-////                    cloudInfo.initialGuessZ, cloudInfo.initialGuessRoll,
-////                    cloudInfo.initialGuessPitch, cloudInfo.initialGuessYaw);
-////            if (lastImuPreTransAvailable == false) {
-////                lastImuPreTransformation = transBack;
-////                lastImuPreTransAvailable = true;
-////            } else {
-////                Eigen::Affine3f transIncre =
-////                        lastImuPreTransformation.inverse() * transBack;
-////                Eigen::Affine3f transTobe = trans2Affine3f(currentInit_R_l_w);
-////                Eigen::Affine3f transFinal = transTobe * transIncre;
-////                pcl::getTranslationAndEulerAngles(
-////                        transFinal, currentInit_R_l_w[3], currentInit_R_l_w[4],
-////                        currentInit_R_l_w[5], currentInit_R_l_w[0],
-////                        currentInit_R_l_w[1], currentInit_R_l_w[2]);
-////
-////                lastImuPreTransformation = transBack;
-////
-////                lastImuTransformation = pcl::getTransformation(
-////                        0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit,
-////                        cloudInfo.imuYawInit);  // save imu before return;
-////            }
-//            Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
-//                    t_b_cur[0], t_b_cur[1], t_b_cur[2], q_b_cur_roll,
-//                    q_b_cur_pitch, q_b_cur_yaw);
-//            //      current_T_m_l -> 世界系
-//            pcl::getTranslationAndEulerAngles(
-//                    pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
-//                    current_T_m_l[5], current_T_m_l[0],
-//                    current_T_m_l[1], current_T_m_l[2]);
-//            current_frame = WORLD;
-//        }
-
+//      世界系
+        Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
+                t_w_cur[0], t_w_cur[1], t_w_cur[2], q_w_cur_roll,
+                q_w_cur_pitch, q_w_cur_yaw);
+//      current_T_m_l -> 世界系
+        pcl::getTranslationAndEulerAngles(
+                pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
+                current_T_m_l[5], current_T_m_l[0],
+                current_T_m_l[1], current_T_m_l[2]);
+        current_frame = WORLD;
 
     }
 
@@ -949,6 +884,46 @@ public:
         downSizeFilterSurf.filter(*current_surf_ds);
         current_surf_ds_num = current_surf_ds->size();
 
+        //      vector<int> indices;
+        //        pcl::removeNaNFromPointCloud(*_current_scan_temp_ptr,*_current_scan_temp_ptr,indices);
+
+//        int flag_NANPoint = false;
+//        pcl::PointCloud<PointType>::iterator it_corner = current_corner_ds->points.begin();
+//        while (it_corner != current_corner_ds->points.end())
+//        {
+//            float x, y, z, rgb;
+//            x = it_corner->x;
+//            y = it_corner->y;
+//            z = it_corner->z;
+//            if (!pcl_isfinite(x) || !pcl_isfinite(y) || !pcl_isfinite(z))
+//            {
+//                it_corner = current_corner_ds->points.erase(it_corner);
+////                flag_NANPoint = true;
+//                EZLOG(INFO)<<"NAN!"<<std::endl;
+//                exit(-1);
+//            }
+//            else
+//                ++it_corner;
+//        }
+//
+//        pcl::PointCloud<PointType>::iterator it_surf = current_corner_ds->points.begin();
+//        while (it_surf != current_corner_ds->points.end())
+//        {
+//            float x, y, z, rgb;
+//            x = it_surf->x;
+//            y = it_surf->y;
+//            z = it_surf->z;
+//            if (!pcl_isfinite(x) || !pcl_isfinite(y) || !pcl_isfinite(z))
+//            {
+//                it_surf = current_corner_ds->points.erase(it_surf);
+////                flag_NANPoint = true;
+//                EZLOG(INFO)<<"NAN SURF!"<<std::endl;
+//                exit(-1);
+//            }
+//            else
+//                ++it_surf;
+//        }
+
 //        times_extractLocalMap_file << setprecision(6);
 //        times_extractLocalMap_file << t1.toc()<<" "
 //                                    << current_surf->size()<<" "
@@ -981,11 +956,11 @@ public:
         switch (current_frame) {
             case WORLD:
 //                EZLOG(INFO)<<"cal in World frame";
-                transforPoint2World();
+                updatePointAssociateToMap();
                 break;
             case LIDAR:
 //                EZLOG(INFO)<<"cal in Lidar frame";
-                updatePointAssociateToMap();
+                transforPoint2World();
                 break;
             default:
 //                EZLOG(INFO) << "ERROR! Wrong current_frame Type!!!";
@@ -1000,6 +975,10 @@ public:
             std::vector<int> pointSearchInd;
             std::vector<float> pointSearchSqDis;
             pointOri = current_corner_ds->points[i];
+//            if(std::isnan(pointOri.x)|| std::isnan(pointOri.y)|| std::isnan(pointOri.z)){
+//                EZLOG(INFO)<<"NAN FUCK!!!"<<std::endl;
+//                exit(-1);
+//            }
 //            激光系转地图系
             switch (current_frame) {
                 case WORLD:
@@ -1014,8 +993,11 @@ public:
                     EZLOG(INFO) << "ERROR! Wrong current_frame Type!!!";
                     break;
             }
-            kdtree_localMap_corner->nearestKSearch(pointSel, 5, pointSearchInd,
-                                                   pointSearchSqDis);
+//            EZLOG(INFO)<<"kdtree_localMap_corner size = "<<kdtree_localMap_corner->getInputCloud()->points.size()<<std::endl;
+//            EZLOG(INFO)<<"pointSel =  "<<pointSel.x<<" "<<pointSel.y<<" "<<pointSel.z<<std::endl;
+
+            kdtree_localMap_corner->nearestKSearch(pointSel, 5, pointSearchInd, pointSearchSqDis);
+//            EZLOG(INFO)<<"pointSearchSqDis siZe = "<<pointSearchSqDis.size()<<std::endl;
             cv::Mat matA1(3, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matD1(1, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matV1(3, 3, CV_32F, cv::Scalar::all(0));
@@ -1137,11 +1119,11 @@ public:
         switch (current_frame) {
             case WORLD:
 //                EZLOG(INFO)<<"current_T_m_l already in world_surf";
-                transforPoint2World();
+                updatePointAssociateToMap();
                 break;
             case LIDAR:
 //                EZLOG(INFO)<<"change current_T_m_l to world_surf";
-                updatePointAssociateToMap();
+                transforPoint2World();
                 break;
             default:
                 EZLOG(INFO) << "ERROR! Wrong current_frame Type!!!";
@@ -1687,8 +1669,8 @@ public:
         addGNSSBetweenFactor();
         //        if (SensorConfig::useGPS) addGPSFactor();
 
-        cout << "****************************************************" << endl;
-        gtSAMgraph.print("GTSAM Graph:\n");
+//        cout << "****************************************************" << endl;
+//        gtSAMgraph.print("GTSAM Graph:\n");
 
         // add raw odomd
         nav_msgs::Odometry laserOdometryROS;
