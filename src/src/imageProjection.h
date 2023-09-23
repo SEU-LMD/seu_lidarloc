@@ -24,13 +24,17 @@ public:
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     std::mutex gnssins_mutex;
+    std::mutex imuodom_mutex;
 
     std::thread* do_work_thread;
 
     std::deque<CloudTypeXYZIRTPtr> deque_cloud;
     std::deque<OdometryType> poseQueue;
+    std::deque<OdometryType> IMUOdomQueue;
 
     FeatureExtraction* ft_extr_ptr;
+    OPTMapping* opt_mapping_ptr;
+    IMUPreintegration* imu_pre_ptr;
 //    OPTMapping* opt_mapping_ptr;
 
     bool init = false;
@@ -41,6 +45,7 @@ public:
     std::string topic_deskew_cloud_world = "/deskew_cloud_world";
     std::string topic_gnss_odom_world = "/gnss_odom_world";
     std::string topic_deskw_cloud_to_ft_world = "/deskw_cloud_to_ft_world";
+    std::string topic_imuodom_curlidartime_world = "/imuodom_curlidartime_world";
 
     pcl::PointCloud<PointType>::Ptr deskewCloud_body;//去畸变之后的全部点云
     cv::Mat rangeMat;
@@ -125,6 +130,40 @@ public:
         }
         return timer.toc();
     }//end FindLidarFirstPose
+
+    double FindIMUOdomPose(double cur_lidar_time,const std::deque<OdometryType>& imuodom_deque,
+                           PoseT& imuodom_curlidartime){
+
+        for (int i = 0; i < (int) imuodom_deque.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
+
+            if (imuodom_deque[i].timestamp > cur_lidar_time){
+                double ktime = (cur_lidar_time - imuodom_deque[i - 1].timestamp) / (imuodom_deque[i].timestamp - imuodom_deque[i - 1].timestamp);
+                //平移插值
+                Eigen::Vector3d t_imuodom;
+                t_imuodom = imuodom_deque[i - 1].pose.GetXYZ() +
+                                    ktime * (imuodom_deque[i].pose.GetXYZ() - imuodom_deque[i - 1].pose.GetXYZ());
+
+                //旋转插值
+                Eigen::Quaterniond q_imuodom;//旋转
+                q_imuodom = imuodom_deque[i-1].pose.GetQ().slerp(ktime,imuodom_deque[i].pose.GetQ());
+
+                //插值位姿态矩阵
+                imuodom_curlidartime  = PoseT (t_imuodom , q_imuodom);
+
+//                //pusblish world origin cloud
+//                //for debug use
+//                {
+//                    CloudTypeXYZIRT cur_scan_cloud_w;
+//                    cur_scan_cloud_w.timestamp = cloudinfo.cloud_ptr->timestamp;
+//                    cur_scan_cloud_w.frame = "map";
+//                    pcl::transformPointCloud(cloudinfo.cloud_ptr->cloud, cur_scan_cloud_w.cloud, (T_w_l_lidar_start).pose.cast<float>());
+//                    pubsub->PublishCloud(topic_origin_cloud_world, cur_scan_cloud_w);
+//                }
+
+            }
+            continue;
+        }
+    }
 
     //find x y z in lidar coordinate,Q in gnss coordinate at the pointtime and calculate translation matrix
     void FindRotation(const double pointTime, const CloudWithTime& cloudinfo, const std::deque<OdometryType>& pose_deque,
@@ -340,6 +379,33 @@ public:
                 double odo_min_ros_time =  odo_poses_copy.front().timestamp;
                 double odo_max_ros_time =  odo_poses_copy.back().timestamp;
 
+                std::deque<OdometryType> imuodom_copy;
+                imuodom_mutex.lock();
+                imuodom_copy = IMUOdomQueue;
+                imuodom_mutex.unlock();
+                double imuodo_min_ros_time =  imuodom_copy.front().timestamp;
+                double imuodo_max_ros_time =  imuodom_copy.back().timestamp;
+
+                double cur_lidar_time = deque_cloud.front()->timestamp;
+                if(imuodo_min_ros_time<cur_lidar_time && imuodo_max_ros_time>cur_lidar_time){
+                    PoseT imuodom_curlidartime;
+                    double cost_time_findimupose = FindIMUOdomPose(cur_lidar_time, imuodom_copy,//in
+                                                                   imuodom_curlidartime);//out
+                    EZLOG(INFO) << "FindIMUOdomPose cost time(ms) = " << cost_time_findimupose << std::endl;
+
+                    OdometryType Odometry_imuodom_curlidartime_pub;
+                    Odometry_imuodom_curlidartime_pub.timestamp = cur_lidar_time;
+                    Odometry_imuodom_curlidartime_pub.frame = "map";
+                    Odometry_imuodom_curlidartime_pub.pose = imuodom_curlidartime;
+                    pubsub->PublishOdometry(topic_imuodom_curlidartime_world, Odometry_imuodom_curlidartime_pub);
+
+                    imuodom_mutex.lock();
+                    while(IMUOdomQueue.front().timestamp < cur_lidar_time - 0.1){
+                        IMUOdomQueue.pop_front();
+                    }
+                    imuodom_mutex.unlock();
+                }
+
                 ///1.get cloud max and min time stamp to
                 CloudTypeXYZIRTPtr cur_scan;
                 cloud_mutex.lock();
@@ -472,6 +538,12 @@ public:
         pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
     }
 
+    void AddIMUOdomData(const OdometryType& data){
+        imuodom_mutex.lock();
+        IMUOdomQueue.push_back(data);
+        imuodom_mutex.unlock();
+    }
+
     void Init(PubSubInterface* pubsub_){
         AllocateMemory();
         pubsub = pubsub_;
@@ -479,10 +551,10 @@ public:
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
+        pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
         do_work_thread = new std::thread(&ImageProjection::DoWork, this);
         EZLOG(INFO)<<"ImageProjection init success!"<<std::endl;
     }
-
 
 };
 #endif

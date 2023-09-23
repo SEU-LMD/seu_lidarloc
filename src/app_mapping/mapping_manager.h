@@ -25,6 +25,7 @@ public:
     IMUPreintegration imu_pre;
     OPTMapping opt_mapping;
 
+
     void CloudCallback(const BaseType& msg){
         const CloudTypeXYZIRT& cloud_data = *((CloudTypeXYZIRT*)&msg);
         img_proj.AddCloudData(cloud_data);
@@ -54,9 +55,13 @@ public:
         EZLOG(INFO)<< "imu_pre success!!"<<endl;
 
         //构建数据流关系
+        auto add_imuodo_to_imgproj = std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
+
         img_proj.ft_extr_ptr = &ft_extr;
         ft_extr.opt_mapping_ptr = &opt_mapping;
         opt_mapping.imu_pre_ptr = &imu_pre;
+//        imu_pre.img_proj_ptr = &img_proj;
+        imu_pre.Function_AddimuToImgproj = add_imuodo_to_imgproj;
     }
 };
 #endif //SEU_LIDARLOC_MAPPING_MANAGER_H

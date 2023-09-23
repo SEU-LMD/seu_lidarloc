@@ -45,6 +45,8 @@ int main(int argc, char **argv) {
     auto cloud_callback = std::bind(&MappingManager::CloudCallback, &mapping_manager,std::placeholders::_1);
     auto gnssins_callback = std::bind(&MappingManager::GNSSINSCallback, &mapping_manager,std::placeholders::_1);
 
+
+
     pubsub->addSubscriber(SensorConfig::pointCloudTopic, DataType::LIDAR, cloud_callback);
     pubsub->addSubscriber(SensorConfig::gpsTopic, DataType::GNSS_INS, gnssins_callback);
 

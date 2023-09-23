@@ -21,11 +21,14 @@
 
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
+//#include "imageProjection.h"
 #include "featureExtraction.h"
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
 
-using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p,y)
+
+
+using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz)
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
 
@@ -35,6 +38,9 @@ public:
     std::mutex odom_mutex;
     std::mutex gnssins_mutex;
     std::mutex lidarodom_mutex;
+    std::function<void(const OdometryType&)> Function_AddimuToImgproj;
+//    ImageProjection* img_proj_ptr;
+//    FeatureExtraction* ft_extr_ptr;
 
     std::thread* do_lidar_thread;
 
@@ -94,7 +100,6 @@ public:
         lidar_poseQueue.push_back(data);
 //        EZLOG(INFO)<<"lidar_poseQueue.size() "<<lidar_poseQueue.size()<<std::endl;
         lidarodom_mutex.unlock();
-
     }
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
@@ -156,7 +161,17 @@ public:
             Odometry_imuPredict_pub.frame = "map";
             Odometry_imuPredict_pub.pose = lidar_preditct_pose;
             pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
+            Function_AddimuToImgproj(Odometry_imuPredict_pub);
         }
+
+//        {
+//            OdometryType Odometry_imuPredict_pub;
+//            Odometry_imuPredict_pub.timestamp = imu_raw->timestamp;
+//            Odometry_imuPredict_pub.frame = "map";
+//            Odometry_imuPredict_pub.pose = lidar_preditct_pose;
+//            pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
+//            Function_AddimuToImgproj(Odometry_imuPredict_pub);
+//        }
         EZLOG(INFO)<<"imu_pre addgnssdata cost time(ms) = "<<timer.toc()<<std::endl;
     }
 
@@ -168,6 +183,7 @@ public:
         p->gyroscopeCovariance =      gtsam::Matrix33::Identity(3, 3) *  pow(SensorConfig::imuGyrNoise, 2);  // gyro white noise in continuous
         p->integrationCovariance =    gtsam::Matrix33::Identity(3, 3) *  pow(1e-4,2);  // error committed in integrating position from velocities
         //TODO!!!!!!!!
+        ///why not imuAccBiasN and imuGyrBiasN???
         gtsam::imuBias::ConstantBias prior_imu_bias((gtsam::Vector(6) << 0, 0, 0, 0, 0, 0).finished());  // assume zero initial bias
 
         //used for predict
@@ -176,11 +192,16 @@ public:
         imuIntegratorOpt_ = new gtsam::PreintegratedImuMeasurements( p, prior_imu_bias);  // setting up the IMU integration for optimization
 
         //TODO!!! what finihsed use for???
+        ///check whether vector is filled correctly
         //below parameters are used for opt bias
-        priorPoseNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished());  // rad,rad,rad,m, m, m
-        priorVelNoise = gtsam::noiseModel::Isotropic::Sigma(3, 1e4);  // m/s
+        priorPoseNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished());  //  6*6 rad,rad,rad,m, m, m
+        EZLOG(INFO)<<"priorPoseNoise = "<<priorPoseNoise.get();
+        priorVelNoise = gtsam::noiseModel::Isotropic::Sigma(3, 1e4);  //  3*3 matrix m/s
+        EZLOG(INFO)<<"priorVelNoise = "<<priorVelNoise.get();
         priorBiasNoise = gtsam::noiseModel::Isotropic::Sigma(6, 1e-3);  // 1e-2 ~ 1e-3 seems to be good
+        EZLOG(INFO)<<"priorBiasNoise = "<<priorBiasNoise;
         correctionNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 0.05, 0.05, 0.05, 0.1, 0.1, 0.1).finished());  // rad,rad,rad,m, m, m
+        EZLOG(INFO)<<"correctionNoise = "<<correctionNoise;
         correctionNoise2 = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1, 1, 1, 1, 1, 1) .finished());  // rad,rad,rad,m, m, m
         //TODO correct!!!!!
         noiseModelBetweenBias = (gtsam::Vector(6) << SensorConfig::imuAccBiasN,
@@ -189,7 +210,7 @@ public:
                                                         SensorConfig::imuGyrBiasN,
                                                         SensorConfig::imuGyrBiasN,
                                                         SensorConfig::imuGyrBiasN).finished();
-
+        EZLOG(INFO)<<"noiseModelBetweenBias = "<<noiseModelBetweenBias;
     }
 
 

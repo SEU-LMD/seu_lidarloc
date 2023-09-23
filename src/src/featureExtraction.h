@@ -6,6 +6,7 @@
 #include "utils/timer.h"
 #include "opt_mapping.h"
 #include "opt_lopc.h"
+#include "imageProjection.h"
 
 struct smoothness_t {
     float value;
@@ -34,7 +35,7 @@ public:
 
     std::vector<float> cloudCurvature;
     std::vector<int> cloudNeighborPicked;// 1:after process; 0:before process
-    std::vector<int> cloudLabel;//1:corner; 0:surface
+    std::vector<int> cloudLabel;//1:corner; -1:surface
     std::vector<smoothness_t> cloudSmoothness;
     pcl::VoxelGrid<PointType> downSizeFilter;
 
@@ -71,7 +72,7 @@ public:
             cloudSmoothness[i].value = cloudCurvature[i];
             cloudSmoothness[i].ind = i;
         }
-    }//end fucntion calculateSmoothness
+    }    //end fucntion calculateSmoothness
 
     void MarkOccludedPoints(const CloudInfo& cur_scan) {
 

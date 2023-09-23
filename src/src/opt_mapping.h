@@ -35,7 +35,6 @@
 #include "utils/timer.h"
 #include "utils/MapSaver.h"
 
-#include "imu_preintegration.h"
 
 class OPTMapping{
 public:
