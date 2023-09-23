@@ -55,13 +55,16 @@ public:
         EZLOG(INFO)<< "imu_pre success!!"<<endl;
 
         //构建数据流关系
-        auto add_imuodo_to_imgproj = std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
+        auto add_CloudInfo_from_imgproj_to_ftextr =
+                std::bind(&FeatureExtraction::AddCloudData, &ft_extr,std::placeholders::_1);
+        auto add_CloudFeature_from_ftextr_to_optmapping =
+                std::bind(&OPTMapping::AddCloudData, &opt_mapping,std::placeholders::_1);
+        auto add_OdometryType_from_optmapping_to_imupre =
+                std::bind(&IMUPreintegration::AddOdomData, &imu_pre,std::placeholders::_1);
+        img_proj.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_imgproj_to_ftextr;
+        ft_extr.Function_AddCloudFeatureToOPTMapping = add_CloudFeature_from_ftextr_to_optmapping;
+        opt_mapping.Function_AddOdometryTypeToIMUPreintegration = add_OdometryType_from_optmapping_to_imupre;
 
-        img_proj.ft_extr_ptr = &ft_extr;
-        ft_extr.opt_mapping_ptr = &opt_mapping;
-        opt_mapping.imu_pre_ptr = &imu_pre;
-//        imu_pre.img_proj_ptr = &img_proj;
-        imu_pre.Function_AddimuToImgproj = add_imuodo_to_imgproj;
     }
 };
 #endif //SEU_LIDARLOC_MAPPING_MANAGER_H

@@ -49,6 +49,9 @@ public:
     TicToc timer_cloud;
     MapSaver map_saver;
 
+    //    IMUPreintegration* imu_pre_ptr;
+    std::function<void(const OdometryType&)> Function_AddOdometryTypeToIMUPreintegration;
+
     std::deque<CloudFeature> deque_cloud;
     std::deque<GNSSINSType> deque_gnssins;
 
@@ -68,7 +71,7 @@ public:
     pcl::PointCloud<PointType>::Ptr copy_cloudKeyPoses3D;
     pcl::PointCloud<PointType>::Ptr copy_cloudKeyPoses2D;
     pcl::PointCloud<PointTypePose>::Ptr copy_cloudKeyPoses6D;
-    IMUPreintegration* imu_pre_ptr;
+
 
     pcl::PointCloud<PointType>::Ptr globalCornerCloud;
     pcl::PointCloud<PointType>::Ptr globalCornerCloudDS;
@@ -1819,8 +1822,9 @@ public:
             current_gnss_pose.timestamp = timeLaserInfoCur;
             current_gnss_pose.pose = PoseT(gnss_pose.matrix().cast<double>());
             pubsub->PublishOdometry(topic_gnss_pose, current_gnss_pose);
-            imu_pre_ptr->AddOdomData(current_gnss_pose);//new
-            imu_pre_ptr->AddOdomData(current_gnss_pose);
+            Function_AddOdometryTypeToIMUPreintegration(current_gnss_pose);
+//            imu_pre_ptr->AddOdomData(current_gnss_pose);//new
+//            imu_pre_ptr->AddOdomData(current_gnss_pose);
 
         }
     }

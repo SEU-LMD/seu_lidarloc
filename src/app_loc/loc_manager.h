@@ -46,9 +46,21 @@ public:
         imu_pre.Init(pubsub);
 
         //构建数据流关系
-        img_proj.ft_extr_ptr = &ft_extr;
-        ft_extr.loc_mapping_ptr = &loc_mapping;
-        loc_mapping.imu_pre_ptr = &imu_pre;
+//        auto add_imuodo_to_imgproj = std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
+        auto add_CloudInfo_from_imgproj_to_ftextr =
+                std::bind(&FeatureExtraction::AddCloudData, &ft_extr,std::placeholders::_1);
+        auto add_CloudFeature_from_ftextr_to_locmapping =
+                std::bind(&LOCMapping::AddCloudData, &loc_mapping,std::placeholders::_1);
+        auto add_OdometryType_from_locmapping_to_imupre =
+                std::bind(&IMUPreintegration::AddOdomData, &imu_pre,std::placeholders::_1);
+//        auto add_OdometryType_from_imupre_to_imgproj =
+//                std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
+        img_proj.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_imgproj_to_ftextr;
+        ft_extr.Function_AddCloudFeatureToLOCMapping = add_CloudFeature_from_ftextr_to_locmapping;
+        loc_mapping.Function_AddOdometryTypeToIMUPreintegration = add_OdometryType_from_locmapping_to_imupre;
+//        imu_pre.Function_AddOdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
+
+
     }
 };
 

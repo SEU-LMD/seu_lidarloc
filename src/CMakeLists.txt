@@ -30,9 +30,13 @@ find_package(GTSAM REQUIRED)
 set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/../env/opencv-3.4.16-install/share/OpenCV)
 find_package(OpenCV REQUIRED)
 
+#set(PCL_DIR ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/share/pcl-1.10)
+#find_package(PCL REQUIRED)
 
 set(PCL_DIR "/usr/lib/x86_64-linux-gnu/cmake/pcl") # if noted, then sy will crush
+#set(PCL_DIR ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/share/pcl-1.10)
 find_package(PCL REQUIRED)
+MESSAGE("-----------PCL_ROOT:${PCL_ROOT}-----------")
 
 set(YAML_CPP_DIR "${CMAKE_SOURCE_DIR}/../env/yaml-cpp-install/lib/cmake/yaml-cpp")
 find_package(YAML_CPP REQUIRED) 
@@ -65,7 +69,7 @@ MESSAGE(STATUS "------------${PCL_LIBRARY_DIRS}------------------")
 
 ###########
 ## Build ##
-###########
+############
 add_executable(mapping app_mapping/mapping.cpp)
 target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
 

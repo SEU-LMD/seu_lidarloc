@@ -35,7 +35,8 @@ public:
     std::mutex odom_mutex;
     std::mutex gnssins_mutex;
     std::mutex lidarodom_mutex;
-    std::function<void(const OdometryType&)> Function_AddimuToImgproj;
+    std::function<void(const OdometryType&)> Function_AddOdometryTypeToImageProjection;
+
 //    ImageProjection* img_proj_ptr;
 //    FeatureExtraction* ft_extr_ptr;
 
@@ -146,29 +147,23 @@ public:
         gtsam::NavState currentState = imuIntegratorImu_->predict(prevStateOdom, prevBiasOdom);//both are input parameters
 
         // publish odometry
+        // transform imu pose to ldiar
+        gtsam::Pose3 imuPose = gtsam::Pose3(currentState.quaternion(), currentState.position());
+        gtsam::Pose3 lidar_preditct_pose_gtsam = imuPose.compose(imu2Lidar);
+        PoseT lidar_preditct_pose(lidar_preditct_pose_gtsam.translation().vector(),
+                                  lidar_preditct_pose_gtsam.rotation().matrix());
+
+        OdometryType Odometry_imuPredict_pub;
+        Odometry_imuPredict_pub.timestamp = imu_raw->timestamp;
+        Odometry_imuPredict_pub.frame = "map";
+        Odometry_imuPredict_pub.pose = lidar_preditct_pose;
         //for debug use
         {
-            // transform imu pose to ldiar
-            gtsam::Pose3 imuPose = gtsam::Pose3(currentState.quaternion(), currentState.position());
-            gtsam::Pose3 lidar_preditct_pose_gtsam = imuPose.compose(imu2Lidar);
-            PoseT lidar_preditct_pose(lidar_preditct_pose_gtsam.translation().vector(),
-                                      lidar_preditct_pose_gtsam.rotation().matrix());
-
-            OdometryType Odometry_imuPredict_pub;
-            Odometry_imuPredict_pub.timestamp = imu_raw->timestamp;
-            Odometry_imuPredict_pub.frame = "map";
-            Odometry_imuPredict_pub.pose = lidar_preditct_pose;
             pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
         }
 
-//        {
-//            OdometryType Odometry_imuPredict_pub;
-//            Odometry_imuPredict_pub.timestamp = imu_raw->timestamp;
-//            Odometry_imuPredict_pub.frame = "map";
-//            Odometry_imuPredict_pub.pose = lidar_preditct_pose;
-//            pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
-//            Function_AddimuToImgproj(Odometry_imuPredict_pub);
-//        }
+//        Function_AddOdometryTypeToImageProjection(Odometry_imuPredict_pub);
+
         EZLOG(INFO)<<"imu_pre addgnssdata cost time(ms) = "<<timer.toc()<<std::endl;
     }
 

@@ -6,7 +6,7 @@
 #include <thread>
 
 #include "pubsub/pubusb.h"
-#include "featureExtraction.h"
+//#include "featureExtraction.h"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
@@ -32,10 +32,11 @@ public:
     std::deque<OdometryType> poseQueue;
     std::deque<OdometryType> IMUOdomQueue;
 
-    FeatureExtraction* ft_extr_ptr;
-    OPTMapping* opt_mapping_ptr;
-    IMUPreintegration* imu_pre_ptr;
+//    FeatureExtraction* ft_extr_ptr;
 //    OPTMapping* opt_mapping_ptr;
+//    IMUPreintegration* imu_pre_ptr;
+//    OPTMapping* opt_mapping_ptr;
+    std::function<void(const CloudInfo&)> Function_AddCloudInfoToFeatureExtraction;
 
     bool init = false;
     GeographicLib::LocalCartesian geoConverter;
@@ -379,33 +380,34 @@ public:
                 double odo_min_ros_time =  odo_poses_copy.front().timestamp;
                 double odo_max_ros_time =  odo_poses_copy.back().timestamp;
 
-                std::deque<OdometryType> imuodom_copy;
-                imuodom_mutex.lock();
-                imuodom_copy = IMUOdomQueue;
-                imuodom_mutex.unlock();
-                double imuodo_min_ros_time =  imuodom_copy.front().timestamp;
-                double imuodo_max_ros_time =  imuodom_copy.back().timestamp;
-
-                double cur_lidar_time = deque_cloud.front()->timestamp;
-                if(imuodo_min_ros_time<cur_lidar_time && imuodo_max_ros_time>cur_lidar_time){
-                    PoseT imuodom_curlidartime;
-                    double cost_time_findimupose = FindIMUOdomPose(cur_lidar_time, imuodom_copy,//in
-                                                                   imuodom_curlidartime);//out
-                    EZLOG(INFO) << "FindIMUOdomPose cost time(ms) = " << cost_time_findimupose << std::endl;
-
-                    OdometryType Odometry_imuodom_curlidartime_pub;
-                    Odometry_imuodom_curlidartime_pub.timestamp = cur_lidar_time;
-                    Odometry_imuodom_curlidartime_pub.frame = "map";
-                    Odometry_imuodom_curlidartime_pub.pose = imuodom_curlidartime;
-                    pubsub->PublishOdometry(topic_imuodom_curlidartime_world, Odometry_imuodom_curlidartime_pub);
-
+                if(!IMUOdomQueue.empty()){
+                    std::deque<OdometryType> imuodom_copy;
                     imuodom_mutex.lock();
-                    while(IMUOdomQueue.front().timestamp < cur_lidar_time - 0.1){
-                        IMUOdomQueue.pop_front();
-                    }
+                    imuodom_copy = IMUOdomQueue;
                     imuodom_mutex.unlock();
-                }
+                    double imuodo_min_ros_time =  imuodom_copy.front().timestamp;
+                    double imuodo_max_ros_time =  imuodom_copy.back().timestamp;
 
+                    double cur_lidar_time = deque_cloud.front()->timestamp;
+                    if(imuodo_min_ros_time<cur_lidar_time && imuodo_max_ros_time>cur_lidar_time){
+                        PoseT imuodom_curlidartime;
+                        double cost_time_findimupose = FindIMUOdomPose(cur_lidar_time, imuodom_copy,//in
+                                                                       imuodom_curlidartime);//out
+                        EZLOG(INFO) << "FindIMUOdomPose cost time(ms) = " << cost_time_findimupose << std::endl;
+
+                        OdometryType Odometry_imuodom_curlidartime_pub;
+                        Odometry_imuodom_curlidartime_pub.timestamp = cur_lidar_time;
+                        Odometry_imuodom_curlidartime_pub.frame = "map";
+                        Odometry_imuodom_curlidartime_pub.pose = imuodom_curlidartime;
+                        pubsub->PublishOdometry(topic_imuodom_curlidartime_world, Odometry_imuodom_curlidartime_pub);
+
+                        imuodom_mutex.lock();
+                        while(IMUOdomQueue.front().timestamp < cur_lidar_time - 0.1){
+                            IMUOdomQueue.pop_front();
+                        }
+                        imuodom_mutex.unlock();
+                    }
+                }
                 ///1.get cloud max and min time stamp to
                 CloudTypeXYZIRTPtr cur_scan;
                 cloud_mutex.lock();
@@ -442,7 +444,8 @@ public:
 //                        EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
 
                         ///4. send data to feature extraction node
-                        ft_extr_ptr->AddCloudData(cloudinfo);
+//                        ft_extr_ptr->AddCloudData(cloudinfo);
+                        Function_AddCloudInfoToFeatureExtraction(cloudinfo);
 //                        EZLOG(INFO)<<"cloudinfo.frame_id = "<<cloudinfo.frame_id<<std::endl;
 //                        EZLOG(INFO)<<"cloudinfo.cloud_ptr->size() = "<<cloudinfo.cloud_ptr->size()<<std::endl;
 

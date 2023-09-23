@@ -46,8 +46,6 @@
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "GeoGraphicLibInclude/Geoid.hpp"
 
-#include "imu_preintegration.h"
-
 class LOCMapping{
 public:
     enum FRAME {
@@ -57,6 +55,8 @@ public:
     FRAME current_frame = WORLD;
     PubSubInterface* pubsub;
     IMUPreintegration* imu_pre_ptr;
+    std::function<void(const OdometryType&)> Function_AddOdometryTypeToIMUPreintegration;
+
 
     std::thread* do_work_thread;
     std::mutex cloud_mutex;
@@ -1493,8 +1493,9 @@ public:
                 break;
 
         }
-        imu_pre_ptr->AddOdomData(current_lidar_pose_world);
-        EZLOG(INFO)<<"imu_pre_ptr->AddOdomData "<<std::endl;
+        Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
+//        imu_pre_ptr->AddOdomData(current_lidar_pose_world);
+//        EZLOG(INFO)<<"imu_pre_ptr->AddOdomData "<<std::endl;
         pubsub->PublishOdometry(topic_lidar_odometry, current_lidar_pose_world);
     }
 
@@ -1540,7 +1541,6 @@ public:
                             // 从晓强接收
                             Load_PriorMap_Surf(MappingConfig::prior_map_surf,priorMap_surf);
                             Load_PriorMap_Corner(MappingConfig::prior_map_corner,priorMap_corner);
-
                             flagLoadMap = 0;
                         }
                         pub_CornerAndSurfFromMap();
