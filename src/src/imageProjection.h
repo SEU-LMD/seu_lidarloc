@@ -49,19 +49,21 @@ public:
     std::string topic_imuodom_curlidartime_world = "/imuodom_curlidartime_world";
 
     pcl::PointCloud<PointType>::Ptr deskewCloud_body;//去畸变之后的全部点云
-    cv::Mat rangeMat;
+//    cv::Mat rangeMat;
+    Eigen::MatrixXf rangeMat;
     int lidarScan_cnt =0;
 
     void  AllocateMemory() {
         deskewCloud_body.reset(new pcl::PointCloud<PointType>());
         deskewCloud_body->points.resize(SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN);//将fullCloud的点集大小初始化为N_SCAN * Horizon_SCAN
 
-        rangeMat = cv::Mat(SensorConfig::N_SCAN, SensorConfig::Horizon_SCAN, CV_32F, cv::Scalar::all(FLT_MAX));
+        rangeMat = Eigen::MatrixXf(SensorConfig::N_SCAN, SensorConfig::Horizon_SCAN);
     }
 
     void ResetParameters(){
 //        deskewCloud_body.reset();
-        rangeMat =  cv::Scalar::all(FLT_MAX);
+//        rangeMat =  cv::Scalar::all(FLT_MAX);
+        rangeMat.setZero();
     }
 
     double GetCloudTime(CloudTypeXYZIRTPtr cloud_origin, CloudWithTime& cloud_with_time){
@@ -262,7 +264,7 @@ public:
                 continue;
             }
             //如果重复 那么只保存地一个点
-            if (rangeMat.at<float>(rowIdn, columnIdn) != FLT_MAX){
+            if (rangeMat(rowIdn, columnIdn) != FLT_MAX){
                 rangemat_outlier++;
                 continue;
             }
@@ -274,7 +276,7 @@ public:
                                         pose_deque);//进行点云去畸变
             }
 //            thisPoint = deskewPoint(&thisPoint, cloudinfo.cloud->points[i].latency - cloudinfo.min_latency_timestamp, T_w_b_lidar_start,cloudinfo,pose_deque);//进行点云去畸变
-            rangeMat.at<float>(rowIdn, columnIdn) = range;//将去畸变后的点范围和坐标存入rangeMat
+            rangeMat(rowIdn, columnIdn) = range;//将去畸变后的点范围和坐标存入rangeMat
             int index = columnIdn + rowIdn * SensorConfig::Horizon_SCAN;//计算索引index,将去畸变后的点存入fullCloud
             deskewCloud_body->points[index] = thisPoint;
 
@@ -321,12 +323,12 @@ public:
             cloudInfo.startRingIndex[i] = count - 1 + 5;//从第六个点开始找（前面5个不考虑）
 
             for (int j = 0; j < SensorConfig::Horizon_SCAN; ++j) {
-                if (rangeMat.at<float>(i, j) != FLT_MAX) {
+                if (rangeMat(i, j) != FLT_MAX) {
                     // mark the points' column index for marking occlusion later
                     //记录激光点对应的Horizon_SCAN方向上的索引
                     PointXYZICOLRANGE pt_info;
                     pt_info.col = j;
-                    pt_info.range = rangeMat.at<float>(i, j);
+                    pt_info.range = rangeMat(i, j);
                     auto& pt_tmp = deskewCloud_body->points[j + i * SensorConfig::Horizon_SCAN];
                     pt_info.x = pt_tmp.x;
                     pt_info.y = pt_tmp.y;
@@ -335,7 +337,7 @@ public:
 
 //                    cloudInfo.pointColInd[count] = j;
 //                    // save range info  激光点距离
-//                    cloudInfo.pointRange[count] = rangeMat.at<float>(i, j);
+//                    cloudInfo.pointRange[count] = rangeMat(i, j);
                     // save extracted cloud 加入有效激光点
                     extractedCloud->push_back(pt_info);
                     // size of extracted cloud

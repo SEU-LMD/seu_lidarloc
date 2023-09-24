@@ -21,8 +21,8 @@
 #include <pcl/registration/icp.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgproc.hpp>
+//#include <opencv2/opencv.hpp>
+//#include <opencv2/imgproc.hpp>
 
 #include <gtsam/geometry/Pose3.h>
 #include <gtsam/geometry/Rot3.h>
@@ -54,7 +54,6 @@ public:
     };
     FRAME current_frame = WORLD;
     PubSubInterface* pubsub;
-    IMUPreintegration* imu_pre_ptr;
     std::function<void(const OdometryType&)> Function_AddOdometryTypeToIMUPreintegration;
 
     std::thread* do_work_thread;
@@ -144,7 +143,8 @@ public:
     double timeLaserInfoCur;
 //    double timeLaserInfoStamp;
     bool isDegenerate = false;
-    cv::Mat matP;
+//    cv::Mat matP;
+    Eigen::MatrixXf matP;
 
     Eigen::Vector3d originLLA;
     bool systemInitialized = false;
@@ -234,7 +234,7 @@ public:
             current_T_m_l[i] = 0;
         }
 
-        matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
+        matP = Eigen::MatrixXf(6,6);
 //        matP = Eigen::Matrix6d()
 
         last_lidar_frameID = 0;
@@ -781,12 +781,12 @@ public:
             kdtree_localMap_corner->nearestKSearch(pointSel, 5, pointSearchInd,
                                                    pointSearchSqDis);
 //            std::cout<<"pointSearchSqDis[4]  "<<pointSearchSqDis[4]<<std::endl;
-            cv::Mat matA1(3, 3, CV_32F, cv::Scalar::all(0));
-            cv::Mat matD1(1, 3, CV_32F, cv::Scalar::all(0));
-            cv::Mat matV1(3, 3, CV_32F, cv::Scalar::all(0));
-//            Eigen::Matrix3d matA1;
-//            Eigen::Vector3d matD1;
-//            Eigen::Matrix3d matV1;
+//            cv::Mat matA1(3, 3, CV_32F, cv::Scalar::all(0));
+//            cv::Mat matD1(1, 3, CV_32F, cv::Scalar::all(0));
+//            cv::Mat matV1(3, 3, CV_32F, cv::Scalar::all(0));
+            Eigen::Matrix3f matA1(3,3);
+            Eigen::MatrixXf matD1(1,3);
+            Eigen::Matrix3f matV1(3,3);
 
             if (pointSearchSqDis[4] < 1.0) {
                 float cx = 0, cy = 0, cz = 0;
@@ -823,28 +823,31 @@ public:
                 a23 *= 0.2;
                 a33 *= 0.2;
 
-                matA1.at<float>(0, 0) = a11;
-                matA1.at<float>(0, 1) = a12;
-                matA1.at<float>(0, 2) = a13;
-                matA1.at<float>(1, 0) = a12;
-                matA1.at<float>(1, 1) = a22;
-                matA1.at<float>(1, 2) = a23;
-                matA1.at<float>(2, 0) = a13;
-                matA1.at<float>(2, 1) = a23;
-                matA1.at<float>(2, 2) = a33;
+                matA1(0, 0) = a11;
+                matA1(0, 1) = a12;
+                matA1(0, 2) = a13;
+                matA1(1, 0) = a12;
+                matA1(1, 1) = a22;
+                matA1(1, 2) = a23;
+                matA1(2, 0) = a13;
+                matA1(2, 1) = a23;
+                matA1(2, 2) = a33;
 
-                cv::eigen(matA1, matD1, matV1);
+//                cv::eigen(matA1, matD1, matV1);
+                Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(matA1);
+                matD1 = solver.eigenvalues();
+                matV1 = solver.eigenvectors();
 
-                if (matD1.at<float>(0, 0) > 3 * matD1.at<float>(0, 1)) {
+                if (matD1(0, 0) > 3 * matD1(0, 1)) {
                     float x0 = pointSel.x;
                     float y0 = pointSel.y;
                     float z0 = pointSel.z;
-                    float x1 = cx + 0.1 * matV1.at<float>(0, 0);
-                    float y1 = cy + 0.1 * matV1.at<float>(0, 1);
-                    float z1 = cz + 0.1 * matV1.at<float>(0, 2);
-                    float x2 = cx - 0.1 * matV1.at<float>(0, 0);
-                    float y2 = cy - 0.1 * matV1.at<float>(0, 1);
-                    float z2 = cz - 0.1 * matV1.at<float>(0, 2);
+                    float x1 = cx + 0.1 * matV1(0, 0);
+                    float y1 = cy + 0.1 * matV1(0, 1);
+                    float z1 = cz + 0.1 * matV1(0, 2);
+                    float x2 = cx - 0.1 * matV1(0, 0);
+                    float y2 = cy - 0.1 * matV1(0, 1);
+                    float z2 = cz - 0.1 * matV1(0, 2);
 
                     float a012 =
                             sqrt(((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) *
@@ -1050,7 +1053,6 @@ public:
         float srz = sin(current_T_m_l[0]);
         float crz = cos(current_T_m_l[0]);
 
-
         int laserCloudSelNum = laserCloudOri->size();
 
         std::cout<<"laserCloudSelNum is : " <<laserCloudSelNum <<std::endl;
@@ -1058,12 +1060,20 @@ public:
             return false;
         }
 
-        cv::Mat matA(laserCloudSelNum, 6, CV_32F, cv::Scalar::all(0));
-        cv::Mat matAt(6, laserCloudSelNum, CV_32F, cv::Scalar::all(0));
-        cv::Mat matAtA(6, 6, CV_32F, cv::Scalar::all(0));
-        cv::Mat matB(laserCloudSelNum, 1, CV_32F, cv::Scalar::all(0));
-        cv::Mat matAtB(6, 1, CV_32F, cv::Scalar::all(0));
-        cv::Mat matX(6, 1, CV_32F, cv::Scalar::all(0));
+//        cv::Mat matA(laserCloudSelNum, 6, CV_32F, cv::Scalar::all(0));
+//        cv::Mat matAt(6, laserCloudSelNum, CV_32F, cv::Scalar::all(0));
+//        cv::Mat matAtA(6, 6, CV_32F, cv::Scalar::all(0));
+//        cv::Mat matB(laserCloudSelNum, 1, CV_32F, cv::Scalar::all(0));
+//        cv::Mat matAtB(6, 1, CV_32F, cv::Scalar::all(0));
+//        cv::Mat matX(6, 1, CV_32F, cv::Scalar::all(0));
+
+        Eigen::MatrixXf matA(laserCloudSelNum,6);
+        Eigen::MatrixXf matAt(6,laserCloudSelNum);
+        Eigen::MatrixXf matAtA(6,6);
+        Eigen::MatrixXf matB(laserCloudSelNum,1);
+        Eigen::MatrixXf matAtB(6,1);
+        Eigen::MatrixXf matX(6,1);
+
 
         PointType pointOri, coeff;
 
@@ -1105,62 +1115,77 @@ public:
                          (crz * sry - cry * srx * srz) * pointOri.y) *
                         coeff.z;
             // camera -> lidar
-            matA.at<float>(i, 0) = arz;
-            matA.at<float>(i, 1) = arx;
-            matA.at<float>(i, 2) = ary;
-            matA.at<float>(i, 3) = coeff.z;
-            matA.at<float>(i, 4) = coeff.x;
-            matA.at<float>(i, 5) = coeff.y;
-            matB.at<float>(i, 0) = -coeff.intensity;
+            matA(i, 0) = arz;
+            matA(i, 1) = arx;
+            matA(i, 2) = ary;
+            matA(i, 3) = coeff.z;
+            matA(i, 4) = coeff.x;
+            matA(i, 5) = coeff.y;
+            matB(i, 0) = -coeff.intensity;
         }
-
-        cv::transpose(matA, matAt);
+        matAt = matA.transpose();
+//        cv::transpose(matA, matAt);
         matAtA = matAt * matA;
         matAtB = matAt * matB;
-        cv::solve(matAtA, matAtB, matX, cv::DECOMP_QR);
+//        cv::solve(matAtA, matAtB, matX, cv::DECOMP_QR);
+        Eigen::HouseholderQR<Eigen::MatrixXf> qr(matAtA);
+        matX = qr.solve(matAtB);
 
         if (iterCount == 0) {
-            cv::Mat matE(1, 6, CV_32F, cv::Scalar::all(0));
-            cv::Mat matV(6, 6, CV_32F, cv::Scalar::all(0));
-            cv::Mat matV2(6, 6, CV_32F, cv::Scalar::all(0));
+            Eigen::MatrixXf matE(1,6);
+            Eigen::MatrixXf matV(6,6);
+            Eigen::MatrixXf matV2(6,6);
+//            cv::Mat matE(1, 6, CV_32F, cv::Scalar::all(0));
+//            cv::Mat matV(6, 6, CV_32F, cv::Scalar::all(0));
+//            cv::Mat matV2(6, 6, CV_32F, cv::Scalar::all(0));
 
-            cv::eigen(matAtA, matE, matV);
-            matV.copyTo(matV2);
+//            cv::eigen(matAtA, matE, matV);
+            Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(matAtA);
+            matE = solver.eigenvalues();
+            matV = solver.eigenvectors();
+            matV2 = matV;
 
             isDegenerate = false;
             float eignThre[6] = {100, 100, 100, 100, 100, 100};
             for (int i = 5; i >= 0; i--) {
-                if (matE.at<float>(0, i) < eignThre[i]) {
+                if (matE(0, i) < eignThre[i]) {
                     for (int j = 0; j < 6; j++) {
-                        matV2.at<float>(i, j) = 0;
+                        matV2(i, j) = 0;
                     }
                     isDegenerate = true;
                 } else {
                     break;
                 }
             }
-            matP = matV.inv() * matV2;
+//            matP = matV.inv() * matV2;
+            matP = matV.inverse() * matV2;
         }
+
 
         if (isDegenerate) {
-            cv::Mat matX2(6, 1, CV_32F, cv::Scalar::all(0));
-            matX.copyTo(matX2);
+
+//            cv::Mat matX2(6, 1, CV_32F, cv::Scalar::all(0));
+//            matX.copyTo(matX2);
+//            matX = matP * matX2;
+            Eigen::MatrixXf matX2(6,1);
+            matX2 = matX;
             matX = matP * matX2;
+
         }
 
-        current_T_m_l[0] += matX.at<float>(0, 0);
-        current_T_m_l[1] += matX.at<float>(1, 0);
-        current_T_m_l[2] += matX.at<float>(2, 0);
-        current_T_m_l[3] += matX.at<float>(3, 0);
-        current_T_m_l[4] += matX.at<float>(4, 0);
-        current_T_m_l[5] += matX.at<float>(5, 0);
+        current_T_m_l[0] += matX(0, 0);
+        current_T_m_l[1] += matX(1, 0);
+        current_T_m_l[2] += matX(2, 0);
+        current_T_m_l[3] += matX(3, 0);
+        current_T_m_l[4] += matX(4, 0);
+        current_T_m_l[5] += matX(5, 0);
 
-        float deltaR = sqrt(pow(pcl::rad2deg(matX.at<float>(0, 0)), 2) +
-                            pow(pcl::rad2deg(matX.at<float>(1, 0)), 2) +
-                            pow(pcl::rad2deg(matX.at<float>(2, 0)), 2));
-        float deltaT = sqrt(pow(matX.at<float>(3, 0) * 100, 2) +
-                            pow(matX.at<float>(4, 0) * 100, 2) +
-                            pow(matX.at<float>(5, 0) * 100, 2));
+        float deltaR = sqrt(pow(pcl::rad2deg(matX(0, 0)), 2) +
+                            pow(pcl::rad2deg(matX(1, 0)), 2) +
+                            pow(pcl::rad2deg(matX(2, 0)), 2));
+        float deltaT = sqrt(pow(matX(3, 0) * 100, 2) +
+                            pow(matX(4, 0) * 100, 2) +
+                            pow(matX(5, 0) * 100, 2));
 
         if (deltaR < 0.10 && deltaT < 0.10) {
             return true;  // converged
