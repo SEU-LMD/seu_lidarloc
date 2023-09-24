@@ -7,6 +7,8 @@
 #include "opt_mapping.h"
 #include "opt_lopc.h"
 #include "imageProjection.h"
+#include "utils/MapSaver.h"
+
 
 struct smoothness_t {
     float value;
@@ -27,11 +29,13 @@ public:
     std::mutex cloud_mutex;
     std::deque<CloudInfo> deque_cloud;
     std::thread* do_work_thread;
-//    OPTMapping* opt_mapping_ptr;
-//    LOCMapping* loc_mapping_ptr;
+    OPTMapping* opt_mapping_ptr;
+    LOCMapping* loc_mapping_ptr;
     std::function<void(const CloudFeature&)> Function_AddCloudFeatureToLOCMapping;
     std::function<void(const CloudFeature&)> Function_AddCloudFeatureToOPTMapping;
 
+    MapSaver map_saver;
+    int frame_id = -1;
 
     std::string topic_corner_world= "/cloud_corner";
     std::string topic_surf_world = "/cloud_surface";
@@ -49,7 +53,7 @@ public:
         cloudSmoothness.resize(SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN);
     }
 
-    void CalculateSmoothness(const CloudInfo& cur_scan) {
+    void CalculateSmoothness(CloudInfo& cur_scan) {
 
         int cloudSize = cur_scan.cloud_ptr->points.size();
 
@@ -70,6 +74,7 @@ public:
             cloudNeighborPicked[i] = 0;
             //-1: surface point; 1:corner point
             cloudLabel[i] = 0;
+            cur_scan.label[i] = 0;
 
             // cloudSmoothness for
             cloudSmoothness[i].value = cloudCurvature[i];
@@ -77,7 +82,7 @@ public:
         }
     }    //end fucntion calculateSmoothness
 
-    void MarkOccludedPoints(const CloudInfo& cur_scan) {
+    void MarkOccludedPoints(CloudInfo& cur_scan) {
 
         int cloudSize = cur_scan.cloud_ptr->points.size();
 
@@ -123,8 +128,7 @@ public:
     }//end function markOccludedPoints
 
 
-    void ExtractFeatures(const CloudInfo& cur_scan,pcl::PointCloud<PointType>::Ptr cornerCloud,pcl::PointCloud<PointType>::Ptr surfaceCloud) {
-
+    void ExtractFeatures(CloudInfo& cur_scan,pcl::PointCloud<PointType>::Ptr cornerCloud,pcl::PointCloud<PointType>::Ptr surfaceCloud) {
 
         pcl::PointCloud<PointType>::Ptr surfaceCloudScan(new pcl::PointCloud<PointType>());
         pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS(new pcl::PointCloud<PointType>());
@@ -145,9 +149,9 @@ public:
                 //sort point by comparing curvature(small - large)
                 std::sort(cloudSmoothness.begin() + sp, cloudSmoothness.begin() + ep,
                           by_value());
+
                 //extract corner point
                 int largestPickedNum = 0;
-
                 //traverse by curvature, from small to large
                 for (int k = ep; k >= sp; k--) {
                     //point index
@@ -158,6 +162,7 @@ public:
                         largestPickedNum++;
                         if (largestPickedNum <= 20) {
                             cloudLabel[ind] = 1;
+                            cur_scan.label[ind] = 1;
                             PointType pt_tmp;
                             auto& pt_origin = cur_scan.cloud_ptr->points[ind];
                             pt_tmp.x = pt_origin.x;
@@ -187,12 +192,14 @@ public:
                         }
                     }
                 }// end! traverse by curvature, from small to large
+
                 //extract surface point
                 for (int k = sp; k <= ep; k++) {
                     int ind = cloudSmoothness[k].ind;
                     if (cloudNeighborPicked[ind] == 0 &&
                         cloudCurvature[ind] < MappingConfig::surfThreshold) {
                         cloudLabel[ind] = -1;
+                        cur_scan.label[ind] = -1;
                         cloudNeighborPicked[ind] = 1;
 
                         for (int l = 1; l <= 5; l++) {
@@ -213,6 +220,26 @@ public:
                         }
                     }
                 }
+
+//                //for debug use
+//                {
+//                    int n_cor = 0;
+//                    int n_sur = 0;
+//                    int n_pt = 0;
+//                    for (int n_label = 0; n_label <= cur_scan.label.size(); ++n_label) {
+//                        if (cur_scan.label[n_label] == 1) {
+//                            ++n_cor;
+//                        } else if (cur_scan.label[n_label] == -1) {
+//                            ++n_sur;
+//                        } else if (cur_scan.label[n_label] == 0) {
+//                            ++n_pt;
+//                        }
+//                    }
+//                    EZLOG(INFO) << "n_cor = " << n_cor << std::endl;
+//                    EZLOG(INFO) << "n_sur = " << n_sur << std::endl;
+//                    EZLOG(INFO) << "n_pt = " << n_pt << std::endl;
+//                    EZLOG(INFO) << "cornerCloud->size() = " << cornerCloud->size() << std::endl;
+//                }
 
                 // surface point and point doesn't be processed ,regard as surface
                 for (int k = sp; k <= ep; k++) {
@@ -256,6 +283,13 @@ public:
                 pcl::PointCloud<PointType>::Ptr cornerCloud(new  pcl::PointCloud<PointType>());
                 pcl::PointCloud<PointType>::Ptr surfaceCloud(new  pcl::PointCloud<PointType>());
                 ExtractFeatures(cur_cloud, cornerCloud, surfaceCloud);
+
+//                //save cloud with label
+//                CloudInfoFt raw_cloud;
+//                raw_cloud.raw_cloud = CloudInfoPtr;
+//                raw_cloud.frame_id = ++frame_id;
+//                map_saver.AddCloudToSave(raw_cloud);
+//                EZLOG(INFO)<<"save cloud with label!"<<std::endl;
 
                 CloudFeature cloud_feature;
                 cloud_feature.timestamp = cur_cloud.timestamp;

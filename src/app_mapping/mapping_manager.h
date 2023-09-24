@@ -32,12 +32,12 @@ public:
     }
 
     void GNSSINSCallback(const BaseType& msg){
-        TicToc timer;
+//        TicToc timer;
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         img_proj.AddGNSSINSSData(gnssins_data);
         opt_mapping.AddGNSSINSData(gnssins_data);
         imu_pre.AddGNSSINSData(gnssins_data);
-        EZLOG(INFO)<<"GNSSINSCallback cost time(ms)"<<timer.toc()<<std::endl;
+//        EZLOG(INFO)<<"GNSSINSCallback cost time(ms)"<<timer.toc()<<std::endl;
     }
 
 

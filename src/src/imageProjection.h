@@ -6,7 +6,7 @@
 #include <thread>
 
 #include "pubsub/pubusb.h"
-//#include "featureExtraction.h"
+#include "featureExtraction.h"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
@@ -32,9 +32,9 @@ public:
     std::deque<OdometryType> poseQueue;
     std::deque<OdometryType> IMUOdomQueue;
 
-//    FeatureExtraction* ft_extr_ptr;
-//    OPTMapping* opt_mapping_ptr;
-//    IMUPreintegration* imu_pre_ptr;
+    FeatureExtraction* ft_extr_ptr;
+    OPTMapping* opt_mapping_ptr;
+    IMUPreintegration* imu_pre_ptr;
 //    OPTMapping* opt_mapping_ptr;
     std::function<void(const CloudInfo&)> Function_AddCloudInfoToFeatureExtraction;
 
@@ -368,6 +368,7 @@ public:
         CloudInfo cloudinfo;
         cloudinfo.startRingIndex.assign(SensorConfig::N_SCAN, 0);//为cloudInfo中的startRingIndex、endRingIndex向量分配大小N_SCAN,并初始化为0
         cloudinfo.endRingIndex.assign(SensorConfig::N_SCAN, 0);
+        cloudinfo.label.assign(SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN,0);
 
         while(1){
             if(deque_cloud.size()!=0){
@@ -432,23 +433,22 @@ public:
                         double cost_time_findpose = FindLidarFirstPose(cloud_with_time, odo_poses_copy,//in
                                                                        T_w_l_lidar_first_pose);//out
                         cloudinfo.pose = T_w_l_lidar_first_pose;
-//                        EZLOG(INFO) << "FindLidarFirstPose cost time(ms) = " << cost_time_findpose << std::endl;
+                        EZLOG(INFO) << "FindLidarFirstPose cost time(ms) = " << cost_time_findpose << std::endl;
 
                         ///2.imgprojection
                         ///update rangemat and deskewCloud_body
                         double cost_time_projpc = ProjectPointCloud(cloud_with_time, odo_poses_copy, T_w_l_lidar_first_pose);
-//                        EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
+                        EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
 
                         ///3.cloudExtraction
                         double cost_time_cloudextraction = CloudExtraction(T_w_l_lidar_first_pose, cloudinfo);
-//                        EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
+                        EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
 
                         ///4. send data to feature extraction node
 //                        ft_extr_ptr->AddCloudData(cloudinfo);
                         Function_AddCloudInfoToFeatureExtraction(cloudinfo);
 //                        EZLOG(INFO)<<"cloudinfo.frame_id = "<<cloudinfo.frame_id<<std::endl;
 //                        EZLOG(INFO)<<"cloudinfo.cloud_ptr->size() = "<<cloudinfo.cloud_ptr->size()<<std::endl;
-
 
                         ///5.pop used odom
                         gnssins_mutex.lock();

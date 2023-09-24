@@ -45,6 +45,17 @@ POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZICOLRANGE,
                                     (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
                                             (uint16_t, range, range)(uint16_t, col, col))
 
+//add by lsy
+struct PointXYZIL {
+    PCL_ADD_POINT4D
+    uint8_t intensity;
+    uint8_t label;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+} EIGEN_ALIGN16;
+POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZIL,
+                                    (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
+                                            (uint8_t, label, label))
+
 class CloudTypeXYZIRT: public BaseType{
     public:
         pcl::PointCloud<PointXYZIRT> cloud;
@@ -109,6 +120,7 @@ public:
     int frame_id;
     double timestamp;
     PoseT pose;
+    std::vector<int> label;
     std::vector<int> startRingIndex;
     std::vector<int> endRingIndex;
 

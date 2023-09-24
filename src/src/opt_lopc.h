@@ -57,7 +57,6 @@ public:
     IMUPreintegration* imu_pre_ptr;
     std::function<void(const OdometryType&)> Function_AddOdometryTypeToIMUPreintegration;
 
-
     std::thread* do_work_thread;
     std::mutex cloud_mutex;
     std::mutex gnss_ins_mutex;
