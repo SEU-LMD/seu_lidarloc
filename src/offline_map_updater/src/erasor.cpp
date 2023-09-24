@@ -70,6 +70,7 @@ void ERASOR::set_inputs(
         }
     }
     voi2r_pod(query_voi, r_pod_curr);//当前帧VOI分成Bin
+    //将map分成bin,范围之内的存在r_pod_map,范围之外的存在map_complement;
     voi2r_pod(map_voi, r_pod_map, map_complement);//将map分成Bin
     //计算map总共有多少个bin
 

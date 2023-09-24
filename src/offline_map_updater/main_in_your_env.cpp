@@ -6,12 +6,15 @@
 #include <boost/format.hpp>
 #include <cstdlib>
 #include <erasor/OfflineMapUpdater.h>
+#include "config_helper.h"
 
 string DATA_DIR;
 int INTERVAL, INIT_IDX;
 float VOXEL_SIZE;
 bool STOP_FOR_EACH_FRAME;
+vector<Eigen::Matrix4f> poses;
 std::string filename = "/staticmap_via_erasor.pcd";
+
 
 using PointType = pcl::PointXYZI;
 
@@ -66,11 +69,11 @@ int main(int argc, char **argv)
     //！
     erasor::OfflineMapUpdater updater = erasor::OfflineMapUpdater();
 
-    nh.param<string>("/data_dir", DATA_DIR, "/");
-    nh.param<float>("/voxel_size", VOXEL_SIZE, 0.075);
-    nh.param<int>("/init_idx", INIT_IDX, 0);
-    nh.param<int>("/interval", INTERVAL, 2);
-    nh.param<bool>("/stop_for_each_frame", STOP_FOR_EACH_FRAME, false);
+//    nh.param<string>("/data_dir", DATA_DIR, "/");
+//    nh.param<float>("/voxel_size", VOXEL_SIZE, 0.075);
+//    nh.param<int>("/init_idx", INIT_IDX, 0);
+//    nh.param<int>("/interval", INTERVAL, 2);
+//    nh.param<bool>("/stop_for_each_frame", STOP_FOR_EACH_FRAME, false);
 
     std::string staticmap_path = std::getenv("HOME") + filename;
 
@@ -91,27 +94,32 @@ int main(int argc, char **argv)
      */
     // Set target data
     cout << "\033[1;32mTarget directory:" << DATA_DIR << "\033[0m" << endl;
-    string raw_map_path = DATA_DIR + "/global_surf_new.pcd";
+    string raw_map_path =  + "/global_surf_new.pcd";
     string pose_path = DATA_DIR + "/Pose_TUM.txt";
-    string pcd_dir = DATA_DIR + "/pcds"; 
+    string pcd_dir = DATA_DIR + "/pcds";
+    string pcd_raw_dir = DATA_DIR + "/pcds";
     // Load raw pointcloud
 
-    vector<Eigen::Matrix4f> poses;
+   // vector<Eigen::Matrix4f> poses;
     load_all_poses(pose_path, poses);
+
 
     int N = poses.size();
     std::cout  << "the N of poses is " << std::endl;
     for (int i = INIT_IDX; i < N; ++i) {
+        //将每一帧角点/面点地图和每一帧原始点云地图放到msg里给到回调函数；
         signal(SIGINT, erasor_utils::signal_callback_handler);
         pcl::PointCloud<PointType>::Ptr srcCloud(new pcl::PointCloud<PointType>);
+        pcl::PointCloud<PointType>::Ptr rawCloud(new pcl::PointCloud<PointType>);
         string pcd_name = (boost::format("%s/%06d.pcd") % pcd_dir % i).str();
+        string pcd_raw_name = (boost::format("%s/%06d.pcd") % pcd_raw_dir % i).str();
         erasor_utils::load_pcd(pcd_name, srcCloud);
-
-
-                erasor::node node;
+        erasor_utils::load_raw_pcd(pcd_raw_name, rawCloud);
+        erasor::node node;
         node.header.seq = i;
         node.odom = erasor_utils::eigen2geoPose(poses[i]);
         node.lidar = erasor_utils::cloud2msg(*srcCloud);
+        node.rawData = erasor_utils::cloud2msg(*rawCloud);
         NodePublisher.publish(node);
         ros::spinOnce();
         loop_rate.sleep();
