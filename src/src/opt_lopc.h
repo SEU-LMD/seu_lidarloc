@@ -155,17 +155,24 @@ public:
     std::mutex mtx;
     std::mutex mtxGpsInfo;
     std::mutex mtxGraph;
-
+    int lidarScan_cnt = 0;
 
     void AddCloudData(const CloudFeature& cloud_ft){
-        cloud_mutex.lock();
-        deque_cloud.push_back(cloud_ft);
-        cloud_mutex.unlock();
+        if(lidarScan_cnt > SensorConfig::lidarScanDownSample){
+            cloud_mutex.lock();
+            deque_cloud.push_back(cloud_ft);
+            cloud_mutex.unlock();
+            lidarScan_cnt = 0;
+        }
+        else{
+            lidarScan_cnt++;
+        }
+
     }
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
         gnss_ins_mutex.lock();
-        deque_gnssins.push_back(gnss_ins_data);
+//        deque_gnssins.push_back(gnss_ins_data);
         gnss_ins_mutex.unlock();
     }
 
@@ -228,6 +235,7 @@ public:
         }
 
         matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
+//        matP = Eigen::Matrix6d()
 
         last_lidar_frameID = 0;
         current_lidar_frameID = 0;
@@ -241,6 +249,14 @@ public:
                 MappingConfig::surroundingKeyframeDensity,
                 MappingConfig::surroundingKeyframeDensity,
                 MappingConfig::surroundingKeyframeDensity);  // for surrounding key poses of
+
+        if(flagLoadMap){
+            // 从晓强接收
+            Load_PriorMap_Surf(MappingConfig::prior_map_surf,priorMap_surf);
+            Load_PriorMap_Corner(MappingConfig::prior_map_corner,priorMap_corner);
+            flagLoadMap = 0;
+        }
+
 
     }
     void Load_PriorMap_Corner(std::string mapFile,pcl::PointCloud<PointType>::Ptr _priorMap_corner)
@@ -726,11 +742,11 @@ public:
         switch (current_frame) {
             case WORLD:
 //                EZLOG(INFO)<<"cal in World frame";
-                transforPoint2World();
+                updatePointAssociateToMap();
                 break;
             case LIDAR:
 //                EZLOG(INFO)<<"cal in Lidar frame";
-                updatePointAssociateToMap();
+                transforPoint2World();
                 break;
             default:
 //                EZLOG(INFO)<<"ERROR! Wrong current_frame Type!!!";
@@ -768,6 +784,9 @@ public:
             cv::Mat matA1(3, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matD1(1, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matV1(3, 3, CV_32F, cv::Scalar::all(0));
+//            Eigen::Matrix3d matA1;
+//            Eigen::Vector3d matD1;
+//            Eigen::Matrix3d matV1;
 
             if (pointSearchSqDis[4] < 1.0) {
                 float cx = 0, cy = 0, cz = 0;
@@ -863,7 +882,7 @@ public:
                     coeff.z = s * lc;
                     coeff.intensity = s * ld2;
 
-                    if (s > 0.1) {
+                    if (s > 0.15) {
 //                        resize之后，指针在队尾，所以push_back的位置在末尾，而不是初始位置
 //                          并且push_back效率要远低于提前分配内存之后按照索引赋值，push_back会检查内存是否足够，以及申请内存
 //                        std::cout<<"laserCloudOriCornerVec size is : "<<laserCloudOriCornerVec.size() << std::endl;
@@ -886,11 +905,11 @@ public:
         switch (current_frame) {
             case WORLD:
 //                EZLOG(INFO)<<"current_T_m_l already in world_surf";
-                transforPoint2World();
+                updatePointAssociateToMap();
                 break;
             case LIDAR:
 //                EZLOG(INFO)<<"change current_T_m_l to world_surf";
-                updatePointAssociateToMap();
+                transforPoint2World();
                 break;
             default:
                 EZLOG(INFO)<<"ERROR! Wrong current_frame Type!!!";
@@ -975,7 +994,7 @@ public:
                     coeff.z = s * pc;
                     coeff.intensity = s * pd2;
 
-                    if (s > 0.1) {
+                    if (s > 0.15) {
 //                        laserCloudOriSurfVec.push_back(pointOri);
 //                        coeffSelSurfVec.push_back(coeff);
 //                        laserCloudOriSurfFlag.push_back(true);
@@ -1143,7 +1162,7 @@ public:
                             pow(matX.at<float>(4, 0) * 100, 2) +
                             pow(matX.at<float>(5, 0) * 100, 2));
 
-        if (deltaR < 0.05 && deltaT < 0.05) {
+        if (deltaR < 0.10 && deltaT < 0.10) {
             return true;  // converged
         }
         return false;  // keep optimizing
@@ -1492,7 +1511,7 @@ public:
                 break;
 
         }
-        Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
+//        Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
 //        imu_pre_ptr->AddOdomData(current_lidar_pose_world);
 //        EZLOG(INFO)<<"imu_pre_ptr->AddOdomData "<<std::endl;
         pubsub->PublishOdometry(topic_lidar_odometry, current_lidar_pose_world);
@@ -1536,14 +1555,7 @@ public:
                     updateInitialGuess();
                     EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
                     if (systemInitialized) {
-                        if(flagLoadMap){
-                            // 从晓强接收
-                            Load_PriorMap_Surf(MappingConfig::prior_map_surf,priorMap_surf);
-                            Load_PriorMap_Corner(MappingConfig::prior_map_corner,priorMap_corner);
-                            flagLoadMap = 0;
-                        }
                         pub_CornerAndSurfFromMap();
-
                         extractFromPriorMap();
 
                         downsampleCurrentScan();
