@@ -267,6 +267,7 @@ public:
     void DoWork(){
         while(1){
             if(deque_cloud.size()!=0){
+                EZLOG(INFO)<<"featureext_DoWork  "<<std::endl;
                 CloudInfo cur_cloud;
                 cloud_mutex.lock();
                 cur_cloud = deque_cloud.front();
@@ -280,23 +281,19 @@ public:
                 TicToc timer;
                 CalculateSmoothness(cur_cloud);
                 MarkOccludedPoints(cur_cloud);
-
+                EZLOG(INFO)<<"before feature extraction cost time(ms) = "<<timer.toc()<<std::endl;
+                TicToc timer2;
                 pcl::PointCloud<PointType>::Ptr cornerCloud(new  pcl::PointCloud<PointType>());
                 pcl::PointCloud<PointType>::Ptr surfaceCloud(new  pcl::PointCloud<PointType>());
                 ExtractFeatures(cur_cloud, cornerCloud, surfaceCloud);
-
-//                //save cloud with label
-
-//                pcl::PointCloud<CloudInfo>::Ptr raw_cloud_ptr(new  pcl::PointCloud<CloudInfo>());
-
-//                CloudInfoPtr raw_cloud_ptr = make_shared<CloudInfo>();
-//                raw_cloud_ptr->cloud_ptr->push_back();
-
-                CloudInfoFt raw_cloud;
-                raw_cloud.raw_cloud = cur_cloud.cloud_ptr;
-                raw_cloud.frame_id = ++frame_id;
-                map_saver.AddCloudToSave(raw_cloud);
-                EZLOG(INFO)<<"save cloud with label!"<<std::endl;
+                EZLOG(INFO)<<"feature extraction cost time(ms) = "<<timer2.toc()<<std::endl;
+                TicToc timer1;
+//                ///save cloud with label
+//                CloudInfoFt raw_cloud;
+//                raw_cloud.raw_cloud = cur_cloud.cloud_ptr;
+//                raw_cloud.frame_id = ++frame_id;
+//                map_saver.AddCloudToSave(raw_cloud);
+//                EZLOG(INFO)<<"save cloud with label!"<<std::endl;
 
                 CloudFeature cloud_feature;
                 cloud_feature.timestamp = cur_cloud.timestamp;
@@ -317,6 +314,7 @@ public:
 
 
                 //for debug use
+                if(MappingConfig::if_debug)
                 {
                     CloudTypeXYZI corner_pub,surf_pub;
                     corner_pub.frame = "map";
@@ -328,7 +326,7 @@ public:
                     pubsub->PublishCloud(topic_corner_world, corner_pub);
                     pubsub->PublishCloud(topic_surf_world, surf_pub);
                 }
-                EZLOG(INFO)<<"feature extraction cost time(ms) = "<<timer.toc()<<std::endl;
+                EZLOG(INFO)<<"send feature extraction to next = "<<timer1.toc()<<std::endl;
 
             }
 
@@ -342,6 +340,7 @@ public:
 
 
     void AddCloudData(const CloudInfo& data){
+        EZLOG(INFO)<<"featureext_AddCloudData  "<<std::endl;
         cloud_mutex.lock();
         deque_cloud.push_back(data);
         cloud_mutex.unlock();

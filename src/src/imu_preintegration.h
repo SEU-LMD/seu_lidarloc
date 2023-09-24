@@ -158,9 +158,10 @@ public:
         Odometry_imuPredict_pub.frame = "map";
         Odometry_imuPredict_pub.pose = lidar_preditct_pose;
         //for debug use
-        {
-            pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
-        }
+
+        pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
+        EZLOG(INFO)<<"topic_imu_raw_odom "<<std::endl;
+
 
 //        Function_AddOdometryTypeToImageProjection(Odometry_imuPredict_pub);
 

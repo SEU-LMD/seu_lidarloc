@@ -1,5 +1,8 @@
 # 0 for opt mapping->wxy, 1 for loc mapping->sy.
-  slam_mode_switch: 1
+  slam_mode_switch: 0
+
+# 1 for debug (pub to rviz),0 for not debug
+  if_debug: 0
 
   # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!

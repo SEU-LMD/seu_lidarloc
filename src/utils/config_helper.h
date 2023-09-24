@@ -80,6 +80,7 @@ class SensorConfig{
 class MappingConfig{
     public:
         static int slam_mode_switch;
+        static int if_debug;
         static Eigen::Vector3d origin_gnss;
         static bool use_deskew;
         // save map
@@ -226,6 +227,7 @@ int SensorConfig::gtsamGNSSBetweenFactorDistance = 10;
 bool SensorConfig::use_gnss_deskew=false;
 
 int MappingConfig::slam_mode_switch = 1;
+int MappingConfig::if_debug = 1;
 std::string MappingConfig::save_map_path = "";
 
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
@@ -412,6 +414,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         }
 
         MappingConfig::slam_mode_switch = mappingconfig["slam_mode_switch"].as<int>();
+        MappingConfig::if_debug = mappingconfig["if_debug"].as<int>();
         MappingConfig::use_deskew=mappingconfig["use_deskew"].as<bool >();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();

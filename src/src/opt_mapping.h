@@ -179,10 +179,11 @@ public:
     nav_msgs::Path globalPath;
 
     void AddCloudData(const CloudFeature& cloud_ft){
+        EZLOG(INFO)<<"optmapping_AddCloudData "<<std::endl;
         cloud_mutex.lock();
         deque_cloud.push_back(cloud_ft);
         cloud_mutex.unlock();
-
+        EZLOG(INFO)<<"deque_cloud.size() = "<<deque_cloud.size()<<std::endl;
     }
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
@@ -1779,6 +1780,8 @@ public:
         current_lidar_pose_world.timestamp = timeLaserInfoCur;
         current_lidar_pose_world.pose = PoseT(Lidarodom_2_map.matrix().cast<double>());
         pubsub->PublishOdometry(topic_current_pose, current_lidar_pose_world);
+        Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
+        EZLOG(INFO)<<"pub topic_current_pose  "<<std::endl;
 
         if (SensorConfig::useGPS) {
             if (gpsTransfromInit && SensorConfig::updateOrigin) {
@@ -1822,7 +1825,7 @@ public:
             current_gnss_pose.timestamp = timeLaserInfoCur;
             current_gnss_pose.pose = PoseT(gnss_pose.matrix().cast<double>());
             pubsub->PublishOdometry(topic_gnss_pose, current_gnss_pose);
-            Function_AddOdometryTypeToIMUPreintegration(current_gnss_pose);
+//            Function_AddOdometryTypeToIMUPreintegration(current_gnss_pose);
 //            imu_pre_ptr->AddOdomData(current_gnss_pose);//new
 //            imu_pre_ptr->AddOdomData(current_gnss_pose);
 
@@ -1856,6 +1859,8 @@ public:
            allocateMemory();
         while(1){
             if(deque_cloud.size()!=0){
+                EZLOG(INFO)<<"optmapping_DoWork "<<std::endl;
+                EZLOG(INFO)<<"deque_cloud.size() = "<<deque_cloud.size()<<std::endl;
                 CloudFeature cur_ft;
                 cloud_mutex.lock();
                 cur_ft = deque_cloud.front();

@@ -118,6 +118,7 @@ public:
 
                 //pusblish world origin cloud
                 //for debug use
+                if(MappingConfig::if_debug)
                 {
                     CloudTypeXYZIRT cur_scan_cloud_w;
                     cur_scan_cloud_w.timestamp = cloudinfo.cloud_ptr->timestamp;
@@ -150,16 +151,6 @@ public:
 
                 //插值位姿态矩阵
                 imuodom_curlidartime  = PoseT (t_imuodom , q_imuodom);
-
-//                //pusblish world origin cloud
-//                //for debug use
-//                {
-//                    CloudTypeXYZIRT cur_scan_cloud_w;
-//                    cur_scan_cloud_w.timestamp = cloudinfo.cloud_ptr->timestamp;
-//                    cur_scan_cloud_w.frame = "map";
-//                    pcl::transformPointCloud(cloudinfo.cloud_ptr->cloud, cur_scan_cloud_w.cloud, (T_w_l_lidar_start).pose.cast<float>());
-//                    pubsub->PublishCloud(topic_origin_cloud_world, cur_scan_cloud_w);
-//                }
 
             }
             continue;
@@ -301,6 +292,7 @@ public:
 //        EZLOG(INFO)<<"rangemat_outlier num = "<<rangemat_outlier<<std::endl;
 
 ////        for debug use
+        if(MappingConfig::if_debug)
         {
             CloudTypeXYZI cloud_pub;
             cloud_pub.timestamp = cloudinfo.cloud_ptr->timestamp;
@@ -354,6 +346,7 @@ public:
         cloudInfo.cloud_ptr = extractedCloud;
 
 ////        //for debug use
+        if(MappingConfig::if_debug)
         {
             CloudTypeXYZICOLRANGE cloud_pub;
             cloud_pub.timestamp = cloudInfo.timestamp;
@@ -396,11 +389,14 @@ public:
                                                                        imuodom_curlidartime);//out
                         EZLOG(INFO) << "FindIMUOdomPose cost time(ms) = " << cost_time_findimupose << std::endl;
 
-                        OdometryType Odometry_imuodom_curlidartime_pub;
-                        Odometry_imuodom_curlidartime_pub.timestamp = cur_lidar_time;
-                        Odometry_imuodom_curlidartime_pub.frame = "map";
-                        Odometry_imuodom_curlidartime_pub.pose = imuodom_curlidartime;
-                        pubsub->PublishOdometry(topic_imuodom_curlidartime_world, Odometry_imuodom_curlidartime_pub);
+                        if(MappingConfig::if_debug){
+                            OdometryType Odometry_imuodom_curlidartime_pub;
+                            Odometry_imuodom_curlidartime_pub.timestamp = cur_lidar_time;
+                            Odometry_imuodom_curlidartime_pub.frame = "map";
+                            Odometry_imuodom_curlidartime_pub.pose = imuodom_curlidartime;
+                            pubsub->PublishOdometry(topic_imuodom_curlidartime_world, Odometry_imuodom_curlidartime_pub);
+                        }
+
 
                         imuodom_mutex.lock();
                         while(IMUOdomQueue.front().timestamp < cur_lidar_time - 0.1){
@@ -447,6 +443,7 @@ public:
                         ///4. send data to feature extraction node
 //                        ft_extr_ptr->AddCloudData(cloudinfo);
                         Function_AddCloudInfoToFeatureExtraction(cloudinfo);
+                        EZLOG(INFO)<<"Function_AddCloudInfoToFeatureExtraction = "<<std::endl;
 //                        EZLOG(INFO)<<"cloudinfo.frame_id = "<<cloudinfo.frame_id<<std::endl;
 //                        EZLOG(INFO)<<"cloudinfo.cloud_ptr->size() = "<<cloudinfo.cloud_ptr->size()<<std::endl;
 
@@ -538,7 +535,9 @@ public:
         gnssins_mutex.unlock();
 
         //pub gnss odometry in rviz
-        pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
+        if(MappingConfig::if_debug){
+            pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
+        }
     }
 
     void AddIMUOdomData(const OdometryType& data){
@@ -554,7 +553,7 @@ public:
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
-        pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
+//        pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
         do_work_thread = new std::thread(&ImageProjection::DoWork, this);
         EZLOG(INFO)<<"ImageProjection init success!"<<std::endl;
     }
