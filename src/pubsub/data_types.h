@@ -39,11 +39,12 @@ struct PointXYZICOLRANGE {
     uint8_t intensity;
     float range;
     uint16_t col;
+    uint8_t label;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 } EIGEN_ALIGN16;
 POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZICOLRANGE,
                                     (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
-                                            (uint16_t, range, range)(uint16_t, col, col))
+                                            (uint16_t, range, range)(uint16_t, col, col)(uint8_t, label, label))
 
 //add by lsy
 struct PointXYZIL {
@@ -120,7 +121,7 @@ public:
     int frame_id;
     double timestamp;
     PoseT pose;
-    std::vector<int> label;
+//    std::vector<int> label;
     std::vector<int> startRingIndex;
     std::vector<int> endRingIndex;
 

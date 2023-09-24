@@ -22,6 +22,7 @@ struct CloudInfoFt{
     pcl::PointCloud<PointType>::Ptr corner_cloud;
     pcl::PointCloud<PointType>::Ptr surf_cloud;
     pcl::PointCloud<PointXYZICOLRANGE>::Ptr raw_cloud;
+//    CloudInfo raw_cloud;
     int frame_id;
 };
 
@@ -62,11 +63,13 @@ public:
     void do_work(){
         while(1){
             if(pts_deque.size()!=0){
+                EZLOG(INFO)<<"pts_deque.size() = "<<pts_deque.size()<<std::endl;
                 data_mutex.lock();
                 auto cloud_info = pts_deque.front();
                 pts_deque.pop_front();
                 data_mutex.unlock();
                 SaveCloud(cloud_info);
+                EZLOG(INFO)<<"SaveCloud !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<std::endl;
             }
             sleep(0.05);
         }
@@ -76,6 +79,8 @@ public:
         data_mutex.lock();
         pts_deque.push_back(cloud_info);
         data_mutex.unlock();
+        EZLOG(INFO)<<"receive Cloud !"<<std::endl;
+        EZLOG(INFO)<<"pts_deque.size() = "<<pts_deque.size()<<std::endl;
     }
 
 };

@@ -29,6 +29,7 @@ public:
     std::mutex cloud_mutex;
     std::deque<CloudInfo> deque_cloud;
     std::thread* do_work_thread;
+    std::thread* save_Map_thread;
     OPTMapping* opt_mapping_ptr;
     LOCMapping* loc_mapping_ptr;
     std::function<void(const CloudFeature&)> Function_AddCloudFeatureToLOCMapping;
@@ -74,7 +75,7 @@ public:
             cloudNeighborPicked[i] = 0;
             //-1: surface point; 1:corner point
             cloudLabel[i] = 0;
-            cur_scan.label[i] = 0;
+            cur_scan.cloud_ptr->points[i].label = 0;
 
             // cloudSmoothness for
             cloudSmoothness[i].value = cloudCurvature[i];
@@ -162,7 +163,7 @@ public:
                         largestPickedNum++;
                         if (largestPickedNum <= 20) {
                             cloudLabel[ind] = 1;
-                            cur_scan.label[ind] = 1;
+                            cur_scan.cloud_ptr->points[ind].label = 1;
                             PointType pt_tmp;
                             auto& pt_origin = cur_scan.cloud_ptr->points[ind];
                             pt_tmp.x = pt_origin.x;
@@ -199,7 +200,7 @@ public:
                     if (cloudNeighborPicked[ind] == 0 &&
                         cloudCurvature[ind] < MappingConfig::surfThreshold) {
                         cloudLabel[ind] = -1;
-                        cur_scan.label[ind] = -1;
+                        cur_scan.cloud_ptr->points[ind].label = -1;
                         cloudNeighborPicked[ind] = 1;
 
                         for (int l = 1; l <= 5; l++) {
@@ -285,11 +286,17 @@ public:
                 ExtractFeatures(cur_cloud, cornerCloud, surfaceCloud);
 
 //                //save cloud with label
-//                CloudInfoFt raw_cloud;
-//                raw_cloud.raw_cloud = CloudInfoPtr;
-//                raw_cloud.frame_id = ++frame_id;
-//                map_saver.AddCloudToSave(raw_cloud);
-//                EZLOG(INFO)<<"save cloud with label!"<<std::endl;
+
+//                pcl::PointCloud<CloudInfo>::Ptr raw_cloud_ptr(new  pcl::PointCloud<CloudInfo>());
+
+//                CloudInfoPtr raw_cloud_ptr = make_shared<CloudInfo>();
+//                raw_cloud_ptr->cloud_ptr->push_back();
+
+                CloudInfoFt raw_cloud;
+                raw_cloud.raw_cloud = cur_cloud.cloud_ptr;
+                raw_cloud.frame_id = ++frame_id;
+                map_saver.AddCloudToSave(raw_cloud);
+                EZLOG(INFO)<<"save cloud with label!"<<std::endl;
 
                 CloudFeature cloud_feature;
                 cloud_feature.timestamp = cur_cloud.timestamp;
@@ -349,6 +356,7 @@ public:
         pubsub->addPublisher(topic_corner_world, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_surf_world, DataType::LIDAR, 10);
         do_work_thread = new std::thread(&FeatureExtraction::DoWork, this);
+        save_Map_thread = new std::thread(&MapSaver::do_work, &(FeatureExtraction::map_saver));
 
     }
 
