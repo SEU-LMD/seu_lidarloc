@@ -14,7 +14,7 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#include "opencv2/opencv.hpp"   // for opencv4
+//#include "opencv2/opencv.hpp"   // for opencv4
 #include "Eigen/Dense"
 //#include <opencv/cv.h>
 

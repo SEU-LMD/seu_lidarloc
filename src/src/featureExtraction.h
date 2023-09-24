@@ -30,8 +30,7 @@ public:
     std::deque<CloudInfo> deque_cloud;
     std::thread* do_work_thread;
     std::thread* save_Map_thread;
-    OPTMapping* opt_mapping_ptr;
-    LOCMapping* loc_mapping_ptr;
+
     std::function<void(const CloudFeature&)> Function_AddCloudFeatureToLOCMapping;
     std::function<void(const CloudFeature&)> Function_AddCloudFeatureToOPTMapping;
 
