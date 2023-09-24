@@ -535,9 +535,9 @@ public:
         gnssins_mutex.unlock();
 
         //pub gnss odometry in rviz
-        if(MappingConfig::if_debug){
+//        if(MappingConfig::if_debug){
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
-        }
+//        }
     }
 
     void AddIMUOdomData(const OdometryType& data){

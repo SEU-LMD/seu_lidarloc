@@ -242,18 +242,19 @@ public:
 //                    EZLOG(INFO) << "cornerCloud->size() = " << cornerCloud->size() << std::endl;
 //                }
 
-                // surface point and point doesn't be processed ,regard as surface
-                for (int k = sp; k <= ep; k++) {
-                    if (cloudLabel[k] <= 0) {
-                        PointType pt_tmp;
-                        auto& pt_origin = cur_scan.cloud_ptr->points[k];
-                        pt_tmp.x = pt_origin.x;
-                        pt_tmp.y = pt_origin.y;
-                        pt_tmp.z = pt_origin.z;
-                        pt_tmp.intensity = pt_origin.intensity;
-                        surfaceCloudScan->push_back(pt_tmp);
-                    }
-                }
+                  // surface point and point doesn't be processed ,regard as surface
+                  ///take too much time
+//                for (int k = sp; k <= ep; k++) {
+//                    if (cloudLabel[k] <= 0) {
+//                        PointType pt_tmp;
+//                        auto& pt_origin = cur_scan.cloud_ptr->points[k];
+//                        pt_tmp.x = pt_origin.x;
+//                        pt_tmp.y = pt_origin.y;
+//                        pt_tmp.z = pt_origin.z;
+//                        pt_tmp.intensity = pt_origin.intensity;
+//                        surfaceCloudScan->push_back(pt_tmp);
+//                    }
+//                }
             }
 
             surfaceCloudScanDS->clear();

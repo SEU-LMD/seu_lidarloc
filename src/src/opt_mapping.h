@@ -55,10 +55,10 @@ public:
     std::deque<CloudFeature> deque_cloud;
     std::deque<GNSSINSType> deque_gnssins;
 
-    std::string topic_map_surf = "/map_cloud_surf_global";
-    std::string topic_map_corner = "/map_cloud_corner_global";
+//    std::string topic_map_surf = "/map_cloud_surf_global";
+//    std::string topic_map_corner = "/map_cloud_corner_global";
     std::string topic_current_pose = "/current_pose";
-    std::string topic_gnss_pose = "/gnss_pose";
+//    std::string topic_gnss_pose = "/gnss_pose";
 
 
     vector <pcl::PointCloud<PointType>::Ptr> cornerCloudKeyFrames;
@@ -1605,10 +1605,10 @@ public:
         //取出优化后的最新关键帧位姿
         latestEstimate =
                 isamCurrentEstimate.at<gtsam::Pose3>(isamCurrentEstimate.size() - 1);
-        PoseT latest_Estimate_lidar;
-         latest_Estimate_lidar = latestEstimate.matrix();
-        opt_poses.push_back(latest_Estimate_lidar);
-        map_saver.SavePoses(opt_poses);
+//        PoseT latest_Estimate_lidar;
+//         latest_Estimate_lidar = latestEstimate.matrix();
+//        opt_poses.push_back(latest_Estimate_lidar);
+//        map_saver.SavePoses(opt_poses);
         // cout << "****************************************************" << endl;
         // isamCurrentEstimate.print("Current estimate: ");
         //平移信息取出来保存进clouKeyPoses 3D这个结构中，其中索引作为 intensity
@@ -1662,11 +1662,11 @@ public:
         cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
         surfCloudKeyFrames.push_back(thisSurfKeyFrame);
 
-        CloudInfoFt cloud_info;
-        cloud_info.frame_id = ++frame_id;
-        cloud_info.corner_cloud = thisCornerKeyFrame;
-        cloud_info.surf_cloud = thisSurfKeyFrame;
-        map_saver.AddCloudToSave(cloud_info);
+//        CloudInfoFt cloud_info;
+//        cloud_info.frame_id = ++frame_id;
+//        cloud_info.corner_cloud = thisCornerKeyFrame;
+//        cloud_info.surf_cloud = thisSurfKeyFrame;
+//        map_saver.AddCloudToSave(cloud_info);
 
 //        pcl::PointCloud<PointType>::Ptr globalCornerCloud(
 //                new pcl::PointCloud<PointType>());
@@ -1783,75 +1783,75 @@ public:
         Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
         EZLOG(INFO)<<"pub topic_current_pose  "<<std::endl;
 
-        if (SensorConfig::useGPS) {
-            if (gpsTransfromInit && SensorConfig::updateOrigin) {
-                /** we first update the initial GPS origin points since it may not fix here */
-                Eigen::Vector3d origin_point(cloudKeyPoses6D->at(0).x,
-                                             cloudKeyPoses6D->at(0).y,
-                                             cloudKeyPoses6D->at(0).z);
-                // ENU->LLA
-                Eigen::Vector3d update_origin_lla;
-                geoConverter.Reverse(origin_point[0], origin_point[1], origin_point[2], update_origin_lla[0],
-                                      update_origin_lla[1],update_origin_lla[2]);
-
-                geoConverter.Reset(update_origin_lla[0], update_origin_lla[1], update_origin_lla[2]);
-                std::cout << " origin points: " << originLLA.transpose() << std::endl;
-                std::cout << " update origin points: " << update_origin_lla.transpose() << std::endl;
-                originLLA = update_origin_lla;
-                SensorConfig::updateOrigin = false;
-                ROS_WARN("UPDATE MAP ORIGIN SUCCESS!");
-            }
-
-            /** we transform the optimized ENU point to LLA point for visualization with rviz_satellite*/
-            float current_gnss_point[6];
-                  (
-                    cloudKeyPoses6D->back().x,
-                    cloudKeyPoses6D->back().y,
-                    cloudKeyPoses6D->back().z,
-                    cloudKeyPoses6D->back().roll,
-                    cloudKeyPoses6D->back().pitch,
-                    cloudKeyPoses6D->back().yaw
-                    );
-
-            Eigen::Vector3d current_gnss_lla;
-            // ENU->LLA
-            geoConverter.Reverse(current_gnss_point[0], current_gnss_point[1], current_gnss_point[2], current_gnss_lla[0], current_gnss_lla[1],
-                                  current_gnss_lla[2]);
-
-            Eigen::Affine3f gnss_pose = trans2Affine3f(current_gnss_point);
-
-            OdometryType current_gnss_pose;
-            current_gnss_pose.frame = "map";
-            current_gnss_pose.timestamp = timeLaserInfoCur;
-            current_gnss_pose.pose = PoseT(gnss_pose.matrix().cast<double>());
-            pubsub->PublishOdometry(topic_gnss_pose, current_gnss_pose);
-//            Function_AddOdometryTypeToIMUPreintegration(current_gnss_pose);
-//            imu_pre_ptr->AddOdomData(current_gnss_pose);//new
-//            imu_pre_ptr->AddOdomData(current_gnss_pose);
-
-        }
+//        if (SensorConfig::useGPS) {
+//            if (gpsTransfromInit && SensorConfig::updateOrigin) {
+//                /** we first update the initial GPS origin points since it may not fix here */
+//                Eigen::Vector3d origin_point(cloudKeyPoses6D->at(0).x,
+//                                             cloudKeyPoses6D->at(0).y,
+//                                             cloudKeyPoses6D->at(0).z);
+//                // ENU->LLA
+//                Eigen::Vector3d update_origin_lla;
+//                geoConverter.Reverse(origin_point[0], origin_point[1], origin_point[2], update_origin_lla[0],
+//                                      update_origin_lla[1],update_origin_lla[2]);
+//
+//                geoConverter.Reset(update_origin_lla[0], update_origin_lla[1], update_origin_lla[2]);
+//                std::cout << " origin points: " << originLLA.transpose() << std::endl;
+//                std::cout << " update origin points: " << update_origin_lla.transpose() << std::endl;
+//                originLLA = update_origin_lla;
+//                SensorConfig::updateOrigin = false;
+//                ROS_WARN("UPDATE MAP ORIGIN SUCCESS!");
+//            }
+//
+//            /** we transform the optimized ENU point to LLA point for visualization with rviz_satellite*/
+//            float current_gnss_point[6];
+//                  (
+//                    cloudKeyPoses6D->back().x,
+//                    cloudKeyPoses6D->back().y,
+//                    cloudKeyPoses6D->back().z,
+//                    cloudKeyPoses6D->back().roll,
+//                    cloudKeyPoses6D->back().pitch,
+//                    cloudKeyPoses6D->back().yaw
+//                    );
+//
+//            Eigen::Vector3d current_gnss_lla;
+//            // ENU->LLA
+//            geoConverter.Reverse(current_gnss_point[0], current_gnss_point[1], current_gnss_point[2], current_gnss_lla[0], current_gnss_lla[1],
+//                                  current_gnss_lla[2]);
+//
+//            Eigen::Affine3f gnss_pose = trans2Affine3f(current_gnss_point);
+//
+//            OdometryType current_gnss_pose;
+//            current_gnss_pose.frame = "map";
+//            current_gnss_pose.timestamp = timeLaserInfoCur;
+//            current_gnss_pose.pose = PoseT(gnss_pose.matrix().cast<double>());
+//            pubsub->PublishOdometry(topic_gnss_pose, current_gnss_pose);
+////            Function_AddOdometryTypeToIMUPreintegration(current_gnss_pose);
+////            imu_pre_ptr->AddOdomData(current_gnss_pose);//new
+////            imu_pre_ptr->AddOdomData(current_gnss_pose);
+//
+//        }
     }
 
     void pub_CornerAndSurfGlobalMap()
     {
-        TicToc timer;
-//      PriorMap surf
-        CloudTypeXYZI Global_Map_surf_pub;
-        Global_Map_surf_pub.frame = "map";
-        Global_Map_surf_pub.timestamp = timeLaserInfoCur;
-        Global_Map_surf_pub.cloud = *laserCloudCornerLastDS;
-        pubsub->PublishCloud(topic_map_surf, Global_Map_surf_pub);
-        std::cout << "Pub Surf Global Map!"<<std::endl;
-
-//      PriorMap Corner
-        CloudTypeXYZI Global_Map_corner_pub;
-        Global_Map_corner_pub.frame = "map";
-        Global_Map_corner_pub.timestamp = timeLaserInfoCur;
-        Global_Map_corner_pub.cloud = *laserCloudSurfLastDS;
-        pubsub->PublishCloud(topic_map_corner, Global_Map_corner_pub);
-        std::cout << "Pub Corner Map!"<<std::endl;
-       double pub_map_cost_time = timer.toc();
-       EZLOG(INFO)<<"pub_map_cost_time"<<pub_map_cost_time<<endl;
+//        TicToc timer;
+////      PriorMap surf
+//        CloudTypeXYZI Global_Map_surf_pub;
+//        Global_Map_surf_pub.frame = "map";
+//        Global_Map_surf_pub.timestamp = timeLaserInfoCur;
+//        Global_Map_surf_pub.cloud = *laserCloudCornerLastDS;
+//        pubsub->PublishCloud(topic_map_surf, Global_Map_surf_pub);
+//        std::cout << "Pub Surf Global Map!"<<std::endl;
+//
+////      PriorMap Corner
+//        CloudTypeXYZI Global_Map_corner_pub;
+//        Global_Map_corner_pub.frame = "map";
+//        Global_Map_corner_pub.timestamp = timeLaserInfoCur;
+//        Global_Map_corner_pub.cloud = *laserCloudSurfLastDS;
+//        pubsub->PublishCloud(topic_map_corner, Global_Map_corner_pub);
+//        std::cout << "Pub Corner Map!"<<std::endl;
+//       double pub_map_cost_time = timer.toc();
+//       EZLOG(INFO)<<"pub_map_cost_time"<<pub_map_cost_time<<endl;
     }
 
 
@@ -1920,10 +1920,10 @@ public:
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
 
-        pubsub->addPublisher(topic_map_surf,DataType::LIDAR,10);
-        pubsub->addPublisher(topic_map_corner,DataType::LIDAR,10);
+//        pubsub->addPublisher(topic_map_surf,DataType::LIDAR,10);
+//        pubsub->addPublisher(topic_map_corner,DataType::LIDAR,10);
         pubsub->addPublisher(topic_current_pose,DataType::ODOMETRY,10);
-        pubsub->addPublisher(topic_gnss_pose,DataType::ODOMETRY,10);
+//        pubsub->addPublisher(topic_gnss_pose,DataType::ODOMETRY,10);
 
         do_work_thread = new std::thread(&OPTMapping::DoWork, this);
        // loop_thread =new std::thread(&OPTMapping::loopClosureThread, this);
