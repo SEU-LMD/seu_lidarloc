@@ -75,6 +75,7 @@ class SensorConfig{
 
     static bool use_gnss_deskew;
     static int gtsamGNSSBetweenFactorDistance;
+    static int lidarScanDownSample;
 };
 
 class MappingConfig{
@@ -225,6 +226,7 @@ Eigen::Quaterniond SensorConfig::q_body_sensor;
 int SensorConfig::gtsamGNSSBetweenFactorDistance = 10;
 
 bool SensorConfig::use_gnss_deskew=false;
+int SensorConfig::lidarScanDownSample = 2;
 
 int MappingConfig::slam_mode_switch = 1;
 int MappingConfig::if_debug = 1;
@@ -399,6 +401,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::q_body_sensor = q_sensor_body.inverse();
     SensorConfig::t_body_sensor = -(q_sensor_body.inverse() * t_sensor_body);
     SensorConfig::gtsamGNSSBetweenFactorDistance = sensorconfig["gtsamGNSSBetweenFactorDistance"].as<int>();
+    SensorConfig::lidarScanDownSample = sensorconfig["lidarScanDownSample"].as<int>();
 
     std::cout<<"sensorconfig yaml success load"<<std::endl;
 }

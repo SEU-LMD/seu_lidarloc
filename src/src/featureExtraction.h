@@ -315,17 +315,17 @@ public:
 
                 //for debug use
                 if(MappingConfig::if_debug)
-                {
-                    CloudTypeXYZI corner_pub,surf_pub;
-                    corner_pub.frame = "map";
-                    corner_pub.timestamp = cur_cloud.timestamp;
-                    corner_pub.cloud = *cornerCloud;
-                    surf_pub.frame = "map";
-                    surf_pub.timestamp = cur_cloud.timestamp;
-                    surf_pub.cloud = *surfaceCloud;
-                    pubsub->PublishCloud(topic_corner_world, corner_pub);
-                    pubsub->PublishCloud(topic_surf_world, surf_pub);
-                }
+//                {
+//                    CloudTypeXYZI corner_pub,surf_pub;
+//                    corner_pub.frame = "map";
+//                    corner_pub.timestamp = cur_cloud.timestamp;
+//                    corner_pub.cloud = *cornerCloud;
+//                    surf_pub.frame = "map";
+//                    surf_pub.timestamp = cur_cloud.timestamp;
+//                    surf_pub.cloud = *surfaceCloud;
+//                    pubsub->PublishCloud(topic_corner_world, corner_pub);
+//                    pubsub->PublishCloud(topic_surf_world, surf_pub);
+//                }
                 EZLOG(INFO)<<"send feature extraction to next = "<<timer1.toc()<<std::endl;
 
             }

@@ -13,7 +13,7 @@
   mapFrame: "map"
 
   # GPS Settings
-  useGPS: true
+  useGPS: false
   updateOrigin: true                          # when you can not get a reliable gps origin points(RTK fixed)
   gpsFrequence: 10                            # set proper gps frequence to align gps and lidar timestamp
   useImuHeadingInitialization: false         # if using GPS data, set to "false"
@@ -35,6 +35,7 @@
   lidarMinRange: 1.5                          # default: 1.0, minimum lidar range to be used
   lidarMaxRange: 1000.0
   gtsamGNSSBetweenFactorDistance: 10
+  lidarScanDownSample: 2                      #every lidarScanDownSample times cal 1
 
   # IMU Settings
   imuAccNoise: 0.035 #VRW,加速度计随机游走。0.035m/s/√h 0.000583333
