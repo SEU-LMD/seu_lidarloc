@@ -235,6 +235,7 @@ public:
         }
 
         matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
+//        matP = Eigen::Matrix6d()
 
         last_lidar_frameID = 0;
         current_lidar_frameID = 0;
@@ -783,6 +784,9 @@ public:
             cv::Mat matA1(3, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matD1(1, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matV1(3, 3, CV_32F, cv::Scalar::all(0));
+//            Eigen::Matrix3d matA1;
+//            Eigen::Vector3d matD1;
+//            Eigen::Matrix3d matV1;
 
             if (pointSearchSqDis[4] < 1.0) {
                 float cx = 0, cy = 0, cz = 0;

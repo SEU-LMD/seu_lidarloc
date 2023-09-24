@@ -35,7 +35,7 @@
   lidarMinRange: 1.5                          # default: 1.0, minimum lidar range to be used
   lidarMaxRange: 1000.0
   gtsamGNSSBetweenFactorDistance: 10
-  lidarScanDownSample: 2                      #every lidarScanDownSample times cal 1
+  lidarScanDownSample: -1                      #every lidarScanDownSample times cal 1
 
   # IMU Settings
   imuAccNoise: 0.035 #VRW,加速度计随机游走。0.035m/s/√h 0.000583333
