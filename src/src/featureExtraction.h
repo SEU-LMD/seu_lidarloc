@@ -241,7 +241,8 @@ public:
 //                    EZLOG(INFO) << "cornerCloud->size() = " << cornerCloud->size() << std::endl;
 //                }
 
-//                // surface point and point doesn't be processed ,regard as surface
+                  // surface point and point doesn't be processed ,regard as surface
+                  ///take too much time
 //                for (int k = sp; k <= ep; k++) {
 //                    if (cloudLabel[k] <= 0) {
 //                        PointType pt_tmp;
@@ -314,17 +315,17 @@ public:
 
                 //for debug use
                 if(MappingConfig::if_debug)
-//                {
-//                    CloudTypeXYZI corner_pub,surf_pub;
-//                    corner_pub.frame = "map";
-//                    corner_pub.timestamp = cur_cloud.timestamp;
-//                    corner_pub.cloud = *cornerCloud;
-//                    surf_pub.frame = "map";
-//                    surf_pub.timestamp = cur_cloud.timestamp;
-//                    surf_pub.cloud = *surfaceCloud;
-//                    pubsub->PublishCloud(topic_corner_world, corner_pub);
-//                    pubsub->PublishCloud(topic_surf_world, surf_pub);
-//                }
+                {
+                    CloudTypeXYZI corner_pub,surf_pub;
+                    corner_pub.frame = "map";
+                    corner_pub.timestamp = cur_cloud.timestamp;
+                    corner_pub.cloud = *cornerCloud;
+                    surf_pub.frame = "map";
+                    surf_pub.timestamp = cur_cloud.timestamp;
+                    surf_pub.cloud = *surfaceCloud;
+                    pubsub->PublishCloud(topic_corner_world, corner_pub);
+                    pubsub->PublishCloud(topic_surf_world, surf_pub);
+                }
                 EZLOG(INFO)<<"send feature extraction to next = "<<timer1.toc()<<std::endl;
 
             }
