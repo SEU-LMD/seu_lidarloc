@@ -36,6 +36,7 @@
 #include "utils/MapSaver.h"
 
 
+
 class OPTMapping{
 public:
     PubSubInterface* pubsub;
@@ -1854,8 +1855,8 @@ public:
            allocateMemory();
         while(1){
             if(deque_cloud.size()!=0){
-                EZLOG(INFO)<<"optmapping_DoWork "<<std::endl;
-                EZLOG(INFO)<<"deque_cloud.size() = "<<deque_cloud.size()<<std::endl;
+//                EZLOG(INFO)<<"optmapping_DoWork "<<std::endl;
+//                EZLOG(INFO)<<"deque_cloud.size() = "<<deque_cloud.size()<<std::endl;
                 CloudFeature cur_ft;
                 cloud_mutex.lock();
                 cur_ft = deque_cloud.front();
@@ -1884,7 +1885,7 @@ public:
                     q_w_yaw = atan2(-q_w_cur_matrix(0, 1), q_w_cur_matrix(1, 1)); // 计算yaw
                 }
                 double q_to_rpy_cost_time = timer.toc();
-                EZLOG(INFO)<<"get q_to_rpy_cost_time(ms)"<<q_to_rpy_cost_time<<endl;
+//                EZLOG(INFO)<<"get q_to_rpy_cost_time(ms)"<<q_to_rpy_cost_time<<endl;
                 std::lock_guard<std::mutex> lock(mtx);
                 static double timeLastProcessing = -1;
                 if (timeLaserInfoCur - timeLastProcessing >= MappingConfig::mappingProcessInterval) {

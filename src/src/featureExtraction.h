@@ -67,7 +67,6 @@ public:
                     cur_scan.cloud_ptr->points[i + 1].range + cur_scan.cloud_ptr->points[i + 2].range +
                     cur_scan.cloud_ptr->points[i + 3].range + cur_scan.cloud_ptr->points[i + 4].range +
                     cur_scan.cloud_ptr->points[i + 5].range;
-//            EZLOG(INFO)<< "cur_scan.cloud_ptr->points[i- 5].range :"<<cur_scan.cloud_ptr->points[i- 5].range;
 
             //calculate curvature
             cloudCurvature[i] = diffRange * diffRange;  // diffX * diffX + diffY * diffY + diffZ * diffZ;
@@ -137,7 +136,6 @@ public:
 
         pcl::PointCloud<PointType>::Ptr surfaceCloudScan(new pcl::PointCloud<PointType>());
         pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS(new pcl::PointCloud<PointType>());
-//        EZLOG(INFO)<<" ExtractFeatures:: cur_scan: "<<cur_scan.cloud_ptr->points.size();
 
         for (int i = 0; i < SensorConfig::N_SCAN; i++) {
             surfaceCloudScan->clear();
@@ -149,10 +147,6 @@ public:
                         cur_scan.endRingIndex[i] * j) /6;
                 int ep = (cur_scan.startRingIndex[i] * (5 - j) +
                         cur_scan.endRingIndex[i] * (j + 1)) /6 - 1;
-//
-//                EZLOG(INFO) << "sp = " << sp << std::endl;
-//                EZLOG(INFO) << "ep = " << ep << std::endl;
-
 
                 if (sp >= ep) continue;
 
@@ -178,7 +172,8 @@ public:
                             pt_tmp.x = pt_origin.x;
                             pt_tmp.y = pt_origin.y;
                             pt_tmp.z = pt_origin.z;
-                            pt_tmp.intensity = pt_origin.intensity;
+//                            pt_tmp.intensity = pt_origin.intensity;
+                            pt_tmp.intensity = 1;
                             cornerCloud->push_back(pt_tmp);
                             rawCloud->push_back(pt_tmp);
                         } else {
@@ -203,6 +198,8 @@ public:
                         }
                     }
                 }// end! traverse by curvature, from small to large
+
+//                EZLOG(INFO) << "cornerCloud->size() = " << cornerCloud->size() << std::endl;
 
                 //extract surface point
                 for (int k = sp; k <= ep; k++) {
@@ -245,8 +242,10 @@ public:
                     }
                 }
 
-                //for debug use
-                {
+//                EZLOG(INFO) << "surfaceCloud->size() = " << surfaceCloud->size() << std::endl;
+
+//                //for debug use
+//                {
 //                    int n_cor = 0;
 //                    int n_sur = 0;
 //                    int n_pt = 0;
@@ -263,7 +262,7 @@ public:
 //                    EZLOG(INFO) << "n_sur = " << n_sur << std::endl;
 //                    EZLOG(INFO) << "n_pt = " << n_pt << std::endl;
 //                    EZLOG(INFO) << "cornerCloud->size() = " << cornerCloud->size() << std::endl;
-                }
+//                }
 
                   // surface point and point doesn't be processed ,regard as surface
                   ///take too much time
@@ -280,11 +279,11 @@ public:
 //                }
             }
 
-            surfaceCloudScanDS->clear();
-            downSizeFilter.setInputCloud(surfaceCloudScan);
-            downSizeFilter.filter(*surfaceCloudScanDS);
-
-            *surfaceCloud += *surfaceCloudScanDS;
+//            surfaceCloudScanDS->clear();
+//            downSizeFilter.setInputCloud(surfaceCloudScan);
+//            downSizeFilter.filter(*surfaceCloudScanDS);
+//
+//            *surfaceCloud += *surfaceCloudScanDS;
         }
     }//end fucntion ExtractFeatures
 
@@ -323,10 +322,10 @@ public:
                         ++n_sur;
                     }
                 }
-                EZLOG(INFO)<<"n_cor = "<<n_cor<<std::endl;
-                EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<std::endl;
-                EZLOG(INFO)<<"n_sur = "<<n_sur<<std::endl;
-                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<std::endl;
+//                EZLOG(INFO)<<"n_cor = "<<n_cor<<std::endl;
+//                EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<std::endl;
+//                EZLOG(INFO)<<"n_sur = "<<n_sur<<std::endl;
+//                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<std::endl;
 
 //                ///save cloud with label
                 {

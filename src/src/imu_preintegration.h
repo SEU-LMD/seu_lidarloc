@@ -25,8 +25,6 @@
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
 
-//#include "easylogging++.h"
-//INITIALIZE_EASYLOGGINGPP
 using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p,y)
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
@@ -165,7 +163,7 @@ public:
         EZLOG(INFO)<<"topic_imu_raw_odom "<<std::endl;
 
 
-//        Function_AddOdometryTypeToImageProjection(Odometry_imuPredict_pub);
+        Function_AddOdometryTypeToImageProjection(Odometry_imuPredict_pub);
 
         EZLOG(INFO)<<"imu_pre addgnssdata cost time(ms) = "<<timer.toc()<<std::endl;
     }

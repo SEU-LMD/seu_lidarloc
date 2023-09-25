@@ -28,16 +28,13 @@ public:
     std::mutex gnssins_mutex;
     std::mutex imuodom_mutex;
 
+
     std::thread* do_work_thread;
 
     std::deque<CloudTypeXYZIRTPtr> deque_cloud;
     std::deque<OdometryType> poseQueue;
     std::deque<OdometryType> IMUOdomQueue;
 
-//    FeatureExtraction* ft_extr_ptr;
-//    OPTMapping* opt_mapping_ptr;
-//    IMUPreintegration* imu_pre_ptr;
-//    OPTMapping* opt_mapping_ptr;
     std::function<void(const CloudInfo&)> Function_AddCloudInfoToFeatureExtraction;
 
     bool init = false;
@@ -52,23 +49,17 @@ public:
 
     pcl::PointCloud<PointType>::Ptr deskewCloud_body;//去畸变之后的全部点云
     cv::Mat rangeMat;
-//    Eigen::MatrixXf rangeMat;
     int lidarScan_cnt =0;
 
     void  AllocateMemory() {
         deskewCloud_body.reset(new pcl::PointCloud<PointType>());
         deskewCloud_body->points.resize(SensorConfig::N_SCAN * SensorConfig::Horizon_SCAN);//将fullCloud的点集大小初始化为N_SCAN * Horizon_SCAN
-
         rangeMat = cv::Mat(SensorConfig::N_SCAN, SensorConfig::Horizon_SCAN, CV_32F, cv::Scalar::all(FLT_MAX));
-
-//        rangeMat = Eigen::MatrixXf(SensorConfig::N_SCAN, SensorConfig::Horizon_SCAN);
     }
 
     void ResetParameters(){
 //        deskewCloud_body.reset();
         rangeMat =  cv::Scalar::all(FLT_MAX);
-//        rangeMat.;
-
     }
 
     double GetCloudTime(CloudTypeXYZIRTPtr cloud_origin, CloudWithTime& cloud_with_time){
@@ -82,10 +73,8 @@ public:
         for(int i=0; i < cloud_origin->cloud.points.size(); ++i)
         {
             cloud_origin->cloud.points[i].latency = cloud_origin->cloud.points[i].latency - t_0;
-
             if(cloud_origin->cloud.points[i].latency > max_timestamp){
                 max_timestamp = cloud_origin->cloud.points[i].latency;
-
             }
             if(cloud_origin->cloud.points[i].latency < min_timestamp){
                 min_timestamp = cloud_origin->cloud.points[i].latency;
@@ -98,7 +87,6 @@ public:
         cloud_with_time.min_latency_timestamp = min_timestamp;
 
         double cost_time = timer.toc();
-//        EZLOG(INFO)<<"GetCloudTime cost time(ms) = "<<cost_time<<std::endl;
         return cost_time;
     }
 
@@ -134,7 +122,7 @@ public:
                     pcl::transformPointCloud(cloudinfo.cloud_ptr->cloud, cur_scan_cloud_w.cloud, (T_w_l_lidar_start).pose.cast<float>());
                     pubsub->PublishCloud(topic_origin_cloud_world, cur_scan_cloud_w);
                 }
-
+                break;
             }
             continue;
         }
@@ -160,6 +148,7 @@ public:
                 //插值位姿态矩阵
                 imuodom_curlidartime  = PoseT (t_imuodom , q_imuodom);
 
+                break;
             }
             continue;
         }
@@ -187,6 +176,7 @@ public:
                 //插值位姿态矩阵
                 T_w_b_lidar_now  = PoseT(t_w_b_lidar_now , q_w_b_lidar_now);
 
+                break;
             }
             continue;
         }
@@ -238,7 +228,6 @@ public:
             thisPoint.z = cloudinfo.cloud_ptr->cloud.points[i].z;
             thisPoint.intensity = cloudinfo.cloud_ptr->cloud.points[i].intensity;
             float range = pointDistance(thisPoint); //计算点的距离
-//            EZLOG(INFO)<<"pointDistance range:"<<range;  good
 
             if (range < SensorConfig::lidarMinRange || range > SensorConfig::lidarMaxRange){
                 range_outlier++;
@@ -380,37 +369,38 @@ public:
                 gnssins_mutex.lock();
                 odo_poses_copy = poseQueue;
                 gnssins_mutex.unlock();
+
                 double odo_min_ros_time =  odo_poses_copy.front().timestamp;
                 double odo_max_ros_time =  odo_poses_copy.back().timestamp;
 
-//                if(!IMUOdomQueue.empty()){
-//                    std::deque<OdometryType> imuodom_copy;
-//                    imuodom_mutex.lock();
-//                    imuodom_copy = IMUOdomQueue;
-//                    imuodom_mutex.unlock();
-//                    double imuodo_min_ros_time =  imuodom_copy.front().timestamp;
-//                    double imuodo_max_ros_time =  imuodom_copy.back().timestamp;
-//
-//                    double cur_lidar_time = deque_cloud.front()->timestamp;
-//                    if(imuodo_min_ros_time<cur_lidar_time && imuodo_max_ros_time>cur_lidar_time){
-//                        PoseT imuodom_curlidartime;
-//                        double cost_time_findimupose = FindIMUOdomPose(cur_lidar_time, imuodom_copy,//in
-//                                                                       imuodom_curlidartime);//out
+                if(!IMUOdomQueue.empty()){
+                    std::deque<OdometryType> imuodom_copy;
+                    imuodom_mutex.lock();
+                    imuodom_copy = IMUOdomQueue;
+                    imuodom_mutex.unlock();
+                    double imuodo_min_ros_time =  imuodom_copy.front().timestamp;
+                    double imuodo_max_ros_time =  imuodom_copy.back().timestamp;
+
+                    double cur_lidar_time = deque_cloud.front()->timestamp;
+                    if(imuodo_min_ros_time<cur_lidar_time && imuodo_max_ros_time>cur_lidar_time){
+                        PoseT imuodom_curlidartime;
+                        double cost_time_findimupose = FindIMUOdomPose(cur_lidar_time, imuodom_copy,//in
+                                                                       imuodom_curlidartime);//out
 //                        EZLOG(INFO) << "FindIMUOdomPose cost time(ms) = " << cost_time_findimupose << std::endl;
-//
+
 //                        OdometryType Odometry_imuodom_curlidartime_pub;
 //                        Odometry_imuodom_curlidartime_pub.timestamp = cur_lidar_time;
 //                        Odometry_imuodom_curlidartime_pub.frame = "map";
 //                        Odometry_imuodom_curlidartime_pub.pose = imuodom_curlidartime;
 //                        pubsub->PublishOdometry(topic_imuodom_curlidartime_world, Odometry_imuodom_curlidartime_pub);
-//
-//                        imuodom_mutex.lock();
-//                        while(IMUOdomQueue.front().timestamp < cur_lidar_time - 0.1){
-//                            IMUOdomQueue.pop_front();
-//                        }
-//                        imuodom_mutex.unlock();
-//                    }
-//                }
+
+                        imuodom_mutex.lock();
+                        while(IMUOdomQueue.front().timestamp < cur_lidar_time - 0.1){
+                            IMUOdomQueue.pop_front();
+                        }
+                        imuodom_mutex.unlock();
+                    }
+                }
                 ///1.get cloud max and min time stamp to
                 CloudTypeXYZIRTPtr cur_scan;
                 cloud_mutex.lock();
@@ -447,7 +437,6 @@ public:
 //                        EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
 
                         ///4. send data to feature extraction node
-//                        ft_extr_ptr->AddCloudData(cloudinfo);
                         Function_AddCloudInfoToFeatureExtraction(cloudinfo);
 //                        EZLOG(INFO)<<"cloudinfo.frame_id = "<<cloudinfo.frame_id<<std::endl;
 //                        EZLOG(INFO)<<"cloudinfo.cloud_ptr->size() = "<<cloudinfo.cloud_ptr->size()<<std::endl;
