@@ -128,7 +128,7 @@ public:
     }//end function markOccludedPoints
 
 
-    void ExtractFeatures(CloudInfo& cur_scan,pcl::PointCloud<PointType>::Ptr cornerCloud,pcl::PointCloud<PointType>::Ptr surfaceCloud) {
+    void ExtractFeatures(CloudInfo& cur_scan,pcl::PointCloud<PointType>::Ptr cornerCloud,pcl::PointCloud<PointType>::Ptr surfaceCloud,pcl::PointCloud<PointType>::Ptr rawCloud) {
 
         pcl::PointCloud<PointType>::Ptr surfaceCloudScan(new pcl::PointCloud<PointType>());
         pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS(new pcl::PointCloud<PointType>());
@@ -143,6 +143,10 @@ public:
                         cur_scan.endRingIndex[i] * j) /6;
                 int ep = (cur_scan.startRingIndex[i] * (5 - j) +
                         cur_scan.endRingIndex[i] * (j + 1)) /6 - 1;
+//
+//                EZLOG(INFO) << "sp = " << sp << std::endl;
+//                EZLOG(INFO) << "ep = " << ep << std::endl;
+
 
                 if (sp >= ep) continue;
 
@@ -168,8 +172,10 @@ public:
                             pt_tmp.x = pt_origin.x;
                             pt_tmp.y = pt_origin.y;
                             pt_tmp.z = pt_origin.z;
-                            pt_tmp.intensity = pt_origin.intensity;
+//                            pt_tmp.intensity = pt_origin.intensity;
+                            pt_tmp.intensity = 1;
                             cornerCloud->push_back(pt_tmp);
+                            rawCloud->push_back(pt_tmp);
                         } else {
                             break;
                         }
@@ -201,6 +207,19 @@ public:
                         cloudLabel[ind] = -1;
                         cur_scan.cloud_ptr->points[ind].label = -1;
                         cloudNeighborPicked[ind] = 1;
+
+                        //add by lsy
+                        {
+                            PointType pt_tmp;
+                            auto &pt_origin = cur_scan.cloud_ptr->points[ind];
+                            pt_tmp.x = pt_origin.x;
+                            pt_tmp.y = pt_origin.y;
+                            pt_tmp.z = pt_origin.z;
+//                            pt_tmp.intensity = pt_origin.intensity;
+                            pt_tmp.intensity = -1;
+                            surfaceCloud->push_back(pt_tmp);
+                            rawCloud->push_back(pt_tmp);
+                        }
 
                         for (int l = 1; l <= 5; l++) {
                             int columnDiff =
@@ -285,10 +304,33 @@ public:
                 TicToc timer2;
                 pcl::PointCloud<PointType>::Ptr cornerCloud(new  pcl::PointCloud<PointType>());
                 pcl::PointCloud<PointType>::Ptr surfaceCloud(new  pcl::PointCloud<PointType>());
-                ExtractFeatures(cur_cloud, cornerCloud, surfaceCloud);
+                pcl::PointCloud<PointType>::Ptr rawCloud(new  pcl::PointCloud<PointType>());
+                ExtractFeatures(cur_cloud, cornerCloud, surfaceCloud,rawCloud);
                 EZLOG(INFO)<<"feature extraction cost time(ms) = "<<timer2.toc()<<std::endl;
                 TicToc timer1;
+
+                int n_cor =0;
+                int n_sur =0;
+                for(int k_rawCloud = 0;k_rawCloud <= rawCloud->size();++k_rawCloud){
+                    if(rawCloud->points[k_rawCloud].intensity == 1){
+                        ++n_cor;
+                    }else if(rawCloud->points[k_rawCloud].intensity == -1){
+                        ++n_sur;
+                    }
+                }
+                EZLOG(INFO)<<"n_cor = "<<n_cor<<std::endl;
+                EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<std::endl;
+                EZLOG(INFO)<<"n_sur = "<<n_sur<<std::endl;
+                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<std::endl;
+
 //                ///save cloud with label
+                {
+                    CloudInfoFt raw_cloud;
+                    raw_cloud.raw_Cloud = rawCloud;
+                    raw_cloud.frame_id = ++frame_id;
+                    map_saver.AddCloudToSave(raw_cloud);
+                    EZLOG(INFO)<<"save cloud with label!"<<std::endl;
+                }
 //                CloudInfoFt raw_cloud;
 //                raw_cloud.raw_cloud = cur_cloud.cloud_ptr;
 //                raw_cloud.frame_id = ++frame_id;
