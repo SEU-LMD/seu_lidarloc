@@ -30,7 +30,7 @@ public:
 
     std::deque<CloudTypeXYZIRTPtr> deque_cloud;
     std::deque<OdometryType> poseQueue;
-//    std::deque<OdometryType> IMUOdomQueue;
+    std::deque<OdometryType> IMUOdomQueue;
 
 //    FeatureExtraction* ft_extr_ptr;
 //    OPTMapping* opt_mapping_ptr;
@@ -468,7 +468,7 @@ public:
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
-        if(lidarScan_cnt > SensorConfig::lidarScanDownSample){
+        if(lidarScan_cnt > SensorConfig::lidarScanDownSample && MappingConfig::slam_mode_switch == 1 ){
             //        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
             CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
 
@@ -545,11 +545,11 @@ public:
 //        }
     }
 
-//    void AddIMUOdomData(const OdometryType& data){
-//        imuodom_mutex.lock();
-//        IMUOdomQueue.push_back(data);
-//        imuodom_mutex.unlock();
-//    }
+    void AddIMUOdomData(const OdometryType& data){
+        imuodom_mutex.lock();
+        IMUOdomQueue.push_back(data);
+        imuodom_mutex.unlock();
+    }
 
     void Init(PubSubInterface* pubsub_){
         AllocateMemory();

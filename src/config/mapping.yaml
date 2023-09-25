@@ -1,5 +1,5 @@
 # 0 for opt mapping->wxy, 1 for loc mapping->sy.
-  slam_mode_switch: 0
+  slam_mode_switch: 1
 
 # 1 for debug (pub to rviz),0 for not debug
   if_debug: 0
@@ -32,16 +32,16 @@
 
   # CPU Params
   numberOfCores: 8                              # number of cores for mapping optimization
-  mappingProcessInterval: 0.3                  # seconds, regulate mapping frequency
+  mappingProcessInterval: 0.4                  # seconds, regulate mapping frequency
 
   # Surrounding map
-  surroundingkeyframeAddingDistThreshold: 0.5  # meters, regulate keyframe adding threshold
-  surroundingkeyframeAddingAngleThreshold: 0.2  # radians, regulate keyframe adding threshold
+  surroundingkeyframeAddingDistThreshold: 1.0  # meters, regulate keyframe adding threshold
+  surroundingkeyframeAddingAngleThreshold: 1.0  # radians, regulate keyframe adding threshold
   surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses
   surroundingKeyframeSearchRadius: 50.0         # meters, within n meters scan-to-map optimization (when loop closure disabled)
   localMap_searchRadius: 30.0
   localMap_searchRadius_surf: 50.0
-  localMap_searchRadius_corner: 60.0
+  localMap_searchRadius_corner: 50.0
   LocalMap_updata_perframe: 20
 
   scan_2_prior_map: 1     # 0 for scan 2 localmap, 1 for scan 2 priormap, 2 for scan 2 scan

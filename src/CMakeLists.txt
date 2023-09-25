@@ -54,7 +54,6 @@ include_directories(
         ./src
         ${Communication_DIR}
         ${PCL_INCLUDE_DIRS}
-#        ${OpenCV_INCLUDE_DIRS}
         ${GTSAM_INCLUDE_DIR}
         ${EIGEN3_INCLUDE_DIR}
         ./ThirdParty/GeographicLib/
@@ -65,7 +64,7 @@ include_directories(
 MESSAGE(STATUS "------------${EIGEN3_INCLUDE_DIR}------------------")
 MESSAGE(STATUS "------------${GTSAM_INCLUDE_DIR}------------------")
 MESSAGE(STATUS "------------${PCL_INCLUDE_DIRS}------------------")
-MESSAGE(STATUS "------------${PCL_LIBRARY_DIRS}------------------")
+MESSAGE(STATUS "PCL_LIBRARIES:------------${PCL_LIBRARY_DIRS}------------------")
 
 ###########
 ## Build ##

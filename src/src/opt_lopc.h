@@ -40,7 +40,7 @@
 #include <gtsam/slam/PriorFactor.h>
 #include <gtsam/slam/dataset.h>  // gtsam
 
-#include <std_srvs/Empty.h>
+//#include <std_srvs/Empty.h>
 
 #include "GeoGraphicLibInclude/Geocentric.hpp"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
@@ -109,8 +109,6 @@ public:
 
     Eigen::Affine3f transPointAssociateToMap;
     Eigen::Affine3f T_wl;
-    Eigen::Affine3f incrementalOdometryAffineFront;
-    Eigen::Affine3f incrementalOdometryAffineBack;
 
     Eigen::Vector3d t_w_cur;
     Eigen::Quaterniond q_w_cur;
@@ -254,7 +252,7 @@ public:
             // 从晓强接收
             Load_PriorMap_Surf(MappingConfig::prior_map_surf,priorMap_surf);
             Load_PriorMap_Corner(MappingConfig::prior_map_corner,priorMap_corner);
-            flagLoadMap = 0;
+
         }
 
 
@@ -410,7 +408,6 @@ public:
 
     void updateInitialGuess() {
         // save current transformation before any processing
-        incrementalOdometryAffineFront = trans2Affine3f(current_T_m_l);
         static Eigen::Affine3f lastImuTransformation;
 
         // initialization the first frame
@@ -433,7 +430,7 @@ public:
         }
 
         if (!systemInitialized) {
-            ROS_ERROR("sysyem need to be initialized");
+            EZLOG(INFO)<<"sysyem need to be initialized";
             return;
         }
 
@@ -491,13 +488,14 @@ public:
             // 添加标志位，需要下一帧再加载。现在可以先写着1.5s换一次local map
             current_lidar_frameID =  init_point.intensity;
 //            flag_load_localMap = 1; // unecessary to load local map
-            if(current_lidar_frameID - last_lidar_frameID < MappingConfig::LocalMap_updata_perframe
-               && flag_load_localMap == 1){
+            if(current_lidar_frameID - last_lidar_frameID < MappingConfig::LocalMap_updata_perframe && !flagLoadMap){
                 EZLOG(INFO)<<"already have local map and don't need to update";
-                flag_need_load_localMap = 0; // do not need to load map
+
+//                flag_need_load_localMap = 0; // do not need to load map
                 return ; // 不需要重复加载localMap_corner_and_surf,但是如果没有加载过localMap就加载一次
             }
-            flag_need_load_localMap = 1; // need to load map
+            flagLoadMap = 0;
+//            flag_need_load_localMap = 1; // need to load map
             localMap_corner->clear();
             localMap_surf->clear();
             std::vector<int> pointSearchInd;
@@ -562,7 +560,7 @@ public:
         }
 //        localMap_corner_and_surf[current_lidar_frameID] =
 //                make_pair(*localMap_corner_ds, *localMap_surf_ds);
-//        last_lidar_frameID = current_lidar_frameID;
+        last_lidar_frameID = current_lidar_frameID;
 //        std::cout << "localMap_corner_and_surf size is :" << localMap_corner_and_surf.size() << std::endl;
 
     }
@@ -1239,7 +1237,6 @@ public:
         current_T_m_l[5] =
                 constraintTransformation(current_T_m_l[5], MappingConfig::z_tollerance);
 
-        incrementalOdometryAffineBack = trans2Affine3f(current_T_m_l);
     }
 
     float constraintTransformation(float value, float limit) {
@@ -1317,7 +1314,7 @@ public:
 
         // last gps position
         static PointType lastGPSPoint;
-        nav_msgs::Odometry thisGPS;
+        // nav_msgs::Odometry thisGPS;
 //        if (syncGPS(gpsQueue, thisGPS, timeLaserInfoCur, 1.0 / SensorConfig::gpsFrequence)) {
 //            // GPS too noisy, skip
 //            float noise_x = thisGPS.pose.covariance[0];
@@ -1536,9 +1533,7 @@ public:
                 break;
 
         }
-//        Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
-//        imu_pre_ptr->AddOdomData(current_lidar_pose_world);
-//        EZLOG(INFO)<<"imu_pre_ptr->AddOdomData "<<std::endl;
+        Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
         pubsub->PublishOdometry(topic_lidar_odometry, current_lidar_pose_world);
     }
 
@@ -1580,17 +1575,25 @@ public:
                     updateInitialGuess();
                     EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
                     if (systemInitialized) {
-                        pub_CornerAndSurfFromMap();
+                        if(flagLoadMap){
+                            pub_CornerAndSurfFromMap();
+
+                        }
+                        TicToc t_2;
                         extractFromPriorMap();
-
+                        EZLOG(INFO)<<"extractFromPriorMap() time : "<<t_2.toc();
+                        TicToc t_3;
                         downsampleCurrentScan();
-
+                        EZLOG(INFO)<<"downsampleCurrentScan() time : "<<t_3.toc();
+                        TicToc t_4;
                         scan2MapOptimization();
-
+                        EZLOG(INFO)<<"scan2MapOptimization() time : "<<t_4.toc();
+                        TicToc t_5;
                         saveKeyFramesAndFactor();
-
+                        EZLOG(INFO)<<"saveKeyFramesAndFactor() time : "<<t_5.toc();
+                        TicToc t_6;
                         publishOdometry();
-
+                        EZLOG(INFO)<<"publishOdometry() time : "<<t_6.toc();
 
                     }
                 }

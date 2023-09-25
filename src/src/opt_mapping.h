@@ -111,7 +111,7 @@ public:
    // std::vector <nav_msgs::Odometry> keyframeRawOdom;
    // std::vector<double> keyframeTimes;
     //std::vector<sensor_msgs::PointCloud2> keyframeCloudDeskewed;
-    std::vector<double> keyframeDistances;
+//    std::vector<double> keyframeDistances;
 
     std::vector<PointType>laserCloudOriCornerVec;  // corner point holder for parallel computation
     std::vector<PointType> coeffSelCornerVec;
@@ -124,7 +124,6 @@ public:
 
     Eigen::Affine3f transPointAssociateToMap;
     Eigen::Affine3f T_wl;
-    Eigen::Affine3f incrementalOdometryAffineFront;
     Eigen::Affine3f incrementalOdometryAffineBack;
     Eigen::Vector3d t_w_cur;
     Eigen::Quaterniond q_w_cur;
@@ -177,7 +176,7 @@ public:
     std::mutex mtxLoopInfo;
     std::mutex mtxGpsInfo;
     std::mutex mtxGraph;
-    nav_msgs::Path globalPath;
+//    nav_msgs::Path globalPath;
 
     void AddCloudData(const CloudFeature& cloud_ft){
         EZLOG(INFO)<<"optmapping_AddCloudData "<<std::endl;
@@ -628,9 +627,6 @@ public:
         //每帧激光初位姿,将四元数转换到欧拉角
         TicToc timer;
 
-        incrementalOdometryAffineFront = trans2Affine3f(transformTobeMapped);
-
-        static Eigen::Affine3f lastGnssTransformation;
         // initialization the first frame
         if (cloudKeyPoses3D->points.empty()) {
             systemInitialized = false;
@@ -822,7 +818,7 @@ public:
     }
 
     void extractSurroundingKeyFrames() {
-        TicToc timer;
+//        TicToc timer;
         if (cloudKeyPoses3D->points.empty() == true) return;
 
         // if (loopClosureEnableFlag == true)
@@ -833,12 +829,12 @@ public:
         // }
 
         extractNearby();
-        double exactsurrounding_key_frames_cost_time = timer.toc();
-        EZLOG(INFO)<<"exactsurrounding_key_frames_cost_time"<<exactsurrounding_key_frames_cost_time<<endl;
+//        double exactsurrounding_key_frames_cost_time = timer.toc();
+//        EZLOG(INFO)<<"exactsurrounding_key_frames_cost_time"<<exactsurrounding_key_frames_cost_time<<endl;
     }
 
     void downsampleCurrentScan() {
-        TicToc timer;
+//        TicToc timer;
         laserCloudRawDS->clear();
         //对当前帧点云降采样  刚刚完成了周围关键帧的降采样 ,为了使点云稀疏化,加快匹配以及实时性要求
         downSizeFilterRaw.setInputCloud(laserCloudRaw);
@@ -855,8 +851,8 @@ public:
         downSizeFilterSurf.filter(*laserCloudSurfLastDS);
         laserCloudSurfLastDSNum = laserCloudSurfLastDS->size();
 
-        double downsample_current_sacn_cost_time = timer.toc();
-        EZLOG(INFO)<<"downsample_current_sacn_cost_time"<<downsample_current_sacn_cost_time<<endl;
+//        double downsample_current_sacn_cost_time = timer.toc();
+//        EZLOG(INFO)<<"downsample_current_sacn_cost_time"<<downsample_current_sacn_cost_time<<endl;
     }
 
     void updatePointAssociateToMap() {
@@ -1199,13 +1195,6 @@ public:
             matA(i, 4) = coeff.x;
             matA(i, 5) = coeff.y;
             //残差项
-
-
-
-
-
-
-
             matB(i, 0) = -coeff.intensity;
         }
         // 将矩阵由matA转置生成matAt
@@ -1288,7 +1277,7 @@ public:
     }
 
     void scan2MapOptimization() {
-        TicToc timer;
+//        TicToc timer;
         if (cloudKeyPoses3D->points.empty()) return;
         //判断当前帧的角点数和面点数是否足够,角点要求10,面点要求100
         if (laserCloudCornerLastDSNum > MappingConfig::edgeFeatureMinValidNum &&
@@ -1307,16 +1296,16 @@ public:
 
                 combineOptimizationCoeffs();
 
-                if (LMOptimization(iterCount) == true) break;
+                if (LMOptimization(iterCount) == true) { break; }
             }
             //把优化后的结果和imu进行一次加权融合；
-            double scantomap_cost_time = timer.toc();
-            EZLOG(INFO)<<"scantomap_cost_time"<<scantomap_cost_time<<endl;
-            transformUpdate();
+//            double scantomap_cost_time = timer.toc();
+//            EZLOG(INFO)<<"scantomap_cost_time"<<scantomap_cost_time<<endl;
+//            transformUpdate();
         } else {
-            ROS_WARN(
-                    "Not enough features! Only %d edge and %d planar features available.",
-                    laserCloudCornerLastDSNum, laserCloudSurfLastDSNum);
+//            ROS_WARN(
+//                    "Not enough features! Only %d edge and %d planar features available.",
+//                    laserCloudCornerLastDSNum, laserCloudSurfLastDSNum);
         }
     }
 
@@ -1356,7 +1345,7 @@ public:
             return false;
 
         // std::cout << "distance gap: " << sqrt(x * x + y * y) << std::endl;
-        keyframeDistances.push_back(sqrt(x * x + y * y));
+//        keyframeDistances.push_back(sqrt(x * x + y * y));
 
         return true;
     }
@@ -1492,7 +1481,7 @@ public:
             lastGPSPoint = curGPSPoint;
 
         if (SensorConfig::debugGps) {
-            ROS_INFO("curr gps pose: %f, %f , %f", gps_x, gps_y, gps_z);
+//            ROS_INFO("curr gps pose: %f, %f , %f", gps_x, gps_y, gps_z);
 //                    ROS_INFO("curr gps cov: %f, %f , %f", thisGPS.pose.covariance[0],
 //                             thisGPS.pose.covariance[7], thisGPS.pose.covariance[14]);
         }
@@ -1591,8 +1580,7 @@ public:
         // odom factor
         addOdomFactor();
         // gps factor
-        if (SensorConfig::useGPS)
-            addGPSFactor();
+        if (SensorConfig::useGPS) { addGPSFactor(); }
 
         // loop factor
         addLoopFactor();
@@ -1727,7 +1715,7 @@ public:
 //        cloud_info.surf_cloud = globalSurfCloudDS;
 //        map_saver.AddCloudToSave(cloud_info);
 
-        updatePath(thisPose6D);
+//        updatePath(thisPose6D);
     }
 
     void correctPoses() {
@@ -1740,7 +1728,7 @@ public:
             laserCloudMapContainer.clear();
             // clear path
             //清空path
-            globalPath.poses.clear();
+//            globalPath.poses.clear();
 
             // update key poses
             int numPoses = isamCurrentEstimate.size();
@@ -1763,7 +1751,7 @@ public:
                 cloudKeyPoses6D->points[i].yaw =
                         isamCurrentEstimate.at<gtsam::Pose3>(i).rotation().yaw();
                 //更新path
-                updatePath(cloudKeyPoses6D->points[i]);
+//                updatePath(cloudKeyPoses6D->points[i]);
             }
 
             aLoopIsClosed = false;
@@ -1794,7 +1782,7 @@ public:
         pose_stamped.pose.orientation.z = q.z();
         pose_stamped.pose.orientation.w = q.w();
 
-        globalPath.poses.push_back(pose_stamped);
+//        globalPath.poses.push_back(pose_stamped);
     }
 
     //发布优化后的里程计

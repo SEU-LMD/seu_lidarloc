@@ -51,7 +51,7 @@ public:
         EZLOG(INFO)<< "ft_extr success!!"<<endl;
         opt_mapping.Init(pubsub);
         EZLOG(INFO)<< "opt_mapping success!!"<<endl;
-//        imu_pre.Init(pubsub);
+        imu_pre.Init(pubsub);
         EZLOG(INFO)<< "imu_pre success!!"<<endl;
 
         //构建数据流关系

@@ -25,6 +25,8 @@
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
 
+//#include "easylogging++.h"
+//INITIALIZE_EASYLOGGINGPP
 using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p,y)
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
@@ -211,6 +213,16 @@ public:
 
 
     void ClearFactorGraph() {
+        gtsam::ISAM2Params optParameters;
+        optParameters.relinearizeThreshold = 0.1;
+        optParameters.relinearizeSkip = 1;
+        optimizer = gtsam::ISAM2(optParameters);
+
+        gtsam::NonlinearFactorGraph newGraphFactors;
+        graphFactors = newGraphFactors;
+
+        gtsam::Values NewGraphValues;
+        graphValues = NewGraphValues;
 //        gtsam::ISAM2Params optParameters;
 //        optParameters.relinearizeThreshold = 0.1;
 //        optParameters.relinearizeSkip = 1;
@@ -218,10 +230,10 @@ public:
 
 //        gtsam::NonlinearFactorGraph newGraphFactors;
 //        graphFactors = newGraphFactors;
-        graphFactors.resize(0);
+//        graphFactors.resize(0);
 //        gtsam::Values NewGraphValues;
 //        graphValues = NewGraphValues;
-        graphValues.clear();
+//        graphValues.clear();
     }
 
     //
@@ -328,7 +340,7 @@ public:
                     continue;
                 }
                 // reset graph for speed
-                if (key == 50) {
+                if (key == SensorConfig::imuGTSAMReset) {
                     // get updated noise before reset
                     gtsam::noiseModel::Gaussian::shared_ptr updatedPoseNoise =
                             gtsam::noiseModel::Gaussian::Covariance(
