@@ -56,6 +56,7 @@ public:
     void CalculateSmoothness(CloudInfo& cur_scan) {
 
         int cloudSize = cur_scan.cloud_ptr->points.size();
+//        EZLOG(INFO)<< "cloudSize :"<<cloudSize;
 
         for (int i = 5; i < cloudSize - 5; i++) {
             //use front 5points and rear 5points to calculate curvature
@@ -66,10 +67,11 @@ public:
                     cur_scan.cloud_ptr->points[i + 1].range + cur_scan.cloud_ptr->points[i + 2].range +
                     cur_scan.cloud_ptr->points[i + 3].range + cur_scan.cloud_ptr->points[i + 4].range +
                     cur_scan.cloud_ptr->points[i + 5].range;
+//            EZLOG(INFO)<< "cur_scan.cloud_ptr->points[i- 5].range :"<<cur_scan.cloud_ptr->points[i- 5].range;
 
             //calculate curvature
             cloudCurvature[i] = diffRange * diffRange;  // diffX * diffX + diffY * diffY + diffZ * diffZ;
-
+//            EZLOG(INFO)<< "cloudCurvature[i]:"<<cloudCurvature[i];
             //0:before feature extraction; 1 after feature extraction or obscured or parallel
             cloudNeighborPicked[i] = 0;
             //-1: surface point; 1:corner point
@@ -128,10 +130,14 @@ public:
     }//end function markOccludedPoints
 
 
-    void ExtractFeatures(CloudInfo& cur_scan,pcl::PointCloud<PointType>::Ptr cornerCloud,pcl::PointCloud<PointType>::Ptr surfaceCloud,pcl::PointCloud<PointType>::Ptr rawCloud) {
+    void ExtractFeatures(CloudInfo& cur_scan,
+                         pcl::PointCloud<PointType>::Ptr cornerCloud,
+                         pcl::PointCloud<PointType>::Ptr surfaceCloud,
+                         pcl::PointCloud<PointType>::Ptr rawCloud) {
 
         pcl::PointCloud<PointType>::Ptr surfaceCloudScan(new pcl::PointCloud<PointType>());
         pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS(new pcl::PointCloud<PointType>());
+        EZLOG(INFO)<<" ExtractFeatures:: cur_scan: "<<cur_scan.cloud_ptr->points.size();
 
         for (int i = 0; i < SensorConfig::N_SCAN; i++) {
             surfaceCloudScan->clear();
@@ -172,8 +178,7 @@ public:
                             pt_tmp.x = pt_origin.x;
                             pt_tmp.y = pt_origin.y;
                             pt_tmp.z = pt_origin.z;
-//                            pt_tmp.intensity = pt_origin.intensity;
-                            pt_tmp.intensity = 1;
+                            pt_tmp.intensity = pt_origin.intensity;
                             cornerCloud->push_back(pt_tmp);
                             rawCloud->push_back(pt_tmp);
                         } else {
@@ -240,8 +245,8 @@ public:
                     }
                 }
 
-//                //for debug use
-//                {
+                //for debug use
+                {
 //                    int n_cor = 0;
 //                    int n_sur = 0;
 //                    int n_pt = 0;
@@ -258,7 +263,7 @@ public:
 //                    EZLOG(INFO) << "n_sur = " << n_sur << std::endl;
 //                    EZLOG(INFO) << "n_pt = " << n_pt << std::endl;
 //                    EZLOG(INFO) << "cornerCloud->size() = " << cornerCloud->size() << std::endl;
-//                }
+                }
 
                   // surface point and point doesn't be processed ,regard as surface
                   ///take too much time

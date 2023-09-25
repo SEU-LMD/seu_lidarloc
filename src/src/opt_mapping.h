@@ -163,8 +163,7 @@ public:
 
     double timeLaserInfoCur;
     bool isDegenerate = false;
-//    cv::Mat matP;
-    Eigen::MatrixXf matP;
+    cv::Mat matP;
 
     Eigen::Vector3d originLLA;
     bool systemInitialized = false;
@@ -263,8 +262,8 @@ public:
         for (int i = 0; i < 6; ++i) {
             transformTobeMapped[i] = 0;
         }
-        matP = Eigen::MatrixXf(6,6);
-//        matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
+
+        matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
     }
 
     void pointAssociateToMap(PointType const *const pi, PointType *const po) {
@@ -876,14 +875,10 @@ public:
             kdtreeCornerFromMap->nearestKSearch(pointSel, 5, pointSearchInd,
                                                 pointSearchSqDis);
 
-//            cv::Mat matA1(3, 3, CV_32F, cv::Scalar::all(0));
-//            cv::Mat matD1(1, 3, CV_32F, cv::Scalar::all(0));
-//            cv::Mat matV1(3, 3, CV_32F, cv::Scalar::all(0));
+            cv::Mat matA1(3, 3, CV_32F, cv::Scalar::all(0));
+            cv::Mat matD1(1, 3, CV_32F, cv::Scalar::all(0));
+            cv::Mat matV1(3, 3, CV_32F, cv::Scalar::all(0));
             //计算找到的点中距离当前点最远的点，如果距离太大那说明这个约束不可信，就跳过
-            Eigen::Matrix3f matA1(3,3);
-            Eigen::MatrixXf matD1(1,3);
-            Eigen::Matrix3f matV1(3,3);
-            
             if (pointSearchSqDis[4] < 1.0) {
                 float cx = 0, cy = 0, cz = 0;
                 for (int j = 0; j < 5; j++) {
@@ -919,33 +914,30 @@ public:
                 a23 /= 5;
                 a33 /= 5;
 
-                matA1(0, 0) = a11;
-                matA1(0, 1) = a12;
-                matA1(0, 2) = a13;
-                matA1(1, 0) = a12;
-                matA1(1, 1) = a22;
-                matA1(1, 2) = a23;
-                matA1(2, 0) = a13;
-                matA1(2, 1) = a23;
-                matA1(2, 2) = a33;
+                matA1.at<float>(0, 0) = a11;
+                matA1.at<float>(0, 1) = a12;
+                matA1.at<float>(0, 2) = a13;
+                matA1.at<float>(1, 0) = a12;
+                matA1.at<float>(1, 1) = a22;
+                matA1.at<float>(1, 2) = a23;
+                matA1.at<float>(2, 0) = a13;
+                matA1.at<float>(2, 1) = a23;
+                matA1.at<float>(2, 2) = a33;
                 //特征值分解 为 证明这5个点是一条直线
-//                cv::eigen(matA1, matD1, matV1);
-                Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(matA1);
-                matD1 = solver.eigenvalues();
-                matV1 = solver.eigenvectors();
+                cv::eigen(matA1, matD1, matV1);
                 //这是线特征 ， 要求最大特征值 大于3倍的次大特征值
-                if (matD1(0, 0) > 3 * matD1(0, 1)) {
+                if (matD1.at<float>(0, 0) > 3 * matD1.at<float>(0, 1)) {
                     float x0 = pointSel.x;
                     float y0 = pointSel.y;
                     float z0 = pointSel.z;
                     //进行直线的构建
                     //通过点的均值往两边拓展,因为最大特征值对应的特征向量对应的就是直线的方向向量,所以用的matV1的第0行
-                    float x1 = cx + 0.1 * matV1(0, 0);
-                    float y1 = cy + 0.1 * matV1(0, 1);
-                    float z1 = cz + 0.1 * matV1(0, 2);
-                    float x2 = cx - 0.1 * matV1(0, 0);
-                    float y2 = cy - 0.1 * matV1(0, 1);
-                    float z2 = cz - 0.1 * matV1(0, 2);
+                    float x1 = cx + 0.1 * matV1.at<float>(0, 0);
+                    float y1 = cy + 0.1 * matV1.at<float>(0, 1);
+                    float z1 = cz + 0.1 * matV1.at<float>(0, 2);
+                    float x2 = cx - 0.1 * matV1.at<float>(0, 0);
+                    float y2 = cy - 0.1 * matV1.at<float>(0, 1);
+                    float z2 = cz - 0.1 * matV1.at<float>(0, 2);
                     //假设直线上的两点为A和B,O为当前帧角点转换到map坐标系下的点
                     //下式计算为AO向量叉乘BO向量,结果为垂直为平面向上的向量
                     float a012 =
@@ -1131,18 +1123,12 @@ public:
             return false;
         }
 
-//        cv::Mat matA(laserCloudSelNum, 6, CV_32F, cv::Scalar::all(0));
-//        cv::Mat matAt(6, laserCloudSelNum, CV_32F, cv::Scalar::all(0));
-//        cv::Mat matAtA(6, 6, CV_32F, cv::Scalar::all(0));
-//        cv::Mat matB(laserCloudSelNum, 1, CV_32F, cv::Scalar::all(0));
-//        cv::Mat matAtB(6, 1, CV_32F, cv::Scalar::all(0));
-//        cv::Mat matX(6, 1, CV_32F, cv::Scalar::all(0));
-        Eigen::MatrixXf matA(laserCloudSelNum,6);
-        Eigen::MatrixXf matAt(6,laserCloudSelNum);
-        Eigen::MatrixXf matAtA(6,6);
-        Eigen::MatrixXf matB(laserCloudSelNum,1);
-        Eigen::MatrixXf matAtB(6,1);
-        Eigen::MatrixXf matX(6,1);
+        cv::Mat matA(laserCloudSelNum, 6, CV_32F, cv::Scalar::all(0));
+        cv::Mat matAt(6, laserCloudSelNum, CV_32F, cv::Scalar::all(0));
+        cv::Mat matAtA(6, 6, CV_32F, cv::Scalar::all(0));
+        cv::Mat matB(laserCloudSelNum, 1, CV_32F, cv::Scalar::all(0));
+        cv::Mat matAtB(6, 1, CV_32F, cv::Scalar::all(0));
+        cv::Mat matX(6, 1, CV_32F, cv::Scalar::all(0));
 
         PointType pointOri, coeff;
         //遍历匹配特征点，构建Jacobian矩阵
@@ -1187,20 +1173,26 @@ public:
                         coeff.z;
             // camera -> lidar
             //matA就是误差对旋转和平移变量的雅克比矩阵
-            matA(i, 0) = arz;
-            matA(i, 1) = arx;
-            matA(i, 2) = ary;
+            matA.at<float>(i, 0) = arz;
+            matA.at<float>(i, 1) = arx;
+            matA.at<float>(i, 2) = ary;
             //对平移求误差就是法向量
-            matA(i, 3) = coeff.z;
-            matA(i, 4) = coeff.x;
-            matA(i, 5) = coeff.y;
+            matA.at<float>(i, 3) = coeff.z;
+            matA.at<float>(i, 4) = coeff.x;
+            matA.at<float>(i, 5) = coeff.y;
             //残差项
-            matB(i, 0) = -coeff.intensity;
+
+
+
+
+
+
+
+            matB.at<float>(i, 0) = -coeff.intensity;
         }
         // 将矩阵由matA转置生成matAt
         // 先进行计算，以便于后边调用 cv::solve求解
-//        cv::transpose(matA, matAt);
-        matAt = matA.transpose();
+        cv::transpose(matA, matAt);
         //JTJ
         matAtA = matAt * matA;
         //-JTe
@@ -1208,25 +1200,16 @@ public:
         // 高斯牛顿法的原型是J^(T)*J * delta(x) = -J*f(x)
         // CV的方法求解JTJX=-JTe
         // 通过QR分解的方式，求解matAtA*matX=matAtB，得到解matX
-//        cv::solve(matAtA, matAtB, matX, cv::DECOMP_QR);
-        Eigen::HouseholderQR<Eigen::MatrixXf> qr(matAtA);
-        matX = qr.solve(matAtB);
+        cv::solve(matAtA, matAtB, matX, cv::DECOMP_QR);
+
         //iterCount==0 说明是第一次迭代，需要初始化
         if (iterCount == 0) {
             //对近似的Hessian矩阵JTJ特征值分解
-//            cv::Mat matE(1, 6, CV_32F, cv::Scalar::all(0));
-//            cv::Mat matV(6, 6, CV_32F, cv::Scalar::all(0));
-//            cv::Mat matV2(6, 6, CV_32F, cv::Scalar::all(0));
-            Eigen::MatrixXf matE(1,6);
-            Eigen::MatrixXf matV(6,6);
-            Eigen::MatrixXf matV2(6,6);
-
-//            cv::eigen(matAtA, matE, matV);
-//            matV.copyTo(matV2);
-            Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(matAtA);
-            matE = solver.eigenvalues();
-            matV = solver.eigenvectors();
-            matV2 = matV;
+            cv::Mat matE(1, 6, CV_32F, cv::Scalar::all(0));
+            cv::Mat matV(6, 6, CV_32F, cv::Scalar::all(0));
+            cv::Mat matV2(6, 6, CV_32F, cv::Scalar::all(0));
+            cv::eigen(matAtA, matE, matV);
+            matV.copyTo(matV2);
 
             isDegenerate = false;
             //初次优化时，特征值门限设置为100，小于这个值认为是退化了
@@ -1234,41 +1217,37 @@ public:
 
             //检查是否有退化情况，对JTJ进行特征分解
             for (int i = 5; i >= 0; i--) {
-                if (matE(0, i) < eignThre[i]) {
+                if (matE.at<float>(0, i) < eignThre[i]) {
                     for (int j = 0; j < 6; j++) {
-                        matV2(i, j) = 0;
+                        matV2.at<float>(i, j) = 0;
                     }
                     isDegenerate = true;
                 } else {
                     break;
                 }
             }
-//            matP = matV.inv() * matV2;
-            matP = matV.inverse() * matV2;
+            matP = matV.inv() * matV2;
         }
         //如果发生退化，就对增量进行修改，退化方向不更新
         if (isDegenerate) {
-//            cv::Mat matX2(6, 1, CV_32F, cv::Scalar::all(0));
-//            matX.copyTo(matX2);
-//            matX = matP * matX2;
-            Eigen::MatrixXf matX2(6,1);
-            matX2 = matX;
+            cv::Mat matX2(6, 1, CV_32F, cv::Scalar::all(0));
+            matX.copyTo(matX2);
             matX = matP * matX2;
         }
         //增量更新,更新当前位姿x=x+deltax
-        transformTobeMapped[0] += matX(0, 0);
-        transformTobeMapped[1] += matX(1, 0);
-        transformTobeMapped[2] += matX(2, 0);
-        transformTobeMapped[3] += matX(3, 0);
-        transformTobeMapped[4] += matX(4, 0);
-        transformTobeMapped[5] += matX(5, 0);
+        transformTobeMapped[0] += matX.at<float>(0, 0);
+        transformTobeMapped[1] += matX.at<float>(1, 0);
+        transformTobeMapped[2] += matX.at<float>(2, 0);
+        transformTobeMapped[3] += matX.at<float>(3, 0);
+        transformTobeMapped[4] += matX.at<float>(4, 0);
+        transformTobeMapped[5] += matX.at<float>(5, 0);
         //
-        float deltaR = sqrt(pow(pcl::rad2deg(matX(0, 0)), 2) +
-                            pow(pcl::rad2deg(matX(1, 0)), 2) +
-                            pow(pcl::rad2deg(matX(2, 0)), 2));
-        float deltaT = sqrt(pow(matX(3, 0) * 100, 2) +
-                            pow(matX(4, 0) * 100, 2) +
-                            pow(matX(5, 0) * 100, 2));
+        float deltaR = sqrt(pow(pcl::rad2deg(matX.at<float>(0, 0)), 2) +
+                            pow(pcl::rad2deg(matX.at<float>(1, 0)), 2) +
+                            pow(pcl::rad2deg(matX.at<float>(2, 0)), 2));
+        float deltaT = sqrt(pow(matX.at<float>(3, 0) * 100, 2) +
+                            pow(matX.at<float>(4, 0) * 100, 2) +
+                            pow(matX.at<float>(5, 0) * 100, 2));
         // 旋转或者平移量足够小就停止这次迭代过程
         if (deltaR < 0.05 && deltaT < 0.05) {
             return true;  // converged
@@ -1277,7 +1256,7 @@ public:
     }
 
     void scan2MapOptimization() {
-//        TicToc timer;
+        TicToc timer;
         if (cloudKeyPoses3D->points.empty()) return;
         //判断当前帧的角点数和面点数是否足够,角点要求10,面点要求100
         if (laserCloudCornerLastDSNum > MappingConfig::edgeFeatureMinValidNum &&
