@@ -7,8 +7,8 @@
   # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!
 #  save_map_path: "/home/wxy/seu/noros/seu_lidarloc/src/result"
-#  save_map_path: "/home/wxy/seu/noros/seu_lidarloc/src/result"
-  save_map_path: "/home/lsy/map/"
+#  save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new"
+  save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/map/"
 
   # Export settings
   savePCD: false                              # https://github.com/TixiaoShan/LIO-SAM/issues/3
