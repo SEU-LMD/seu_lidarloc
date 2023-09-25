@@ -475,7 +475,8 @@ public:
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
-        if(lidarScan_cnt > SensorConfig::lidarScanDownSample && MappingConfig::slam_mode_switch == 1 ){
+        if((lidarScan_cnt > SensorConfig::lidarScanDownSample && MappingConfig::slam_mode_switch == 1)
+            ||MappingConfig::slam_mode_switch == 0){
             //        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
             CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
 

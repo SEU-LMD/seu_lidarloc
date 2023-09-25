@@ -169,7 +169,7 @@ public:
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
         gnss_ins_mutex.lock();
-//        deque_gnssins.push_back(gnss_ins_data);
+        deque_gnssins.push_back(gnss_ins_data);
         gnss_ins_mutex.unlock();
     }
 
@@ -406,7 +406,7 @@ public:
 
     void updateInitialGuess() {
         // save current transformation before any processing
-        static Eigen::Affine3f lastImuTransformation;
+//        static Eigen::Affine3f lastImuTransformation;
 
         // initialization the first frame
 //        根据gps信息，加载地图
@@ -418,10 +418,10 @@ public:
                 current_T_m_l[0] = q_w_cur_roll;
                 current_T_m_l[1] = q_w_cur_pitch;
                 current_T_m_l[2] = q_w_cur_yaw;
-                current_T_m_l[3] = t_w_cur[0];
-                current_T_m_l[4] = t_w_cur[1];
-                current_T_m_l[5] = t_w_cur[2];
-                lastImuTransformation = pcl::getTransformation(0, 0, 0, 0, 0,0);
+//                current_T_m_l[3] = t_w_cur[0];
+//                current_T_m_l[4] = t_w_cur[1];
+//                current_T_m_l[5] = t_w_cur[2];
+//                lastImuTransformation = pcl::getTransformation(0, 0, 0, 0, 0,0);
                 systemInitialized = true;
                 return;
             }
@@ -1047,7 +1047,7 @@ public:
 
         int laserCloudSelNum = laserCloudOri->size();
 
-        std::cout<<"laserCloudSelNum is : " <<laserCloudSelNum <<std::endl;
+//        std::cout<<"laserCloudSelNum is : " <<laserCloudSelNum <<std::endl;
         if (laserCloudSelNum < 50) {
             return false;
         }
@@ -1515,14 +1515,14 @@ public:
                 CloudFeature cur_ft;
                 cloud_mutex.lock();
                 cur_ft = deque_cloud.front();
-                EZLOG(INFO)<<"cur_ft.frame_id:  "<<cur_ft.frame_id;
+//                EZLOG(INFO)<<"cur_ft.frame_id:  "<<cur_ft.frame_id;
                 deque_cloud.pop_front();
                 cloud_mutex.unlock();
 
                 //just do something
 //                timeLaserInfoStamp = msgIn->header.stamp;
-                EZLOG(INFO)<<"cur_ft.surfaceCloud size: "<< cur_ft.surfaceCloud->points.size();
-                EZLOG(INFO)<<"cur_ft.cornerCloud size: "<<  cur_ft.cornerCloud->points.size();
+//                EZLOG(INFO)<<"cur_ft.surfaceCloud size: "<< cur_ft.surfaceCloud->points.size();
+//                EZLOG(INFO)<<"cur_ft.cornerCloud size: "<<  cur_ft.cornerCloud->points.size();
                 timeLaserInfoCur = cur_ft.timestamp;
                 current_surf = cur_ft.surfaceCloud;
                 current_corner = cur_ft.cornerCloud;

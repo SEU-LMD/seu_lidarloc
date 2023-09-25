@@ -1865,8 +1865,10 @@ public:
                 //just do something
 //                code
                 timeLaserInfoCur = cur_ft.timestamp;
-                auto cur_surf = *cur_ft.surfaceCloud;
-                auto cur_corner = *cur_ft.cornerCloud;
+//                auto cur_surf = *cur_ft.surfaceCloud;
+//                auto cur_corner = *cur_ft.cornerCloud;
+                laserCloudCornerLast = cur_ft.cornerCloud;
+                laserCloudSurfLast = cur_ft.surfaceCloud;
                 t_w_cur = cur_ft.pose.GetXYZ();
                 q_w_cur = cur_ft.pose.GetQ();
                 q_w_cur.normalize();

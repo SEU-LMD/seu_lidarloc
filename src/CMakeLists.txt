@@ -54,6 +54,7 @@ include_directories(
         ./src
         ${Communication_DIR}
         ${PCL_INCLUDE_DIRS}
+        ${OpenCV_INCLUDE_DIRS}
         ${GTSAM_INCLUDE_DIR}
         ${EIGEN3_INCLUDE_DIR}
         ./ThirdParty/GeographicLib/
