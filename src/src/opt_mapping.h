@@ -1566,8 +1566,8 @@ public:
         addLoopFactor();
 
 
-        // cout << "****************************************************" << endl;
-        // gtSAMgraph.print("GTSAM Graph:\n");
+         cout << "****************************************************" << endl;
+         gtSAMgraph.print("GTSAM Graph:\n");
 
         // add raw odom
         //关键帧原始里程计的信息

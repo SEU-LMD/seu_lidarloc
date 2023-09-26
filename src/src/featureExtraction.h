@@ -199,8 +199,6 @@ public:
                     }
                 }// end! traverse by curvature, from small to large
 
-//                EZLOG(INFO) << "cornerCloud->size() = " << cornerCloud->size() << std::endl;
-
                 //extract surface point
                 for (int k = sp; k <= ep; k++) {
                     int ind = cloudSmoothness[k].ind;
@@ -313,21 +311,35 @@ public:
                 EZLOG(INFO)<<"feature extraction cost time(ms) = "<<timer2.toc()<<std::endl;
                 TicToc timer1;
 
-                int n_cor =0;
-                int n_sur =0;
-                for(int k_rawCloud = 0;k_rawCloud <= rawCloud->size();++k_rawCloud){
-                    if(rawCloud->points[k_rawCloud].intensity == 1){
-                        ++n_cor;
-                    }else if(rawCloud->points[k_rawCloud].intensity == -1){
-                        ++n_sur;
-                    }
-                }
+//                int n_cor =0;
+//                int n_sur =0;
+//                for(int k_rawCloud = 0;k_rawCloud <= rawCloud->size();++k_rawCloud){
+//                    if(rawCloud->points[k_rawCloud].intensity == 1){
+//                        ++n_cor;
+//                    }else if(rawCloud->points[k_rawCloud].intensity == -1){
+//                        ++n_sur;
+//                    }
+//                }
+//                EZLOG(INFO)<<"n_cor = "<<n_cor<<std::endl;
+//                EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<std::endl;
+//                EZLOG(INFO)<<"n_sur = "<<n_sur<<std::endl;
+//                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<std::endl;
+//                int n_cor =0;
+//                int n_sur =0;
+//                for(int k_rawCloud = 0;k_rawCloud <= rawCloud->size();++k_rawCloud){
+//                    if(rawCloud->points[k_rawCloud].intensity == 1){
+//                        ++n_cor;
+//                    }else if(rawCloud->points[k_rawCloud].intensity == -1){
+//                        ++n_sur;
+//                    }
+//                }
 //                EZLOG(INFO)<<"n_cor = "<<n_cor<<std::endl;
 //                EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<std::endl;
 //                EZLOG(INFO)<<"n_sur = "<<n_sur<<std::endl;
 //                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<std::endl;
 
 //                ///save cloud with label
+                if(MappingConfig::slam_mode_switch == 0)
                 {
                     CloudInfoFt raw_cloud;
                     raw_cloud.raw_Cloud = rawCloud;
@@ -401,7 +413,10 @@ public:
         pubsub->addPublisher(topic_corner_world, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_surf_world, DataType::LIDAR, 10);
         do_work_thread = new std::thread(&FeatureExtraction::DoWork, this);
-        save_Map_thread = new std::thread(&MapSaver::do_work, &(FeatureExtraction::map_saver));
+        if(MappingConfig::slam_mode_switch == 0){
+            save_Map_thread = new std::thread(&MapSaver::do_work, &(FeatureExtraction::map_saver));
+        }
+
 
     }
 

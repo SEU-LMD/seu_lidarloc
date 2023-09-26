@@ -1,5 +1,5 @@
 # 0 for opt mapping->wxy, 1 for loc mapping->sy.
-  slam_mode_switch: 0
+  slam_mode_switch: 1
 
 # 1 for debug (pub to rviz),0 for not debug
   if_debug: 0
@@ -7,8 +7,8 @@
   # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!
 #  save_map_path: "/home/wxy/seu/noros/seu_lidarloc/src/result"
-#  save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new"
-  save_map_path: "/home/lsy/map/"
+  save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/map/"
+#  save_map_path: "/home/lsy/map/"
 
   # Export settings
   savePCD: false                              # https://github.com/TixiaoShan/LIO-SAM/issues/3
@@ -45,10 +45,10 @@
   LocalMap_updata_perframe: 20
 
   scan_2_prior_map: 1     # 0 for scan 2 localmap, 1 for scan 2 priormap, 2 for scan 2 scan
-#  prior_corner_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/seu_lidarloc/src/global_corner.pcd" #/home/lsy/seu_lidarloc/src/global_surf.pcd
-#  prior_surf_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/seu_lidarloc/src/global_surf.pcd"
-  prior_corner_map_path: "/home/lsy/seu_lidarloc/src/global_corner.pcd"
-  prior_surf_map_path: "/home/lsy/seu_lidarloc/src/global_surf.pcd"
+  prior_corner_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/yuanqu/global_corner.pcd"
+  prior_surf_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/yuanqu/global_surf.pcd"
+#  prior_corner_map_path: "/home/lsy/seu_lidarloc/src/global_corner.pcd"
+#  prior_surf_map_path: "/home/lsy/seu_lidarloc/src/global_surf.pcd"
   scan_2_scan_num_surf: 50000
   scan_2_scan_num_corner: 30000
 

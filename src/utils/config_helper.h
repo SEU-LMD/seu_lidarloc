@@ -54,6 +54,7 @@ class SensorConfig{
     static int  downsampleRate;
     static float  lidarMinRange;
     static float lidarMaxRange;
+    static int LMOpt_Cnt;
 
     //IMU Settings
     static double imuAccNoise;
@@ -205,6 +206,7 @@ int  SensorConfig::Horizon_SCAN=-1;
 int  SensorConfig::downsampleRate=-1;
 float  SensorConfig::lidarMinRange=-1;
 float SensorConfig::lidarMaxRange=-1;
+int SensorConfig::LMOpt_Cnt = 10;
 
 
     //IMU Settings
@@ -360,6 +362,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::downsampleRate=sensorconfig["downsampleRate"].as<int >();
     SensorConfig::lidarMinRange=sensorconfig["lidarMinRange"].as<float >();
     SensorConfig::lidarMaxRange=sensorconfig["lidarMaxRange"].as<float >();
+    SensorConfig::LMOpt_Cnt=sensorconfig["LMOpt_Cnt"].as<int>();
 //    std::cout<<SensorConfig::lidarMaxRange<<std::endl;
 
 

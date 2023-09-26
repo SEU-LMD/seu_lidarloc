@@ -418,9 +418,9 @@ public:
                 current_T_m_l[0] = q_w_cur_roll;
                 current_T_m_l[1] = q_w_cur_pitch;
                 current_T_m_l[2] = q_w_cur_yaw;
-//                current_T_m_l[3] = t_w_cur[0];
-//                current_T_m_l[4] = t_w_cur[1];
-//                current_T_m_l[5] = t_w_cur[2];
+                current_T_m_l[3] = t_w_cur[0];
+                current_T_m_l[4] = t_w_cur[1];
+                current_T_m_l[5] = t_w_cur[2];
 //                lastImuTransformation = pcl::getTransformation(0, 0, 0, 0, 0,0);
                 systemInitialized = true;
                 return;
@@ -431,7 +431,9 @@ public:
             EZLOG(INFO)<<"sysyem need to be initialized";
             return;
         }
-
+//        Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
+//                t_w_cur[0], t_w_cur[1], t_w_cur[2],q_w_cur_roll,
+//                q_w_cur_pitch , q_w_cur_yaw);
 //      世界系
         Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
                 t_w_cur[0], t_w_cur[1], t_w_cur[2],q_w_cur_roll,
@@ -442,22 +444,6 @@ public:
                 current_T_m_l[5], current_T_m_l[0],
                 current_T_m_l[1], current_T_m_l[2]);
         current_frame = WORLD;
-    }
-    void MODE_SCAN_2_LOCALMAP()
-    {
-        ;
-    }
-    void MODE_SCAN_2_SCAN()
-    {
-        if(Keyframe_Poses3D->points.empty() != true)
-        {
-            EZLOG(INFO) << "MODE: Scan to SCAN!";
-            extractNearby();
-        }
-    }
-    void MODE_SCAN_2_PRIORMAP()
-    {
-        ;
     }
 
 /**
@@ -471,10 +457,10 @@ public:
         if(MappingConfig::scan_2_prior_map == 1 ){ //init load local map from prior
             PointType init_point; //can be changed in gnss map
             if(Keyframe_Poses3D->points.empty() ){
-                init_point.x = 0.;
-                init_point.y = 0.;
-                init_point.z = 0.;
-                init_point.intensity = 0;
+                init_point.x = t_w_cur.x();
+                init_point.y = t_w_cur.y();
+                init_point.z = t_w_cur.z();
+                init_point.intensity = current_frameID;
             }
             else{
                 init_point.x = t_w_cur.x();
@@ -533,8 +519,11 @@ public:
             downSizeFilterSurf.filter(*localMap_surf_ds);
             localMap_surf_ds_num = localMap_surf_ds->size();
             //P_l = (T_wl)^-1 * P_w
-//            如果先验地图是世界系的，需要转换成激光雷达系
+//            如果先验地图是世界系的，需要转换成激光雷达系,但是不需要平移向量了
             Eigen::Matrix4f T_matrix_L_B = SensorConfig::T_L_B.cast<float>();
+            T_matrix_L_B(0,3) = 0.0;
+            T_matrix_L_B(1,3) = 0.0;
+            T_matrix_L_B(2,3) = 0.0;
             pcl::transformPointCloud(*localMap_surf_ds, *localMap_surf_ds, T_matrix_L_B.inverse());
             pcl::transformPointCloud(*localMap_corner_ds, *localMap_corner_ds, T_matrix_L_B.inverse());
             flag_use_world_localMap = 1;
@@ -545,7 +534,7 @@ public:
             if(Keyframe_Poses3D->points.empty() != true)
             {
 //                EZLOG(INFO) << "MODE: Scan to SCAN!";
-                extractNearby();
+
             }
         }
         std::cout << " localMap_surf_ds_num is: "<<localMap_surf_ds_num
@@ -561,106 +550,6 @@ public:
         last_lidar_frameID = current_lidar_frameID;
 //        std::cout << "localMap_corner_and_surf size is :" << localMap_corner_and_surf.size() << std::endl;
 
-    }
-    void extractLastScan()
-    {
-        ;
-    }
-    /**
-     * 根據輸入點雲構造KD树
-     */
-    void  extractNearby() {
-
-        pcl::PointCloud<PointType>::Ptr near_keyframe_poses_temp(
-                new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr near_keyframe_poses_ds_temp(
-                new pcl::PointCloud<PointType>());
-        std::vector<int> pointSearchInd;
-        std::vector<float> pointSearchSqDis;
-
-        // extract all the nearby key poses and downsample them
-        ///////////////////////////////////////////////////////  need points from local map -> localCloudKeyPoses3D
-        // 歷史關鍵幀xyz，用於搜索当前关键帧
-        kdtree_Keyframe_Poses3D->setInputCloud(
-                Keyframe_Poses3D);  // create kd-tree
-        kdtree_Keyframe_Poses3D->radiusSearch(
-                Keyframe_Poses3D->back(), (double) MappingConfig::surroundingKeyframeSearchRadius,//50
-                pointSearchInd, pointSearchSqDis);
-        std::cout << "kdtree_Keyframe_Poses3D we find : " << pointSearchInd.size()<<std::endl;
-        for (int i = 0; i < (int) pointSearchInd.size(); ++i) {
-            int id = pointSearchInd[i];
-            near_keyframe_poses_temp->push_back(Keyframe_Poses3D->points[id]);
-        }
-
-        near_keyframe_poses_ds.setInputCloud(near_keyframe_poses_temp);
-        near_keyframe_poses_ds.filter(*near_keyframe_poses_ds_temp);
-//        消除降采样的影响，对杂揉点云重新赋索引
-        for (auto &pt : near_keyframe_poses_ds_temp->points) {
-            kdtree_Keyframe_Poses3D->nearestKSearch(pt, 1, pointSearchInd,
-                                                    pointSearchSqDis);
-            pt.intensity = Keyframe_Poses3D->points[pointSearchInd[0]].intensity;
-            std::cout<<"pt.intensity: "<<pt.intensity<<std::endl;
-        }
-        // also extract some latest key frames in case the robot rotates in one
-        // position
-//        10s内的位置信息存入点云
-        int numPoses = Keyframe_Poses3D->size();
-        std::cout<<"num of HistroyPoses: "<<numPoses<<std::endl;
-        for (int i = numPoses - 1 ; i >= 0; --i) {
-            if (timeLaserInfoCur - Keyframe_Poses6D->points[i].time < 10.0)
-                near_keyframe_poses_ds_temp->push_back(Keyframe_Poses3D->points[i]);
-            else
-                break;
-        }
-//        surroundingKeyPosesDS这里只有激光的xyz，没有点云信息，需要把点云提取出来
-        std::cout<<"num of near_keyframe_poses_ds_temp: "<<near_keyframe_poses_ds_temp->size()<<std::endl;
-        extractCloud(near_keyframe_poses_ds_temp);
-    }
-
-    void extractCloud(pcl::PointCloud<PointType>::Ptr cloudToExtract) {
-        // fuse the map
-//      Local Map from Prior Map.
-        localMap_corner->clear();
-        localMap_surf->clear();
-
-        for (int i = 0; i < (int) cloudToExtract->size(); ++i) {
-            if (pointDistance(cloudToExtract->points[i], Keyframe_Poses3D->back()) >
-                MappingConfig::surroundingKeyframeSearchRadius){
-//                remove far points 点不能距离关键帧太远 //5m or 30m or 50m
-                continue;
-            }
-
-            int thisKeyInd = (int) cloudToExtract->points[i].intensity;
-//            point found
-            if (localMap_corner_and_surf.find(thisKeyInd) != localMap_corner_and_surf.end()) {
-                // transformed cloud available
-                *localMap_corner += localMap_corner_and_surf[thisKeyInd].first;
-                *localMap_surf += localMap_corner_and_surf[thisKeyInd].second;
-            } else { //not found
-                // transformed cloud not available
-                pcl::PointCloud<PointType> localMap_corner_temp =
-                        *transformPointCloud(Keyframe_corner_ds[thisKeyInd],
-                                             &Keyframe_Poses6D->points[thisKeyInd]);
-                pcl::PointCloud<PointType> localMap_surf_temp =
-                        *transformPointCloud(Keyframe_surf_ds[thisKeyInd],
-                                             &Keyframe_Poses6D->points[thisKeyInd]);
-                *localMap_corner += localMap_corner_temp;
-                *localMap_surf += localMap_surf_temp;
-                localMap_corner_and_surf[thisKeyInd] =
-                        make_pair(localMap_corner_temp, localMap_surf_temp);
-                std::cout << "localMap_corner_and_surf size is :" << localMap_corner_and_surf.size() << std::endl;
-
-            }
-        }
-        downSizeFilterCorner.setInputCloud(localMap_corner);
-        downSizeFilterCorner.filter(*localMap_corner_ds);
-        localMap_corner_ds_num = localMap_corner_ds->size();
-        // Downsample the surrounding surf key frames (or map)
-        downSizeFilterSurf.setInputCloud(localMap_surf);
-        downSizeFilterSurf.filter(*localMap_surf_ds);
-        localMap_surf_ds_num = localMap_surf_ds->size();
-
-        if (localMap_corner_and_surf.size() > 1000) localMap_corner_and_surf.clear();
     }
 
     /**
@@ -829,6 +718,16 @@ public:
                 matA1.at<float>(2, 2) = a33;
 
                 cv::eigen(matA1, matD1, matV1);
+                float matv1_f[3];
+                float matV1_norm;
+
+                matV1_norm = sqrt(matV1.at<float>(0, 0)* matV1.at<float>(0, 0)+
+                                  matV1.at<float>(0, 1)*matV1.at<float>(0, 1)+
+                                  matV1.at<float>(0, 2)*matV1.at<float>(0, 2));
+                matV1_norm = 1 / matV1_norm;
+                matv1_f[0] = matV1_norm * matv1_f[0];
+                matv1_f[1] = matV1_norm * matv1_f[1];
+                matv1_f[2] = matV1_norm * matv1_f[2];
 
                 if (matD1.at<float>(0, 0) > 3 * matD1.at<float>(0, 1)) {
                     float x0 = pointSel.x;
@@ -841,31 +740,46 @@ public:
                     float y2 = cy - 0.1 * matV1.at<float>(0, 1);
                     float z2 = cz - 0.1 * matV1.at<float>(0, 2);
 
+                    float a012_x,a012_y,a012_z;
+                    a012_x = (x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1);
+                    a012_y = (x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1);
+                    a012_z = (y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1);
                     float a012 =
-                            sqrt(((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) *
-                                 ((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) +
-                                 ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1)) *
-                                 ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1)) +
-                                 ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1)) *
-                                 ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1)));
+                            sqrt(a012_x * a012_x +
+                                 a012_y * a012_y +
+                                 a012_z * a012_z);
 
-                    float l12 = sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) +
-                                     (z1 - z2) * (z1 - z2));
+//                    float a012 =
+//                            sqrt(((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) *
+//                                 ((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) +
+//                                 ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1)) *
+//                                 ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1)) +
+//                                 ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1)) *
+//                                 ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1)));
 
-                    float la =
-                            ((y1 - y2) * ((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) +
-                             (z1 - z2) * ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1))) /
-                            a012 / l12;
+                    float l12_a = (x1 - x2);
+                    float l12_b = (y1 - y2);
+                    float l12_c = (z1 - z2);
+                    float l12 = sqrt(l12_a * l12_a + l12_b * l12_b +
+                                             l12_c * l12_c);
 
-                    float lb =
-                            -((x1 - x2) * ((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) -
-                              (z1 - z2) * ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1))) /
-                            a012 / l12;
+//                    float la =
+//                            ((y1 - y2) * ((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) +
+//                             (z1 - z2) * ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1))) /
+//                            a012 / l12;
+                    float la = matv1_f[0];
 
-                    float lc =
-                            -((x1 - x2) * ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1)) +
-                              (y1 - y2) * ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1))) /
-                            a012 / l12;
+//                    float lb =
+//                            -((x1 - x2) * ((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) -
+//                              (z1 - z2) * ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1))) /
+//                            a012 / l12;
+                    float lb = matv1_f[1];
+
+//                    float lc =
+//                            -((x1 - x2) * ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1)) +
+//                              (y1 - y2) * ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1))) /
+//                            a012 / l12;
+                    float lc = matv1_f[2];
 
 //                    点到直线的距离
                     float ld2 = a012 / l12;
@@ -1184,6 +1098,17 @@ public:
 
                 combineOptimizationCoeffs();
 
+                if(iterCount > SensorConfig::LMOpt_Cnt){
+                    current_T_m_l[0] = q_w_cur_roll;
+                    current_T_m_l[1] = q_w_cur_pitch;
+                    current_T_m_l[2] = q_w_cur_yaw;
+                    current_T_m_l[3] = t_w_cur[0];
+                    current_T_m_l[4] = t_w_cur[1];
+                    current_T_m_l[5] = t_w_cur[2];
+                    EZLOG(INFO)<<"LMOptimization FAILED!!";
+                    break;
+                }
+
                 if (LMOptimization(iterCount) == true) {
                     std::cout <<"iterCount: " << iterCount<<std::endl;
                     std::cout << "optimize_time in ms: "<<optimize_time.toc() <<std::endl;
@@ -1252,7 +1177,7 @@ public:
         } else {
             gtsam::noiseModel::Diagonal::shared_ptr odometryNoise =
                     gtsam::noiseModel::Diagonal::Variances(
-                            (gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
+                            (gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-6).finished());
             gtsam::Pose3 poseFrom =
                     pclPointTogtsamPose3(Keyframe_Poses6D->points.back());
             gtsam::Pose3 poseTo = trans2gtsamPose(current_T_m_l);
@@ -1406,7 +1331,7 @@ public:
             frame_cnt = 0;
             gtsam::noiseModel::Diagonal::shared_ptr GNSS_noise =
                     gtsam::noiseModel::Diagonal::Variances(
-                            (gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
+                            (gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1, 1, 1).finished());
             gtsam::Pose3 gnss_pose_From = last_gnss_poses;
             gtsam::Pose3 gnss_pose_To = current_gnss_poses;
 
@@ -1427,7 +1352,7 @@ public:
         addOdomFactor();
 
         // gps factor
-        addGNSSBetweenFactor();
+//        addGNSSBetweenFactor();
 //        if (SensorConfig::useGPS) addGPSFactor();
 
         cout << "****************************************************" << endl;

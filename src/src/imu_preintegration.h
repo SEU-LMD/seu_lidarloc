@@ -161,7 +161,7 @@ public:
 
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
         EZLOG(INFO)<<"topic_imu_raw_odom "<<std::endl;
-
+//        Odometry_imuPredict_pub.pose.GetQ().
 
         Function_AddOdometryTypeToImageProjection(Odometry_imuPredict_pub);
 

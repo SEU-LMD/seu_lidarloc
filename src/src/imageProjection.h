@@ -386,13 +386,13 @@ public:
                         PoseT imuodom_curlidartime;
                         double cost_time_findimupose = FindIMUOdomPose(cur_lidar_time, imuodom_copy,//in
                                                                        imuodom_curlidartime);//out
-//                        EZLOG(INFO) << "FindIMUOdomPose cost time(ms) = " << cost_time_findimupose << std::endl;
+                        EZLOG(INFO) << "FindIMUOdomPose cost time(ms) = " << cost_time_findimupose << std::endl;
 
-//                        OdometryType Odometry_imuodom_curlidartime_pub;
-//                        Odometry_imuodom_curlidartime_pub.timestamp = cur_lidar_time;
-//                        Odometry_imuodom_curlidartime_pub.frame = "map";
-//                        Odometry_imuodom_curlidartime_pub.pose = imuodom_curlidartime;
-//                        pubsub->PublishOdometry(topic_imuodom_curlidartime_world, Odometry_imuodom_curlidartime_pub);
+                        OdometryType Odometry_imuodom_curlidartime_pub;
+                        Odometry_imuodom_curlidartime_pub.timestamp = cur_lidar_time;
+                        Odometry_imuodom_curlidartime_pub.frame = "map";
+                        Odometry_imuodom_curlidartime_pub.pose = imuodom_curlidartime;
+                        pubsub->PublishOdometry(topic_imuodom_curlidartime_world, Odometry_imuodom_curlidartime_pub);
 
                         imuodom_mutex.lock();
                         while(IMUOdomQueue.front().timestamp < cur_lidar_time - 0.1){
@@ -555,7 +555,7 @@ public:
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
-//        pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
+        pubsub->addPublisher(topic_imuodom_curlidartime_world, DataType::ODOMETRY,2000);
         do_work_thread = new std::thread(&ImageProjection::DoWork, this);
         EZLOG(INFO)<<"ImageProjection init success!"<<std::endl;
     }
