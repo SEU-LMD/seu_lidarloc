@@ -286,9 +286,11 @@ public:
     }//end fucntion ExtractFeatures
 
     void DoWork(){
+        EZLOG(INFO)<<"featureext init successful!  "<<std::endl;
         while(1){
             if(deque_cloud.size()!=0){
-                EZLOG(INFO)<<"featureext_DoWork  "<<std::endl;
+//                EZLOG(INFO)<<"featureext_DoWork  "<<std::endl;
+                TicToc t_featureExtract;
                 CloudInfo cur_cloud;
                 cloud_mutex.lock();
                 cur_cloud = deque_cloud.front();
@@ -302,13 +304,13 @@ public:
                 TicToc timer;
                 CalculateSmoothness(cur_cloud);
                 MarkOccludedPoints(cur_cloud);
-                EZLOG(INFO)<<"before feature extraction cost time(ms) = "<<timer.toc()<<std::endl;
+//                EZLOG(INFO)<<"before feature extraction cost time(ms) = "<<timer.toc()<<std::endl;
                 TicToc timer2;
                 pcl::PointCloud<PointType>::Ptr cornerCloud(new  pcl::PointCloud<PointType>());
                 pcl::PointCloud<PointType>::Ptr surfaceCloud(new  pcl::PointCloud<PointType>());
                 pcl::PointCloud<PointType>::Ptr rawCloud(new  pcl::PointCloud<PointType>());
                 ExtractFeatures(cur_cloud, cornerCloud, surfaceCloud,rawCloud);
-                EZLOG(INFO)<<"feature extraction cost time(ms) = "<<timer2.toc()<<std::endl;
+//                EZLOG(INFO)<<"feature extraction cost time(ms) = "<<timer2.toc()<<std::endl;
                 TicToc timer1;
 
 //                int n_cor =0;
@@ -321,9 +323,9 @@ public:
 //                    }
 //                }
 //                EZLOG(INFO)<<"n_cor = "<<n_cor<<std::endl;
-//                EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<std::endl;
+                EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size();
 //                EZLOG(INFO)<<"n_sur = "<<n_sur<<std::endl;
-//                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<std::endl;
+                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size();
 //                int n_cor =0;
 //                int n_sur =0;
 //                for(int k_rawCloud = 0;k_rawCloud <= rawCloud->size();++k_rawCloud){
@@ -364,12 +366,13 @@ public:
 //                opt_mapping_ptr->AddCloudData(cloud_feature);
 //                loc_mapping_ptr->AddCloudData(cloud_feature);
                 if(MappingConfig::slam_mode_switch == 0 ){
+                    EZLOG(INFO)<<"Send to OPT Mapping";
                     Function_AddCloudFeatureToOPTMapping(cloud_feature);
                 }
                 else{
+                    EZLOG(INFO)<<"Send to Loc Mapping";
                     Function_AddCloudFeatureToLOCMapping(cloud_feature);
                 }
-
 
                 //for debug use
                 if(MappingConfig::if_debug)
@@ -384,21 +387,18 @@ public:
                     pubsub->PublishCloud(topic_corner_world, corner_pub);
                     pubsub->PublishCloud(topic_surf_world, surf_pub);
                 }
-                EZLOG(INFO)<<"send feature extraction to next = "<<timer1.toc()<<std::endl;
+//                EZLOG(INFO)<<"send feature extraction to next = "<<timer1.toc()<<std::endl;
 
+                EZLOG(INFO)<<"t_featureExtract time : "<<t_featureExtract.toc();
             }
-
             else{
                 sleep(0.01);
             }
         }
     }
 
-
-
-
     void AddCloudData(const CloudInfo& data){
-        EZLOG(INFO)<<"featureext_AddCloudData  "<<std::endl;
+//        EZLOG(INFO)<<"featureext_AddCloudData  "<<std::endl;
         cloud_mutex.lock();
         deque_cloud.push_back(data);
         cloud_mutex.unlock();

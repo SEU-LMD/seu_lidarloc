@@ -158,6 +158,7 @@ public:
         if(lidarScan_cnt > SensorConfig::lidarScanDownSample){
             cloud_mutex.lock();
             deque_cloud.push_back(cloud_ft);
+//            EZLOG(INFO)<<"deque_cloud size: "<<deque_cloud.size();
             cloud_mutex.unlock();
             lidarScan_cnt = 0;
         }
@@ -252,6 +253,7 @@ public:
             Load_PriorMap_Corner(MappingConfig::prior_map_corner,priorMap_corner);
 
         }
+        EZLOG(INFO)<<"opt Loc init success!"<<std::endl;
 
 
     }
@@ -721,6 +723,9 @@ public:
                 float matv1_f[3];
                 float matV1_norm;
 
+//                matv1_f[0] = matV1.at<float>(0, 0);
+//                matv1_f[1] = matV1.at<float>(0, 1);
+//                matv1_f[2] = matV1.at<float>(0, 2);
                 matV1_norm = sqrt(matV1.at<float>(0, 0)* matV1.at<float>(0, 0)+
                                   matV1.at<float>(0, 1)*matV1.at<float>(0, 1)+
                                   matV1.at<float>(0, 2)*matV1.at<float>(0, 2));
@@ -1467,11 +1472,14 @@ public:
                     q_w_cur_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
                     q_w_cur_yaw = atan2(-q_w_cur_matrix(0, 1), q_w_cur_matrix(1, 1)); // 计算yaw
                 }
-                std::lock_guard<std::mutex> lock(mtx);
+
+//                std::lock_guard<std::mutex> lock(mtx);
                 static double timeLastProcessing = -1;
                 if (timeLaserInfoCur - timeLastProcessing >= MappingConfig::mappingProcessInterval) {
                     timeLastProcessing = timeLaserInfoCur;
-
+                    EZLOG(INFO) <<"Recive current_surf size: "<<current_surf->size()
+                                <<" current_corner size: "<<current_corner->size()
+                                <<" timeLaserInfoCur is: "<<timeLaserInfoCur;
                     updateInitialGuess();
                     EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
                     if (systemInitialized) {
@@ -1499,6 +1507,9 @@ public:
                 }
 
 
+            }
+            else{
+                sleep(0.01);
             }
         }
     }

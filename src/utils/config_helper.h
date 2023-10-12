@@ -54,6 +54,8 @@ class SensorConfig{
     static int  downsampleRate;
     static float  lidarMinRange;
     static float lidarMaxRange;
+    static int lidarMinRing;
+    static int lidarMaxRing;
     static int LMOpt_Cnt;
 
     //IMU Settings
@@ -206,6 +208,8 @@ int  SensorConfig::Horizon_SCAN=-1;
 int  SensorConfig::downsampleRate=-1;
 float  SensorConfig::lidarMinRange=-1;
 float SensorConfig::lidarMaxRange=-1;
+int SensorConfig::lidarMinRing=-1;
+int SensorConfig::lidarMaxRing=-1;
 int SensorConfig::LMOpt_Cnt = 10;
 
 
@@ -362,6 +366,8 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::downsampleRate=sensorconfig["downsampleRate"].as<int >();
     SensorConfig::lidarMinRange=sensorconfig["lidarMinRange"].as<float >();
     SensorConfig::lidarMaxRange=sensorconfig["lidarMaxRange"].as<float >();
+    SensorConfig::lidarMinRing=sensorconfig["lidarMinRing"].as<int>();
+    SensorConfig::lidarMaxRing=sensorconfig["lidarMaxRing"].as<int>();
     SensorConfig::LMOpt_Cnt=sensorconfig["LMOpt_Cnt"].as<int>();
 //    std::cout<<SensorConfig::lidarMaxRange<<std::endl;
 
@@ -408,7 +414,9 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::t_body_sensor = -(q_sensor_body.inverse() * t_sensor_body);
     SensorConfig::gtsamGNSSBetweenFactorDistance = sensorconfig["gtsamGNSSBetweenFactorDistance"].as<int>();
     SensorConfig::lidarScanDownSample = sensorconfig["lidarScanDownSample"].as<int>();
-
+    std::cout<<"lidarScanDownSample: "<<SensorConfig::lidarScanDownSample<<std::endl;
+    std::cout<<"lidarMaxRing: "<<SensorConfig::lidarMaxRing<<std::endl;
+    std::cout<<"lidarMinRing: "<<SensorConfig::lidarMinRing<<std::endl;
     std::cout<<"sensorconfig yaml success load"<<std::endl;
 }
 
@@ -476,7 +484,6 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::localMap_searchRadius = mappingconfig["localMap_searchRadius"].as<double >();
         MappingConfig::prior_map_corner = mappingconfig["prior_corner_map_path"].as<std::string>();
         MappingConfig::prior_map_surf = mappingconfig["prior_surf_map_path"].as<std::string>();
-        std::cout<<MappingConfig::historyKeyframeSearchNum<<std::endl;
 
         // Visualization
         MappingConfig::globalMapVisualizationSearchRadius=mappingconfig["globalMapVisualizationSearchRadius"].as<float >();
@@ -491,6 +498,9 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig:: scan_2_scan_num_surf=mappingconfig["scan_2_scan_num_surf"].as<float >();
         MappingConfig:: scan_2_scan_num_corner=mappingconfig["scan_2_scan_num_corner"].as<float >();
 //        std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
+
+        std::cout<<"prior_corner_map_path: "<<MappingConfig::prior_map_corner<<std::endl;
+        std::cout<<"prior_surf_map_path: "<<MappingConfig::prior_map_surf<<std::endl;
 
         std::cout<<"mapping yaml success load"<<std::endl;
 

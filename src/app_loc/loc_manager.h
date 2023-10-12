@@ -43,7 +43,7 @@ public:
         img_proj.Init(pubsub);
         ft_extr.Init(pubsub);
         loc_mapping.Init(pubsub);
-        imu_pre.Init(pubsub);
+//        imu_pre.Init(pubsub);
 
         //构建数据流关系
 //        auto add_imuodo_to_imgproj = std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
