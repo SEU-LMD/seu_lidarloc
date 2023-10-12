@@ -14,6 +14,7 @@
 #include "imu_preintegration.h"
 #include "utils/config_helper.h"
 #include "opt_lopc.h"
+#include "fuse.h"
 
 class LocManager{
 public:
@@ -59,8 +60,6 @@ public:
         ft_extr.Function_AddCloudFeatureToLOCMapping = add_CloudFeature_from_ftextr_to_locmapping;
         loc_mapping.Function_AddOdometryTypeToIMUPreintegration = add_OdometryType_from_locmapping_to_imupre;
         imu_pre.Function_AddOdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
-
-
     }
 };
 

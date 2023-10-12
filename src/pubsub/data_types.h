@@ -93,8 +93,7 @@ class OdometryType:public BaseType{
 };
 typedef std::shared_ptr<OdometryType> OdometryTypePtr;
 
-class
-GNSSINSType:public BaseType{
+class GNSSINSType:public BaseType{
     public:
         Eigen::Vector3d lla;
         double roll,pitch,yaw;
@@ -114,6 +113,15 @@ class PathType:public BaseType{
             return DataType::PATH;
         }
 };
+
+class IMURawData{
+public:
+    double timestamp;
+    Eigen::Vector3d imu_angular_v;
+    Eigen::Vector3d imu_linear_acc;
+    Eigen::Quaterniond orientation;
+};
+typedef std::shared_ptr<IMURawData> IMURawDataPtr;
 
 //used to commnicate with other thread
 class CloudInfo{
@@ -139,13 +147,6 @@ public:
 };
 typedef std::shared_ptr<CloudFeature> CloudFeaturePtr;
 
-class IMURawData{
-public:
-    double timestamp;
-    Eigen::Vector3d imu_angular_v;
-    Eigen::Vector3d imu_linear_v;
-    Eigen::Quaterniond orientation;
-};
-typedef std::shared_ptr<IMURawData> IMURawDataPtr;
+
 
 #endif //SEU_LIDARLOC_BASE_TYPE_H
