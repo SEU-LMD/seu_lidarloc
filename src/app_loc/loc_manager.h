@@ -14,6 +14,7 @@
 #include "imu_preintegration.h"
 #include "utils/config_helper.h"
 #include "opt_lopc.h"
+#include "fuse.h"
 
 class LocManager{
 public:

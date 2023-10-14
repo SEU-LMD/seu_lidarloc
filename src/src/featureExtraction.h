@@ -166,7 +166,7 @@ public:
                         largestPickedNum++;
                         if (largestPickedNum <= 20) {
                             cloudLabel[ind] = 1;
-                            // cur_scan.cloud_ptr->points[ind].label = 1;
+                            cur_scan.cloud_ptr->points[ind].label = 1;
                             PointType pt_tmp;
                             auto& pt_origin = cur_scan.cloud_ptr->points[ind];
                             pt_tmp.x = pt_origin.x;
@@ -205,7 +205,7 @@ public:
                     if (cloudNeighborPicked[ind] == 0 &&
                         cloudCurvature[ind] < MappingConfig::surfThreshold) {
                         cloudLabel[ind] = -1;
-                        // cur_scan.cloud_ptr->points[ind].label = -1;
+                        cur_scan.cloud_ptr->points[ind].label = -1;
                         cloudNeighborPicked[ind] = 1;
 
                         //add by lsy

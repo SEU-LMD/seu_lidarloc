@@ -23,8 +23,8 @@
 
   # voxel filter paprams
   odometrySurfLeafSize: 0.6                     # default: 0.4 - outdoor, 0.2 - indoor
-  mappingCornerLeafSize: 0.6                    # default: 0.2 - outdoor, 0.1 - indoor
-  mappingSurfLeafSize: 0.7                      # default: 0.4 - outdoor, 0.2 - indoor
+  mappingCornerLeafSize: 0.4                    # default: 0.2 - outdoor, 0.1 - indoor
+  mappingSurfLeafSize: 0.6                      # default: 0.4 - outdoor, 0.2 - indoor
 
   # robot motion constraint (in case you are using a 2D robot)
   z_tollerance: 1000                            # meters
@@ -45,8 +45,8 @@
   LocalMap_updata_perframe: 20
 
   scan_2_prior_map: 1     # 0 for scan 2 localmap, 1 for scan 2 priormap, 2 for scan 2 scan
-  prior_corner_map_path: "/home/mdc/seu_wxq/autodrive_mdc/seu_lidarloc/src/global_corner.pcd"
-  prior_surf_map_path: "/home/mdc/seu_wxq/autodrive_mdc/seu_lidarloc/src/global_surf.pcd"
+  prior_corner_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/yuanqu/global_corner.pcd"
+  prior_surf_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/yuanqu/global_surf.pcd"
 #  prior_corner_map_path: "/home/lsy/seu_lidarloc/src/global_corner.pcd"
 #  prior_surf_map_path: "/home/lsy/seu_lidarloc/src/global_surf.pcd"
   scan_2_scan_num_surf: 50000
