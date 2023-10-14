@@ -1,0 +1,34 @@
+{
+  "instanceSpecifiers": [
+    {
+      "instanceSpecifier": "PositionExecutable/PositionSwComponent/PositionLocationPPort",
+      "service": "/HuaweiMDC/FunctionalSoftware/LocationServiceInterface/LocationServiceInterface",
+      "instanceIdentifiers": [
+        {
+          "protocol": "DDS",
+          "instanceIdentifier": "113"
+        }
+      ]
+    },
+    {
+      "instanceSpecifier": "PositionExecutable/PositionSwComponent/LidarPointCloudRPort",
+      "service": "/HuaweiMDC/PlatformServiceInterface/LidarServiceInterface/LidarServiceInterface",
+      "instanceIdentifiers": [
+        {
+          "protocol": "DDS",
+          "instanceIdentifier": "13"
+        }
+      ]
+    },
+    {
+      "instanceSpecifier": "PositionExecutable/PositionSwComponent/CanFdRPort",
+      "service": "/HuaweiMDC/MdcPlatformServices/CanRxServiceInterface/CanRxServiceInterface",
+      "instanceIdentifiers": [
+        {
+          "protocol": "SOMEIP",
+          "instanceIdentifier": "7"
+        }
+      ]
+    }
+  ]
+}

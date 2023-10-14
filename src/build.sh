@@ -1,7 +1,7 @@
 reset
 mkdir build
 if [ "$1" = "clear" ]; then
-    sudo rm -rf ./build
+    rm -rf ./build
     mkdir build
 fi
 cd build

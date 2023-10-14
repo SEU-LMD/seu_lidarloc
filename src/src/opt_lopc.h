@@ -19,7 +19,7 @@
 #include <pcl/point_types.h>
 #include <pcl/range_image/range_image.h>
 #include <pcl/registration/icp.h>
-#include <pcl_conversions/pcl_conversions.h>
+// #include <pcl_conversions/pcl_conversions.h>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
@@ -1435,6 +1435,7 @@ public:
 
     void DoWork(){
         allocateMemory();
+        EZLOG(INFO)<<"loc dowork! "<<std::endl;
         while(1){
             if(deque_cloud.size()!=0){
                 CloudFeature cur_ft;

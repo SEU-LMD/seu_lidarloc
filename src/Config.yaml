@@ -1,0 +1,16 @@
+%YAML:1.0
+
+appName: POS
+description: FusionLocation module is a location module
+priority: 0    #{0 ... 12} not currently used
+scheduleFrequency: 30
+isDetermineSchedule: false    #{true, false}
+logFile: ./    #logPath, Does not support dynamic modification
+logMode: 1     #{0, 1, 2, 3, 4, 5, 6}, 0: 固定文件存储，异步日志 1: 打屏，同步日志，适合调试， 2: 指定文件存储，同步日志，适合调试，
+               #3：固定+打屏， 4：固定+指定， 5：打屏+指定， 6：固定+打屏+指定
+logLevel: 2    #{0，1，2，3，4，5, 6}， 0：verbose, 1：debug, 2：info, 3：warn, 4：error, 5：fatal, 6：off
+recvInstanceID:
+    canInputInstanceID: 7
+    recvLidarInstanceID: 13
+sendInstanceID:
+    locationResultInstanceID: 113

@@ -360,6 +360,7 @@ public:
         CloudInfo cloudinfo;
         cloudinfo.startRingIndex.assign(SensorConfig::N_SCAN, 0);//为cloudInfo中的startRingIndex、endRingIndex向量分配大小N_SCAN,并初始化为0
         cloudinfo.endRingIndex.assign(SensorConfig::N_SCAN, 0);
+        EZLOG(INFO)<<"imgp dowork! "<<std::endl;
 
         while(1){
             if(deque_cloud.size()!=0){
@@ -386,13 +387,13 @@ public:
                         PoseT imuodom_curlidartime;
                         double cost_time_findimupose = FindIMUOdomPose(cur_lidar_time, imuodom_copy,//in
                                                                        imuodom_curlidartime);//out
-                        EZLOG(INFO) << "FindIMUOdomPose cost time(ms) = " << cost_time_findimupose << std::endl;
+                        // EZLOG(INFO) << "FindIMUOdomPose cost time(ms) = " << cost_time_findimupose << std::endl;
 
-                        OdometryType Odometry_imuodom_curlidartime_pub;
-                        Odometry_imuodom_curlidartime_pub.timestamp = cur_lidar_time;
-                        Odometry_imuodom_curlidartime_pub.frame = "map";
-                        Odometry_imuodom_curlidartime_pub.pose = imuodom_curlidartime;
-                        pubsub->PublishOdometry(topic_imuodom_curlidartime_world, Odometry_imuodom_curlidartime_pub);
+                        // OdometryType Odometry_imuodom_curlidartime_pub;
+                        // Odometry_imuodom_curlidartime_pub.timestamp = cur_lidar_time;
+                        // Odometry_imuodom_curlidartime_pub.frame = "map";
+                        // Odometry_imuodom_curlidartime_pub.pose = imuodom_curlidartime;
+                        // pubsub->PublishOdometry(topic_imuodom_curlidartime_world, Odometry_imuodom_curlidartime_pub);
 
                         imuodom_mutex.lock();
                         while(IMUOdomQueue.front().timestamp < cur_lidar_time - 0.1){

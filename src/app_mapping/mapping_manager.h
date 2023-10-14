@@ -28,17 +28,17 @@ public:
 
 
     void CloudCallback(const BaseType& msg){
+       std::cout<<"success lidar "<<std::endl;
         const CloudTypeXYZIRT& cloud_data = *((CloudTypeXYZIRT*)&msg);
         img_proj.AddCloudData(cloud_data);
     }
 
     void GNSSINSCallback(const BaseType& msg){
-//        TicToc timer;
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         img_proj.AddGNSSINSSData(gnssins_data);
         opt_mapping.AddGNSSINSData(gnssins_data);
         imu_pre.AddGNSSINSData(gnssins_data);
-//        EZLOG(INFO)<<"GNSSINSCallback cost time(ms)"<<timer.toc()<<std::endl;
+       std::cout<<"GNSSINSCallback finish!"<<std::endl;
     }
 
 

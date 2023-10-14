@@ -7,8 +7,8 @@
 
 #include <string>
 
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
+#include "pcl/point_cloud.h"
+#include "pcl/point_types.h"
 
 #include "utils/utility.h"
 //所有数据的基类
@@ -23,14 +23,15 @@ public:
     virtual DataType getType() = 0;
 };
 
-struct PointXYZIRT {
+//from autoshine
+struct PointXYZIRTSEU {
     PCL_ADD_POINT4D
     uint8_t intensity;
     uint16_t ring;
     double latency;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 } EIGEN_ALIGN16;
-POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZIRT,
+POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZIRTSEU,
                                     (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
                                     (uint16_t, ring, ring)(double, latency, latency))
 
@@ -39,27 +40,15 @@ struct PointXYZICOLRANGE {
     uint8_t intensity;
     float range;
     uint16_t col;
-    uint8_t label;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 } EIGEN_ALIGN16;
 POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZICOLRANGE,
                                     (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
-                                            (uint16_t, range, range)(uint16_t, col, col)(uint8_t, label, label))
-
-//add by lsy
-struct PointXYZIL {
-    PCL_ADD_POINT4D
-    uint8_t intensity;
-    uint8_t label;
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-} EIGEN_ALIGN16;
-POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZIL,
-                                    (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
-                                            (uint8_t, label, label))
+                                            (uint16_t, range, range)(uint16_t, col, col))
 
 class CloudTypeXYZIRT: public BaseType{
     public:
-        pcl::PointCloud<PointXYZIRT> cloud;
+        pcl::PointCloud<PointXYZIRTSEU> cloud;
         DataType getType(){
             return DataType::LIDAR;
         }
@@ -93,14 +82,15 @@ class OdometryType:public BaseType{
 };
 typedef std::shared_ptr<OdometryType> OdometryTypePtr;
 
-class GNSSINSType:public BaseType{
+class
+GNSSINSType:public BaseType{
     public:
-        Eigen::Vector3d lla;
-        double roll,pitch,yaw;
-        Eigen::Vector3d imu_angular_v;
-        Eigen::Vector3d imu_linear_acc;
+        Eigen::Vector3d lla;//经为高
+        double roll,pitch,yaw;//车体系
+        Eigen::Vector3d imu_angular_v;//imu原始
+        Eigen::Vector3d imu_linear_acc;//imu原始
         Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
-        string gps_status;
+        string  gps_status;
         DataType getType(){
              return DataType::GNSS_INS;
         }
@@ -114,22 +104,12 @@ class PathType:public BaseType{
         }
 };
 
-class IMURawData{
-public:
-    double timestamp;
-    Eigen::Vector3d imu_angular_v;
-    Eigen::Vector3d imu_linear_acc;
-    Eigen::Quaterniond orientation;
-};
-typedef std::shared_ptr<IMURawData> IMURawDataPtr;
-
 //used to commnicate with other thread
 class CloudInfo{
 public:
     int frame_id;
     double timestamp;
     PoseT pose;
-//    std::vector<int> label;
     std::vector<int> startRingIndex;
     std::vector<int> endRingIndex;
 
@@ -147,6 +127,13 @@ public:
 };
 typedef std::shared_ptr<CloudFeature> CloudFeaturePtr;
 
-
+class IMURawData{
+public:
+    double timestamp;
+    Eigen::Vector3d imu_angular_v;
+    Eigen::Vector3d imu_linear_v;
+    Eigen::Quaterniond orientation;
+};
+typedef std::shared_ptr<IMURawData> IMURawDataPtr;
 
 #endif //SEU_LIDARLOC_BASE_TYPE_H

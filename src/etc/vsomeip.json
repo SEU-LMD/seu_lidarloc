@@ -1,0 +1,40 @@
+{
+  "logging": {
+    "level": "info",
+    "console": "false",
+    "syslog": {
+      "enable": "true"
+    }
+  },
+  "routing": "someipd",
+  "network": "HostEthernetCommConnector",
+  "unicast": "192.168.1.6",
+  "netmask": "255.255.255.0",
+  "applications": [
+    {
+      "name": "/HuaweiMDC/FunctionalSoftware/PositionApplication/SwComponent/PositionApplicationSwComponent/PositionProcess",
+      "id": "4149"
+    }
+  ],
+  "services": [],
+  "clients": [
+    {
+      "service": "208",
+      "instance": "7",
+      "unreliable": [
+        "54906"
+      ]
+    }
+  ],
+  "service-discovery": {
+    "enable": "true",
+    "multicast": "239.192.255.251",
+    "port": "30491",
+    "protocol": "udp",
+    "repetitions_max": "3",
+    "repetitions_base_delay": "200",
+    "initial_delay_min": "10",
+    "initial_delay_max": "100",
+    "ttl": "10"
+  }
+}

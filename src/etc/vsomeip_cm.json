@@ -1,0 +1,85 @@
+{
+  "applicationName": "/HuaweiMDC/FunctionalSoftware/PositionApplication/SwComponent/PositionApplicationSwComponent/PositionProcess",
+  "services": [
+    {
+      "service": "/HuaweiMDC/MdcPlatformServices/CanRxServiceInterface/CanRxServiceInterface",
+      "serviceId": 208,
+      "protocolIdUsed": true,
+      "majorVersion": 1,
+      "minorVersion": 1,
+      "events": [
+        {
+          "event": "mdcEvent",
+          "id": 10488,
+          "dataType": "/HuaweiMDC/MdcPlatformServices/MsgDataType/CanMsgDataType/CanBusDataParam",
+          "eventId": 32769,
+          "eventGroup": [
+            16
+          ],
+          "reliable": false
+        },
+        {
+          "event": "CanFdDataLRxEvent",
+          "id": 8799,
+          "dataType": "/HuaweiMDC/MdcPlatformServices/MsgDataType/CanFdMsgDataLType/CanFdBusDataParamL",
+          "eventId": 32771,
+          "eventGroup": [
+            16
+          ],
+          "reliable": false
+        },
+        {
+          "event": "CanFdDataSRxEvent",
+          "id": 9988,
+          "dataType": "/HuaweiMDC/MdcPlatformServices/MsgDataType/CanFdMsgDataSType/CanFdBusDataParamS",
+          "eventId": 32770,
+          "eventGroup": [
+            16
+          ],
+          "reliable": false
+        }
+      ],
+      "fields": [],
+      "methods": [
+        {
+          "method": "CanDataSetMethod",
+          "id": 41040,
+          "isFireAndForget": false,
+          "methodId": 1,
+          "reliable": false,
+          "requestDataType": [
+            "/HuaweiMDC/MdcPlatformServices/MsgDataType/CanMsgDataType/CanBusDataParam"
+          ],
+          "replyDataType": [
+            "/HuaweiMDC/MdcPlatformServices/MsgDataType/CanMsgDataType/CanSetDataResult"
+          ],
+          "methodOutputName": "/HuaweiMDC/MdcPlatformServices/CanRxServiceInterface/CanRxServiceInterface/CanDataSetMethodOutput"
+        },
+        {
+          "method": "CanFdDataSetMethod",
+          "id": 14499,
+          "isFireAndForget": false,
+          "methodId": 3,
+          "reliable": false,
+          "requestDataType": [
+            "/HuaweiMDC/MdcPlatformServices/MsgDataType/CanFdSendMsgDataType/CanFdBusDataParam"
+          ],
+          "replyDataType": [
+            "/HuaweiMDC/MdcPlatformServices/MsgDataType/CanFdSendMsgDataType/CanFdSetDataResult"
+          ],
+          "methodOutputName": "/HuaweiMDC/MdcPlatformServices/CanRxServiceInterface/CanRxServiceInterface/CanFdDataSetMethodOutput"
+        }
+      ],
+      "instances": [
+        {
+          "instance": "7",
+          "isClient": true,
+          "shortName": "/HuaweiMDC/FunctionalSoftware/PositionApplication/Service/Instance/MdcCanFd06RxServiceInstance",
+          "unreliable": "54906",
+          "events": [],
+          "methods": []
+        }
+      ]
+    }
+  ]
+}

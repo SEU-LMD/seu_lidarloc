@@ -1,21 +1,26 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(seu_lidarloc)
 
-set(CMAKE_BUILD_TYPE "Debug")#Release Debug
+set(CMAKE_BUILD_TYPE "Release")#Release Debug
 set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -pthread")
 
 add_definitions(-w)
 
-find_package(Boost REQUIRED COMPONENTS timer)
-
+#find_package(Boost REQUIRED COMPONENTS timer)
+find_package(Boost REQUIRED )
+set(PCL_DIR ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/share/pcl-1.10)
+find_package(PCL REQUIRED)
 #according to different platform to choose communication tool , ros or mdc
+
 set(COMPILE_MODE "X86" CACHE STRING "choose the platform")# X86 or MDC
+#set(COMPILE_MODE "MDC" CACHE STRING "choose the platform")# X86 or MDC
 if( ${COMPILE_MODE} STREQUAL "X86")
     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/X86.cmake)
 elseif( ${COMPILE_MODE} STREQUAL "MDC")
     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/MDC.cmake)
+    message("----------compile mdc-----------")
 endif()
 message("Compile mode: ${COMPILE_MODE}")
 
@@ -30,14 +35,20 @@ find_package(GTSAM REQUIRED)
 set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/../env/opencv-3.4.16-install/share/OpenCV)
 find_package(OpenCV REQUIRED)
 
-#set(PCL_DIR ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/share/pcl-1.10)
-#find_package(PCL REQUIRED)
+set(FLANN_DIRS ${CMAKE_SOURCE_DIR}/../env/flann-1.9.2-install/include)
+set(FLANN_LIBS ${CMAKE_SOURCE_DIR}/../env/flann-1.9.2-install/lib/libflann.so
+        ${CMAKE_SOURCE_DIR}/../env/flann-1.9.2-install/lib/libflann.so.1.9
+        ${CMAKE_SOURCE_DIR}/../env/flann-1.9.2-install/lib/libflann.so.1.9.2
+        ${CMAKE_SOURCE_DIR}/../env/flann-1.9.2-install/lib/libflann_cpp.so
+        ${CMAKE_SOURCE_DIR}/../env/flann-1.9.2-install/lib/libflann_cpp.so.1.9
+        ${CMAKE_SOURCE_DIR}/../env/flann-1.9.2-install/lib/libflann_cpp.so.1.9.2
+)
 
-set(PCL_DIR "/usr/lib/x86_64-linux-gnu/cmake/pcl") # if noted, then sy will crush
-#set(PCL_DIR ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/share/pcl-1.10)
-find_package(PCL REQUIRED)
-MESSAGE("-----------PCL_ROOT:${PCL_ROOT}-----------")
 
+set(PCL_LIBRARIES
+        ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/lib/libpcl_common.so.1.10
+        ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/lib/libpcl_io.so.1.10
+        ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/lib/libpcl_io_ply.so.1.10)
 set(YAML_CPP_DIR "${CMAKE_SOURCE_DIR}/../env/yaml-cpp-install/lib/cmake/yaml-cpp")
 find_package(YAML_CPP REQUIRED) 
 set(YAML_LIB "${CMAKE_SOURCE_DIR}/../env/yaml-cpp-install/lib/libyaml-cpp.a")
@@ -60,18 +71,20 @@ include_directories(
         ./ThirdParty/GeographicLib/
         ./ThirdParty/easylog-9.89/src/
         ${YAML_CPP_INCLUDE_DIR}
+        ${FLANN_DIRS}
 )
+
 
 MESSAGE(STATUS "------------${EIGEN3_INCLUDE_DIR}------------------")
 MESSAGE(STATUS "------------${GTSAM_INCLUDE_DIR}------------------")
 MESSAGE(STATUS "------------${PCL_INCLUDE_DIRS}------------------")
-MESSAGE(STATUS "PCL_LIBRARIES:------------${PCL_LIBRARY_DIRS}------------------")
+MESSAGE(STATUS "------------${PCL_LIBRARY_DIRS}------------------")
 
 ###########
 ## Build ##
-############
-#add_executable(mapping app_mapping/mapping.cpp)
-#target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+###########
+ add_executable(mapping app_mapping/mapping.cpp)
+ target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB} ${FLANN_LIBS})#YAML_CPP_LIBRARIES
 
 add_executable(loc app_loc/loc.cpp)
-target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB} ${FLANN_LIBS})#YAML_CPP_LIBRARIES

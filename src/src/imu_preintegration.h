@@ -102,11 +102,20 @@ public:
     }
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
-        TicToc timer;
+          TicToc timer;
+//        gnssins_mutex.lock();
+//        deque_gnssins.push_back(gnss_ins_data);
+//        EZLOG(INFO)<<"deque_gnssins.size() =  "<<deque_gnssins.size()<<std::endl;
+//        gnssins_mutex.unlock();
+//        GNSSINSType gnss_ins_data;
+//        odom_mutex.lock();
+//        gnss_ins_data = deque_gnssins.front();
+//        deque_gnssins.pop_front();
+//        odom_mutex.unlock();
 
         IMURawDataPtr imu_raw (new IMURawData);
         imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
-        imu_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
+        imu_raw->imu_linear_v = gnss_ins_data.imu_linear_acc;
         imu_raw->timestamp = gnss_ins_data.timestamp;
         Eigen::Quaterniond orientation_quaternion;
         orientation_quaternion = Eigen::AngleAxisd(gnss_ins_data.roll * 3.1415926535 / 180.0, Eigen::Vector3d::UnitX())
@@ -130,7 +139,7 @@ public:
 
         // imu预积分器添加一帧imu数据，注：这个预积分器的起始时刻是上一帧激光里程计时刻
         //insert measurement data into imu_pre
-        imuIntegratorImu_->integrateMeasurement(imu_raw->imu_linear_acc,
+        imuIntegratorImu_->integrateMeasurement(imu_raw->imu_linear_v,
                                                 imu_raw->imu_angular_v,
                                                 dt);
         // predict odometry
@@ -253,6 +262,7 @@ public:
     }
 
     void DoLidar(){
+        EZLOG(INFO)<<"imup dowork! "<<std::endl;
 //
         while(1){
             if(lidar_poseQueue.size()!=0){
@@ -284,86 +294,86 @@ public:
 
                 // 0. initialize system
                 if (systemInitialized == false) {
-                        ClearFactorGraph();
-                        // pop old IMU message
-                        gnssins_mutex.lock();
-                        while (!imuQueOpt.empty()) {
-    //                        EZLOG(INFO)<<"imuQueOpt.size()"<<imuQueOpt.size()<<std::endl;
-                            if (imuQueOpt.front()->timestamp < currentCorrectionTime - delta_t) {
-    //                            EZLOG(INFO)<<"imuQueOpt.front()->timestamp - currentCorrectionTime = "<<imuQueOpt.front()->timestamp - currentCorrectionTime<<std::endl;
-                                lastImuT_opt = imuQueOpt.front()->timestamp;
-                                imuQueOpt.pop_front();
-    //                            EZLOG(INFO)<<"imuQueOpt.size()"<<imuQueOpt.size()<<std::endl;
-                            } else
-                                break;
-                        }
-                        gnssins_mutex.unlock();
+                    ClearFactorGraph();
+                    // pop old IMU message
+                    gnssins_mutex.lock();
+                    while (!imuQueOpt.empty()) {
+//                        EZLOG(INFO)<<"imuQueOpt.size()"<<imuQueOpt.size()<<std::endl;
+                        if (imuQueOpt.front()->timestamp < currentCorrectionTime - delta_t) {
+//                            EZLOG(INFO)<<"imuQueOpt.front()->timestamp - currentCorrectionTime = "<<imuQueOpt.front()->timestamp - currentCorrectionTime<<std::endl;
+                            lastImuT_opt = imuQueOpt.front()->timestamp;
+                            imuQueOpt.pop_front();
+//                            EZLOG(INFO)<<"imuQueOpt.size()"<<imuQueOpt.size()<<std::endl;
+                        } else
+                            break;
+                    }
+                    gnssins_mutex.unlock();
 
-                        // initial pose
-                        prevPose_ = lidarPose.compose(lidar2Imu);
-                        gtsam::PriorFactor<gtsam::Pose3> priorPose(X(0), prevPose_,priorPoseNoise);
-                        graphFactors.add(priorPose);
-                        // initial velocity
-                        prevVel_ = gtsam::Vector3(0, 0, 0);
-                        gtsam::PriorFactor<gtsam::Vector3> priorVel(V(0), prevVel_, priorVelNoise);
-                        graphFactors.add(priorVel);
-                        // initial bias
-                        prevBias_ = gtsam::imuBias::ConstantBias();
-                        EZLOG(INFO)<<""<<std::endl;
-                        gtsam::PriorFactor<gtsam::imuBias::ConstantBias> priorBias(B(0), prevBias_, priorBiasNoise);
-                        graphFactors.add(priorBias);
-                        // add values
-                        graphValues.insert(X(0), prevPose_);
-                        graphValues.insert(V(0), prevVel_);
-                        graphValues.insert(B(0), prevBias_);
-                        // optimize once
-                        optimizer.update(graphFactors, graphValues);
-                        graphFactors.resize(0);
-                        graphValues.clear();
+                    // initial pose
+                    prevPose_ = lidarPose.compose(lidar2Imu);
+                    gtsam::PriorFactor<gtsam::Pose3> priorPose(X(0), prevPose_,priorPoseNoise);
+                    graphFactors.add(priorPose);
+                    // initial velocity
+                    prevVel_ = gtsam::Vector3(0, 0, 0);
+                    gtsam::PriorFactor<gtsam::Vector3> priorVel(V(0), prevVel_, priorVelNoise);
+                    graphFactors.add(priorVel);
+                    // initial bias
+                    prevBias_ = gtsam::imuBias::ConstantBias();
+                    EZLOG(INFO)<<""<<std::endl;
+                    gtsam::PriorFactor<gtsam::imuBias::ConstantBias> priorBias(B(0), prevBias_, priorBiasNoise);
+                    graphFactors.add(priorBias);
+                    // add values
+                    graphValues.insert(X(0), prevPose_);
+                    graphValues.insert(V(0), prevVel_);
+                    graphValues.insert(B(0), prevBias_);
+                    // optimize once
+                    optimizer.update(graphFactors, graphValues);
+                    graphFactors.resize(0);
+                    graphValues.clear();
 
-                        imuIntegratorImu_->resetIntegrationAndSetBias(prevBias_);
-                        imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
-                         EZLOG(INFO)<<""<<std::endl;
-                        key = 1;
-                        systemInitialized = true;
-                        continue;//不会再向下走了
+                    imuIntegratorImu_->resetIntegrationAndSetBias(prevBias_);
+                    imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
+                     EZLOG(INFO)<<""<<std::endl;
+                    key = 1;
+                    systemInitialized = true;
+                    continue;
                 }
                 // reset graph for speed
                 if (key == SensorConfig::imuGTSAMReset) {
-                        // get updated noise before reset
-                        gtsam::noiseModel::Gaussian::shared_ptr updatedPoseNoise =
-                                gtsam::noiseModel::Gaussian::Covariance(
-                                        optimizer.marginalCovariance(X(key - 1)));
-                        gtsam::noiseModel::Gaussian::shared_ptr updatedVelNoise =
-                                gtsam::noiseModel::Gaussian::Covariance(
-                                        optimizer.marginalCovariance(V(key - 1)));
-                        gtsam::noiseModel::Gaussian::shared_ptr updatedBiasNoise =
-                                gtsam::noiseModel::Gaussian::Covariance(
-                                        optimizer.marginalCovariance(B(key - 1)));
-                        // reset graph
-                        ClearFactorGraph();
-                        // add pose
-                        gtsam::PriorFactor<gtsam::Pose3> priorPose(X(0), prevPose_,
-                                                                   updatedPoseNoise);
-                        graphFactors.add(priorPose);
-                        // add velocity
-                        gtsam::PriorFactor<gtsam::Vector3> priorVel(V(0), prevVel_,
-                                                                    updatedVelNoise);
-                        graphFactors.add(priorVel);
-                        // add bias
-                        gtsam::PriorFactor<gtsam::imuBias::ConstantBias> priorBias(
-                                B(0), prevBias_, updatedBiasNoise);
-                        graphFactors.add(priorBias);
-                        // add values
-                        graphValues.insert(X(0), prevPose_);
-                        graphValues.insert(V(0), prevVel_);
-                        graphValues.insert(B(0), prevBias_);
-                        // optimize once
-                        optimizer.update(graphFactors, graphValues);
-                        graphFactors.resize(0);
-                        graphValues.clear();
+                    // get updated noise before reset
+                    gtsam::noiseModel::Gaussian::shared_ptr updatedPoseNoise =
+                            gtsam::noiseModel::Gaussian::Covariance(
+                                    optimizer.marginalCovariance(X(key - 1)));
+                    gtsam::noiseModel::Gaussian::shared_ptr updatedVelNoise =
+                            gtsam::noiseModel::Gaussian::Covariance(
+                                    optimizer.marginalCovariance(V(key - 1)));
+                    gtsam::noiseModel::Gaussian::shared_ptr updatedBiasNoise =
+                            gtsam::noiseModel::Gaussian::Covariance(
+                                    optimizer.marginalCovariance(B(key - 1)));
+                    // reset graph
+                    ClearFactorGraph();
+                    // add pose
+                    gtsam::PriorFactor<gtsam::Pose3> priorPose(X(0), prevPose_,
+                                                               updatedPoseNoise);
+                    graphFactors.add(priorPose);
+                    // add velocity
+                    gtsam::PriorFactor<gtsam::Vector3> priorVel(V(0), prevVel_,
+                                                                updatedVelNoise);
+                    graphFactors.add(priorVel);
+                    // add bias
+                    gtsam::PriorFactor<gtsam::imuBias::ConstantBias> priorBias(
+                            B(0), prevBias_, updatedBiasNoise);
+                    graphFactors.add(priorBias);
+                    // add values
+                    graphValues.insert(X(0), prevPose_);
+                    graphValues.insert(V(0), prevVel_);
+                    graphValues.insert(B(0), prevBias_);
+                    // optimize once
+                    optimizer.update(graphFactors, graphValues);
+                    graphFactors.resize(0);
+                    graphValues.clear();
 
-                        key = 1;
+                    key = 1;
                 }
                 // 1. integrate imu data and optimize
                 while (!imuQueOpt.empty()) {
@@ -377,7 +387,7 @@ public:
                         //        double dt = (lastImuT_opt < 0) ? (1.0 / imuFrequence) :
                         //        (imuTime - lastImuT_opt);
                         imuIntegratorOpt_->integrateMeasurement(
-                                gtsam::Vector3(thisImu.imu_linear_acc),
+                                gtsam::Vector3(thisImu.imu_linear_v),
                                 gtsam::Vector3(thisImu.imu_angular_v),
                                 dt);
                         lastImuT_opt = imuTime;
@@ -396,7 +406,7 @@ public:
                 graphFactors.add(gtsam::BetweenFactor<gtsam::imuBias::ConstantBias>(
                         B(key - 1), B(key), gtsam::imuBias::ConstantBias(),
                         gtsam::noiseModel::Diagonal::Sigmas(
-                                sqrt(imuIntegratorOpt_->deltaTij()) * noiseModelBetweenBias)));//imuIntegratorOpt_->deltaTij() = 时间长度
+                                sqrt(imuIntegratorOpt_->deltaTij()) * noiseModelBetweenBias)));
                 // add pose factor
                 gtsam::Pose3 curPose = lidarPose.compose(lidar2Imu);
                 gtsam::PriorFactor<gtsam::Pose3> pose_factor(
@@ -422,7 +432,6 @@ public:
                 // Reset the optimization preintegration object.
                 imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
                 // check optimization
-                //速度过大或者bias过大都认为是失败
                 if (failureDetection(prevVel_, prevBias_)) {
                     EZLOG(INFO)<<"failureDetection triggered"<<std::endl;
                     resetParams();
@@ -454,7 +463,7 @@ public:
                         //        - lastImuQT);
 
                         imuIntegratorImu_->integrateMeasurement(
-                                gtsam::Vector3(thisImu.imu_linear_acc),
+                                gtsam::Vector3(thisImu.imu_linear_v),
                                 gtsam::Vector3(thisImu.imu_angular_v),
                                 dt);
                         lastImuQT = imuTime;

@@ -17,6 +17,8 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
+#include <pcl_conversions/pcl_conversions.h>
+
 
 class ROSPubSub:public PubSubInterface{
 public:

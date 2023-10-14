@@ -1,0 +1,77 @@
+{
+  "applicationName": "/HuaweiMDC/FunctionalSoftware/PositionApplication/SwComponent/PositionApplicationSwComponent/PositionProcess",
+  "services": [
+    {
+      "service": "/HuaweiMDC/FunctionalSoftware/LocationServiceInterface/LocationServiceInterface",
+      "serviceId": 4672,
+      "protocolIdUsed": false,
+      "events": [
+        {
+          "event": "LocationEvent",
+          "id": 23528,
+          "isDpRawData": false,
+          "dataType": "/HuaweiMDC/FunctionalSoftware/LocationMsgDataType/Location",
+          "topicName": "LocationDdsEvent"
+        }
+      ],
+      "fields": [],
+      "methods": [],
+      "instances": [
+        {
+          "shortName": "/HuaweiMDC/FunctionalSoftware/PositionApplication/Service/Instance/PositionLocationProvidedServiceInstance",
+          "instance": "113",
+          "domainId": 0,
+          "network": "192.168.1.6",
+          "isClient": false,
+          "fastSerialize": true,
+          "qosProfile": "default_qos.xml",
+          "events": [
+            {
+              "id": 23528,
+              "qosProfile": "default_qos.xml",
+              "dataIds": []
+            }
+          ],
+          "fields": [],
+          "methods": []
+        }
+      ]
+    },
+    {
+      "service": "/HuaweiMDC/PlatformServiceInterface/LidarServiceInterface/LidarServiceInterface",
+      "serviceId": 2304,
+      "protocolIdUsed": false,
+      "events": [
+        {
+          "event": "mdcEvent",
+          "id": 10488,
+          "isDpRawData": false,
+          "dataType": "/HuaweiMDC/PlatformServiceInterface/LidarMsgDataType/LidarPointCloud",
+          "topicName": "LidarReportEncodedDdsEvent"
+        }
+      ],
+      "fields": [],
+      "methods": [],
+      "instances": [
+        {
+          "shortName": "/HuaweiMDC/FunctionalSoftware/PositionApplication/Service/Instance/PositionLidar13RequiredServiceInstance",
+          "instance": "13",
+          "domainId": 0,
+          "network": "192.168.1.6",
+          "isClient": true,
+          "fastSerialize": true,
+          "qosProfile": "default_qos.xml",
+          "events": [
+            {
+              "id": 10488,
+              "qosProfile": "default_qos.xml",
+              "dataIds": []
+            }
+          ],
+          "fields": [],
+          "methods": []
+        }
+      ]
+    }
+  ]
+}

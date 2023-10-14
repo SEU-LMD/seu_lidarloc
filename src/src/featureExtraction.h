@@ -75,7 +75,7 @@ public:
             cloudNeighborPicked[i] = 0;
             //-1: surface point; 1:corner point
             cloudLabel[i] = 0;
-            cur_scan.cloud_ptr->points[i].label = 0;
+            // cur_scan.cloud_ptr->points[i].label = 0;
 
             // cloudSmoothness for
             cloudSmoothness[i].value = cloudCurvature[i];
@@ -166,7 +166,7 @@ public:
                         largestPickedNum++;
                         if (largestPickedNum <= 20) {
                             cloudLabel[ind] = 1;
-                            cur_scan.cloud_ptr->points[ind].label = 1;
+                            // cur_scan.cloud_ptr->points[ind].label = 1;
                             PointType pt_tmp;
                             auto& pt_origin = cur_scan.cloud_ptr->points[ind];
                             pt_tmp.x = pt_origin.x;
@@ -205,7 +205,7 @@ public:
                     if (cloudNeighborPicked[ind] == 0 &&
                         cloudCurvature[ind] < MappingConfig::surfThreshold) {
                         cloudLabel[ind] = -1;
-                        cur_scan.cloud_ptr->points[ind].label = -1;
+                        // cur_scan.cloud_ptr->points[ind].label = -1;
                         cloudNeighborPicked[ind] = 1;
 
                         //add by lsy
@@ -286,6 +286,7 @@ public:
     }//end fucntion ExtractFeatures
 
     void DoWork(){
+        EZLOG(INFO)<<"ftext dowork! "<<std::endl;
         while(1){
             if(deque_cloud.size()!=0){
                 EZLOG(INFO)<<"featureext_DoWork  "<<std::endl;

@@ -6,10 +6,12 @@
 #include "easylogging++.h"
 #include "./loc_manager.h"
 #include "utils/filesys.h"
-//选择中间件
-//#ifdef X86
+#define X86
+#ifdef X86
 #include "pubsub/ros/ros_pubsub.h"
-//#endif
+#else
+#include "pubsub/mdc/mdc_pubsub.h"
+#endif
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -25,11 +27,13 @@ int main(int argc, char **argv) {
     EZLOG(INFO) << "easylogging++ thread unsafe";
 #endif
 
-    //2.初始化中间件
     PubSubInterface* pubsub;
-    //#ifdef X86
+    #ifdef X86
     pubsub = new ROSPubSub();
-    //#endif
+    #else
+    pubsub = new MDCPubSub();
+    #endif
+
 
     pubsub->initPubSub(argc, argv, "mapping");
 
