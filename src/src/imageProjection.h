@@ -28,7 +28,6 @@ public:
     std::mutex gnssins_mutex;
     std::mutex imuodom_mutex;
 
-
     std::thread* do_work_thread;
 
     std::deque<CloudTypeXYZIRTPtr> deque_cloud;
@@ -36,6 +35,7 @@ public:
     std::deque<OdometryType> IMUOdomQueue;
 
     std::function<void(const CloudInfo&)> Function_AddCloudInfoToFeatureExtraction;
+    std::function<void(const GNSSOdometryType&)> Function_AddGNSSOdometryTypeToFuse;
 
     bool init = false;
     GeographicLib::LocalCartesian geoConverter;
@@ -158,22 +158,32 @@ public:
     void FindRotation(const double pointTime, const CloudWithTime& cloudinfo, const std::deque<OdometryType>& pose_deque,
                       PoseT& T_w_b_lidar_now) {//IMU数据中找到与当前点对应时刻的变换矩阵
 
-        for(int i = 0;i < (int)pose_deque.size(); i++){
-            if (pose_deque[i].timestamp > pointTime)
+        for(std::deque<OdometryType>::const_iterator it = pose_deque.begin();it!=pose_deque.end();it++){
+            if (it->timestamp > pointTime)
             {
-                double k_time = (pointTime - pose_deque[i-1].timestamp)
-                                /(pose_deque[i].timestamp - pose_deque[i-1].timestamp);
 
-                //平移插值
+//                double k_time = (pointTime - pose_deque[i-1].timestamp)
+//                                /(pose_deque[i].timestamp - pose_deque[i-1].timestamp);
+//
+//                //平移插值
+//                Eigen::Vector3d t_w_b_lidar_now;
+//                t_w_b_lidar_now = pose_deque[i - 1].pose.GetXYZ() +
+//                                  k_time * (pose_deque[i].pose.GetXYZ() - pose_deque[i - 1].pose.GetXYZ());
+//
+//                //旋转插值
+//                Eigen::Quaterniond q_w_b_lidar_now;
+//                q_w_b_lidar_now = pose_deque[i-1].pose.GetQ().slerp(k_time,pose_deque[i].pose.GetQ());
+//
+//                //插值位姿态矩阵
+//                T_w_b_lidar_now  = PoseT(t_w_b_lidar_now , q_w_b_lidar_now);
+
+//              不做插值，直接赋值
                 Eigen::Vector3d t_w_b_lidar_now;
-                t_w_b_lidar_now = pose_deque[i - 1].pose.GetXYZ() +
-                                  k_time * (pose_deque[i].pose.GetXYZ() - pose_deque[i - 1].pose.GetXYZ());
+                t_w_b_lidar_now = it->pose.GetXYZ();
 
-                //旋转插值
                 Eigen::Quaterniond q_w_b_lidar_now;
-                q_w_b_lidar_now = pose_deque[i-1].pose.GetQ().slerp(k_time,pose_deque[i].pose.GetQ());
+                q_w_b_lidar_now = it->pose.GetQ();
 
-                //插值位姿态矩阵
                 T_w_b_lidar_now  = PoseT(t_w_b_lidar_now , q_w_b_lidar_now);
 
                 break;
@@ -224,9 +234,9 @@ public:
         int rangemat_outlier = 0;
         EZLOG(INFO)<<"cloudSize size :"<<cloudSize;
         for (int i = 0; i < cloudSize; ++i) {  //遍历每一个点
-//            调整顺序
+//          前提，去除线数不合适的点
             int rowIdn = cloudinfo.cloud_ptr->cloud.points[i].ring;//获取行数
-            if (rowIdn < 0 || rowIdn >= SensorConfig::N_SCAN){
+            if (rowIdn < SensorConfig::lidarMinRing || rowIdn >= SensorConfig::lidarMaxRing){
                 row_outlier++;
                 continue;
             }
@@ -242,6 +252,8 @@ public:
                 range_outlier++;
                 continue;
             }
+
+
 
             int columnIdn = -1;//获取列号
 
@@ -266,11 +278,14 @@ public:
             //very important function@!!!!!!!!!
 //            TicToc t1;
             if (SensorConfig::use_gnss_deskew){
-                TicToc t_deskew;
+                if(cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp < 0){
+                    EZLOG(INFO)<<"wrong! latency!";
+                    continue;
+                }
                 thisPoint = DeskewPoint(&thisPoint,
-                                        cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp,
-                                        T_w_b_lidar_start,cloudinfo,
-                                        pose_deque);//进行点云去畸变
+                                cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp,
+                                T_w_b_lidar_start,cloudinfo,
+                                pose_deque);//进行点云去畸变
 //                EZLOG(INFO)<<"DeskewPoint with GNSS time: "<<t_deskew.toc();
             }
 //            EZLOG(INFO)<<"DeskewPoint with GNSS time: "<<t1.toc();
@@ -426,21 +441,21 @@ public:
                         cloudinfo.frame_id = frame_id++;
                         cloudinfo.timestamp = cur_scan->timestamp;
 
-                        /// 1.FindLidarFirstPose
+                        /// 1.FindLidarFirstPose------0.001467ms
                         PoseT T_w_l_lidar_first_pose;
                         double cost_time_findpose = FindLidarFirstPose(cloud_with_time, odo_poses_copy,//in
                                                                        T_w_l_lidar_first_pose);//out
                         cloudinfo.pose = T_w_l_lidar_first_pose;
-                        EZLOG(INFO) << "FindLidarFirstPose cost time(ms) = " << cost_time_findpose << std::endl;
+//                        EZLOG(INFO) << "FindLidarFirstPose cost time(ms) = " << cost_time_findpose;
 
-                        ///2.imgprojection
+                        ///2.imgprojection--------140ms
                         ///update rangemat and deskewCloud_body
                         double cost_time_projpc = ProjectPointCloud(cloud_with_time, odo_poses_copy, T_w_l_lidar_first_pose);
-                        EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
+                        EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc;
 
-                        ///3.cloudExtraction
+                        ///3.cloudExtraction--------1ms
                         double cost_time_cloudextraction = CloudExtraction(T_w_l_lidar_first_pose, cloudinfo);
-                        EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
+//                        EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction;
 
                         ///4. send data to feature extraction node
                         Function_AddCloudInfoToFeatureExtraction(cloudinfo);
@@ -544,6 +559,12 @@ public:
         poseQueue.push_back(T_w_l_pub);
         gnssins_mutex.unlock();
 
+        GNSSOdometryType T_w_l_gnss;
+        T_w_l_gnss.frame = "map";
+        T_w_l_gnss.timestamp = data.timestamp;
+        T_w_l_gnss.pose = T_w_l;
+
+        Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
         //pub gnss odometry in rviz
 //        if(MappingConfig::if_debug){
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);

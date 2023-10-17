@@ -24,6 +24,7 @@ public:
     FeatureExtraction ft_extr;
     LOCMapping loc_mapping;
     IMUPreintegration imu_pre;
+    Fuse fuse;
 
     void CloudCallback(const BaseType& msg){
         const CloudTypeXYZIRT& cloud_data = *((CloudTypeXYZIRT*)&msg);
@@ -44,7 +45,9 @@ public:
         img_proj.Init(pubsub);
         ft_extr.Init(pubsub);
         loc_mapping.Init(pubsub);
-//        imu_pre.Init(pubsub);
+        imu_pre.Init(pubsub);
+        fuse.Init(pubsub);
+
 
         //构建数据流关系
 //        auto add_imuodo_to_imgproj = std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
@@ -56,10 +59,25 @@ public:
                 std::bind(&IMUPreintegration::AddOdomData, &imu_pre,std::placeholders::_1);
         auto add_OdometryType_from_imupre_to_imgproj =
                 std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
+
+//       to fuse
+        auto add_GNSSOdometryType_from_imgproj_to_fuse =
+                std::bind(&Fuse::AddGNSSToFuse, &fuse,std::placeholders::_1);
+        auto add_LidarOdometryType_from_locmapping_to_fuse =
+                std::bind(&Fuse::AddLidarLocToFuse, &fuse,std::placeholders::_1);
+        auto add_IMUOdometryType_from_imupre_to_fuse =
+                std::bind(&Fuse::AddIMUToFuse, &fuse,std::placeholders::_1);
+
         img_proj.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_imgproj_to_ftextr;
         ft_extr.Function_AddCloudFeatureToLOCMapping = add_CloudFeature_from_ftextr_to_locmapping;
         loc_mapping.Function_AddOdometryTypeToIMUPreintegration = add_OdometryType_from_locmapping_to_imupre;
-        imu_pre.Function_AddOdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
+//        imu_pre.Function_AddOdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
+
+//        to fuse
+        img_proj.Function_AddGNSSOdometryTypeToFuse = add_GNSSOdometryType_from_imgproj_to_fuse;
+        loc_mapping.Function_AddLidarOdometryTypeToFuse = add_LidarOdometryType_from_locmapping_to_fuse;
+        imu_pre.Function_AddIMUOdometryTypeToFuse = add_IMUOdometryType_from_imupre_to_fuse;
+
     }
 };
 

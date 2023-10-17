@@ -105,8 +105,14 @@ class MappingConfig{
         static float odometrySurfLeafSize;
         static float mappingCornerLeafSize;
         static float  mappingSurfLeafSize;
+        static int DownSampleModeSwitch;
 
-        // robot motion constraint (in case you are using a 2D robot)
+        static float odometrySurfRadiusSize_US;
+        static float mappingCornerRadiusSize_US;
+        static float mappingSurfRadiusSize_US;
+        static float surroundingKeyframeDensity_US;
+
+    // robot motion constraint (in case you are using a 2D robot)
         static float z_tollerance;
         static float rotation_tollerance;
 
@@ -257,6 +263,12 @@ int  MappingConfig::surfFeatureMinValidNum=-1;
 float MappingConfig::odometrySurfLeafSize=-1;
 float MappingConfig::mappingCornerLeafSize=-1;
 float MappingConfig::mappingSurfLeafSize=-1;
+int MappingConfig::DownSampleModeSwitch = 0;
+
+float MappingConfig::odometrySurfRadiusSize_US = 0.6;
+float MappingConfig::mappingCornerRadiusSize_US = 0.4;
+float MappingConfig::mappingSurfRadiusSize_US = 0.6;
+float MappingConfig::surroundingKeyframeDensity_US = 2.0;
 
 // robot motion constraint (in case you are using a 2D robot)
 float MappingConfig::z_tollerance=-1;
@@ -414,10 +426,11 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::t_body_sensor = -(q_sensor_body.inverse() * t_sensor_body);
     SensorConfig::gtsamGNSSBetweenFactorDistance = sensorconfig["gtsamGNSSBetweenFactorDistance"].as<int>();
     SensorConfig::lidarScanDownSample = sensorconfig["lidarScanDownSample"].as<int>();
-    std::cout<<"lidarScanDownSample: "<<SensorConfig::lidarScanDownSample<<std::endl;
-    std::cout<<"lidarMaxRing: "<<SensorConfig::lidarMaxRing<<std::endl;
-    std::cout<<"lidarMinRing: "<<SensorConfig::lidarMinRing<<std::endl;
-    std::cout<<"sensorconfig yaml success load"<<std::endl;
+    std::cout<<"SensorConfig::lidarScanDownSample: "<<SensorConfig::lidarScanDownSample<<std::endl;
+    std::cout<<"SensorConfig::lidarMaxRing: "<<SensorConfig::lidarMaxRing<<std::endl;
+    std::cout<<"SensorConfig::lidarMinRing: "<<SensorConfig::lidarMinRing<<std::endl;
+    std::cout<<"SensorConfig::use_gnss_deskew: "<<SensorConfig::use_gnss_deskew<<std::endl;
+    std::cout<<"SensorConfig::sensorconfig yaml success load"<<std::endl;
 }
 
 void Load_Mapping_YAML(std::string mappingpath)
@@ -447,9 +460,15 @@ void Load_Mapping_YAML(std::string mappingpath)
 //        std::cout<<MappingConfig::surfFeatureMinValidNum<<std::endl;
 
         //voxel filter paprams
+        MappingConfig::DownSampleModeSwitch = mappingconfig["DownSampleModeSwitch"].as<int>();
         MappingConfig::odometrySurfLeafSize=mappingconfig["odometrySurfLeafSize"].as<float >();
         MappingConfig::mappingCornerLeafSize=mappingconfig["mappingCornerLeafSize"].as<float >();
         MappingConfig::mappingSurfLeafSize=mappingconfig["mappingSurfLeafSize"].as<float >();
+
+        MappingConfig::odometrySurfRadiusSize_US = mappingconfig["odometrySurfRadiusSize_US"].as<float >();
+        MappingConfig::mappingCornerRadiusSize_US = mappingconfig["mappingCornerRadiusSize_US"].as<float >();
+        MappingConfig::mappingSurfRadiusSize_US = mappingconfig["mappingSurfRadiusSize_US"].as<float >();
+        MappingConfig::surroundingKeyframeDensity_US = mappingconfig["surroundingKeyframeDensity_US"].as<float >();
 //        std::cout<<MappingConfig::mappingSurfLeafSize<<std::endl;
 
         // robot motion constraint (in case you are using a 2D robot)
@@ -499,8 +518,15 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig:: scan_2_scan_num_corner=mappingconfig["scan_2_scan_num_corner"].as<float >();
 //        std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
 
-        std::cout<<"prior_corner_map_path: "<<MappingConfig::prior_map_corner<<std::endl;
-        std::cout<<"prior_surf_map_path: "<<MappingConfig::prior_map_surf<<std::endl;
+        std::cout<<"MappingConfig::prior_corner_map_path: "<<MappingConfig::prior_map_corner<<std::endl;
+        std::cout<<"MappingConfig::prior_surf_map_path: "<<MappingConfig::prior_map_surf<<std::endl;
+        std::cout<<"MappingConfig::if_debug: "<<MappingConfig::if_debug<<std::endl;
+        std::cout<<"MappingConfig::DownSampleModeSwitch: "<< MappingConfig::DownSampleModeSwitch<<std::endl;
+
+        std::cout<<"MappingConfig::odometrySurfRadiusSize_US: "<<MappingConfig::odometrySurfRadiusSize_US<<std::endl;
+        std::cout<<"MappingConfig::mappingCornerRadiusSize_US: "<<MappingConfig::mappingCornerRadiusSize_US<<std::endl;
+        std::cout<<"MappingConfig::mappingSurfRadiusSize_US: "<< MappingConfig::mappingSurfRadiusSize_US<<std::endl;
+        std::cout<<"MappingConfig::surroundingKeyframeDensity_US: "<< MappingConfig::surroundingKeyframeDensity_US<<std::endl;
 
         std::cout<<"mapping yaml success load"<<std::endl;
 

@@ -13,6 +13,7 @@
 #include <pcl/filters/crop_box.h>
 #include <pcl/filters/filter.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/uniform_sampling.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/point_cloud.h>
@@ -55,6 +56,7 @@ public:
     FRAME current_frame = WORLD;
     PubSubInterface* pubsub;
     std::function<void(const OdometryType&)> Function_AddOdometryTypeToIMUPreintegration;
+    std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToFuse;
 
     std::thread* do_work_thread;
     std::mutex cloud_mutex;
@@ -99,6 +101,10 @@ public:
     pcl::VoxelGrid<PointType> downSizeFilterCorner;
     pcl::VoxelGrid<PointType> downSizeFilterSurf;
     pcl::VoxelGrid<PointType> near_keyframe_poses_ds;        // for surrounding key poses of
+
+    pcl::UniformSampling<PointType> downSizeFilterCorner_US;
+    pcl::UniformSampling<PointType> downSizeFilterSurf_US;
+    pcl::UniformSampling<PointType> near_keyframe_poses_ds_US;        // for surrounding key poses of
 
     std::vector<PointType> laserCloudOriCornerVec;  // corner point holder for parallel computation
     std::vector<PointType> coeffSelCornerVec;
@@ -236,16 +242,26 @@ public:
 
         last_lidar_frameID = 0;
         current_lidar_frameID = 0;
-        downSizeFilterCorner.setLeafSize(MappingConfig::mappingCornerLeafSize,
-                                         MappingConfig::mappingCornerLeafSize,
-                                         MappingConfig::mappingCornerLeafSize);
-        downSizeFilterSurf.setLeafSize(MappingConfig::mappingSurfLeafSize,
-                                       MappingConfig::mappingSurfLeafSize,
-                                       MappingConfig::mappingSurfLeafSize);
-        near_keyframe_poses_ds.setLeafSize(
-                MappingConfig::surroundingKeyframeDensity,
-                MappingConfig::surroundingKeyframeDensity,
-                MappingConfig::surroundingKeyframeDensity);  // for surrounding key poses of
+        switch (MappingConfig::DownSampleModeSwitch) {
+            case 0: // voxel grid
+                downSizeFilterCorner.setLeafSize(MappingConfig::mappingCornerLeafSize,
+                                                 MappingConfig::mappingCornerLeafSize,
+                                                 MappingConfig::mappingCornerLeafSize);
+                downSizeFilterSurf.setLeafSize(MappingConfig::mappingSurfLeafSize,
+                                               MappingConfig::mappingSurfLeafSize,
+                                               MappingConfig::mappingSurfLeafSize);
+                near_keyframe_poses_ds.setLeafSize(
+                        MappingConfig::surroundingKeyframeDensity,
+                        MappingConfig::surroundingKeyframeDensity,
+                        MappingConfig::surroundingKeyframeDensity);  // for surrounding key poses of
+                break;
+            case 1:
+                downSizeFilterCorner_US.setRadiusSearch(MappingConfig::mappingCornerRadiusSize_US);
+                downSizeFilterSurf_US.setRadiusSearch(MappingConfig::mappingSurfRadiusSize_US);
+                near_keyframe_poses_ds_US.setRadiusSearch(MappingConfig::surroundingKeyframeDensity_US);
+                break;
+
+        }
 
         if(flagLoadMap){
             // 从晓强接收
@@ -395,17 +411,6 @@ public:
                                       transformIn[1], transformIn[2]);
     }
 
-    PointTypePose trans2PointTypePose(float transformIn[]) {
-        PointTypePose thisPose6D;
-        thisPose6D.x = transformIn[3];
-        thisPose6D.y = transformIn[4];
-        thisPose6D.z = transformIn[5];
-        thisPose6D.roll = transformIn[0];
-        thisPose6D.pitch = transformIn[1];
-        thisPose6D.yaw = transformIn[2];
-        return thisPose6D;
-    }
-
     void updateInitialGuess() {
         // save current transformation before any processing
 //        static Eigen::Affine3f lastImuTransformation;
@@ -513,12 +518,21 @@ public:
 
 //            kdtree_localMap_corner->setInputCloud(localMap_corner);
             std::cout<<"extract_from_priorMap is in ms: " << extract_from_priorMap.toc() <<std::endl;
-            downSizeFilterCorner.setInputCloud(localMap_corner);
-            downSizeFilterCorner.filter(*localMap_corner_ds);
+            switch (MappingConfig::DownSampleModeSwitch) {
+                case 0:
+                    downSizeFilterCorner.setInputCloud(localMap_corner);
+                    downSizeFilterCorner.filter(*localMap_corner_ds);
+                    downSizeFilterSurf.setInputCloud(localMap_surf);
+                    downSizeFilterSurf.filter(*localMap_surf_ds);
+                    break;
+                case 1:
+                    downSizeFilterCorner_US.setInputCloud(localMap_corner);
+                    downSizeFilterCorner_US.filter(*localMap_corner_ds);
+                    downSizeFilterSurf_US.setInputCloud(localMap_surf);
+                    downSizeFilterSurf_US.filter(*localMap_surf_ds);
+                    break;
+            }
             localMap_corner_ds_num = localMap_corner_ds->size();
-            // Downsample the surrounding surf key frames (or map)
-            downSizeFilterSurf.setInputCloud(localMap_surf);
-            downSizeFilterSurf.filter(*localMap_surf_ds);
             localMap_surf_ds_num = localMap_surf_ds->size();
             //P_l = (T_wl)^-1 * P_w
 //            如果先验地图是世界系的，需要转换成激光雷达系,但是不需要平移向量了
@@ -560,18 +574,27 @@ public:
      */
     void downsampleCurrentScan() {
 
-        // Downsample cloud from current scan
         current_corner_ds->clear();
-        downSizeFilterCorner.setInputCloud(current_corner);
-        downSizeFilterCorner.filter(*current_corner_ds);
-        current_corner_ds_num = current_corner_ds->size();
-
         current_surf_ds->clear();
-        downSizeFilterSurf.setInputCloud(current_surf);
-        downSizeFilterSurf.filter(*current_surf_ds);
+        // Downsample cloud from current scan
+        switch (MappingConfig::DownSampleModeSwitch) {
+            case 0:
+                downSizeFilterCorner.setInputCloud(current_corner);
+                downSizeFilterCorner.filter(*current_corner_ds);
+                downSizeFilterSurf.setInputCloud(current_surf);
+                downSizeFilterSurf.filter(*current_surf_ds);
+                break;
+            case 1:
+                downSizeFilterCorner_US.setInputCloud(current_corner);
+                downSizeFilterCorner_US.filter(*current_corner_ds);
+                downSizeFilterSurf_US.setInputCloud(current_surf);
+                downSizeFilterSurf_US.filter(*current_surf_ds);
+                break;
+        }
+        current_corner_ds_num = current_corner_ds->size();
         current_surf_ds_num = current_surf_ds->size();
         EZLOG(INFO) << "current_corner_ds_num: "<<current_corner_ds_num
-                    << " current_surf_ds_num" <<current_surf_ds_num;
+                    << " current_surf_ds_num: " <<current_surf_ds_num;
 
     }
 
@@ -720,19 +743,19 @@ public:
                 matA1.at<float>(2, 2) = a33;
 
                 cv::eigen(matA1, matD1, matV1);
-                float matv1_f[3];
-                float matV1_norm;
-
-//                matv1_f[0] = matV1.at<float>(0, 0);
-//                matv1_f[1] = matV1.at<float>(0, 1);
-//                matv1_f[2] = matV1.at<float>(0, 2);
-                matV1_norm = sqrt(matV1.at<float>(0, 0)* matV1.at<float>(0, 0)+
-                                  matV1.at<float>(0, 1)*matV1.at<float>(0, 1)+
-                                  matV1.at<float>(0, 2)*matV1.at<float>(0, 2));
-                matV1_norm = 1 / matV1_norm;
-                matv1_f[0] = matV1_norm * matv1_f[0];
-                matv1_f[1] = matV1_norm * matv1_f[1];
-                matv1_f[2] = matV1_norm * matv1_f[2];
+//                float matv1_f[3];
+//                float matV1_norm;
+//
+////                matv1_f[0] = matV1.at<float>(0, 0);
+////                matv1_f[1] = matV1.at<float>(0, 1);
+////                matv1_f[2] = matV1.at<float>(0, 2);
+//                matV1_norm = sqrt(matV1.at<float>(0, 0)* matV1.at<float>(0, 0)+
+//                                  matV1.at<float>(0, 1)*matV1.at<float>(0, 1)+
+//                                  matV1.at<float>(0, 2)*matV1.at<float>(0, 2));
+//                matV1_norm = 1 / matV1_norm;
+//                matv1_f[0] = matV1_norm * matv1_f[0];
+//                matv1_f[1] = matV1_norm * matv1_f[1];
+//                matv1_f[2] = matV1_norm * matv1_f[2];
 
                 if (matD1.at<float>(0, 0) > 3 * matD1.at<float>(0, 1)) {
                     float x0 = pointSel.x;
@@ -768,23 +791,23 @@ public:
                     float l12 = sqrt(l12_a * l12_a + l12_b * l12_b +
                                              l12_c * l12_c);
 
-//                    float la =
-//                            ((y1 - y2) * ((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) +
-//                             (z1 - z2) * ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1))) /
-//                            a012 / l12;
-                    float la = matv1_f[0];
+                    float la =
+                            ((y1 - y2) * ((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) +
+                             (z1 - z2) * ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1))) /
+                            a012 / l12;
+//                    float la = matv1_f[0];
 
-//                    float lb =
-//                            -((x1 - x2) * ((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) -
-//                              (z1 - z2) * ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1))) /
-//                            a012 / l12;
-                    float lb = matv1_f[1];
+                    float lb =
+                            -((x1 - x2) * ((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) -
+                              (z1 - z2) * ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1))) /
+                            a012 / l12;
+//                    float lb = matv1_f[1];
 
-//                    float lc =
-//                            -((x1 - x2) * ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1)) +
-//                              (y1 - y2) * ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1))) /
-//                            a012 / l12;
-                    float lc = matv1_f[2];
+                    float lc =
+                            -((x1 - x2) * ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1)) +
+                              (y1 - y2) * ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1))) /
+                            a012 / l12;
+//                    float lc = matv1_f[2];
 
 //                    点到直线的距离
                     float ld2 = a012 / l12;
@@ -924,7 +947,7 @@ public:
 
     void combineOptimizationCoeffs() {
         // combine corner coeffs
-        std::cout<<"combineOptimizationCoeffs()!" << std::endl;
+//        std::cout<<"combineOptimizationCoeffs()!" << std::endl;
         for (int i = 0; i < current_corner_ds_num; ++i) {
             if (laserCloudOriCornerFlag[i] == true) {
                 laserCloudOri->push_back(laserCloudOriCornerVec[i]);
@@ -955,7 +978,7 @@ public:
         // roll = yaw           ---     roll = pitch
         // pitch = roll         ---     pitch = yaw
         // yaw = pitch          ---     yaw = roll
-        std::cout<<"LMOptimization()!" << std::endl;
+//        std::cout<<"LMOptimization()!" << std::endl;
         // lidar -> camera
         float srx = sin(current_T_m_l[1]);
         float crx = cos(current_T_m_l[1]);
@@ -1161,15 +1184,15 @@ public:
         if (abs(roll) < MappingConfig::surroundingkeyframeAddingAngleThreshold &&
             abs(pitch) < MappingConfig::surroundingkeyframeAddingAngleThreshold &&
             abs(yaw) < MappingConfig::surroundingkeyframeAddingAngleThreshold &&
-            sqrt(x * x + y * y + z * z) < MappingConfig::surroundingkeyframeAddingDistThreshold)
+            sqrt(x * x + y * y + z * z) < MappingConfig::surroundingkeyframeAddingDistThreshold){
             return false;
+        }
 
         std::cout << "distance gap: " << sqrt(x * x + y * y) << std::endl;
 
         return true;
     }
-
-    void addOdomFactor() {
+            void addOdomFactor() {
         if (Keyframe_Poses3D->points.empty()) {
             gtsam::noiseModel::Diagonal::shared_ptr priorNoise =
                     gtsam::noiseModel::Diagonal::Variances(
@@ -1434,6 +1457,7 @@ public:
                 break;
 
         }
+        Function_AddLidarOdometryTypeToFuse(current_lidar_pose_world);
         Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
         pubsub->PublishOdometry(topic_lidar_odometry, current_lidar_pose_world);
     }

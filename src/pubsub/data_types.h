@@ -13,7 +13,7 @@
 #include "utils/utility.h"
 //所有数据的基类
 
-enum DataType {IMU, LIDAR, WHEEL, GNSS_INS,//from sensor
+enum DataType {IMU, LIDAR,GNSS, WHEEL, GNSS_INS,//from sensor
                 ODOMETRY, PATH};//common used type
 
 class BaseType{
@@ -93,6 +93,24 @@ class OdometryType:public BaseType{
 };
 typedef std::shared_ptr<OdometryType> OdometryTypePtr;
 
+class GNSSOdometryType:public BaseType{
+public:
+    PoseT pose;
+    DataType getType(){
+        return DataType::GNSS;
+    }
+};
+typedef std::shared_ptr<GNSSOdometryType> GNSSOdometryTypePtr;
+
+class IMUOdometryType:public BaseType{
+public:
+    PoseT pose;
+    DataType getType(){
+        return DataType::IMU;
+    }
+};
+typedef std::shared_ptr<IMUOdometryType> IMUOdometryTypePtr;
+
 class GNSSINSType:public BaseType{
     public:
         Eigen::Vector3d lla;
@@ -105,6 +123,7 @@ class GNSSINSType:public BaseType{
              return DataType::GNSS_INS;
         }
 };
+
 
 class PathType:public BaseType{
     public:

@@ -36,6 +36,8 @@ public:
     std::mutex gnssins_mutex;
     std::mutex lidarodom_mutex;
     std::function<void(const OdometryType&)> Function_AddOdometryTypeToImageProjection;
+    std::function<void(const IMUOdometryType&)> Function_AddIMUOdometryTypeToFuse;
+    std::ofstream outfile;
 
 //    ImageProjection* img_proj_ptr;
 //    FeatureExtraction* ft_extr_ptr;
@@ -108,11 +110,15 @@ public:
         imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
         imu_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
         imu_raw->timestamp = gnss_ins_data.timestamp;
-        Eigen::Quaterniond orientation_quaternion;
-        orientation_quaternion = Eigen::AngleAxisd(gnss_ins_data.roll * 3.1415926535 / 180.0, Eigen::Vector3d::UnitX())
-                                 *Eigen::AngleAxisd(gnss_ins_data.pitch * 3.1415926535 / 180.0, Eigen::Vector3d::UnitY())
-                                 *Eigen::AngleAxisd(gnss_ins_data.yaw * 3.1415926535 / 180.0, Eigen::Vector3d::UnitZ());
-        imu_raw->orientation = orientation_quaternion;
+        outfile.precision(6);
+        outfile << imu_raw->imu_angular_v.x()<<" "<< imu_raw->imu_angular_v.y()<<" "<<imu_raw->imu_angular_v.z()<<std::endl;
+
+
+//        Eigen::Quaterniond orientation_quaternion;
+//        orientation_quaternion = Eigen::AngleAxisd(gnss_ins_data.roll * 3.1415926535 / 180.0, Eigen::Vector3d::UnitX())
+//                                 *Eigen::AngleAxisd(gnss_ins_data.pitch * 3.1415926535 / 180.0, Eigen::Vector3d::UnitY())
+//                                 *Eigen::AngleAxisd(gnss_ins_data.yaw * 3.1415926535 / 180.0, Eigen::Vector3d::UnitZ());
+//        imu_raw->orientation = orientation_quaternion;
 
         double imuTime = imu_raw->timestamp;
 
@@ -151,12 +157,18 @@ public:
         //for debug use
 
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
-        EZLOG(INFO)<<"topic_imu_raw_odom "<<std::endl;
+
+        IMUOdometryType T_b_l_imu;
+        T_b_l_imu.timestamp = imu_raw->timestamp;
+        T_b_l_imu.frame = "map";
+        T_b_l_imu.pose = lidar_preditct_pose;
+        Function_AddIMUOdometryTypeToFuse(T_b_l_imu);
+//        EZLOG(INFO)<<"topic_imu_raw_odom "<<std::endl;
 //        Odometry_imuPredict_pub.pose.GetQ().
 
-        Function_AddOdometryTypeToImageProjection(Odometry_imuPredict_pub);
+//        Function_AddOdometryTypeToImageProjection(Odometry_imuPredict_pub);
 
-        EZLOG(INFO)<<"imu_pre addgnssdata cost time(ms) = "<<timer.toc()<<std::endl;
+//        EZLOG(INFO)<<"imu_pre addgnssdata cost time(ms) = "<<timer.toc()<<std::endl;
     }
 
     //
@@ -254,6 +266,11 @@ public:
 
     void DoLidar(){
 //
+//        outfile.open("imu_gyro.txt",std::ios::app);
+//        if (!outfile.is_open()) {
+//            std::cerr << "无法打开输出文件 " << std::endl;
+//        }
+//        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
         while(1){
             if(lidar_poseQueue.size()!=0){
 

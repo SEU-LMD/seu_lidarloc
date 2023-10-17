@@ -22,9 +22,17 @@
   surfFeatureMinValidNum: 100
 
   # voxel filter paprams
+  DownSampleModeSwitch: 1                       # add by SY, 0 for voxel filter, 1 for uniformSample,
+# 0:
   odometrySurfLeafSize: 0.6                     # default: 0.4 - outdoor, 0.2 - indoor
   mappingCornerLeafSize: 0.4                    # default: 0.2 - outdoor, 0.1 - indoor
   mappingSurfLeafSize: 0.6                      # default: 0.4 - outdoor, 0.2 - indoor
+  surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses
+# 1:
+  odometrySurfRadiusSize_US: 0.3                     # default: 0.4 - outdoor, 0.2 - indoor
+  mappingCornerRadiusSize_US: 0.2                    # default: 0.2 - outdoor, 0.1 - indoor
+  mappingSurfRadiusSize_US: 0.3                      # default: 0.4 - outdoor, 0.2 - indoor
+  surroundingKeyframeDensity_US: 1.0               # meters, downsample surrounding keyframe poses
 
   # robot motion constraint (in case you are using a 2D robot)
   z_tollerance: 1000                            # meters
@@ -37,7 +45,9 @@
   # Surrounding map
   surroundingkeyframeAddingDistThreshold: 1.0  # meters, regulate keyframe adding threshold
   surroundingkeyframeAddingAngleThreshold: 1.0  # radians, regulate keyframe adding threshold
-  surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses
+
+
+
   surroundingKeyframeSearchRadius: 50.0         # meters, within n meters scan-to-map optimization (when loop closure disabled)
   localMap_searchRadius: 30.0
   localMap_searchRadius_surf: 50.0
