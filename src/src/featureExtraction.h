@@ -426,7 +426,7 @@ public:
         pubsub->addPublisher(topic_surf_world, DataType::LIDAR, 10);
         do_work_thread = new std::thread(&FeatureExtraction::DoWork, this);
         if(MappingConfig::slam_mode_switch == 0){
-            save_Map_thread = new std::thread(&MapSaver::do_work, &(FeatureExtraction::map_saver));
+            //save_Map_thread = new std::thread(&MapSaver::do_work, &(FeatureExtraction::map_saver));
         }
 
 

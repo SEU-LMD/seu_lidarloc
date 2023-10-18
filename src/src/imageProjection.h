@@ -591,8 +591,10 @@ public:
         T_w_l_gnss.frame = "map";
         T_w_l_gnss.timestamp = data.timestamp;
         T_w_l_gnss.pose = T_w_l;
-
-        Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
+         if (MappingConfig::slam_mode_switch ==1){
+             Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
+         }
+       // Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
         //pub gnss odometry in rviz
 //        if(MappingConfig::if_debug){
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);

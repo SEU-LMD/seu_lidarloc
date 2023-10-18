@@ -179,20 +179,6 @@ public:
     //nav_msgs::Path globalPath;
 //    nav_msgs::Path globalPath;
 
-    void AddCloudData(const CloudFeature& cloud_ft){
-        EZLOG(INFO)<<"optmapping_AddCloudData "<<std::endl;
-        cloud_mutex.lock();
-        deque_cloud.push_back(cloud_ft);
-        cloud_mutex.unlock();
-        EZLOG(INFO)<<"deque_cloud.size() = "<<deque_cloud.size()<<std::endl;
-    }
-
-    void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
-        gnss_ins_mutex.lock();
-        deque_gnssins.push_back(gnss_ins_data);
-        gnss_ins_mutex.unlock();
-    }
-
     void allocateMemory() {
         gtsam::ISAM2Params parameters;
         parameters.relinearizeThreshold = 0.1;
@@ -264,8 +250,8 @@ public:
         for (int i = 0; i < 6; ++i) {
             transformTobeMapped[i] = 0;
         }
-        matP = Eigen::MatrixXf(6,6);
-//        matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
+       // matP = Eigen::MatrixXf(6,6);
+        matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
     }
 
     void pointAssociateToMap(PointType const *const pi, PointType *const po) {
@@ -1655,8 +1641,8 @@ public:
        // surfCloudKeyFrames.push_back(laserCloudSurfLastDS);
         // save key frame cloud
         //保存关键帧的点云
-        cornerCloudKeyFrames.push_back(laserCloudCornerLastDS);
-        surfCloudKeyFrames.push_back(laserCloudSurfLastDS);
+        cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
+        surfCloudKeyFrames.push_back(thisSurfKeyFrame);
 
 
 //        for (int i = 0; i < (int) cloudKeyPoses3D->size(); i++) {
@@ -1684,7 +1670,7 @@ public:
                 //cloud_info.global_corner_cloud = globalCornerCloudDS;
                 //cloud_info.global_surf_cloud = globalSurfCloudDS;
 
-             //  map_saver.AddCloudToSave(cloud_info);
+               map_saver.AddCloudToSave(cloud_info);
 
                //updatePath(thisPose6D);
         EZLOG(INFO)<<"get out saveKeyFramesAndFactor "<<endl;
@@ -1852,7 +1838,7 @@ public:
 //        pubsub->addPublisher(topic_gnss_pose,DataType::ODOMETRY,10);
 
         do_work_thread = new std::thread(&OPTMapping::DoWork, this);
-        loop_thread =new std::thread(&OPTMapping::loopClosureThread, this);
+       // loop_thread =new std::thread(&OPTMapping::loopClosureThread, this);
         save_Map_thread = new std::thread(&MapSaver::do_work, &(OPTMapping::map_saver));
         //save_path_thread = new std::thread (&OPTMapping::savePathThread, this);
 
