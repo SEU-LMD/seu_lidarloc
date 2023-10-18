@@ -84,11 +84,6 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(
 typedef PointXYZIRPYT PointTypePose;
 
 
-
-
-
-
-
 sensor_msgs::Imu imuConverter(const sensor_msgs::Imu &imu_in) {
     sensor_msgs::Imu imu_out = imu_in;
     // rotate acceleration

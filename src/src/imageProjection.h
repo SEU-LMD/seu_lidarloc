@@ -25,6 +25,7 @@ class ImageProjection  {
 public:
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
+    std::mutex work_mutex;
     std::mutex gnssins_mutex;
     std::mutex imuodom_mutex;
 
@@ -34,6 +35,10 @@ public:
     std::deque<OdometryType> poseQueue;
     std::deque<OdometryType> IMUOdomQueue;
 
+//    FeatureExtraction* ft_extr_ptr;
+//    OPTMapping* opt_mapping_ptr;
+//    IMUPreintegration* imu_pre_ptr;
+//    OPTMapping* opt_mapping_ptr;
     std::function<void(const CloudInfo&)> Function_AddCloudInfoToFeatureExtraction;
     std::function<void(const GNSSOdometryType&)> Function_AddGNSSOdometryTypeToFuse;
 
@@ -73,8 +78,10 @@ public:
         for(int i=0; i < cloud_origin->cloud.points.size(); ++i)
         {
             cloud_origin->cloud.points[i].latency = cloud_origin->cloud.points[i].latency - t_0;
+
             if(cloud_origin->cloud.points[i].latency > max_timestamp){
                 max_timestamp = cloud_origin->cloud.points[i].latency;
+
             }
             if(cloud_origin->cloud.points[i].latency < min_timestamp){
                 min_timestamp = cloud_origin->cloud.points[i].latency;
@@ -87,6 +94,7 @@ public:
         cloud_with_time.min_latency_timestamp = min_timestamp;
 
         double cost_time = timer.toc();
+//        EZLOG(INFO)<<"GetCloudTime cost time(ms) = "<<cost_time<<std::endl;
         return cost_time;
     }
 
@@ -181,9 +189,11 @@ public:
                 Eigen::Vector3d t_w_b_lidar_now;
                 t_w_b_lidar_now = it->pose.GetXYZ();
 
+                //旋转插值
                 Eigen::Quaterniond q_w_b_lidar_now;
                 q_w_b_lidar_now = it->pose.GetQ();
 
+                //插值位姿态矩阵
                 T_w_b_lidar_now  = PoseT(t_w_b_lidar_now , q_w_b_lidar_now);
 
                 break;
@@ -201,10 +211,9 @@ public:
         double pointTime = cloudinfo.min_ros_timestamp + relTime;//scan时间加相对时间，获得点的时间
 
         PoseT T_w_b_lidar_now;
-//        TicToc t1;
         FindRotation(pointTime, cloudinfo, pose_deque,
                      T_w_b_lidar_now);
-//        EZLOG(INFO)<<"FindRotation: "<<t1.toc();
+
         Eigen::Vector3d origin_pt;
         origin_pt << point->x,point->y,point->z;
         PoseT T_lidar_start_now = T_w_b_lidar_start.inverse()*T_w_b_lidar_now;
@@ -232,7 +241,6 @@ public:
         int row_outlier = 0;
         int col_outlier = 0;
         int rangemat_outlier = 0;
-        EZLOG(INFO)<<"cloudSize size :"<<cloudSize;
         for (int i = 0; i < cloudSize; ++i) {  //遍历每一个点
 //          前提，去除线数不合适的点
             int rowIdn = cloudinfo.cloud_ptr->cloud.points[i].ring;//获取行数
@@ -276,7 +284,6 @@ public:
                 continue;
             }
             //very important function@!!!!!!!!!
-//            TicToc t1;
             if (SensorConfig::use_gnss_deskew){
                 if(cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp < 0){
                     EZLOG(INFO)<<"wrong! latency!";
@@ -288,7 +295,6 @@ public:
                                 pose_deque);//进行点云去畸变
 //                EZLOG(INFO)<<"DeskewPoint with GNSS time: "<<t_deskew.toc();
             }
-//            EZLOG(INFO)<<"DeskewPoint with GNSS time: "<<t1.toc();
 //            thisPoint = deskewPoint(&thisPoint, cloudinfo.cloud->points[i].latency - cloudinfo.min_latency_timestamp, T_w_b_lidar_start,cloudinfo,pose_deque);//进行点云去畸变
 //            rangeMat(rowIdn, columnIdn) = range;//将去畸变后的点范围和坐标存入rangeMat
             rangeMat.at<float>(rowIdn, columnIdn) = range;//将去畸变后的点范围和坐标存入rangeMat
@@ -303,11 +309,11 @@ public:
         }//end for
 
 ////        use for debug
-        EZLOG(INFO)<<"valid_num num = "<<valid_num<<std::endl;
+//        EZLOG(INFO)<<"valid_num num = "<<valid_num<<std::endl;
 //        EZLOG(INFO)<<"range_outlier num = "<<range_outlier<<std::endl;
 //        EZLOG(INFO)<<"row_outlier num = "<<row_outlier<<std::endl;
 //        EZLOG(INFO)<<"col_outlier num = "<<col_outlier<<std::endl;
-        EZLOG(INFO)<<"rangemat_outlier num = "<<rangemat_outlier<<std::endl;
+//        EZLOG(INFO)<<"rangemat_outlier num = "<<rangemat_outlier<<std::endl;
 
 ////        for debug use
         if(MappingConfig::if_debug)
@@ -381,8 +387,14 @@ public:
         cloudinfo.endRingIndex.assign(SensorConfig::N_SCAN, 0);
 
         while(1){
-            if(deque_cloud.size()!=0){
-
+          //  EZLOG(INFO)<<deque_cloud.size()<<endl;
+            bool isEmpty = false;
+            {
+                std::lock_guard<std::mutex> lock(work_mutex);
+                isEmpty = deque_cloud.empty();
+            }
+            if(!isEmpty){
+                //EZLOG(INFO)<<deque_cloud.size()<<endl;
                 ///0.do something
                 std::deque<OdometryType> odo_poses_copy;
                 gnssins_mutex.lock();
@@ -432,32 +444,46 @@ public:
                 double cloud_max_ros_timestamp = cloud_with_time.max_ros_timestamp;
 
                 ///2.
-//                     imu lidar lidar imu
-                if(odo_min_ros_time<cloud_min_ros_timestamp && odo_max_ros_time>cloud_max_ros_timestamp){
-
+//                if(odo_min_ros_time>cloud_min_ros_timestamp){
+//                    EZLOG(INFO)<<"odo is larger than lidar" <<endl;
+//                    exit(1);
+//                }
+                if(!poseQueue.empty() && odo_min_ros_time >= cloud_min_ros_timestamp){
+                    auto temp = poseQueue.front();
+                    temp.timestamp = cloud_min_ros_timestamp - 0.01f;
+                    poseQueue.push_front(temp);
+                }
+                if(odo_min_ros_time<cloud_min_ros_timestamp&&odo_max_ros_time>cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
+                    EZLOG(INFO)<<"get in odo_min_ros_time"<<endl;
+//                        if(odo_min_ros_time >= cloud_min_ros_timestamp){
+//                            auto temp = poseQueue.front();
+//                            temp.timestamp = cloud_min_ros_timestamp - 0.01f;
+//                            poseQueue.push_front(temp);
+//                        }
                         deque_cloud.pop_front();
                         cloud_mutex.unlock();
 
                         cloudinfo.frame_id = frame_id++;
                         cloudinfo.timestamp = cur_scan->timestamp;
 
-                        /// 1.FindLidarFirstPose------0.001467ms
+                        /// 1.FindLidarFirstPose
                         PoseT T_w_l_lidar_first_pose;
                         double cost_time_findpose = FindLidarFirstPose(cloud_with_time, odo_poses_copy,//in
                                                                        T_w_l_lidar_first_pose);//out
                         cloudinfo.pose = T_w_l_lidar_first_pose;
-//                        EZLOG(INFO) << "FindLidarFirstPose cost time(ms) = " << cost_time_findpose;
+//                        EZLOG(INFO) << "FindLidarFirstPose cost time(ms) = " << cost_time_findpose << std::endl;
 
-                        ///2.imgprojection--------140ms
+                        ///2.imgprojection
                         ///update rangemat and deskewCloud_body
                         double cost_time_projpc = ProjectPointCloud(cloud_with_time, odo_poses_copy, T_w_l_lidar_first_pose);
-                        EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc;
+//                        EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
 
-                        ///3.cloudExtraction--------1ms
+                        ///3.cloudExtraction
                         double cost_time_cloudextraction = CloudExtraction(T_w_l_lidar_first_pose, cloudinfo);
-//                        EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction;
+//                        EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
 
                         ///4. send data to feature extraction node
+//                        ft_extr_ptr->AddCloudData(cloudinfo);
                         Function_AddCloudInfoToFeatureExtraction(cloudinfo);
 //                        EZLOG(INFO)<<"cloudinfo.frame_id = "<<cloudinfo.frame_id<<std::endl;
 //                        EZLOG(INFO)<<"cloudinfo.cloud_ptr->size() = "<<cloudinfo.cloud_ptr->size()<<std::endl;
@@ -465,20 +491,22 @@ public:
 
                         ///5.pop used odom
                         gnssins_mutex.lock();
-                        while(poseQueue.front().timestamp < cloud_max_ros_timestamp - 0.1){
+//                        while(poseQueue.front().timestamp < cloud_max_ros_timestamp - 0.1f){
+//                            poseQueue.pop_front();
+//                        }
+                        double thresh = cloud_max_ros_timestamp - 0.05f;
+                        while(poseQueue.front().timestamp < thresh){
                             poseQueue.pop_front();
                         }
                         gnssins_mutex.unlock();
 
                         ResetParameters();
-                    EZLOG(INFO)<<"imageProj time: "<<t_imgProj.toc();
                 }//end function if
                 else{
                     cloud_mutex.unlock();
                 }
 
                 ResetParameters();
-
             }//end if(deque_cloud.size()!=0){
             else{
                 sleep(0.01);//线程休息10ms
