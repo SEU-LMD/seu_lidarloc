@@ -22,6 +22,9 @@ struct CloudInfoFt{
     pcl::PointCloud<PointType>::Ptr corner_cloud;
     pcl::PointCloud<PointType>::Ptr surf_cloud;
     pcl::PointCloud<PointType>::Ptr raw_Cloud;
+    pcl::PointCloud<PointType>::Ptr global_corner_cloud;
+    pcl::PointCloud<PointType>::Ptr global_surf_cloud;
+
    // pcl::PointCloud<PointXYZICOLRANGE>::Ptr raw_cloud;
 //    CloudInfo raw_cloud;
     int frame_id;
@@ -38,8 +41,8 @@ public:
        // pcl::io::savePCDFileBinary(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_raw.pcd", *cloud_info.raw_Cloud);
         pcl::io::savePCDFileBinary(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_surf.pcd", *cloud_info.surf_cloud);
         pcl::io::savePCDFileBinary(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_corner.pcd", *cloud_info.corner_cloud);
-        //pcl::io::savePCDFileBinary(MappingConfig::save_map_path+"global_corner.pcd", *cloud_info.global_corner_cloud);
-      //  pcl::io::savePCDFileBinary(MappingConfig::save_map_path+"global_surf.pcd", *cloud_info.global_surf_cloud);
+       // pcl::io::savePCDFileBinary(MappingConfig::save_map_path+"global_corner.pcd", *cloud_info.global_corner_cloud);
+       // pcl::io::savePCDFileBinary(MappingConfig::save_map_path+"global_surf.pcd", *cloud_info.global_surf_cloud);
     }
 
     static void SaveOriginLLA(const Eigen::Vector3d gps_point){

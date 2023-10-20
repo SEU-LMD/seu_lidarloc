@@ -66,7 +66,7 @@ public:
                 std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
         img_proj.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_imgproj_to_ftextr;
         ft_extr.Function_AddCloudFeatureToOPTMapping = add_CloudFeature_from_ftextr_to_optmapping;
-        opt_mapping.Function_AddOdometryTypeToIMUPreintegration = add_OdometryType_from_optmapping_to_imupre;
+        //opt_mapping.Function_AddOdometryTypeToIMUPreintegration = add_OdometryType_from_optmapping_to_imupre;
         imu_pre.Function_AddOdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
         EZLOG(INFO) << "Init finish!!! " << std::endl;
     }

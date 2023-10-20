@@ -25,17 +25,10 @@
 #include <queue>
 #include <thread>
 #include <chrono>
-#include "timer.h"
-#include "config_helper.h"
+#include "utils/timer.h"
+#include "utils/config_helper.h"
 #include "easylogging++.h"
 INITIALIZE_EASYLOGGINGPP
-
-
-
-
-
-
-
 
 typedef struct{
     std::string down_grid_index;
@@ -48,8 +41,6 @@ typedef struct {
     double y;
     double z;
 }Gnsspostion;
-
-
 
 struct MyPointType{
     PCL_ADD_POINT4D;

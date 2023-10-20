@@ -1,14 +1,14 @@
 # 0 for opt mapping->wxy, 1 for loc mapping->sy.
-  slam_mode_switch: 1
-  if_use_fuseNode: 1 
+  slam_mode_switch: 0
+
 # 1 for debug (pub to rviz),0 for not debug
   if_debug: 0
 
   # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!
 #  save_map_path: "/home/wxy/seu/noros/seu_lidarloc/src/result"
-  save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/map/"
-#  save_map_path: "/home/lsy/map/"
+  save_map_path: "/home/wxy/seu/work/seu_lidarloc/src/result/"
+
 
   # Export settings
   savePCD: false                              # https://github.com/TixiaoShan/LIO-SAM/issues/3
@@ -22,11 +22,12 @@
   surfFeatureMinValidNum: 100
 
   # voxel filter paprams
-  DownSampleModeSwitch: 1                       # add by SY, 0 for voxel filter, 1 for uniformSample,
+
+  DownSampleModeSwitch: 0                       # add by SY, 0 for voxel filter, 1 for uniformSample,
 # 0:
   odometrySurfLeafSize: 0.6                     # default: 0.4 - outdoor, 0.2 - indoor
   mappingCornerLeafSize: 0.4                    # default: 0.2 - outdoor, 0.1 - indoor
-  mappingSurfLeafSize: 0.6                      # default: 0.4 - outdoor, 0.2 - indoor
+  mappingSurfLeafSize: 0.5                     # default: 0.4 - outdoor, 0.2 - indoor
   surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses
 # 1:
   odometrySurfRadiusSize_US: 0.3                     # default: 0.4 - outdoor, 0.2 - indoor
@@ -66,7 +67,7 @@
   loopClosureEnableFlag: true
   loopClosureFrequency: 1.0                     # Hz, regulate loop closure constraint add frequency
   surroundingKeyframeSize: 30                  # submap size (when loop closure enabled)
-  historyKeyframeSearchRadius: 30.0           # meters, key frame that is within n meters from current pose will be considerd for loop closure
+  historyKeyframeSearchRadius: 20.0           # meters, key frame that is within n meters from current pose will be considerd for loop closure
   historyKeyframeSearchTimeDiff: 60.0          # seconds, key frame that is n seconds older will be considered for loop closure
   historyKeyframeSearchNum: 25                  # number of hostory key frames will be fused into a submap for loop closure
   historyKeyframeFitnessScore: 0.9            # icp threshold, the smaller the better alignment

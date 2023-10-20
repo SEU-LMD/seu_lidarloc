@@ -356,7 +356,7 @@ public:
                     CloudInfoFt raw_cloud;
                     raw_cloud.raw_Cloud = rawCloud;
                     raw_cloud.frame_id = ++frame_id;
-                    map_saver.AddCloudToSave(raw_cloud);
+                    //map_saver.AddCloudToSave(raw_cloud);
                     EZLOG(INFO)<<"save cloud with label!"<<std::endl;
                 }
 //                CloudInfoFt raw_cloud;
