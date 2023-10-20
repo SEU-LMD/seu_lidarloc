@@ -1502,8 +1502,7 @@ public:
                 if (timeLaserInfoCur - timeLastProcessing >= MappingConfig::mappingProcessInterval) {
                     timeLastProcessing = timeLaserInfoCur;
                     EZLOG(INFO) <<"Recive current_surf size: "<<current_surf->size()
-                                <<" current_corner size: "<<current_corner->size()
-                                <<" timeLaserInfoCur is: "<<timeLaserInfoCur;
+                                <<" current_corner size: "<<current_corner->size();
                     updateInitialGuess();
                     EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
                     if (systemInitialized) {

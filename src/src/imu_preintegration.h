@@ -72,6 +72,7 @@ public:
 
     gtsam::NavState prevStateOdom;
     gtsam::imuBias::ConstantBias prevBiasOdom;
+    gtsam::imuBias::ConstantBias prior_imu_bias;
 
     bool doneFirstOpt = false;
     double lastImuT_imu = -1;
@@ -108,6 +109,7 @@ public:
 
         IMURawDataPtr imu_raw (new IMURawData);
         imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
+//        imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v; //角度
         imu_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
         imu_raw->timestamp = gnss_ins_data.timestamp;
         outfile.precision(6);
@@ -183,9 +185,16 @@ public:
         p->accelerometerCovariance =  gtsam::Matrix33::Identity(3, 3) *  pow(SensorConfig::imuAccNoise, 2);  // acc white noise in continuous
         p->gyroscopeCovariance =      gtsam::Matrix33::Identity(3, 3) *  pow(SensorConfig::imuGyrNoise, 2);  // gyro white noise in continuous
         p->integrationCovariance =    gtsam::Matrix33::Identity(3, 3) *  pow(1e-4,2);  // error committed in integrating position from velocities
+//        EZLOG(INFO)<<"p->getGravity(): "<<p->getGravity();
         //TODO!!!!!!!!
         ///why not imuAccBiasN and imuGyrBiasN???
-        gtsam::imuBias::ConstantBias prior_imu_bias((gtsam::Vector(6) << 0, 0, 0, 0, 0, 0).finished());  // assume zero initial bias
+        prior_imu_bias = gtsam::imuBias::ConstantBias((gtsam::Vector(6) <<
+                                        SensorConfig::imuConstBias_acc,
+                                        SensorConfig::imuConstBias_acc,
+                                        SensorConfig::imuConstBias_acc,
+                                        SensorConfig::imuConstBias_gyro,
+                                        SensorConfig::imuConstBias_gyro,
+                                        SensorConfig::imuConstBias_gyro).finished());  // assume zero initial bias
 
         //used for predict
         imuIntegratorImu_ = new gtsam::PreintegratedImuMeasurements( p,prior_imu_bias);  // setting up the IMU integration for IMU message
@@ -196,7 +205,7 @@ public:
         ///check whether vector is filled correctly
         //below parameters are used for opt bias
 //       对角平方根协方差矩阵
-        priorPoseNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished());  // rad,rad,rad,m, m, m
+        priorPoseNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-3, 1e-3, 1e-3, 1e-2, 1e-2, 1e-2).finished());  // rad,rad,rad,m, m, m
         priorVelNoise = gtsam::noiseModel::Isotropic::Sigma(3, 1e4);  // m/s
         priorBiasNoise = gtsam::noiseModel::Isotropic::Sigma(6, 1e-3);  // 1e-2 ~ 1e-3 seems to be good
         correctionNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 0.05, 0.05, 0.05, 0.1, 0.1, 0.1).finished());  // rad,rad,rad,m, m, m
@@ -325,8 +334,8 @@ public:
                         gtsam::PriorFactor<gtsam::Vector3> priorVel(V(0), prevVel_, priorVelNoise);
                         graphFactors.add(priorVel);
                         // initial bias
-                        prevBias_ = gtsam::imuBias::ConstantBias();
-                        EZLOG(INFO)<<""<<std::endl;
+                        prevBias_ = prior_imu_bias;
+                        EZLOG(INFO)<<"prevBias_: "<<prevBias_;
                         gtsam::PriorFactor<gtsam::imuBias::ConstantBias> priorBias(B(0), prevBias_, priorBiasNoise);
                         graphFactors.add(priorBias);
                         // add values
@@ -340,7 +349,7 @@ public:
 
                         imuIntegratorImu_->resetIntegrationAndSetBias(prevBias_);
                         imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
-                         EZLOG(INFO)<<""<<std::endl;
+
                         key = 1;
                         systemInitialized = true;
                         continue;//不会再向下走了
@@ -435,7 +444,9 @@ public:
                 prevPose_ = result.at<gtsam::Pose3>(X(key));
                 prevVel_ = result.at<gtsam::Vector3>(V(key));
                 prevState_ = gtsam::NavState(prevPose_, prevVel_);
-                prevBias_ = result.at<gtsam::imuBias::ConstantBias>(B(key));
+//                prevBias_ = result.at<gtsam::imuBias::ConstantBias>(B(key));
+                prevBias_ = prior_imu_bias;
+                EZLOG(INFO)<<"prevBias_: "<<prevBias_<<std::endl;
                 // Reset the optimization preintegration object.
                 imuIntegratorOpt_->resetIntegrationAndSetBias(prevBias_);
                 // check optimization
@@ -462,14 +473,17 @@ public:
                 if (!imuQueOpt.empty()) {
                     // reset bias use the newly optimized bias
                     imuIntegratorImu_->resetIntegrationAndSetBias(prevBiasOdom);
+                    gtsam::Vector3 test_gyro;
+                    test_gyro = imuQueOpt[0]->imu_angular_v;
                     // integrate imu message from the beginning of this optimization
                     for (int i = 0; i < (int) imuQueOpt.size(); ++i) {
                         IMURawData thisImu = *imuQueOpt[i];
                         double imuTime = thisImu.timestamp;
-                        double dt = (lastImuQT < 0) ? (1.0 / 500.0) : (imuTime - lastImuQT);
+                        double dt = (lastImuQT < 0) ? (1.0 / 100.0) : (imuTime - lastImuQT);
                         //        double dt = (lastImuQT < 0) ? (1.0 / imuFrequence) : (imuTime
                         //        - lastImuQT);
-
+                        thisImu.imu_angular_v *= SensorConfig::imu_angular_v_gain;
+//                        EZLOG(INFO)<<"dt: "<<dt; dt: 0.0199661 dt: 0.00914884
                         imuIntegratorImu_->integrateMeasurement(
                                 gtsam::Vector3(thisImu.imu_linear_acc),
                                 gtsam::Vector3(thisImu.imu_angular_v),

@@ -93,6 +93,15 @@ class OdometryType:public BaseType{
 };
 typedef std::shared_ptr<OdometryType> OdometryTypePtr;
 
+class DROdometryType:public BaseType{
+public:
+    PoseT pose;
+    DataType getType(){
+        return DataType::WHEEL;
+    }
+};
+typedef std::shared_ptr<DROdometryType> DROdometryTypePtr;
+
 class GNSSOdometryType:public BaseType{
 public:
     PoseT pose;

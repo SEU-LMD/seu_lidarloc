@@ -46,7 +46,9 @@ public:
         ft_extr.Init(pubsub);
         loc_mapping.Init(pubsub);
         imu_pre.Init(pubsub);
-        fuse.Init(pubsub);
+
+
+//        fuse.Init(pubsub);
 
 
         //构建数据流关系

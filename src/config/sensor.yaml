@@ -13,7 +13,7 @@
   mapFrame: "map"
 
   # GPS Settings
-  useGPS: true
+  useGPS: false
   updateOrigin: true                          # when you can not get a reliable gps origin points(RTK fixed)
   gpsFrequence: 10                            # set proper gps frequence to align gps and lidar timestamp
   useImuHeadingInitialization: false         # if using GPS data, set to "false"
@@ -43,13 +43,17 @@
 
   # IMU Settings
   imuAccNoise: 0.035 #VRW,加速度计随机游走。0.035m/s/√h 0.000583333
-  imuGyrNoise: 0.006108652 # ARW,角度随机游走。弧度 / sqrt(hr) 0.35°/√h 0.000029089 0.006108652
+  imuGyrNoise: 0.000029089 # ARW,角度随机游走。弧度 / sqrt(hr) 0.35°/√h 0.000029089 0.006108652
   imuAccBiasN: 7.5499190771189349e-04
   imuGyrBiasN: 4.3048975399536245e-04
+  imuConstBias_acc: 0.0001
+  imuConstBias_gyro: 0.0001
   imuGravity: 0.0
   imuRPYWeight: 0.01
   imuHZ: 100
   imuGTSAMReset: 100
+  imu_angular_v_gain: 1 # gain for gyro
+
 
   # Extrinsics (lidar -> IMU)
   imu_type: 0   # 0: 6axis, 1:9 axis

@@ -66,6 +66,9 @@ class SensorConfig{
     static double  imuGravity;
     static double imuRPYWeight;
     static int imuGTSAMReset;
+    static double imuConstBias_acc;
+    static double imuConstBias_gyro;
+    static int imu_angular_v_gain;
 
     //Extrinsics (lidar -> IMU)
     static int imu_type;//meiyong buyiyang********
@@ -226,8 +229,11 @@ double  SensorConfig::imuAccBiasN=-1;
 double  SensorConfig::imuGyrBiasN=-1;
 double SensorConfig:: imuGravity=-1;
 double SensorConfig::imuRPYWeight=-1;
+double SensorConfig::imuConstBias_acc=-1;
+double SensorConfig::imuConstBias_gyro=-1;
 int  SensorConfig::imuHZ = -1;
 int SensorConfig::imuGTSAMReset = 25;
+int SensorConfig::imu_angular_v_gain = 10;
 
 
 int SensorConfig::imu_type=-1;
@@ -394,6 +400,9 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::imuHZ = sensorconfig["imuHZ"].as<int >();
     SensorConfig::use_gnss_deskew=sensorconfig["use_gnss_deskew"].as<bool >();
     SensorConfig::imuGTSAMReset=sensorconfig["imuGTSAMReset"].as<int>();
+    SensorConfig::imuConstBias_acc=sensorconfig["imuConstBias_acc"].as<double>();
+    SensorConfig::imuConstBias_gyro=sensorconfig["imuConstBias_gyro"].as<double>();
+    SensorConfig::imu_angular_v_gain = sensorconfig["imu_angular_v_gain"].as<int>();
 
 //    std::cout<<SensorConfig::imuRPYWeight<<std::endl;
 
@@ -430,6 +439,9 @@ void Load_Sensor_YAML(std::string sensorpath)
     std::cout<<"SensorConfig::lidarMaxRing: "<<SensorConfig::lidarMaxRing<<std::endl;
     std::cout<<"SensorConfig::lidarMinRing: "<<SensorConfig::lidarMinRing<<std::endl;
     std::cout<<"SensorConfig::use_gnss_deskew: "<<SensorConfig::use_gnss_deskew<<std::endl;
+    std::cout<<"SensorConfig::imuConstBias_acc: "<<SensorConfig::imuConstBias_acc<<std::endl;
+    std::cout<<"SensorConfig::imuConstBias_gyro: "<<SensorConfig::imuConstBias_gyro<<std::endl;
+    std::cout<<"SensorConfig::imu_angular_v_gain: "<<SensorConfig::imu_angular_v_gain<<std::endl;
     std::cout<<"SensorConfig::sensorconfig yaml success load"<<std::endl;
 }
 
@@ -518,6 +530,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig:: scan_2_scan_num_corner=mappingconfig["scan_2_scan_num_corner"].as<float >();
 //        std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
 
+        std::cout<<"MappingConfig::mappingProcessInterval"<<MappingConfig::mappingProcessInterval<<std::endl;
         std::cout<<"MappingConfig::prior_corner_map_path: "<<MappingConfig::prior_map_corner<<std::endl;
         std::cout<<"MappingConfig::prior_surf_map_path: "<<MappingConfig::prior_map_surf<<std::endl;
         std::cout<<"MappingConfig::if_debug: "<<MappingConfig::if_debug<<std::endl;
