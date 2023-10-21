@@ -45,6 +45,8 @@ public:
     bool init = false;
     GeographicLib::LocalCartesian geoConverter;
     int frame_id = 0;
+    double last_cloud_max_timestamp = 0;
+    double last_data_cloud_timestamp = 0;
 
     std::string topic_origin_cloud_world = "/origin_cloud_world";
     std::string topic_deskew_cloud_world = "/deskew_cloud_world";
@@ -442,17 +444,40 @@ public:
                 GetCloudTime(cur_scan , cloud_with_time);
                 double cloud_min_ros_timestamp = cloud_with_time.min_ros_timestamp;
                 double cloud_max_ros_timestamp = cloud_with_time.max_ros_timestamp;
+                double  cloud  = cloud_max_ros_timestamp- cloud_min_ros_timestamp;
+                if (cloud > 0.2){
+                    EZLOG(INFO)<<"last_cloud_max_timestamp-cloud_min_ros_timestamp"<<endl;
+                    exit(-1);
+                }
+                EZLOG(INFO)<<setprecision(6);
+                //EZLOG(INFO)<<"cloud_min_ros_timestamp"<<cloud_min_ros_timestamp<<endl;
+              //  EZLOG(INFO)<<"cloud_max_ros_timestamp-cloud_min_ros_timestamp"<<cloud_max_ros_timestamp-cloud_min_ros_timestamp;
+               if (last_cloud_max_timestamp == 0){
+                   last_cloud_max_timestamp = cloud_max_ros_timestamp;
+               }
+
+                double temp = cloud_min_ros_timestamp - last_cloud_max_timestamp;
+
+                if(temp > 0.05){
+                    EZLOG(INFO)<<"cloud_min_ros_timestamp - last_cloud_max_timestamp"<<temp;
+                    exit(-1);
+                  // EZLOG(INFO)<<"last_cloud_max_timestamp-cloud_min_ros_timestamp"<<temp;
+                }
+                EZLOG(INFO)<<"last_cloud_max_timestamp-cloud_min_ros_timestamp"<<temp;
+
+                last_cloud_max_timestamp = cloud_with_time.max_ros_timestamp;
+               // EZLOG(INFO)<<"last_cloud_max_timestamp"<<last_cloud_max_timestamp;
 
                 ///2.
 //                if(odo_min_ros_time>cloud_min_ros_timestamp){
 //                    EZLOG(INFO)<<"odo is larger than lidar" <<endl;
 //                    exit(1);
 //                }
-                if(!poseQueue.empty() && odo_min_ros_time >= cloud_min_ros_timestamp){
-                    auto temp = poseQueue.front();
-                    temp.timestamp = cloud_min_ros_timestamp - 0.01f;
-                    poseQueue.push_front(temp);
-                }
+//                if(!poseQueue.empty() && odo_min_ros_time >= cloud_min_ros_timestamp){
+//                    auto temp = poseQueue.front();
+//                    temp.timestamp = cloud_min_ros_timestamp - 0.01f;
+//                    poseQueue.push_front(temp);
+//                }
                 if(odo_min_ros_time<cloud_min_ros_timestamp&&odo_max_ros_time>cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
                     EZLOG(INFO)<<"get in odo_min_ros_time"<<endl;
 //                        if(odo_min_ros_time >= cloud_min_ros_timestamp){
@@ -494,7 +519,7 @@ public:
 //                        while(poseQueue.front().timestamp < cloud_max_ros_timestamp - 0.1f){
 //                            poseQueue.pop_front();
 //                        }
-                        double thresh = cloud_max_ros_timestamp - 0.05f;
+                        double thresh = cloud_min_ros_timestamp - 0.05f;
                         while(poseQueue.front().timestamp < thresh){
                             poseQueue.pop_front();
                         }
@@ -575,6 +600,13 @@ public:
         OdometryType T_w_l_pub;
         T_w_l_pub.frame = "map";
         T_w_l_pub.timestamp = data.timestamp;
+
+        double data_timestamp_chazhi = last_data_cloud_timestamp - data.timestamp;
+        EZLOG(INFO)<<"data_timestamp_chazhi"<<data_timestamp_chazhi<<endl;
+        if(data_timestamp_chazhi >20){
+            EZLOG(INFO)<<data_timestamp_chazhi<<endl;
+        }
+        last_data_cloud_timestamp = data.timestamp;
         T_w_l_pub.pose = T_w_l;
 
         GNSSINSType T_w_l_to_mapopt;

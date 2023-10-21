@@ -579,52 +579,53 @@ public:
             systemInitialized = false;
 
             if (SensorConfig::useGPS) {
+               // if (gps_status = true){
 
-                 double t_enu[3];
-                geoConverter.Forward(deque_gnssins.front().lla[0], deque_gnssins.front().lla[1], deque_gnssins.front().lla[2],
-                                     t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
+                    double t_enu[3];
+                    geoConverter.Forward(deque_gnssins.front().lla[0], deque_gnssins.front().lla[1], deque_gnssins.front().lla[2],
+                                         t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
 
-               if (SensorConfig::debugGps) {
-                    //std::cout << "initial gps yaw: " << q_w_yaw_cur << std::endl;
-                   // std::cout << "GPS Position: " << t_enutranspose() << std::endl;
-                    //std::cout << "GPS LLA: " << originLLA.transpose() << std::endl;
-                  //  ROS_WARN("GPS init success");
-                }
+                    if (SensorConfig::debugGps) {
+                        //std::cout << "initial gps yaw: " << q_w_yaw_cur << std::endl;
+                        // std::cout << "GPS Position: " << t_enutranspose() << std::endl;
+                        //std::cout << "GPS LLA: " << originLLA.transpose() << std::endl;
+                        //  ROS_WARN("GPS init success");
+                    }
 
-                /** add the first factor, we need this origin GPS point for prior map based localization,
-                    * but we need to optimize its value by pose graph if the origin gps RTK status is not fixed.*/
-                PointType gnssPoint;
-                gnssPoint.x = t_enu[0],
-                gnssPoint.y = t_enu[1],
-                gnssPoint.z = t_enu[2];
-                //?????????  协方差怎么拿过来
-                double noise_x = 0.00001;
-                double noise_y = 0.00001;
-                double noise_z = 0.00001;
-                /** if we get reliable origin point, we adjust the weight of this gps factor */
-                if (!SensorConfig::updateOrigin) {
-                    noise_x *= 1e-4;
-                    noise_y *= 1e-4;
-                    noise_z *= 1e-4;
-                }
-                gtsam::Vector Vector3(3);
-                Vector3 << noise_x, noise_y, noise_z;
-                gtsam::noiseModel::Diagonal::shared_ptr gps_noise =
-                        gtsam::noiseModel::Diagonal::Variances(Vector3);
-                gtsam::GPSFactor gps_factor(
-                        0, gtsam::Point3(gnssPoint.x, gnssPoint.y, gnssPoint.z),
-                        gps_noise);
-                keyframeGPSfactor.push_back(gps_factor);
-                cloudKeyGPSPoses3D->points.push_back(gnssPoint);
+                    /** add the first factor, we need this origin GPS point for prior map based localization,
+                        * but we need to optimize its value by pose graph if the origin gps RTK status is not fixed.*/
+                    PointType gnssPoint;
+                    gnssPoint.x = t_enu[0],
+                    gnssPoint.y = t_enu[1],
+                    gnssPoint.z = t_enu[2];
+                    //?????????  协方差怎么拿过来
+                    double noise_x = 0.00001;
+                    double noise_y = 0.00001;
+                    double noise_z = 0.00001;
+                    /** if we get reliable origin point, we adjust the weight of this gps factor */
+                    if (!SensorConfig::updateOrigin) {
+                        noise_x *= 1e-4;
+                        noise_y *= 1e-4;
+                        noise_z *= 1e-4;
+                    }
+                    gtsam::Vector Vector3(3);
+                    Vector3 << noise_x, noise_y, noise_z;
+                    gtsam::noiseModel::Diagonal::shared_ptr gps_noise =
+                            gtsam::noiseModel::Diagonal::Variances(Vector3);
+                    gtsam::GPSFactor gps_factor(
+                            0, gtsam::Point3(gnssPoint.x, gnssPoint.y, gnssPoint.z),
+                            gps_noise);
+                    keyframeGPSfactor.push_back(gps_factor);
+                    cloudKeyGPSPoses3D->points.push_back(gnssPoint);
 
-                transformTobeMapped[0] = q_w_roll;
-                transformTobeMapped[1] = q_w_pitch;
-                transformTobeMapped[2] = q_w_yaw;
+                    transformTobeMapped[0] = q_w_roll;
+                    transformTobeMapped[1] = q_w_pitch;
+                    transformTobeMapped[2] = q_w_yaw;
 
-                systemInitialized = true;
+                    systemInitialized = true;
+                //}
 
-            }
-            else{
+            }else{
                 //取激光帧信息中的IMU原始数据的RPY进行初始化
                   transformTobeMapped[3] = 0;
                   transformTobeMapped[4] = 0;
@@ -643,6 +644,19 @@ public:
            EZLOG(INFO)<<"sysyem need to be initialized"<<endl;
             return;
         }
+
+
+ //       if (gps_status = true){
+//            Eigen::Affine3f transBack = pcl::getTransformation(
+//                    t_w_cur[0], t_w_cur[1], t_w_cur[2], q_w_roll, q_w_pitch,
+//                    q_w_yaw);
+//            pcl::getTranslationAndEulerAngles(
+//                    transBack, transformTobeMapped[3], transformTobeMapped[4],
+//                    transformTobeMapped[5], transformTobeMapped[0],
+//                    transformTobeMapped[1], transformTobeMapped[2]);
+       // }else{
+
+       // }
 
         Eigen::Affine3f transBack = pcl::getTransformation(
                 t_w_cur[0], t_w_cur[1], t_w_cur[2], q_w_roll, q_w_pitch,
@@ -1819,7 +1833,7 @@ public:
 //        pubsub->addPublisher(topic_gnss_pose,DataType::ODOMETRY,10);
 
         do_work_thread = new std::thread(&OPTMapping::DoWork, this);
-        loop_thread =new std::thread(&OPTMapping::loopClosureThread, this);
+      //  loop_thread =new std::thread(&OPTMapping::loopClosureThread, this);
         save_Map_thread = new std::thread(&MapSaver::do_work, &(OPTMapping::map_saver));
         //save_path_thread = new std::thread (&OPTMapping::savePathThread, this);
 
