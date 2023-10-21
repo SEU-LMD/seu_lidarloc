@@ -1,5 +1,6 @@
 # 0 for opt mapping->wxy, 1 for loc mapping->sy.
   slam_mode_switch: 1
+#  1 for use fuse, 0 is not use
   if_use_fuseNode: 1 
 # 1 for debug (pub to rviz),0 for not debug
   if_debug: 0
@@ -45,8 +46,6 @@
   # Surrounding map
   surroundingkeyframeAddingDistThreshold: 1.0  # meters, regulate keyframe adding threshold
   surroundingkeyframeAddingAngleThreshold: 1.0  # radians, regulate keyframe adding threshold
-
-
 
   surroundingKeyframeSearchRadius: 50.0         # meters, within n meters scan-to-map optimization (when loop closure disabled)
   localMap_searchRadius: 30.0

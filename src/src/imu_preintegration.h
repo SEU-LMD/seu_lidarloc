@@ -63,7 +63,7 @@ public:
     gtsam::PreintegratedImuMeasurements *imuIntegratorImu_;
 
     std::deque<IMURawDataPtr> imuQueOpt;
-//    std::deque<IMURawDataPtr> imuQueImu;
+    std::deque<IMURawDataPtr> imuQueImu;
 
     gtsam::Pose3 prevPose_;
     gtsam::Vector3 prevVel_;
@@ -92,7 +92,11 @@ public:
     gtsam::Pose3 lidar2Imu =
             gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0),
                          gtsam::Point3(SensorConfig::extrinsicTrans.x(), SensorConfig::extrinsicTrans.y(), SensorConfig::extrinsicTrans.z()));
-
+    OdometryType first_lidar_odom;
+    gtsam::NavState firstLidarPose;
+    gtsam::Pose3 firstLidarPose_pose3;
+    bool flag_first_lidar_odom = false;
+    bool flag_firstLidarPose_pose3 = false;
     void AddOdomData(const OdometryType &data){
 
 //        OdometryTypePtr odom_ptr(new OdometryType());
@@ -126,6 +130,7 @@ public:
 
         gnssins_mutex.lock();
         imuQueOpt.push_back(imu_raw);
+        imuQueImu.push_back(imu_raw);
         gnssins_mutex.unlock();
 
 //        EZLOG(INFO) << "imuQueOpt size: "<<imuQueOpt.size() << " imuQueImu size: "<<imuQueImu.size()
@@ -142,8 +147,12 @@ public:
                                                 imu_raw->imu_angular_v,
                                                 dt);
         // predict odometry
-        // 用上一帧激光里程计时刻对应的状态、偏置，施加从该时刻开始到当前时刻的imu预计分量，得到当前时刻的状态
-        gtsam::NavState currentState = imuIntegratorImu_->predict(prevStateOdom, prevBiasOdom);//both are input parameters
+//         用上一帧激光里程计时刻对应的状态、偏置，施加从该时刻开始到当前时刻的imu预计分量，得到当前时刻的状态
+//        gtsam::NavState currentState = imuIntegratorImu_->predict(prevStateOdom, prevBiasOdom);//both are input parameters
+        gtsam::NavState currentState = imuIntegratorImu_->predict(firstLidarPose, prevBiasOdom);//both are input parameters
+        EZLOG(INFO)<<"imu_raw->imu_linear_acc: "<<imu_raw->imu_linear_acc.transpose()<<" imu_raw->imu_angular_v: "<<imu_raw->imu_angular_v.transpose()
+        <<  " dt: "<<dt<<" prevBiasOdom: "<<prevBiasOdom;
+        EZLOG(INFO)<<"currentState: "<<currentState;
 
         // publish odometry
         // transform imu pose to ldiar
@@ -275,11 +284,11 @@ public:
 
     void DoLidar(){
 //
-//        outfile.open("imu_gyro.txt",std::ios::app);
-//        if (!outfile.is_open()) {
-//            std::cerr << "无法打开输出文件 " << std::endl;
-//        }
-//        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
+        outfile.open("imu_gyro.txt",std::ios::app);
+        if (!outfile.is_open()) {
+            std::cerr << "无法打开输出文件 " << std::endl;
+        }
+        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
         while(1){
             if(lidar_poseQueue.size()!=0){
 
@@ -288,6 +297,12 @@ public:
                 OdometryType cur_lidar_odom;
                 lidarodom_mutex.lock();
                 cur_lidar_odom = lidar_poseQueue.front();
+                if(flag_first_lidar_odom  == false)
+                {
+                    first_lidar_odom = lidar_poseQueue.front();
+                    flag_first_lidar_odom = true;
+                }
+
                 lidar_poseQueue.pop_front();
                 lidarodom_mutex.unlock();
 
@@ -327,6 +342,13 @@ public:
 
                         // initial pose
                         prevPose_ = lidarPose.compose(lidar2Imu);
+//                        ---------------------------------------------------only predict
+                        if(flag_firstLidarPose_pose3 == false)
+                        {
+                            firstLidarPose_pose3 = prevPose_;
+                            firstLidarPose = gtsam::NavState(firstLidarPose_pose3,gtsam::Vector3(0, 0, 0));
+                            flag_firstLidarPose_pose3 = true;
+                        }
                         gtsam::PriorFactor<gtsam::Pose3> priorPose(X(0), prevPose_,priorPoseNoise);
                         graphFactors.add(priorPose);
                         // initial velocity
@@ -352,6 +374,13 @@ public:
 
                         key = 1;
                         systemInitialized = true;
+
+//                        firstLidarPose.R()= first_lidar_odom.pose.GetR();
+//                        firstLidarPose.t() = first_lidar_odom.pose.GetXYZ();
+
+//                        firstLidarPose.R() = curPose
+//                        firstLidarPose.pose().translation().x() = first_lidar_odom.pose.GetXYZ().x();
+//                        firstLidarPose.pose().translation().x() = first_lidar_odom.pose.GetXYZ().x();
                         continue;//不会再向下走了
                 }
                 // reset graph for speed
@@ -425,7 +454,9 @@ public:
                                 sqrt(imuIntegratorOpt_->deltaTij()) * noiseModelBetweenBias)));//imuIntegratorOpt_->deltaTij() = 时间长度
                 // add pose factor
                 gtsam::Pose3 curPose = lidarPose.compose(lidar2Imu);
-                gtsam::PriorFactor<gtsam::Pose3> pose_factor(
+//                if()
+                firstLidarPose_pose3 = curPose;
+                        gtsam::PriorFactor<gtsam::Pose3> pose_factor(
                         X(key), curPose, degenerate ? correctionNoise2 : correctionNoise);
                 graphFactors.add(pose_factor);
                 // insert predicted values
@@ -462,22 +493,22 @@ public:
                 prevBiasOdom = prevBias_;
                 // first pop imu message older than current correction data
                 double lastImuQT = -1;
-//                while (!imuQueImu.empty() &&
-//                       *(&imuQueImu.front()->timestamp) < currentCorrectionTime - delta_t) {
-//                    lastImuQT = *(&imuQueImu.front()->timestamp);
-//                    imuQueImu.pop_front();
-//                }
-                lastImuQT = lastImuT_opt;
+                while (!imuQueImu.empty() &&
+                       *(&imuQueImu.front()->timestamp) < currentCorrectionTime - delta_t) {
+                    lastImuQT = *(&imuQueImu.front()->timestamp);
+                    imuQueImu.pop_front();
+                }
+//                lastImuQT = lastImuT_opt;
 
                 // repropogate
-                if (!imuQueOpt.empty()) {
+                if (!imuQueImu.empty()) {
                     // reset bias use the newly optimized bias
                     imuIntegratorImu_->resetIntegrationAndSetBias(prevBiasOdom);
                     gtsam::Vector3 test_gyro;
-                    test_gyro = imuQueOpt[0]->imu_angular_v;
+                    test_gyro = imuQueImu[0]->imu_angular_v;
                     // integrate imu message from the beginning of this optimization
-                    for (int i = 0; i < (int) imuQueOpt.size(); ++i) {
-                        IMURawData thisImu = *imuQueOpt[i];
+                    for (int i = 0; i < (int) imuQueImu.size(); ++i) {
+                        IMURawData thisImu = *imuQueImu[i];
                         double imuTime = thisImu.timestamp;
                         double dt = (lastImuQT < 0) ? (1.0 / 100.0) : (imuTime - lastImuQT);
                         //        double dt = (lastImuQT < 0) ? (1.0 / imuFrequence) : (imuTime

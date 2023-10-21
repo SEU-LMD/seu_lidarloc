@@ -48,7 +48,7 @@
   imuGyrBiasN: 4.3048975399536245e-04
   imuConstBias_acc: 0.0001
   imuConstBias_gyro: 0.0001
-  imuGravity: 0.0
+  imuGravity: 0.001
   imuRPYWeight: 0.01
   imuHZ: 100
   imuGTSAMReset: 100

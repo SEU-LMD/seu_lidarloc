@@ -396,7 +396,7 @@ public:
                     pubsub->PublishCloud(topic_corner_world, corner_pub);
                     pubsub->PublishCloud(topic_surf_world, surf_pub);
                 }
-                EZLOG(INFO)<<"send feature extraction to next = "<<timer1.toc()<<std::endl;
+//                EZLOG(INFO)<<"send feature extraction to next = "<<timer1.toc()<<std::endl;
 
             }
 
