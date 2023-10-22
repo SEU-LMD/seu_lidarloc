@@ -152,6 +152,16 @@ public:
 };
 typedef std::shared_ptr<IMURawData> IMURawDataPtr;
 
+class IMURawWheelData{
+public:
+    double timestamp;
+    Eigen::Vector3d imu_angular_v;
+    Eigen::Vector3d imu_linear_acc;
+    Eigen::Quaterniond orientation;
+    double velocity;
+};
+typedef std::shared_ptr<IMURawWheelData> IMURawWheelDataPtr;
+
 //used to commnicate with other thread
 class CloudInfo{
 public:

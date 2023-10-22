@@ -54,6 +54,10 @@
   imuGTSAMReset: 100
   imu_angular_v_gain: 1 # gain for gyro
 
+# 0 for only imu mode , 1 for imu+wheel mode in ------------->DR
+  if_use_Wheel_DR: 1
+
+
 
   # Extrinsics (lidar -> IMU)
   imu_type: 0   # 0: 6axis, 1:9 axis

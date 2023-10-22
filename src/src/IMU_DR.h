@@ -84,8 +84,7 @@ public:
                          gtsam::Point3(SensorConfig::extrinsicTrans.x(), SensorConfig::extrinsicTrans.y(), SensorConfig::extrinsicTrans.z()));
     OdometryType first_lidar_odom;
     gtsam::NavState firstLidarPose;
-    std::mutex work_mutex;
-    std::mutex cloud_mutex;
+    gtsam::NavState currentState;
     IMURawDataPtr cur_imu;
 
     Eigen::Matrix3d rotVecToMat(const Eigen::Vector3d &revc){
@@ -116,52 +115,72 @@ public:
         }
         lidarodom_mutex.unlock();
     }
+    gtsam::NavState IMUWheel_predict(IMURawWheelDataPtr _imuWheel_raw){
+        double imuTime = _imuWheel_raw->timestamp;
+        double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
 
+
+    }
+    gtsam::NavState IMU_predict(IMURawDataPtr _imu_raw){
+        double imuTime = _imu_raw->timestamp;
+        double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
+        //        double dt = (lastImuQT < 0) ? (1.0 / imuFrequence) : (imuTime
+        //        - lastImuQT);
+        _imu_raw->imu_angular_v *= SensorConfig::imu_angular_v_gain;
+//                        EZLOG(INFO)<<"dt: "<<dt; dt: 0.0199661 dt: 0.00914884
+        imuIntegratorImu_->integrateMeasurement(
+                gtsam::Vector3(_imu_raw->imu_linear_acc),
+                gtsam::Vector3(_imu_raw->imu_angular_v),
+                dt);
+        lastImuT_imu = imuTime;
+
+        EZLOG(INFO)<<"firstLidarPose: "<<firstLidarPose;
+        gtsam::NavState _currentState = imuIntegratorImu_->predict(firstLidarPose, prior_imu_bias);//both are input parameters
+        EZLOG(INFO) <<" imu_raw->imu_linear_acc: "<<_imu_raw->imu_linear_acc.transpose()
+                    <<" imu_raw->imu_angular_v: "<<_imu_raw->imu_angular_v.transpose()
+                    <<" dt: "<< dt
+                    <<" prevBiasOdom: "<<prior_imu_bias;
+        EZLOG(INFO)<<" currentState: "<<_currentState;
+
+        return _currentState;
+    }
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
 
         TicToc time1;
-        IMURawDataPtr imu_raw (new IMURawData);
-        imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
-        imu_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
-        imu_raw->timestamp = gnss_ins_data.timestamp;
-        static int imu_cnt = 0;
+        double currentTime = gnss_ins_data.timestamp;
+//        static int imu_cnt = 0;
+//          for debug
 //        outfile.precision(6);
 //        outfile << imu_raw->imu_angular_v.x()<<" "<< imu_raw->imu_angular_v.y()<<" "<<imu_raw->imu_angular_v.z()<<std::endl;
 
 //        gnssins_mutex.lock();
 //        imuQueImu.push_back(imu_raw);
 //        gnssins_mutex.unlock();
-        double imuTime = imu_raw->timestamp;
-        double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
-                //        double dt = (lastImuQT < 0) ? (1.0 / imuFrequence) : (imuTime
-                //        - lastImuQT);
-        imu_raw->imu_angular_v *= SensorConfig::imu_angular_v_gain;
-//                        EZLOG(INFO)<<"dt: "<<dt; dt: 0.0199661 dt: 0.00914884
-        imuIntegratorImu_->integrateMeasurement(
-                gtsam::Vector3(imu_raw->imu_linear_acc),
-                gtsam::Vector3(imu_raw->imu_angular_v),
-                dt);
-        lastImuT_imu = imuTime;
+        if(SensorConfig::if_use_Wheel_DR == 1){
+            IMURawWheelDataPtr imuWheel_raw (new IMURawWheelData);
+            imuWheel_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
+            imuWheel_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
+            imuWheel_raw->timestamp = gnss_ins_data.timestamp;
+            imuWheel_raw->velocity = gnss_ins_data.velocity;
+            currentState = IMUWheel_predict(imuWheel_raw);
+        }
+        else{
+            IMURawDataPtr imu_raw (new IMURawData);
+            imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
+            imu_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
+            imu_raw->timestamp = gnss_ins_data.timestamp;
+            currentState = IMU_predict(imu_raw);
+        }
 
-        EZLOG(INFO)<<"firstLidarPose: "<<firstLidarPose;
-        gtsam::NavState currentState = imuIntegratorImu_->predict(firstLidarPose, prior_imu_bias);//both are input parameters
-        EZLOG(INFO) <<" imu_raw->imu_linear_acc: "<<imu_raw->imu_linear_acc.transpose()
-                    <<" imu_raw->imu_angular_v: "<<imu_raw->imu_angular_v.transpose()
-                    <<" dt: "<< dt
-                    <<" prevBiasOdom: "<<prior_imu_bias;
-        EZLOG(INFO)<<" currentState: "<<currentState;
-
-
-//                 publish odometry
-//                 transform imu pose to ldiar
         gtsam::Pose3 imuPose = gtsam::Pose3(currentState.quaternion(), currentState.position());
 //        gtsam::Pose3 lidar_preditct_pose_gtsam = imuPose.compose(lidar2Imu);
 
         PoseT lidar_preditct_pose(imuPose.translation().vector(),
                                   imuPose.rotation().matrix());
 
+        //          for debug
         OdometryType Odometry_imuPredict_pub;
-        Odometry_imuPredict_pub.timestamp = imu_raw->timestamp;
+        Odometry_imuPredict_pub.timestamp = currentTime;
         Odometry_imuPredict_pub.frame = "map";
         Odometry_imuPredict_pub.pose = lidar_preditct_pose;
         //for debug use
@@ -169,7 +188,6 @@ public:
         EZLOG(INFO)<<" time in ms: "<<time1.toc();
 //        imu_cnt++;
 //        EZLOG(INFO)<<"imu_cnt: "<<imu_cnt;
-
 
     }
 
