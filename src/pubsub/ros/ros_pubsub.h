@@ -135,6 +135,7 @@ public:
         gnss_ins_out.frame = gnss_ins_in->header.frame_id;
 
         gnss_ins_out.gps_status = gnss_ins_in->status;
+        gnss_ins_out.velocity = gnss_ins_in->velocity;
 
     }
     void GNSSINSROSCallback(const gps_imu::ivsensorgpsConstPtr& data, const std::string& topic_name){

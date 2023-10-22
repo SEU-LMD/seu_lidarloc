@@ -37,7 +37,7 @@ public:
 
 //    FeatureExtraction* ft_extr_ptr;
 //    OPTMapping* opt_mapping_ptr;
-//    IMUPreintegration* imu_pre_ptr;
+//    IMU_DR* imu_pre_ptr;
 //    OPTMapping* opt_mapping_ptr;
     std::function<void(const CloudInfo&)> Function_AddCloudInfoToFeatureExtraction;
     std::function<void(const GNSSOdometryType&)> Function_AddGNSSOdometryTypeToFuse;

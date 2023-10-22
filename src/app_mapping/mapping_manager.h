@@ -12,7 +12,7 @@
 #include "pubsub/pubusb.h"
 #include "imageProjection.h"
 #include "featureExtraction.h"
-#include "imu_preintegration.h"
+#include "IMU_DR.h"
 #include "opt_mapping.h"
 #include "utils/config_helper.h"
 //#include "dead_reckoning.h"

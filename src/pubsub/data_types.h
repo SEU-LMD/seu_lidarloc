@@ -127,6 +127,7 @@ class GNSSINSType:public BaseType{
         Eigen::Vector3d imu_angular_v;
         Eigen::Vector3d imu_linear_acc;
         Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
+        double velocity;
         string gps_status;
         DataType getType(){
              return DataType::GNSS_INS;

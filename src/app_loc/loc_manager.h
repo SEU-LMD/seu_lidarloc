@@ -11,7 +11,7 @@
 #include "pubsub/pubusb.h"
 #include "imageProjection.h"
 #include "featureExtraction.h"
-#include "imu_preintegration.h"
+#include "IMU_DR.h"
 #include "utils/config_helper.h"
 #include "opt_lopc.h"
 #include "fuse.h"
@@ -23,7 +23,7 @@ public:
     ImageProjection img_proj;
     FeatureExtraction ft_extr;
     LOCMapping loc_mapping;
-    IMUPreintegration imu_pre;
+    IMU_DR imu_pre;
     Fuse fuse;
 
     void CloudCallback(const BaseType& msg){
@@ -58,7 +58,7 @@ public:
         auto add_CloudFeature_from_ftextr_to_locmapping =
                 std::bind(&LOCMapping::AddCloudData, &loc_mapping,std::placeholders::_1);
         auto add_OdometryType_from_locmapping_to_imupre =
-                std::bind(&IMUPreintegration::AddOdomData, &imu_pre,std::placeholders::_1);
+                std::bind(&IMU_DR::AddOdomData, &imu_pre, std::placeholders::_1);
         auto add_OdometryType_from_imupre_to_imgproj =
                 std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
 

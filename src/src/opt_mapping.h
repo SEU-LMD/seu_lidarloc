@@ -25,7 +25,7 @@
 
 #include <std_srvs/Empty.h>
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
-#include "imu_preintegration.h"
+#include "IMU_DR.h"
 //#include "GeoGraphicLibInclude/Geocentric.hpp"
 //#include "GeoGraphicLibInclude/LocalCartesian.hpp"
 //#include "GeoGraphicLibInclude/Geoid.hpp"
@@ -50,7 +50,7 @@ public:
     TicToc timer_cloud;
     MapSaver map_saver;
 
-    //    IMUPreintegration* imu_pre_ptr;
+    //    IMU_DR* imu_pre_ptr;
     std::function<void(const OdometryType&)> Function_AddOdometryTypeToIMUPreintegration;
 
      std::deque<CloudFeature> deque_cloud;
