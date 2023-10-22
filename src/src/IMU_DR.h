@@ -67,6 +67,8 @@ public:
 
     gtsam::NavState prevStateOdom;
     gtsam::imuBias::ConstantBias prior_imu_bias;
+    Eigen::Vector3d prior_acc_bias;
+    Eigen::Vector3d prior_gyro_bias;
 
     double lastImuT_imu = -1;
 
@@ -85,15 +87,18 @@ public:
     OdometryType first_lidar_odom;
     gtsam::NavState firstLidarPose;
     gtsam::NavState currentState;
+    StateData state,last_state;
+    Eigen::Matrix3d R_w_b;
+    double current_V;
     IMURawDataPtr cur_imu;
 
-    Eigen::Matrix3d rotVecToMat(const Eigen::Vector3d &revc){
-        return Eigen::AngleAxisd(revc.norm(),revc.normalized()).toRotationMatrix();
+
+    Eigen::Matrix3d rotVecToMat(const Eigen::Vector3d &rvec){
+        return Eigen::AngleAxisd(rvec.norm(),rvec.normalized()).toRotationMatrix();
     }
 
-    Eigen::Matrix3d deltaRotMat(const Eigen::Vector3d &delta_rot_vec, int flag ) {
+    Eigen::Matrix3d deltaRotMat(const Eigen::Vector3d &delta_rot_vec) {
         Eigen::Matrix3d delta_R = Eigen::Matrix3d::Identity();
-
         Eigen::Quaterniond delta_q;
         delta_q.w() = 1;
         delta_q.vec() = 0.5 * delta_rot_vec;
@@ -103,7 +108,8 @@ public:
     }
 
     Eigen::Matrix3d rotationUpdate(const Eigen::Matrix3d &Rwi,
-                                          const Eigen::Matrix3d &delta_rot_mat) {
+                                   const Eigen::Matrix3d &delta_rot_mat) {
+//        need debug
         Eigen::Matrix3d updatedR = Eigen::Matrix3d::Identity();
         updatedR = Rwi * delta_rot_mat;
         //updatedR = delta_rot_mat * Rwi;
@@ -129,18 +135,36 @@ public:
         }
         lidarodom_mutex.unlock();
     }
-    gtsam::NavState IMUWheel_predict(IMURawWheelDataPtr curr_imu){
-        double imuTime = _imuWheel_raw->timestamp;
+
+    void IMUWheel_predict(IMURawWheelDataPtr curr_imu, const Eigen::Matrix3d &_R_w_b){
+        double imuTime = curr_imu->timestamp;
         double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
-        StateData state_;
-        state_.timestamp = curr_imu->timestamp;
-
-        const Eigen::Vector3d gyr_unbias =  curr_imu->imu_angular_v;  // gyro not unbias for now
+        lastImuT_imu = imuTime;
+//        state_.timestamp = curr_imu->timestamp;
+        const Eigen::Vector3d gyr_unbias =  curr_imu->imu_angular_v - prior_gyro_bias;  // gyro not unbias for now
         const auto &dR = deltaRotMat(gyr_unbias * dt);
-        state_.Rwi_ = rotationUpdate(state_.Rwi_ , dR);
-        state_.v_wi_ = (0, curr_imu->velocity,0);
-        state_.p_wi_ = last_state->p_wi_ + (last_state->v_wi_ + state_->v_wi_)/2 *dt;//position
+        Eigen::Vector3d state_v_b = Eigen::Vector3d (0, curr_imu->velocity,0);
+//        state.v_wb_ = SensorConfig::T  state_v_b
+        state.Rwb_ = _R_w_b;
+        state.Rwb_ = rotationUpdate(state.Rwb_ , dR);
+        Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
+        state.v_w_ = state_v_w;
+        state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
 
+        EZLOG(INFO)<<"gyr_unbias : "<<gyr_unbias.transpose();
+        EZLOG(INFO)<<"dR :"<<dR;
+        EZLOG(INFO)<<"state Rwb_: "<<state.Rwb_;
+        EZLOG(INFO)<<"state p_wb_: "<<state.p_wb_.transpose();
+        EZLOG(INFO)<<"state v_wb_: "<<state.v_w_.transpose();
+        EZLOG(INFO)<<"last_state Rwb_: "<<last_state.Rwb_;
+        EZLOG(INFO)<<"last_state p_wb_: "<<last_state.p_wb_.transpose();
+        EZLOG(INFO)<<"last_state v_wb_: "<<last_state.v_w_.transpose();
+        last_state = state;
+//        EZLOG(INFO) <<"Rwb_: "<<_imu_raw->imu_linear_acc.transpose()
+//                    <<" imu_raw->imu_angular_v: "<<_imu_raw->imu_angular_v.transpose()
+//                    <<" dt: "<< dt
+//                    <<" prevBiasOdom: "<<prior_imu_bias;
+//        EZLOG(INFO)<<" currentState: "<<_currentState;
 //        double imuTime = _imuWheel_raw->timestamp;
 //        StateData last_state = state_;
 //        state_.timestamp = curr_imu->timestamp;
@@ -180,6 +204,27 @@ public:
 
         TicToc time1;
         double currentTime = gnss_ins_data.timestamp;
+        //calculate Quaternion
+        Eigen::Matrix3d z_matrix;
+        Eigen::Matrix3d x_matrix;
+        Eigen::Matrix3d y_matrix;
+        double heading_Z = -gnss_ins_data.yaw * 3.1415926535 / 180.0;
+        double pitch_Y = gnss_ins_data.pitch * 3.1415926535 / 180.0;
+        double roll_X = gnss_ins_data.roll * 3.1415926535 / 180.0;
+        z_matrix << cos(heading_Z), -sin(heading_Z), 0,
+                sin(heading_Z), cos(heading_Z),  0,
+                0,                 0,            1;
+
+        x_matrix << 1,                 0,              0,
+                0,            cos(pitch_Y),     -sin(pitch_Y),
+                0,            sin(pitch_Y),    cos(pitch_Y);
+
+        y_matrix << cos(roll_X) ,     0,        sin(roll_X),
+                0,                 1,               0 ,
+                -sin(roll_X),      0,         cos(roll_X);
+
+        R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb
+
 //        static int imu_cnt = 0;
 //          for debug
 //        outfile.precision(6);
@@ -194,7 +239,7 @@ public:
             imuWheel_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
             imuWheel_raw->timestamp = gnss_ins_data.timestamp;
             imuWheel_raw->velocity = gnss_ins_data.velocity;
-            currentState = IMUWheel_predict(imuWheel_raw);
+            IMUWheel_predict(imuWheel_raw,R_w_b);
         }
         else{
             IMURawDataPtr imu_raw (new IMURawData);
@@ -204,17 +249,24 @@ public:
             currentState = IMU_predict(imu_raw);
         }
 
-        gtsam::Pose3 imuPose = gtsam::Pose3(currentState.quaternion(), currentState.position());
+        OdometryType Odometry_imuPredict_pub;
+        if(SensorConfig::if_use_Wheel_DR == 1){
+            PoseT lidar_preditct_pose(state.p_wb_,state.Rwb_);
+            Odometry_imuPredict_pub.pose = lidar_preditct_pose;
+        }
+        else{
+            gtsam::Pose3 imuPose = gtsam::Pose3(currentState.quaternion(), currentState.position());
 //        gtsam::Pose3 lidar_preditct_pose_gtsam = imuPose.compose(lidar2Imu);
 
-        PoseT lidar_preditct_pose(imuPose.translation().vector(),
-                                  imuPose.rotation().matrix());
+            PoseT lidar_preditct_pose(imuPose.translation().vector(),
+                                      imuPose.rotation().matrix());
+            Odometry_imuPredict_pub.pose = lidar_preditct_pose;
+        }
 
         //          for debug
-        OdometryType Odometry_imuPredict_pub;
         Odometry_imuPredict_pub.timestamp = currentTime;
         Odometry_imuPredict_pub.frame = "map";
-        Odometry_imuPredict_pub.pose = lidar_preditct_pose;
+
         //for debug use
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
         EZLOG(INFO)<<" time in ms: "<<time1.toc();
@@ -246,18 +298,32 @@ public:
                                         SensorConfig::imuConstBias_gyro,
                                         SensorConfig::imuConstBias_gyro).finished());  // assume zero initial bias
 
+        prior_acc_bias = Eigen::Vector3d (SensorConfig::imuConstBias_acc,
+                                          SensorConfig::imuConstBias_acc,
+                                          SensorConfig::imuConstBias_acc);
+        prior_gyro_bias = Eigen::Vector3d (SensorConfig::imuConstBias_gyro,
+                                          SensorConfig::imuConstBias_gyro,
+                                          SensorConfig::imuConstBias_gyro);
+
         //used for predict
         imuIntegratorImu_ = new gtsam::PreintegratedImuMeasurements( p,prior_imu_bias);  // setting up the IMU integration for IMU message
 
         lastImuT_imu = -1;
         gtsam::Pose3 firstLidarPose_pose3 =
-                gtsam::Pose3(gtsam::Rot3(  0,-1,0,
-                                                 1,0,0,
+                gtsam::Pose3(gtsam::Rot3(  1,0,0,
+                                                 0,1,0,
                                                  0,0,1),
                              gtsam::Point3(0, 0, 0));
         gtsam::Vector3 firstLidarVel =
                 gtsam::Vector3(0,0,0);
         firstLidarPose = gtsam::NavState(firstLidarPose_pose3,firstLidarVel);
+        state.Rwb_ <<1,0,0,
+                    0,1,0,
+                    0,0,1;
+        state.p_wb_ << 0,0,0;
+        state.v_w_ << 0,0,0;
+        last_state = state;
+
     }
 
     void DoPredict(){

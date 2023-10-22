@@ -565,12 +565,22 @@ public:
                 0,                 1,               0 ,
                 -sin(roll_X),      0,         cos(roll_X);
 
-        Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);
+        Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb
         Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
         Eigen::Quaterniond q_w_b(R_w_b);//获得局部坐标系的四元数
         PoseT T_w_b(t_w_b, R_w_b);
-
-        PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse()));
+//        world is GNSS ,base is car, T_w_l =
+        PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
+//        T_w_l:
+//        -0.973379  -0.229171 0.00382091   -128.353
+//        0.2292  -0.973157  0.0207947 0.00482607
+//        -0.0010472  0.0211169   0.999776  0.0740949
+//        0          0          0          1
+//        T_w_b:
+//        0.229171   -0.973379  0.00382091    -128.355
+//        0.973157      0.2292   0.0207947 -0.00585202
+//        -0.0211169  -0.0010472    0.999776    -0.43929
+//        0           0           0           1
 
         OdometryType T_w_l_pub;
         T_w_l_pub.frame = "map";

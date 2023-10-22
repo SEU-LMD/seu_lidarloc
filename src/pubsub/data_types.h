@@ -162,15 +162,15 @@ public:
 };
 typedef std::shared_ptr<IMURawWheelData> IMURawWheelDataPtr;
 
-class StateData(){
+class StateData{
 public:
     double timestamp;
-    Eigen::Vector3d p_wi_;
-    Eigen::Vector3d v_wi_;
-    Eigen::Matrix3d Rwi_;
+    Eigen::Vector3d p_wb_;
+    Eigen::Vector3d v_w_;
+    Eigen::Matrix3d Rwb_;
     Eigen::Vector3d acc_bias_;
     Eigen::Vector3d gyr_bias_;
-}
+};
 typedef std::shared_ptr<StateData> StateDataPtr;
 
 //used to commnicate with other thread
