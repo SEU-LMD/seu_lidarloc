@@ -157,10 +157,21 @@ public:
     double timestamp;
     Eigen::Vector3d imu_angular_v;
     Eigen::Vector3d imu_linear_acc;
-    Eigen::Quaterniond orientation;
+    Eigen::Vector3d position;
     double velocity;
 };
 typedef std::shared_ptr<IMURawWheelData> IMURawWheelDataPtr;
+
+class StateData(){
+public:
+    double timestamp;
+    Eigen::Vector3d p_wi_;
+    Eigen::Vector3d v_wi_;
+    Eigen::Matrix3d Rwi_;
+    Eigen::Vector3d acc_bias_;
+    Eigen::Vector3d gyr_bias_;
+}
+typedef std::shared_ptr<StateData> StateDataPtr;
 
 //used to commnicate with other thread
 class CloudInfo{

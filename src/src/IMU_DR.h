@@ -102,6 +102,20 @@ public:
         return delta_R;
     }
 
+    Eigen::Matrix3d rotationUpdate(const Eigen::Matrix3d &Rwi,
+                                          const Eigen::Matrix3d &delta_rot_mat) {
+        Eigen::Matrix3d updatedR = Eigen::Matrix3d::Identity();
+        updatedR = Rwi * delta_rot_mat;
+        //updatedR = delta_rot_mat * Rwi;
+        return updatedR;
+    }
+
+    Eigen::Matrix3d skewMatrix(const Eigen::Vector3d &v){
+        Eigen::Matrix3d w;
+        w << 0. ,-v(2), v(1), v(2) , 0. , -v(1) , v(0), 0.;
+        return w;
+    }
+
     void AddOdomData(const OdometryType &data){
 
 //      not use lidar
@@ -115,10 +129,28 @@ public:
         }
         lidarodom_mutex.unlock();
     }
-    gtsam::NavState IMUWheel_predict(IMURawWheelDataPtr _imuWheel_raw){
+    gtsam::NavState IMUWheel_predict(IMURawWheelDataPtr curr_imu){
         double imuTime = _imuWheel_raw->timestamp;
         double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
+        StateData state_;
+        state_.timestamp = curr_imu->timestamp;
 
+        const Eigen::Vector3d gyr_unbias =  curr_imu->imu_angular_v;  // gyro not unbias for now
+        const auto &dR = deltaRotMat(gyr_unbias * dt);
+        state_.Rwi_ = rotationUpdate(state_.Rwi_ , dR);
+        state_.v_wi_ = (0, curr_imu->velocity,0);
+        state_.p_wi_ = last_state->p_wi_ + (last_state->v_wi_ + state_->v_wi_)/2 *dt;//position
+
+//        double imuTime = _imuWheel_raw->timestamp;
+//        StateData last_state = state_;
+//        state_.timestamp = curr_imu->timestamp;
+//        const double dt = curr_imu->timestamp - last_imu->timestamp;
+//
+//        const Eigen::Vector3d gyr_unbias =  0.5*(last_imu->imu_angular_v + curr_imu->imu_angular_v);  // gyro not unbias for now
+//        const auto &dR = deltaRotMat(gyr_unbias * dt);
+//        state_.Rwi_ = rotationUpdate(last_state.Rwi_ , dR);
+//        state_.v_wi_ = (0, curr_imu->velocity,0);
+//        state_.p_wi_ = last_state->p_wi_ + (last_state->v_wi_ + state_->v_wi_)/2 *dt;//position
 
     }
     gtsam::NavState IMU_predict(IMURawDataPtr _imu_raw){
