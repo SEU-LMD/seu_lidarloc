@@ -70,6 +70,7 @@ class SensorConfig{
     static double imuConstBias_gyro;
     static int imu_angular_v_gain;
     static int if_use_Wheel_DR;
+    static int if_DR_use_Euler;
 
     //Extrinsics (lidar -> IMU)
     static int imu_type;//meiyong buyiyang********
@@ -240,6 +241,7 @@ int  SensorConfig::imuHZ = -1;
 int SensorConfig::imuGTSAMReset = 25;
 int SensorConfig::imu_angular_v_gain = 10;
 int SensorConfig::if_use_Wheel_DR = 0;
+int SensorConfig::if_DR_use_Euler = 0;
 
 
 int SensorConfig::imu_type=-1;
@@ -412,6 +414,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::imuConstBias_gyro=sensorconfig["imuConstBias_gyro"].as<double>();
     SensorConfig::imu_angular_v_gain = sensorconfig["imu_angular_v_gain"].as<int>();
     SensorConfig::if_use_Wheel_DR = sensorconfig["if_use_Wheel_DR"].as<int>();
+    SensorConfig::if_DR_use_Euler = sensorconfig["if_DR_use_Euler"].as<int>();
 
 //    std::cout<<SensorConfig::imuRPYWeight<<std::endl;
 
@@ -466,6 +469,8 @@ void Load_Sensor_YAML(std::string sensorpath)
     std::cout<<"SensorConfig::imuConstBias_acc: "<<SensorConfig::imuConstBias_acc<<std::endl;
     std::cout<<"SensorConfig::imuConstBias_gyro: "<<SensorConfig::imuConstBias_gyro<<std::endl;
     std::cout<<"SensorConfig::imu_angular_v_gain: "<<SensorConfig::imu_angular_v_gain<<std::endl;
+    std::cout<<"SensorConfig::imu_angular_v_gain: "<<SensorConfig::imu_angular_v_gain<<std::endl;
+    std::cout<<"SensorConfig::if_DR_use_Euler: "<<SensorConfig::if_DR_use_Euler<<std::endl;
     std::cout<<"SensorConfig::T_L_DR : "<<std::endl;
     std::cout<< SensorConfig::T_L_DR << std::endl;
     std::cout<<"SensorConfig::sensorconfig yaml success load"<<std::endl;

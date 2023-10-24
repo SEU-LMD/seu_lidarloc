@@ -148,11 +148,17 @@ public:
         double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
         lastImuT_imu = imuTime;
 //        state_.timestamp = curr_imu->timestamp;
-        const Eigen::Vector3d gyr_unbias =  curr_imu->imu_angular_v - prior_gyro_bias;  // gyro not unbias for now
+//        const Eigen::Vector3d gyr_unbias =  curr_imu->imu_angular_v - prior_gyro_bias;  // gyro not unbias for now
+        const Eigen::Vector3d gyr_unbias =  curr_imu->imu_angular_v;  // no bias
         const auto &dR = deltaRotMat(gyr_unbias * dt);
         Eigen::Vector3d state_v_b = Eigen::Vector3d (0, curr_imu->velocity,0);
 //        state.v_wb_ = SensorConfig::T  state_v_b
-        state.Rwb_ = _R_w_b;
+        if(SensorConfig::if_DR_use_Euler == 1){
+            state.Rwb_ = _R_w_b;
+        }
+        else{
+            state.Rwb_ = last_state.Rwb_;
+        }
         state.Rwb_ = rotationUpdate(state.Rwb_ , dR);
         Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
         state.v_w_ = state_v_w;
