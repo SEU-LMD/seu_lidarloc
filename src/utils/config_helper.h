@@ -75,7 +75,10 @@ class SensorConfig{
     static int imu_type;//meiyong buyiyang********
     static Eigen::Vector3d  extrinsicTrans;//
     static Eigen::Matrix3d extrinsicRot;//
+    static Eigen::Vector3d  extrinsicTrans_DR;//
+    static Eigen::Matrix3d extrinsicRot_DR;//
     static Eigen::Matrix4d T_L_B;
+    static Eigen::Matrix4d T_L_DR;
     static Eigen::Matrix3d extrinsicRPY;//  **meiyong
     static Eigen::Quaterniond extrinsicQRPY;//not
     static Eigen::Vector3d t_body_sensor;
@@ -197,6 +200,7 @@ std::string  SensorConfig::mapFrame="";
 
 //GPS Setting
 Eigen::Matrix4d SensorConfig::T_L_B = Eigen::Matrix4d::Identity();
+Eigen::Matrix4d SensorConfig::T_L_DR = Eigen::Matrix4d::Identity();
 bool  SensorConfig::useGPS=false;
 bool   SensorConfig::updateOrigin=false;
 int  SensorConfig::gpsFrequence=-1;
@@ -241,6 +245,8 @@ int SensorConfig::if_use_Wheel_DR = 0;
 int SensorConfig::imu_type=-1;
 Eigen::Vector3d SensorConfig::extrinsicTrans;
 Eigen::Matrix3d SensorConfig::extrinsicRot;
+Eigen::Vector3d SensorConfig::extrinsicTrans_DR;
+Eigen::Matrix3d SensorConfig::extrinsicRot_DR;
 Eigen::Matrix3d SensorConfig::extrinsicRPY;
 Eigen::Quaterniond SensorConfig::extrinsicQRPY;
 Eigen::Vector3d SensorConfig::t_body_sensor;
@@ -426,10 +432,25 @@ void Load_Sensor_YAML(std::string sensorpath)
             sensorconfig["extrinsicRPY"][3].as<double >(),sensorconfig["extrinsicRPY"][4].as<double >(),sensorconfig["extrinsicRPY"][5].as<double >(),
             sensorconfig["extrinsicRPY"][6].as<double >(),sensorconfig["extrinsicRPY"][7].as<double >(),sensorconfig["extrinsicRPY"][8].as<double >();
 
+    SensorConfig::extrinsicRot_DR<<sensorconfig["extrinsicRot_DR"][0].as<double >(),sensorconfig["extrinsicRot_DR"][1].as<double >(),sensorconfig["extrinsicRot_DR"][2].as<double >(),
+            sensorconfig["extrinsicRot_DR"][3].as<double >(),sensorconfig["extrinsicRot_DR"][4].as<double >(),sensorconfig["extrinsicRot_DR"][5].as<double >(),
+            sensorconfig["extrinsicRot_DR"][6].as<double >(),sensorconfig["extrinsicRot_DR"][7].as<double >(),sensorconfig["extrinsicRot_DR"][8].as<double >();
+
+
+    SensorConfig::extrinsicTrans_DR<< sensorconfig["extrinsicTrans_DR"][0].as<double >(),
+                                    sensorconfig["extrinsicTrans_DR"][1].as<double >(),
+                                    sensorconfig["extrinsicTrans_DR"][2].as<double >();
+
+
     Eigen::Matrix4d T_L_B_tmp = Eigen::Matrix4d::Identity();
     T_L_B_tmp.block<3,3>(0,0) = SensorConfig::extrinsicRot;
     T_L_B_tmp.block<3,1>(0,3) = SensorConfig::extrinsicTrans;
     SensorConfig::T_L_B = T_L_B_tmp;
+
+    Eigen::Matrix4d T_L_DR_tmp = Eigen::Matrix4d::Identity();
+    T_L_DR_tmp.block<3,3>(0,0) = SensorConfig::extrinsicRot_DR;
+    T_L_DR_tmp.block<3,1>(0,3) = SensorConfig::extrinsicTrans_DR;
+    SensorConfig::T_L_DR = T_L_DR_tmp;
 
     SensorConfig::extrinsicQRPY = Eigen::Quaterniond(SensorConfig::extrinsicRPY);
     Eigen::Quaterniond q_sensor_body(SensorConfig::extrinsicRPY);
@@ -445,7 +466,10 @@ void Load_Sensor_YAML(std::string sensorpath)
     std::cout<<"SensorConfig::imuConstBias_acc: "<<SensorConfig::imuConstBias_acc<<std::endl;
     std::cout<<"SensorConfig::imuConstBias_gyro: "<<SensorConfig::imuConstBias_gyro<<std::endl;
     std::cout<<"SensorConfig::imu_angular_v_gain: "<<SensorConfig::imu_angular_v_gain<<std::endl;
+    std::cout<<"SensorConfig::T_L_DR : "<<std::endl;
+    std::cout<< SensorConfig::T_L_DR << std::endl;
     std::cout<<"SensorConfig::sensorconfig yaml success load"<<std::endl;
+
 }
 
 void Load_Mapping_YAML(std::string mappingpath)

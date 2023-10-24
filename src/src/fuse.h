@@ -56,7 +56,7 @@ public:
     int key = 1;
     int lidar_keyFrame_cnt = 0;
     double lastImuT_imu = -1;
-
+    OdometryType current_pose_world;
     std::string topic_current_pose = "/loc_result";
 
 
@@ -216,13 +216,9 @@ public:
                         isamCurrentEstimate = isam->calculateEstimate();
                         latestEstimate = isamCurrentEstimate.at<gtsam::Pose3>(isamCurrentEstimate.size() - 1);
                         std::cout << "****************************************************" << std::endl;
-                        isamCurrentEstimate.print("Fuse Current estimate: ");
-
-
-
+//                        isamCurrentEstimate.print("Fuse Current estimate: ");
 
                         PoseT current_pose(latestEstimate.translation(),latestEstimate.rotation().matrix());
-                        OdometryType current_pose_world;
                         current_pose_world.frame = "map";
                         current_pose_world.timestamp = current_timeStamp;
                         current_pose_world.pose.pose = current_pose.pose;
@@ -230,8 +226,6 @@ public:
 //                        factor
                         last_lidar_pose = current_lidar_pose;
                         lidar_keyFrame_cnt++;
-
-
 
                         break;
                     }

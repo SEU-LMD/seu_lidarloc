@@ -259,7 +259,13 @@ public:
 
         OdometryType Odometry_imuPredict_pub;
         if(SensorConfig::if_use_Wheel_DR == 1){
-            PoseT lidar_preditct_pose(state.p_wb_,state.Rwb_);
+            Eigen::Matrix3d DR2lidar;
+            Eigen::Vector3d lidar_preditct_pose_p_wb_;
+            Eigen::Matrix3d lidar_preditct_pose_Rwb_;
+            DR2lidar = SensorConfig::T_L_DR.block<3,3>(0,0);
+            lidar_preditct_pose_Rwb_ = DR2lidar * state.Rwb_;
+            lidar_preditct_pose_p_wb_ = state.p_wb_;
+            PoseT lidar_preditct_pose(lidar_preditct_pose_p_wb_,lidar_preditct_pose_Rwb_);
             Odometry_imuPredict_pub.pose = lidar_preditct_pose;
         }
         else{
