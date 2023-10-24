@@ -160,10 +160,12 @@ public:
 
         EZLOG(INFO)<<"gyr_unbias : "<<gyr_unbias.transpose();
         EZLOG(INFO)<<"dR :"<<dR;
-        EZLOG(INFO)<<"state Rwb_: "<<state.Rwb_;
+        EZLOG(INFO)<<"state Rwb_: ";
+        std::cout<<state.Rwb_<< std::endl;
         EZLOG(INFO)<<"state p_wb_: "<<state.p_wb_.transpose();
         EZLOG(INFO)<<"state v_wb_: "<<state.v_w_.transpose();
-        EZLOG(INFO)<<"last_state Rwb_: "<<last_state.Rwb_;
+        EZLOG(INFO)<<"last_state Rwb_: ";
+        std::cout<<last_state.Rwb_<< std::endl;
         EZLOG(INFO)<<"last_state p_wb_: "<<last_state.p_wb_.transpose();
         EZLOG(INFO)<<"last_state v_wb_: "<<last_state.v_w_.transpose();
         last_state = state;
@@ -264,7 +266,7 @@ public:
             Eigen::Matrix3d lidar_preditct_pose_Rwb_;
             DR2lidar = SensorConfig::T_L_DR.block<3,3>(0,0);
             lidar_preditct_pose_Rwb_ = DR2lidar * state.Rwb_;
-            lidar_preditct_pose_p_wb_ = state.p_wb_;
+            lidar_preditct_pose_p_wb_ = state.p_wb_ + SensorConfig::T_L_DR.block<3,1>(0,3);
             PoseT lidar_preditct_pose(lidar_preditct_pose_p_wb_,lidar_preditct_pose_Rwb_);
             Odometry_imuPredict_pub.pose = lidar_preditct_pose;
         }

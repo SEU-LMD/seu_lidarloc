@@ -70,7 +70,7 @@
                   -1, 0, 0,
                   0, 0, 1 ]
 
-  extrinsicTrans_DR: [ 0.0, 0.0, -0.5135 ] # -0.5135
+  extrinsicTrans_DR: [ 0.0, 0.0, 0.5135 ] #
   extrinsicRot_DR: [ 0, -1, 0,
                   1, 0, 0,
                   0, 0, 1 ]
