@@ -1193,7 +1193,7 @@ public:
 
         return true;
     }
-            void addOdomFactor() {
+    void addOdomFactor() {
         if (Keyframe_Poses3D->points.empty()) {
             gtsam::noiseModel::Diagonal::shared_ptr priorNoise =
                     gtsam::noiseModel::Diagonal::Variances(
