@@ -68,6 +68,7 @@ public:
     std::string topic_priorMap_surf= "/priorMap_surf";
     std::string topic_priorMap_corner = "/priorMap_corner";
     std::string topic_lidar_odometry = "/lidar_odometry";
+    std::string topic_lidar_origin_odometry = "/lidar_origin_odometry";
 
     pcl::PointCloud<PointType>::Ptr Keyframe_Poses3D;  //历史关键帧 位置
     pcl::PointCloud<PointType>::Ptr cloudKeyGPSPoses3D;
@@ -1374,39 +1375,57 @@ public:
 
     }
     void saveKeyFramesAndFactor() {
-        if (saveFrame() == false) return;
+        if (saveFrame() == false) { return; }
+
+        OdometryType current_Lidar_pose;
+        Eigen::Affine3f Lidarodom_2_map = trans2Affine3f(current_T_m_l);//T_ml
+        Eigen::Matrix4d map_2_world = SensorConfig::T_L_B; //T_wm
+        Eigen::Matrix4d Lidar_odom_world = map_2_world * Lidarodom_2_map.matrix().cast<double>();// T_wl = T_wm * T_ml
+
+        current_Lidar_pose.frame = "map";
+        current_Lidar_pose.timestamp = timeLaserInfoCur;
+        current_Lidar_pose.pose.pose = Lidarodom_2_map.matrix().cast<double>();
+
+        Function_AddLidarOdometryTypeToFuse(current_Lidar_pose);
+        pubsub->PublishOdometry(topic_lidar_origin_odometry, current_Lidar_pose);
 
         // odom factor
-        addOdomFactor();
+//        addOdomFactor();
 
         // gps factor
 //        addGNSSBetweenFactor();
 //        if (SensorConfig::useGPS) addGPSFactor();
 
-        cout << "****************************************************" << endl;
-        gtSAMgraph.print("GTSAM Graph:\n");
-
-        // update iSAM
-        isam->update(gtSAMgraph, initialEstimate);
-        isam->update();
-
-        gtSAMgraph.resize(0);
-        initialEstimate.clear();
+//        cout << "****************************************************" << endl;
+//        gtSAMgraph.print("GTSAM Graph:\n");
+//
+//        // update iSAM
+//        isam->update(gtSAMgraph, initialEstimate);
+//        isam->update();
+//
+//        gtSAMgraph.resize(0);
+//        initialEstimate.clear();
 
         // save key poses
         PointType thisPose3D;
         PointTypePose thisPose6D;
         gtsam::Pose3 latestEstimate;
 
-        isamCurrentEstimate = isam->calculateEstimate();
-        latestEstimate =
-                isamCurrentEstimate.at<gtsam::Pose3>(isamCurrentEstimate.size() - 1);
+//        isamCurrentEstimate = isam->calculateEstimate();
+//        latestEstimate =
+//                isamCurrentEstimate.at<gtsam::Pose3>(isamCurrentEstimate.size() - 1);
         // cout << "****************************************************" << endl;
         // isamCurrentEstimate.print("Current estimate: ");
 
-        thisPose3D.x = latestEstimate.translation().x();
-        thisPose3D.y = latestEstimate.translation().y();
-        thisPose3D.z = latestEstimate.translation().z();
+//        thisPose3D.x = latestEstimate.translation().x();
+//        thisPose3D.y = latestEstimate.translation().y();
+//        thisPose3D.z = latestEstimate.translation().z();
+//        thisPose3D.intensity =
+//                Keyframe_Poses3D->size();  // this can be used as index
+//        Keyframe_Poses3D->push_back(thisPose3D);
+        thisPose3D.x = current_Lidar_pose.pose.GetXYZ().x();
+        thisPose3D.y = current_Lidar_pose.pose.GetXYZ().y();
+        thisPose3D.z = current_Lidar_pose.pose.GetXYZ().z();
         thisPose3D.intensity =
                 Keyframe_Poses3D->size();  // this can be used as index
         Keyframe_Poses3D->push_back(thisPose3D);
@@ -1415,19 +1434,22 @@ public:
         thisPose6D.y = thisPose3D.y;
         thisPose6D.z = thisPose3D.z;
         thisPose6D.intensity = thisPose3D.intensity;  // this can be used as index
-        thisPose6D.roll = latestEstimate.rotation().roll();
-        thisPose6D.pitch = latestEstimate.rotation().pitch();
-        thisPose6D.yaw = latestEstimate.rotation().yaw();
+        thisPose6D.roll = current_T_m_l[0];
+        thisPose6D.pitch = current_T_m_l[1];
+        thisPose6D.yaw = current_T_m_l[2];
+//        thisPose6D.roll = latestEstimate.rotation().roll();
+//        thisPose6D.pitch = latestEstimate.rotation().pitch();
+//        thisPose6D.yaw = latestEstimate.rotation().yaw();
         thisPose6D.time = timeLaserInfoCur;
         Keyframe_Poses6D->push_back(thisPose6D);
 
         // save updated transform
-        current_T_m_l[0] = latestEstimate.rotation().roll();
-        current_T_m_l[1] = latestEstimate.rotation().pitch();
-        current_T_m_l[2] = latestEstimate.rotation().yaw();
-        current_T_m_l[3] = latestEstimate.translation().x();
-        current_T_m_l[4] = latestEstimate.translation().y();
-        current_T_m_l[5] = latestEstimate.translation().z();
+//        current_T_m_l[0] = latestEstimate.rotation().roll();
+//        current_T_m_l[1] = latestEstimate.rotation().pitch();
+//        current_T_m_l[2] = latestEstimate.rotation().yaw();
+//        current_T_m_l[3] = latestEstimate.translation().x();
+//        current_T_m_l[4] = latestEstimate.translation().y();
+//        current_T_m_l[5] = latestEstimate.translation().z();
 
     }
 
@@ -1457,7 +1479,7 @@ public:
                 break;
 
         }
-        Function_AddLidarOdometryTypeToFuse(current_lidar_pose_world);
+
         Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
         pubsub->PublishOdometry(topic_lidar_odometry, current_lidar_pose_world);
     }
@@ -1545,6 +1567,7 @@ public:
         pubsub->addPublisher(topic_priorMap_corner, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_priorMap_surf, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_lidar_odometry, DataType::ODOMETRY, 10);
+        pubsub->addPublisher(topic_lidar_origin_odometry, DataType::ODOMETRY, 10);
         do_work_thread = new std::thread(&LOCMapping::DoWork, this);
     }
 };

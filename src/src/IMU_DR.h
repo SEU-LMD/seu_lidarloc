@@ -86,11 +86,12 @@ public:
                          gtsam::Point3(SensorConfig::extrinsicTrans.x(), SensorConfig::extrinsicTrans.y(), SensorConfig::extrinsicTrans.z()));
     OdometryType first_lidar_odom;
     gtsam::NavState firstLidarPose;
-    gtsam::NavState currentState;
+    gtsam::NavState currentState,lastState;
     StateData state,last_state;
     Eigen::Matrix3d R_w_b;
     double current_V;
     IMURawDataPtr cur_imu;
+    gtsam::NonlinearFactorGraph* graph;
 
 
     Eigen::Matrix3d rotVecToMat(const Eigen::Vector3d &rvec){
@@ -125,14 +126,20 @@ public:
     void AddOdomData(const OdometryType &data){
 
 //      not use lidar
+//        lidarodom_mutex.lock();
+//        if(lidar_poseQueue.empty()){
+//            lidar_poseQueue.push_back(data);
+//            EZLOG(INFO)<<"lidar_poseQueue.size() "<<lidar_poseQueue.size()<<std::endl;
+//            first_lidar_odom = lidar_poseQueue.front();
+//
+////            firstLidarPose.pose();
+//            lidarodom_mutex.unlock();
+//        }
+//        lidarodom_mutex.unlock();
+
+//      use lidar, but only in logic
         lidarodom_mutex.lock();
-        if(lidar_poseQueue.empty()){
-            lidar_poseQueue.push_back(data);
-            EZLOG(INFO)<<"lidar_poseQueue.size() "<<lidar_poseQueue.size()<<std::endl;
-            first_lidar_odom = lidar_poseQueue.front();
-//            firstLidarPose.pose();
-            lidarodom_mutex.unlock();
-        }
+        lidar_poseQueue.push_back(data);
         lidarodom_mutex.unlock();
     }
 
@@ -230,9 +237,7 @@ public:
 //        outfile.precision(6);
 //        outfile << imu_raw->imu_angular_v.x()<<" "<< imu_raw->imu_angular_v.y()<<" "<<imu_raw->imu_angular_v.z()<<std::endl;
 
-//        gnssins_mutex.lock();
-//        imuQueImu.push_back(imu_raw);
-//        gnssins_mutex.unlock();
+
         if(SensorConfig::if_use_Wheel_DR == 1){
             IMURawWheelDataPtr imuWheel_raw (new IMURawWheelData);
             imuWheel_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
@@ -246,6 +251,9 @@ public:
             imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
             imu_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
             imu_raw->timestamp = gnss_ins_data.timestamp;
+            gnssins_mutex.lock();
+            imuQueImu.push_back(imu_raw);
+            gnssins_mutex.unlock();
             currentState = IMU_predict(imu_raw);
         }
 
@@ -278,36 +286,8 @@ public:
     //
     void SetIMUPreParamter(){
 
-        boost::shared_ptr<gtsam::PreintegrationParams> p =  gtsam::PreintegrationParams::MakeSharedU(SensorConfig::imuGravity);
-        // Realistic MEMS white noise characteristics. Angular and velocity random walk
-        // expressed in degrees respectively m/s per sqrt(hr). 弧度制,米
-//   example:
-//          kGyroSigma = radians(0.5) / 60;     // 0.5 degree ARW,
-//          kAccelSigma = 0.1 / 60;             // 10 cm VRW
-        p->accelerometerCovariance =  gtsam::Matrix33::Identity(3, 3) *  pow(SensorConfig::imuAccNoise, 2);  // acc white noise in continuous
-        p->gyroscopeCovariance =      gtsam::Matrix33::Identity(3, 3) *  pow(SensorConfig::imuGyrNoise, 2);  // gyro white noise in continuous
-        p->integrationCovariance =    gtsam::Matrix33::Identity(3, 3) *  pow(1e-4,2);  // error committed in integrating position from velocities
-//        EZLOG(INFO)<<"p->getGravity(): "<<p->getGravity();
         //TODO!!!!!!!!
         ///why not imuAccBiasN and imuGyrBiasN???
-        prior_imu_bias = gtsam::imuBias::ConstantBias((gtsam::Vector(6) <<
-                                        SensorConfig::imuConstBias_acc,
-                                        SensorConfig::imuConstBias_acc,
-                                        SensorConfig::imuConstBias_acc,
-                                        SensorConfig::imuConstBias_gyro,
-                                        SensorConfig::imuConstBias_gyro,
-                                        SensorConfig::imuConstBias_gyro).finished());  // assume zero initial bias
-
-        prior_acc_bias = Eigen::Vector3d (SensorConfig::imuConstBias_acc,
-                                          SensorConfig::imuConstBias_acc,
-                                          SensorConfig::imuConstBias_acc);
-        prior_gyro_bias = Eigen::Vector3d (SensorConfig::imuConstBias_gyro,
-                                          SensorConfig::imuConstBias_gyro,
-                                          SensorConfig::imuConstBias_gyro);
-
-        //used for predict
-        imuIntegratorImu_ = new gtsam::PreintegratedImuMeasurements( p,prior_imu_bias);  // setting up the IMU integration for IMU message
-
         lastImuT_imu = -1;
         gtsam::Pose3 firstLidarPose_pose3 =
                 gtsam::Pose3(gtsam::Rot3(  1,0,0,
@@ -322,58 +302,118 @@ public:
                     0,0,1;
         state.p_wb_ << 0,0,0;
         state.v_w_ << 0,0,0;
+
+        graph = new gtsam::NonlinearFactorGraph();
+
         last_state = state;
+
+        if(SensorConfig::if_use_Wheel_DR == 0){
+            key = 0;
+            gtsam::Values initial_values;
+            priorPoseNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-3, 1e-3, 1e-3, 1e-2, 1e-2, 1e-2).finished());  // rad,rad,rad,m, m, m
+            priorVelNoise = gtsam::noiseModel::Isotropic::Sigma(3, 1e4);  // m/s
+            priorBiasNoise = gtsam::noiseModel::Isotropic::Sigma(6, 1e-3);  // 1e-2 ~ 1e-3 seems to be good
+            correctionNoise = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 0.05, 0.05, 0.05, 0.1, 0.1, 0.1).finished());
+
+            prior_imu_bias = gtsam::imuBias::ConstantBias((gtsam::Vector(6) <<
+                                                                            SensorConfig::imuConstBias_acc,
+                    SensorConfig::imuConstBias_acc,
+                    SensorConfig::imuConstBias_acc,
+                    SensorConfig::imuConstBias_gyro,
+                    SensorConfig::imuConstBias_gyro,
+                    SensorConfig::imuConstBias_gyro).finished());  // assume zero initial bias
+
+            prior_acc_bias = Eigen::Vector3d (SensorConfig::imuConstBias_acc,
+                                              SensorConfig::imuConstBias_acc,
+                                              SensorConfig::imuConstBias_acc);
+            prior_gyro_bias = Eigen::Vector3d (SensorConfig::imuConstBias_gyro,
+                                               SensorConfig::imuConstBias_gyro,
+                                               SensorConfig::imuConstBias_gyro);
+
+
+            initial_values.insert(X(key), firstLidarPose_pose3);
+            initial_values.insert(V(key), firstLidarVel);
+            initial_values.insert(B(key), prior_imu_bias);
+
+            graph->addPrior(X(key), firstLidarPose_pose3, priorPoseNoise);
+            graph->addPrior(V(key), firstLidarVel, priorVelNoise);
+            graph->addPrior(B(key), prior_imu_bias, priorBiasNoise);
+
+            boost::shared_ptr<gtsam::PreintegrationParams> p =  gtsam::PreintegrationParams::MakeSharedU(SensorConfig::imuGravity);
+
+            // Realistic MEMS white noise characteristics. Angular and velocity random walk
+            // expressed in degrees respectively m/s per sqrt(hr). 弧度制,米
+            //   example:
+            //          kGyroSigma = radians(0.5) / 60;     // 0.5 degree ARW,
+            //          kAccelSigma = 0.1 / 60;             // 10 cm VRW
+
+            double accel_noise_sigma = 0.0003924;
+            double gyro_noise_sigma = 0.000205689024915;
+            gtsam::Matrix33 measured_acc_cov = gtsam::I_3x3 * pow(accel_noise_sigma, 2);
+            gtsam::Matrix33 measured_omega_cov = gtsam::I_3x3 * pow(gyro_noise_sigma, 2);
+            gtsam::Matrix33 integration_error_cov = gtsam::I_3x3 * 1e-8;  // error committed in integrating position from velocities
+
+            // PreintegrationBase params:
+            p->accelerometerCovariance = measured_acc_cov;  // acc white noise in continuous
+            p->integrationCovariance = integration_error_cov;  // integration uncertainty continuous
+            // should be using 2nd order integration
+            // PreintegratedRotation params:
+            p->gyroscopeCovariance = measured_omega_cov;  // gyro white noise in continuous
+            // PreintegrationCombinedMeasurements params:
+
+            //used for predict
+            std::shared_ptr<gtsam::PreintegrationType> imuIntegratorImu_ = nullptr;
+            imuIntegratorImu_ = std::make_shared<gtsam::PreintegratedImuMeasurements>( p,prior_imu_bias);  // setting up the IMU integration for IMU message
+            assert(imuIntegratorImu_);
+            imuIntegratorImu_->resetIntegrationAndSetBias(prior_imu_bias);
+
+            lastState = gtsam::NavState(firstLidarPose_pose3,firstLidarVel);
+
+        }
+
+
 
     }
 
+    void ClearFactorGraph() {
+        gtsam::ISAM2Params optParameters;
+        optParameters.relinearizeThreshold = 0.1;
+        optParameters.factorization = gtsam::ISAM2Params::CHOLESKY;
+        optParameters.relinearizeSkip = 10;
+        optimizer = gtsam::ISAM2(optParameters);
+
+        gtsam::NonlinearFactorGraph newGraphFactors;
+        graphFactors = newGraphFactors;
+
+        gtsam::Values NewGraphValues;
+        graphValues = NewGraphValues;
+    }
     void DoPredict(){
         while(1){
-            if(!imuQueImu.empty()){
-//                TicToc time1;
-//                gnssins_mutex.lock();
-//                IMURawDataPtr thisImu = imuQueImu.front();
-//                imuQueImu.pop_front();
-//                EZLOG(INFO)<<"imuQueImu size: "<<imuQueImu.size();
-//                gnssins_mutex.unlock();
-//                double imuTime = thisImu->timestamp;
-//                double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
-//                //        double dt = (lastImuQT < 0) ? (1.0 / imuFrequence) : (imuTime
-//                //        - lastImuQT);
-//                thisImu->imu_angular_v *= SensorConfig::imu_angular_v_gain;
-////                        EZLOG(INFO)<<"dt: "<<dt; dt: 0.0199661 dt: 0.00914884
-//                imuIntegratorImu_->integrateMeasurement(
-//                        gtsam::Vector3(thisImu->imu_linear_acc),
-//                        gtsam::Vector3(thisImu->imu_angular_v),
-//                        dt);
-//                lastImuT_imu = imuTime;
-////                 predict odometry
-////                         用上一帧激光里程计时刻对应的状态、偏置，施加从该时刻开始到当前时刻的imu预计分量，得到当前时刻的状态
-//                EZLOG(INFO)<<"firstLidarPose: "<<firstLidarPose;
-//                gtsam::NavState currentState = imuIntegratorImu_->predict(firstLidarPose, prior_imu_bias);//both are input parameters
-//                EZLOG(INFO) <<" imu_raw->imu_linear_acc: "<<thisImu->imu_linear_acc.transpose()
-//                            <<" imu_raw->imu_angular_v: "<<thisImu->imu_angular_v.transpose()
-//                            <<" dt: "<< dt
-//                            <<" prevBiasOdom: "<<prior_imu_bias;
-//                EZLOG(INFO)<<" currentState: "<<currentState;
-//                EZLOG(INFO)<<" time in ms: "<<time1.toc();
-//
-////                 publish odometry
-////                 transform imu pose to ldiar
-//                gtsam::Pose3 imuPose = gtsam::Pose3(currentState.quaternion(), currentState.position());
-////        gtsam::Pose3 lidar_preditct_pose_gtsam = imuPose.compose(lidar2Imu);
-//
-//                PoseT lidar_preditct_pose(imuPose.translation().vector(),
-//                                          imuPose.rotation().matrix());
-//
-//                OdometryType Odometry_imuPredict_pub;
-//                Odometry_imuPredict_pub.timestamp = thisImu->timestamp;
-//                Odometry_imuPredict_pub.frame = "map";
-//                Odometry_imuPredict_pub.pose = lidar_preditct_pose;
-//                //for debug use
-//                pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
-            }//end if(imuQueImu.size()!=0){
-            else{
+            if(SensorConfig::if_use_Wheel_DR == 1){ // IMU+Wheel just don't do anything
                 sleep(0.001);
+            }
+            else{ // TODO only imu integration
+                if(!lidar_poseQueue.empty()){
+                    lidarodom_mutex.lock();
+                    double current_time = lidar_poseQueue.front().timestamp;
+                    lidar_poseQueue.pop_front();
+                    lidarodom_mutex.unlock();
+
+                    if (imuQueImu.empty())
+                    {
+                        continue;
+                    }
+
+                    gnssins_mutex.lock();
+                    prevPose_ = firstLidarPose.pose();
+                    // TODO measurement
+
+
+                }//end if(imuQueImu.size()!=0){
+                else{
+                    sleep(0.001);
+                }
             }
         }
     }//end function DoLidar

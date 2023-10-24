@@ -152,8 +152,13 @@ public:
 
     }
 
+    void SetFuseParamter(){
+
+    }
+
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
+        SetFuseParamter();
 //        pubsub->addPublisher(topic_highFequency_odom, DataType::ODOMETRY, 10);
         HighFrequencyLoc_thread = new std::thread(&Fuse::DoWork, this);
     }
