@@ -11,6 +11,7 @@ Panels:
         - /IMU_MAP1/Shape1
         - /LIDAR_LOC1/Status1
         - /LIDAR_LOC1/Shape1
+        - /map_axis1
         - /pubtoFuse1/Shape1
         - /locResult1
         - /locResult1/Shape1
@@ -415,26 +416,20 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz/ThirdPersonFollower
-      Distance: 60.78926086425781
+      Angle: -0.10000686347484589
+      Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
-      Field of View: 0.7853981852531433
-      Focal Point:
-        X: -20.11494255065918
-        Y: -2.321972370147705
-        Z: -8.559763045923319e-06
-      Focal Shape Fixed Size: false
-      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.26539844274520874
+      Scale: 96.46293640136719
       Target Frame: map
-      Yaw: 4.928567409515381
+      X: 0
+      Y: 0
     Saved: ~
 Window Geometry:
   Displays:
@@ -450,5 +445,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 3635
-  X: 5643
-  Y: 537
+  X: 4198
+  Y: 866

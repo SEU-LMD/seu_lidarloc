@@ -76,9 +76,9 @@ public:
         mutex_data.unlock();
     }
 
-    void AddIMUToFuse(const IMUOdometryType &imu_odom){
+    void AddIMUToFuse(const DROdometryType &imu_odom){
         mutex_data.lock();
-        std::shared_ptr<BaseType> odometryPtr = std::make_shared<IMUOdometryType>(imu_odom);
+        std::shared_ptr<BaseType> odometryPtr = std::make_shared<DROdometryType>(imu_odom);
         data_deque.push_back(odometryPtr);
         mutex_data.unlock();
     }
@@ -250,7 +250,7 @@ public:
                         break;
                     }
 
-                    case DataType::IMU:
+                    case DataType::WHEEL:
                     {
 //                        if(firstLidarFlag == false){
 //                            data_deque.pop_front();

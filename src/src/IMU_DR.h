@@ -36,7 +36,7 @@ public:
     std::mutex gnssins_mutex;
     std::mutex lidarodom_mutex;
     std::function<void(const OdometryType&)> Function_AddOdometryTypeToImageProjection;
-    std::function<void(const IMUOdometryType&)> Function_AddIMUOdometryTypeToFuse;
+    std::function<void(const DROdometryType&)> Function_AddDROdometryTypeToFuse;
     std::ofstream outfile;
 
     std::thread* do_lidar_thread;
@@ -155,14 +155,18 @@ public:
 //        state.v_wb_ = SensorConfig::T  state_v_b
         if(SensorConfig::if_DR_use_Euler == 1){
             state.Rwb_ = _R_w_b;
+            state.Rwb_ = rotationUpdate(state.Rwb_ , dR);
+            Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
+            state.v_w_ = state_v_w;
+            state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
         }
         else{
             state.Rwb_ = last_state.Rwb_;
+            state.Rwb_ = rotationUpdate(state.Rwb_ , dR);
+            Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
+            state.v_w_ = state_v_w;
+            state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
         }
-        state.Rwb_ = rotationUpdate(state.Rwb_ , dR);
-        Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
-        state.v_w_ = state_v_w;
-        state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
 
         EZLOG(INFO)<<"gyr_unbias : "<<gyr_unbias.transpose();
         EZLOG(INFO)<<"dR :"<<dR;
@@ -266,15 +270,19 @@ public:
         }
 
         OdometryType Odometry_imuPredict_pub;
+        DROdometryType DR_pose;
         if(SensorConfig::if_use_Wheel_DR == 1){
             Eigen::Matrix3d DR2lidar;
             Eigen::Vector3d lidar_preditct_pose_p_wb_;
             Eigen::Matrix3d lidar_preditct_pose_Rwb_;
             DR2lidar = SensorConfig::T_L_DR.block<3,3>(0,0);
-            lidar_preditct_pose_Rwb_ = DR2lidar * state.Rwb_;
-            lidar_preditct_pose_p_wb_ = state.p_wb_ + SensorConfig::T_L_DR.block<3,1>(0,3);
+            lidar_preditct_pose_Rwb_ = DR2lidar * DR2lidar * state.Rwb_;
+            lidar_preditct_pose_p_wb_ = DR2lidar * state.p_wb_; // 地面存在高程误差——外参？ 建图？
+            lidar_preditct_pose_p_wb_ =  lidar_preditct_pose_p_wb_;
+
             PoseT lidar_preditct_pose(lidar_preditct_pose_p_wb_,lidar_preditct_pose_Rwb_);
             Odometry_imuPredict_pub.pose = lidar_preditct_pose;
+            DR_pose.pose = lidar_preditct_pose;
         }
         else{
             gtsam::Pose3 imuPose = gtsam::Pose3(currentState.quaternion(), currentState.position());
@@ -283,6 +291,7 @@ public:
             PoseT lidar_preditct_pose(imuPose.translation().vector(),
                                       imuPose.rotation().matrix());
             Odometry_imuPredict_pub.pose = lidar_preditct_pose;
+            DR_pose.pose = lidar_preditct_pose;
         }
 
         //          for debug
@@ -290,6 +299,10 @@ public:
         Odometry_imuPredict_pub.frame = "map";
 
         //for debug use
+        DR_pose.timestamp = currentTime;
+        DR_pose.frame = "map";
+
+        Function_AddDROdometryTypeToFuse(DR_pose);
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
         EZLOG(INFO)<<" time in ms: "<<time1.toc();
 //        imu_cnt++;

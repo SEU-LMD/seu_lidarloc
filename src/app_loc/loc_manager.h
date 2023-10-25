@@ -65,18 +65,17 @@ public:
                 std::bind(&Fuse::AddGNSSToFuse, &fuse,std::placeholders::_1);
         auto add_LidarOdometryType_from_locmapping_to_fuse =
                 std::bind(&Fuse::AddLidarLocToFuse, &fuse,std::placeholders::_1);
-        auto add_IMUOdometryType_from_imupre_to_fuse =
+        auto add_DROdometryType_from_DR_to_fuse =
                 std::bind(&Fuse::AddIMUToFuse, &fuse,std::placeholders::_1);
 
         img_proj.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_imgproj_to_ftextr;
         ft_extr.Function_AddCloudFeatureToLOCMapping = add_CloudFeature_from_ftextr_to_locmapping;
         loc_mapping.Function_AddOdometryTypeToIMUPreintegration = add_OdometryType_from_locmapping_to_imupre;
-//        imu_pre.Function_AddOdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
 
 //        to fuse
         img_proj.Function_AddGNSSOdometryTypeToFuse = add_GNSSOdometryType_from_imgproj_to_fuse;
         loc_mapping.Function_AddLidarOdometryTypeToFuse = add_LidarOdometryType_from_locmapping_to_fuse;
-        imu_pre.Function_AddIMUOdometryTypeToFuse = add_IMUOdometryType_from_imupre_to_fuse;
+        imu_pre.Function_AddDROdometryTypeToFuse = add_DROdometryType_from_DR_to_fuse;
 
     }
 };
