@@ -140,6 +140,7 @@ class MappingConfig{
         static int scan_2_prior_map;
         static std::string prior_map_surf;
         static std::string prior_map_corner;
+        static int if_LoadFromMapManager;
 
         //Loop closure
         static bool  loopClosureEnableFlag;
@@ -267,6 +268,7 @@ bool  MappingConfig::savePCD=false;
 std::string  MappingConfig::savePCDDirectory="";
 std::string MappingConfig::prior_map_surf = " ";
 std::string MappingConfig::prior_map_corner = " ";
+int MappingConfig::if_LoadFromMapManager = 1;
 
 // LOAM feature threshold
 float MappingConfig::edgeThreshold=-1;
@@ -547,6 +549,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::localMap_searchRadius = mappingconfig["localMap_searchRadius"].as<double >();
         MappingConfig::prior_map_corner = mappingconfig["prior_corner_map_path"].as<std::string>();
         MappingConfig::prior_map_surf = mappingconfig["prior_surf_map_path"].as<std::string>();
+        MappingConfig::if_LoadFromMapManager = mappingconfig["if_LoadFromMapManager"].as<int>();
 
         // Visualization
         MappingConfig::globalMapVisualizationSearchRadius=mappingconfig["globalMapVisualizationSearchRadius"].as<float >();
@@ -572,7 +575,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         std::cout<<"MappingConfig::mappingCornerRadiusSize_US: "<<MappingConfig::mappingCornerRadiusSize_US<<std::endl;
         std::cout<<"MappingConfig::mappingSurfRadiusSize_US: "<< MappingConfig::mappingSurfRadiusSize_US<<std::endl;
         std::cout<<"MappingConfig::surroundingKeyframeDensity_US: "<< MappingConfig::surroundingKeyframeDensity_US<<std::endl;
-
+        std::cout<<"MappingConfig::if_LoadFromMapManager: "<<MappingConfig::if_LoadFromMapManager<<std::endl;
         std::cout<<"mapping yaml success load"<<std::endl;
 
 }//end function Load_Mapping_YAML

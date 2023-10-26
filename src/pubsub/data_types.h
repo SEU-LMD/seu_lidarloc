@@ -14,7 +14,7 @@
 //所有数据的基类
 
 enum DataType {IMU, LIDAR,GNSS, WHEEL, GNSS_INS,//from sensor
-                ODOMETRY, PATH};//common used type
+                ODOMETRY, PATH,MAP};//common used type
 
 class BaseType{
 public:
@@ -197,6 +197,16 @@ public:
 };
 typedef std::shared_ptr<CloudFeature> CloudFeaturePtr;
 
-
+class PriorMap:public BaseType{
+public:
+    pcl::KdTreeFLANN<PointType>::Ptr PriorSurfMapKDTree;
+    pcl::KdTreeFLANN<PointType>::Ptr PriorCornerMapKDTree;
+    pcl::PointCloud<PointType>::Ptr PriorSurfMap;
+    pcl::PointCloud<PointType>::Ptr PriorCornerMap;
+    DataType getType(){
+        return DataType::MAP;
+    }
+};
+typedef std::shared_ptr<PriorMap> PriorMapPtr;
 
 #endif //SEU_LIDARLOC_BASE_TYPE_H

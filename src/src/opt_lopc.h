@@ -126,7 +126,6 @@ public:
 
     int Keyframe_Poses3D_last_num = 3;
     int flag_scan_mode_change = 0;
-    int flag_load_localMap = 0;
     int localMap_corner_ds_num = 0;
     int localMap_surf_ds_num = 0;
     int current_corner_ds_num = 0;
@@ -134,7 +133,6 @@ public:
     int current_frameID = 0;
     int current_lidar_frameID = 0;
     int last_lidar_frameID = 0;
-    int flag_use_world_localMap = 1;
 
     gtsam::Pose3 last_gnss_poses;
     gtsam::ISAM2 *isam;
@@ -148,6 +146,7 @@ public:
 //    double timeLaserInfoStamp;
     bool isDegenerate = false;
     cv::Mat matP;
+    bool flag_MM_loadMap = 0;
 
     Eigen::Vector3d originLLA;
     bool systemInitialized = false;
@@ -158,7 +157,10 @@ public:
     std::mutex mtx;
     std::mutex mtxGpsInfo;
     std::mutex mtxGraph;
+
+    std::mutex mtxPriorMap;
     int lidarScan_cnt = 0;
+
 
     void AddCloudData(const CloudFeature& cloud_ft){
         if(lidarScan_cnt > SensorConfig::lidarScanDownSample){
@@ -179,6 +181,17 @@ public:
         deque_gnssins.push_back(gnss_ins_data);
         gnss_ins_mutex.unlock();
     }
+
+    void AddPriorMap(const PriorMap& PriorMap_data){
+        mtxPriorMap.lock();
+        priorMap_surf = PriorMap_data.PriorSurfMap;
+        priorMap_corner = PriorMap_data.PriorSurfMap;
+        kdtree_priorMap_surf = PriorMap_data.PriorSurfMapKDTree;
+        kdtree_priorMap_corner = PriorMap_data.PriorCornerMapKDTree;
+        mtxPriorMap.unlock();
+        flag_MM_loadMap = 1;
+    }
+
 
     void allocateMemory() {
         gtsam::ISAM2Params parameters;
@@ -263,12 +276,14 @@ public:
 
         }
 
-        if(flagLoadMap){
-            // 从晓强接收
-            Load_PriorMap_Surf(MappingConfig::prior_map_surf,priorMap_surf);
-            Load_PriorMap_Corner(MappingConfig::prior_map_corner,priorMap_corner);
-
+        if(MappingConfig::if_LoadFromMapManager == 0){
+            if(flagLoadMap){
+                // 从晓强接收
+                Load_PriorMap_Surf(MappingConfig::prior_map_surf,priorMap_surf);
+                Load_PriorMap_Corner(MappingConfig::prior_map_corner,priorMap_corner);
+            }
         }
+
         EZLOG(INFO)<<"opt Loc init success!"<<std::endl;
 
 
@@ -478,14 +493,18 @@ public:
 //            EZLOG(INFO) << "MODE: Scan to Map!";
             // 添加标志位，需要下一帧再加载。现在可以先写着1.5s换一次local map
             current_lidar_frameID =  init_point.intensity;
-//            flag_load_localMap = 1; // unecessary to load local map
-            if(current_lidar_frameID - last_lidar_frameID < MappingConfig::LocalMap_updata_perframe && !flagLoadMap){
-                EZLOG(INFO)<<"already have local map and don't need to update";
-
+            if(MappingConfig::if_LoadFromMapManager ==0 ){
+                if(current_lidar_frameID - last_lidar_frameID < MappingConfig::LocalMap_updata_perframe && !flagLoadMap){
+                    EZLOG(INFO)<<"already have local map and don't need to update";
 //                flag_need_load_localMap = 0; // do not need to load map
-                return ; // 不需要重复加载localMap_corner_and_surf,但是如果没有加载过localMap就加载一次
+                    return ; // 不需要重复加载localMap_corner_and_surf,但是如果没有加载过localMap就加载一次
+                }
+                flagLoadMap = 0;
             }
-            flagLoadMap = 0;
+            if(flag_MM_loadMap == 0){
+                EZLOG(INFO)<<"Waiting for MapManager send new Map!!";
+                return ;
+            }
 //            flag_need_load_localMap = 1; // need to load map
             localMap_corner->clear();
             localMap_surf->clear();
@@ -493,11 +512,14 @@ public:
             std::vector<float> pointSearchSqDis;
 //            world frame
 //            EZLOG(INFO)<<"init_point is: " << init_point; // be aware of init_point's frame
+            if(MappingConfig::if_LoadFromMapManager == 0){
+                kdtree_priorMap_surf->setInputCloud(priorMap_surf);
 
-            kdtree_priorMap_surf->setInputCloud(priorMap_surf);
+            }
             kdtree_priorMap_surf->radiusSearch(
                     init_point, (double) MappingConfig::localMap_searchRadius_surf,
                     pointSearchInd, pointSearchSqDis);
+
 //            std::cout<<"surf points in local map  : "<<pointSearchInd.size()<<std::endl;
             for (int i = 0; i < (int) pointSearchInd.size(); ++i) {
                 int id = pointSearchInd[i];
@@ -505,7 +527,10 @@ public:
             }
             pointSearchInd.clear();
             pointSearchSqDis.clear();
-            kdtree_priorMap_corner->setInputCloud(priorMap_corner);
+            if(MappingConfig::if_LoadFromMapManager == 0){
+                kdtree_priorMap_corner->setInputCloud(priorMap_corner);
+            }
+
             kdtree_priorMap_corner->radiusSearch(
                     init_point, (double) MappingConfig::localMap_searchRadius_corner,
                     pointSearchInd, pointSearchSqDis);
@@ -542,10 +567,10 @@ public:
             T_matrix_L_B(2,3) = 0.0;
             pcl::transformPointCloud(*localMap_surf_ds, *localMap_surf_ds, T_matrix_L_B.inverse());
             pcl::transformPointCloud(*localMap_corner_ds, *localMap_corner_ds, T_matrix_L_B.inverse());
-            flag_use_world_localMap = 1;
-            flag_load_localMap = 1; // load prior local map
+
+            flag_MM_loadMap = 0;
         }
-        else //else scan to scan_incremental  flag_scan_mode_change == 0
+        else //TODO else scan to scan_incremental flag_scan_mode_change == 0
         {
             if(Keyframe_Poses3D->points.empty() != true)
             {
@@ -1526,9 +1551,15 @@ public:
                     updateInitialGuess();
                     EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
                     if (systemInitialized) {
-                        if(flagLoadMap){
-                            pub_CornerAndSurfFromMap();
-
+                        if(MappingConfig::if_LoadFromMapManager == 0){
+                            if(flagLoadMap){
+                                pub_CornerAndSurfFromMap();
+                            }
+                        }
+                        else{
+                            if(flag_MM_loadMap){
+                                pub_CornerAndSurfFromMap();
+                            }
                         }
                         TicToc t_2;
                         extractFromPriorMap();

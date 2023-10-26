@@ -21,7 +21,6 @@
 
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
-#include "featureExtraction.h"
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
 
@@ -177,6 +176,8 @@ public:
 //                }
 //            }
 //            lidarodom_mutex.unlock();
+
+            //pure DR
             state.Rwb_ = last_state.Rwb_;
             state.Rwb_ = rotationUpdate(state.Rwb_ , dR);
             Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
@@ -317,8 +318,9 @@ public:
         //for debug use
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";
-
-        Function_AddDROdometryTypeToFuse(DR_pose);
+        if(MappingConfig::slam_mode_switch == 1){
+            Function_AddDROdometryTypeToFuse(DR_pose);
+        }
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
         EZLOG(INFO)<<" time in ms: "<<time1.toc();
 //        imu_cnt++;
@@ -466,11 +468,11 @@ public:
         //设置imu的参数
         SetIMUPreParamter();
         //debug
-        outfile.open("imu_gyro.txt",std::ios::app);
-        if (!outfile.is_open()) {
-            std::cerr << "无法打开输出文件 " << std::endl;
-        }
-        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
+//        outfile.open("imu_gyro.txt",std::ios::app);
+//        if (!outfile.is_open()) {
+//            std::cerr << "无法打开输出文件 " << std::endl;
+//        }
+//        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
 
         pubsub = pubsub_;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);

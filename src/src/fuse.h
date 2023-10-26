@@ -33,6 +33,7 @@ public:
     std::deque<std::shared_ptr<BaseType>> data_deque;
     std::deque<std::shared_ptr<DROdometryType>> DR_data_deque;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToDR;
+    std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToMapManager;
     std::mutex mutex_data;
     std::mutex mutex_DR_data;
     std::mutex mtxGraph;
@@ -64,7 +65,7 @@ public:
     OdometryType loc_result;
     OdometryType current_lidar_world;
     PoseT last_pose;
-    bool if_roll_back =0;
+    bool if_roll_back = 0;
 
     std::string topic_highHz_pose = "/loc_result";
     std::string topic_testforRollBack_pose = "/loc_result_roll_back";
@@ -105,10 +106,6 @@ public:
             cnt_test = 0;
         }
         cnt_test++;
-    }
-
-    void DR_Predict(){
-        ;
     }
 
     void fuseInitialized(){
@@ -246,6 +243,7 @@ public:
 
                     case DataType::GNSS:
                     {
+                        // TODO  GNSS factor
 //                        if(firstLidarFlag == false){
 //                            data_deque.pop_front();
 //                            mutex_data.unlock();
@@ -267,23 +265,24 @@ public:
                     case DataType::WHEEL:
                     {
                         TicToc t1;
+                        // 1. get wheel data and save it to deque
                         DROdometryTypePtr  cur_Wheel_odom;
                         static PoseT last_DR_pose = PoseT(Eigen::Matrix4d::Identity());
                         cur_Wheel_odom = std::static_pointer_cast<DROdometryType>(std::move(front_data));
                         mutex_DR_data.lock();
                         DR_data_deque.push_back(cur_Wheel_odom);
                         mutex_DR_data.unlock();
-//                        DR_Predict();
+
+                        // 2. cal dR of DR
                         gtsam::Pose3 current_Wheel_pose(gtsam::Rot3(cur_Wheel_odom->pose.GetR()),
                                                         gtsam::Point3(cur_Wheel_odom->pose.GetXYZ()));
 
                         PoseT current_DR_pose(current_Wheel_pose.translation(),current_Wheel_pose.rotation().matrix());
                         delta_pose_DR = last_DR_pose.between(current_DR_pose);
 
-
+                        // 3.iteration of DR: update iteration init point when rollback
                         loc_result.frame = "map";
                         loc_result.timestamp = current_timeStamp;
-                        //                        loc_result.pose.pose = current_pose.pose;
                         if(if_roll_back){// predict from last rollback
                             loc_result.pose.pose = last_pose.pose * delta_pose_DR.pose;
                             last_pose = loc_result.pose.pose;
@@ -291,55 +290,14 @@ public:
                             loc_result.pose.pose = last_DR_pose.pose * delta_pose_DR.pose;
                         }
 
+                        // 4.iteration settings and pub the high frequency loc result
                         pubsub->PublishOdometry(topic_highHz_pose, loc_result);
                         last_DR_pose = current_DR_pose;
                         EZLOG(INFO)<<"wheel pub cost in ms : "<<t1.toc();
 
-//                        if(firstLidarFlag == false){
-//                            data_deque.pop_front();
-//                            mutex_data.unlock();
-//                            EZLOG(INFO)<<"DataType::IMU  : wait fot first lidar pose!!";
-//                            break;
-//                        }
-//                        DR_data_deque.push_back(front_data);
-//                        data_deque.pop_front();
-//                        mutex_data.unlock();
-//
-//                        EZLOG(INFO)<<"GET IMU! now we got DR_data_deque size: "<<DR_data_deque.size();
-//                        DR_predict(DR_data_deque);
-                        ;
-
-//                        predict imu pose
-//                        front_index++;
                         break;
                     }
                 }
-//                if(front_data.getType()==DataType::ODOMETRY){
-//                    re_predict_imu_data = FindAfterTimestampIMU(front_data.time_stamp);
-//
-//                }
-
-//                if(front_data.getType()==DataType::GNSS_INS){
-//                    //just use imu data to predcict
-//
-//
-//                }
-//                else if(front_data.getType()==DataType::ODOMETRY){
-//                    //just use lidar loc data to optimize factor
-//                    //1.add prior or beteween factor to graph
-//
-//
-//                    //2. optimize graph
-//
-//                    //3.re-predict imu factor
-//                    for(auto& imu_data: re_predict_imu_data){
-//
-//                    }
-//                }
-
-
-//                finally send data to middle ware use send_data
-
 
                 mutex_data.lock();
                 while(data_deque.size()>=data_deque_max_size){

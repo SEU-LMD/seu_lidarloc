@@ -32,11 +32,6 @@ INITIALIZE_EASYLOGGINGPP
 
 
 
-
-
-
-
-
 typedef struct{
     std::string down_grid_index;
     int down_grid_num;
