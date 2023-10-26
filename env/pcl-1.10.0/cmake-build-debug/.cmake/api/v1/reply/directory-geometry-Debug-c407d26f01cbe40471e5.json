@@ -1,0 +1,112 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install",
+			"PCL_MAKE_PKGCONFIG",
+			"PCL_ADD_INCLUDES"
+		],
+		"files" : 
+		[
+			"cmake/pcl_targets.cmake",
+			"geometry/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 42,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 483,
+				"parent" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 45,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 206,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 46,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 206,
+				"parent" : 5
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 2,
+			"component" : "pcl_geometry",
+			"destination" : "lib/pkgconfig",
+			"paths" : 
+			[
+				"cmake-build-debug/geometry/pcl_geometry-1.10.pc"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "pcl_geometry",
+			"destination" : "include/pcl-1.10/pcl/geometry",
+			"paths" : 
+			[
+				"geometry/include/pcl/geometry/boost.h",
+				"geometry/include/pcl/geometry/eigen.h",
+				"geometry/include/pcl/geometry/get_boundary.h",
+				"geometry/include/pcl/geometry/line_iterator.h",
+				"geometry/include/pcl/geometry/mesh_base.h",
+				"geometry/include/pcl/geometry/mesh_circulators.h",
+				"geometry/include/pcl/geometry/mesh_conversion.h",
+				"geometry/include/pcl/geometry/mesh_elements.h",
+				"geometry/include/pcl/geometry/mesh_indices.h",
+				"geometry/include/pcl/geometry/mesh_io.h",
+				"geometry/include/pcl/geometry/mesh_traits.h",
+				"geometry/include/pcl/geometry/organized_index_iterator.h",
+				"geometry/include/pcl/geometry/planar_polygon.h",
+				"geometry/include/pcl/geometry/polygon_mesh.h",
+				"geometry/include/pcl/geometry/polygon_operations.h",
+				"geometry/include/pcl/geometry/quad_mesh.h",
+				"geometry/include/pcl/geometry/triangle_mesh.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 6,
+			"component" : "pcl_geometry",
+			"destination" : "include/pcl-1.10/pcl/geometry/impl",
+			"paths" : 
+			[
+				"geometry/include/pcl/geometry/impl/polygon_operations.hpp"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "geometry",
+		"source" : "geometry"
+	}
+}
