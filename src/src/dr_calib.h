@@ -11,6 +11,13 @@
 #include "utils/MapSaver.h"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 
+struct datapoint{
+    double timestamp;
+    double velocity;
+    double gnssx;
+    double gnssy;
+};
+
 class DRCalibration  {
 public:
     PubSubInterface* pubsub;
@@ -18,7 +25,7 @@ public:
     std::mutex dr_mutex;
     std::mutex work_mutex;
     std::deque<OdometryType> gnssQueue;
-    std::deque<DROdometryType> drQueue;
+    std::deque<WheelType> drQueue;
     std::thread* do_work_thread;
 
     bool init = false;
@@ -26,6 +33,32 @@ public:
 
     std::string topic_gnss_odom_world = "/gnss_odom_world";
     std::string topic_dr_odom_world = "/dr_odom_world";
+
+    int pieces=1000;  //矩阵大小
+    std::vector<double> gnssdistances;
+
+    std::vector<double> speedIntegration(const std::vector<double>& timestamps, const std::vector<double>& speeds){  //轮速计速度积分
+        int n = timestamps.size();
+        std::vector<double> distances(n,0.0);
+
+        for (int i = 1; i<n; i++){
+            double timeInterval = timestamps[i] - timestamps[i-1];
+            distances[i] = distances[i-1] + speeds[i]*timeInterval;
+        }
+        return distances;
+    }
+    std::deque<datapoint> extractDataInRange(const std::deque<datapoint>& inputQueue, double startTime, double endTime){  //该函数提取指定时间段的队列
+        std::deque<datapoint> extractData;
+        int n= inputQueue.size();
+        std::vector<double> distances(n,0.0);
+        for(const auto &point : inputQueue){
+            if(point.timestamp >=startTime && point.timestamp<=endTime){
+                extractData.push_back(point);
+            }
+        }
+        return extractData;
+    }
+
 
     void DoWork(){
         while(1){
@@ -37,10 +70,76 @@ public:
             }
 
             if(!isempty){
+                std::vector<double> distances;
+
+                std::vector<double> canbusdistances;
+                std::vector<double> shorttimestamps;
+                std::vector<double> shortvelcoities;
+
+                //待输入数据
+                std::deque<datapoint> canbusData;
+                std::deque<datapoint> gnssData;
+
+                std::deque<datapoint> shortcanbusData;
+                std::deque<datapoint> shortgnssData;
+
+                int m = drQueue.size();
+                for(int i=0;i<m;i++){
+                    canbusData[i].timestamp=drQueue[i].timestamp;
+                    canbusData[i].velocity=(drQueue[i].ESCWhlFLSpd+drQueue[i].ESCWhlFRSpd+drQueue[i].ESCWhlRLSpd+drQueue[i].ESCWhlRRSpd)/4;
+                }
+
+                int n = gnssQueue.size();
+                for(int i=0;i<n;i++){
+                    gnssData[i].timestamp=gnssQueue[i].timestamp;
+                    gnssData[i].gnssx=gnssQueue[i].pose.GetXYZ().x();
+                    gnssData[i].gnssy=gnssQueue[i].pose.GetXYZ().y();
+                }
 
 
+                int divisor=0;
+                int sum=0;
+                int length = canbusData.size();
+                divisor = length/pieces;
 
+                shortcanbusData[0]=canbusData[0];
+                shorttimestamps[0]=shortcanbusData[0].timestamp;
+                shortvelcoities[0]=shortcanbusData[0].velocity;
+                for(int i=1;i<pieces;i++){
+                    shortcanbusData[i]=canbusData[i*divisor-1];
+                    shorttimestamps[i]=shortcanbusData[i].timestamp;
+                    shortvelcoities[i]=shortcanbusData[i].velocity;
+                }
+                canbusdistances = speedIntegration(shorttimestamps, shortvelcoities);  //得到canbus的距离
 
+                std::deque<datapoint>temData;
+                //std::deque<datapoint>temData=extractDataInRange(gnssData,0,shortcanbusData[0].timestamp);
+                gnssdistances[0]=0;
+                for(int i=1;i<pieces;i++){
+                    temData=extractDataInRange(gnssData,shortcanbusData[i-1].timestamp,shortcanbusData[i].timestamp);
+                    distances[0]=0;
+                    for(int j=1;j<temData.size();i++){
+                        distances[j]=sqrt((temData[j].gnssx-temData[j-1].gnssx)*(temData[j].gnssx-temData[j-1].gnssx)+(temData[j].gnssy-temData[j-1].gnssy)*(temData[j].gnssy-temData[j-1].gnssy));
+                        sum=sum+distances[j];
+                    }
+                    gnssdistances[i]=sum;  //得到gnss的距离
+                    sum=0;
+                    std::deque<datapoint>().swap(temData);
+                }
+
+                double k,bias;
+                Eigen::MatrixXd A(pieces,2);
+                Eigen::VectorXd b(pieces);
+
+                for(int i=0;i<pieces;i++){
+                    b(i)=gnssdistances[i];
+                    A(i,1)=shorttimestamps[i];
+                    A(i,0)=canbusdistances[i];
+                }
+                Eigen::VectorXd x = A.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
+
+                EZLOG(INFO)<<"k:"<<x(0,0);
+                EZLOG(INFO)<<"bias:"<<x(1,0);
             }
 
             else{
@@ -51,7 +150,7 @@ public:
 
 
 
-    void AddDrData(const DROdometryType& data){
+    void AddDrData(const WheelType& data){
         EZLOG(INFO)<<"featureext_AddCloudData  "<<std::endl;
         dr_mutex.lock();
         drQueue.push_back(data);

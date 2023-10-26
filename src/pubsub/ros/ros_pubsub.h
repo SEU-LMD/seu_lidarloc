@@ -157,9 +157,9 @@ public:
 //        else if(type==DataType::IMU){
 //
 //        }
-//        else if(type==DataType::WHEEL){
-//
-//        }
+        else if(type==DataType::WHEEL){ //TODO::add data
+
+        }
     }//end function addSubscriber
 
 };

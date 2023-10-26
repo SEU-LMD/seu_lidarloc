@@ -89,7 +89,7 @@ typedef std::shared_ptr<CloudTypeXYZICOLRANGE> CloudTypeXYZICOLRANGEPtr;
 class OdometryType:public BaseType{
     public:
         PoseT pose;
-        DataType getType(){
+    DataType getType(){
             return DataType::ODOMETRY;
         }
 };
@@ -199,6 +199,15 @@ public:
 };
 typedef std::shared_ptr<CloudFeature> CloudFeaturePtr;
 
-
+class WheelType:public BaseType{
+public:
+    float ESCWhlRRSpd;
+    float ESCWhlRLSpd;
+    float ESCWhlFRSpd;
+    float ESCWhlFLSpd;
+    DataType getType(){
+        return DataType::WHEEL;
+    }
+};
 
 #endif //SEU_LIDARLOC_BASE_TYPE_H

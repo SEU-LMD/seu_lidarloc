@@ -39,7 +39,7 @@ public:
     }
 
     void DrCallback(const BaseType& msg){
-        const DROdometryType& dr_data = *((DROdometryType*)&msg);
+        const WheelType& dr_data = *((WheelType*)&msg);
         dr_calib.AddDrData(dr_data);
     }
 

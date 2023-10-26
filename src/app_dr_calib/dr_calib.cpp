@@ -25,6 +25,7 @@ int main(int argc, char **argv) {
     EZLOG(INFO) << "easylogging++ thread unsafe";
 #endif
 
+
     //2.初始化中间件
     PubSubInterface* pubsub;
     //#ifdef X86
