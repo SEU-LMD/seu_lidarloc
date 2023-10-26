@@ -31,10 +31,10 @@ public:
     int data_deque_max_size = 200;
     int front_index = 0;
     std::deque<std::shared_ptr<BaseType>> data_deque;
-    std::deque<std::shared_ptr<BaseType>> imu_data_deque;
-    std::deque<std::shared_ptr<BaseType>> lidar_data_deque;
-    std::deque<std::shared_ptr<BaseType>> gnss_data_deque;
+    std::deque<std::shared_ptr<DROdometryType>> DR_data_deque;
+    std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToDR;
     std::mutex mutex_data;
+    std::mutex mutex_DR_data;
     std::mutex mtxGraph;
 
     gtsam::NonlinearFactorGraph gtSAMgraph;
@@ -48,16 +48,27 @@ public:
     gtsam::noiseModel::Diagonal::shared_ptr correctionNoise;
     gtsam::Vector noiseModelBetweenBias;
     gtsam::Pose3 last_lidar_pose;
+
     gtsam::Values isamCurrentEstimate; // 所有关键帧位姿的优化结果
     gtsam::noiseModel::Diagonal::shared_ptr priorNoise;
     gtsam::noiseModel::Diagonal::shared_ptr odometryNoise;
+
+    PoseT delta_pose_DR;
+    PoseT current_T_i_0;
 
     bool firstLidarFlag;
     int key = 1;
     int lidar_keyFrame_cnt = 0;
     double lastImuT_imu = -1;
-    OdometryType current_pose_world;
-    std::string topic_current_pose = "/loc_result";
+    double current_lidar_time;
+    OdometryType loc_result;
+    OdometryType current_lidar_world;
+    PoseT last_pose;
+    bool if_roll_back =0;
+
+    std::string topic_highHz_pose = "/loc_result";
+    std::string topic_testforRollBack_pose = "/loc_result_roll_back";
+    std::string topic_current_lidar_pose = "/loc_lidar_result";
 
 
     //this fucntion needs to be binded by lidar loc node
@@ -87,19 +98,6 @@ public:
 //
 //    }
 
-    void DR_predict(const std::deque<std::shared_ptr<BaseType>> _imu_data_deque){
-        IMUOdometryTypePtr cur_imu_odom;
-        cur_imu_odom = std::static_pointer_cast<IMUOdometryType>(std::move(_imu_data_deque.front()));
-        double imuTime = cur_imu_odom->timestamp;
-
-        double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
-        lastImuT_imu = imuTime;
-//        imuIntegrator->integrateMeasurement(cur_imu_odom->pose.,
-//                                            cur_imu_odom->imu_angular_v,
-//                                                dt);
-
-    }
-
     void GNSS_StatusCheck(std::deque<std::shared_ptr<BaseType>> _gnss_data_deque){
         static int cnt_test = 0;
         if(cnt_test > 100){
@@ -107,6 +105,10 @@ public:
             cnt_test = 0;
         }
         cnt_test++;
+    }
+
+    void DR_Predict(){
+        ;
     }
 
     void fuseInitialized(){
@@ -120,33 +122,45 @@ public:
                                 .finished());  // rad*rad, meter*meter
         odometryNoise = gtsam::noiseModel::Diagonal::Variances(
                         (gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-6).finished());
-
+        last_pose = PoseT(Eigen::Matrix4d::Identity());
 
         EZLOG(INFO)<<" Fuse Init Successful!";
     }
 
-    void LIDAR_PoseRollBack(std::deque<std::shared_ptr<BaseType>> _lidar_data_deque){
+    void RollBack(const OdometryType _current_pose,
+                  std::deque<std::shared_ptr<DROdometryType>> _DR_data_deque,
+                  OdometryType &_current_pose_align){
+        while(!_DR_data_deque.empty()){
+            if(_current_pose.timestamp <_DR_data_deque.front()->timestamp){ // -------lidar | DR DR DR ------>>>>
+                gtsam::Pose3 poseFrom(gtsam::Rot3(_DR_data_deque.front()->pose.GetR()),
+                                                gtsam::Point3(_DR_data_deque.front()->pose.GetXYZ()));
+                gtsam::Pose3 poseTo(gtsam::Rot3(_DR_data_deque.back()->pose.GetR()),
+                                      gtsam::Point3(_DR_data_deque.back()->pose.GetXYZ()));
 
-        OdometryTypePtr cur_lidar_odom;
-        cur_lidar_odom = std::static_pointer_cast<OdometryType>(std::move(_lidar_data_deque.front()));
-        double currentCorrectionTime = cur_lidar_odom->timestamp;
+                _current_pose_align.frame = "map";
+                _current_pose_align.timestamp = _DR_data_deque.back()->timestamp;
+                _current_pose_align.pose = PoseT(_current_pose.pose.pose * poseFrom.between(poseTo).matrix());
 
-        gtsam::Pose3 lidarPose =
-                gtsam::Pose3(gtsam::Rot3::Quaternion(cur_lidar_odom->pose.GetQ().w(),
-                                                     cur_lidar_odom->pose.GetQ().x(),
-                                                     cur_lidar_odom->pose.GetQ().y(),
-                                                     cur_lidar_odom->pose.GetQ().z()),
-                             gtsam::Point3(cur_lidar_odom->pose.GetXYZ()));
-        EZLOG(INFO)<<"lidarPose: "<<lidarPose;
+                pubsub->PublishOdometry(topic_testforRollBack_pose, _current_pose_align);
+                _DR_data_deque.clear();
+                if_roll_back = 1;
+                last_pose = _current_pose_align.pose;
 
-
+                break;
+            }
+            else{
+                _DR_data_deque.pop_front();
+            }
+        }
     }
 
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
         fuseInitialized();
 
-        pubsub->addPublisher(topic_current_pose, DataType::ODOMETRY, 10);
+        pubsub->addPublisher(topic_highHz_pose, DataType::ODOMETRY, 10);
+        pubsub->addPublisher(topic_current_lidar_pose, DataType::ODOMETRY, 10);
+        pubsub->addPublisher(topic_testforRollBack_pose, DataType::ODOMETRY, 10);
         HighFrequencyLoc_thread = new std::thread(&Fuse::DoWork, this);
     }
 
@@ -171,7 +185,7 @@ public:
                     {
                         OdometryTypePtr cur_lidar_odom;
                         cur_lidar_odom = std::static_pointer_cast<OdometryType>(std::move(front_data));
-
+                        current_lidar_time = cur_lidar_odom->timestamp;
                         gtsam::Pose3 current_lidar_pose(gtsam::Rot3(cur_lidar_odom->pose.GetR()),
                                                             gtsam::Point3(cur_lidar_odom->pose.GetXYZ()));
                         if(lidar_keyFrame_cnt == 0){
@@ -199,11 +213,6 @@ public:
                             mtxGraph.unlock();
                         }
 
-                        if(firstLidarFlag == false){
-                            key = 1;
-                            firstLidarFlag = true;
-                        }
-
                         std::cout << "****************************************************" << std::endl;
                         gtSAMgraph.print("Fuse GTSAM Graph:\n");
                         // update iSAM
@@ -219,10 +228,15 @@ public:
 //                        isamCurrentEstimate.print("Fuse Current estimate: ");
 
                         PoseT current_pose(latestEstimate.translation(),latestEstimate.rotation().matrix());
-                        current_pose_world.frame = "map";
-                        current_pose_world.timestamp = current_timeStamp;
-                        current_pose_world.pose.pose = current_pose.pose;
-                        pubsub->PublishOdometry(topic_current_pose, current_pose_world);
+                        current_lidar_world.frame = "map";
+                        current_lidar_world.timestamp = current_timeStamp;
+                        current_lidar_world.pose.pose = current_pose.pose;
+                        pubsub->PublishOdometry(topic_current_lidar_pose, current_lidar_world);
+
+                        mutex_DR_data.lock();
+                        RollBack(current_lidar_world, DR_data_deque, loc_result);
+                        mutex_DR_data.unlock();
+
 //                        factor
                         last_lidar_pose = current_lidar_pose;
                         lidar_keyFrame_cnt++;
@@ -252,18 +266,47 @@ public:
 
                     case DataType::WHEEL:
                     {
+                        TicToc t1;
+                        DROdometryTypePtr  cur_Wheel_odom;
+                        static PoseT last_DR_pose = PoseT(Eigen::Matrix4d::Identity());
+                        cur_Wheel_odom = std::static_pointer_cast<DROdometryType>(std::move(front_data));
+                        mutex_DR_data.lock();
+                        DR_data_deque.push_back(cur_Wheel_odom);
+                        mutex_DR_data.unlock();
+//                        DR_Predict();
+                        gtsam::Pose3 current_Wheel_pose(gtsam::Rot3(cur_Wheel_odom->pose.GetR()),
+                                                        gtsam::Point3(cur_Wheel_odom->pose.GetXYZ()));
+
+                        PoseT current_DR_pose(current_Wheel_pose.translation(),current_Wheel_pose.rotation().matrix());
+                        delta_pose_DR = last_DR_pose.between(current_DR_pose);
+
+
+                        loc_result.frame = "map";
+                        loc_result.timestamp = current_timeStamp;
+                        //                        loc_result.pose.pose = current_pose.pose;
+                        if(if_roll_back){// predict from last rollback
+                            loc_result.pose.pose = last_pose.pose * delta_pose_DR.pose;
+                            last_pose = loc_result.pose.pose;
+                        }else{ // normal predict
+                            loc_result.pose.pose = last_DR_pose.pose * delta_pose_DR.pose;
+                        }
+
+                        pubsub->PublishOdometry(topic_highHz_pose, loc_result);
+                        last_DR_pose = current_DR_pose;
+                        EZLOG(INFO)<<"wheel pub cost in ms : "<<t1.toc();
+
 //                        if(firstLidarFlag == false){
 //                            data_deque.pop_front();
 //                            mutex_data.unlock();
 //                            EZLOG(INFO)<<"DataType::IMU  : wait fot first lidar pose!!";
 //                            break;
 //                        }
-//                        imu_data_deque.push_back(front_data);
+//                        DR_data_deque.push_back(front_data);
 //                        data_deque.pop_front();
 //                        mutex_data.unlock();
 //
-//                        EZLOG(INFO)<<"GET IMU! now we got imu_data_deque size: "<<imu_data_deque.size();
-//                        DR_predict(imu_data_deque);
+//                        EZLOG(INFO)<<"GET IMU! now we got DR_data_deque size: "<<DR_data_deque.size();
+//                        DR_predict(DR_data_deque);
                         ;
 
 //                        predict imu pose

@@ -11,8 +11,9 @@ Panels:
         - /IMU_MAP1/Shape1
         - /LIDAR_LOC1/Status1
         - /LIDAR_LOC1/Shape1
-        - /map_axis1
-        - /pubtoFuse1/Shape1
+        - /PriorMap_surf1
+        - /LidarKF1
+        - /LidarKF1/Shape1
         - /locResult1
         - /locResult1/Shape1
       Splitter Ratio: 0.5583333373069763
@@ -129,14 +130,14 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 10000
       Name: IMU_MAP
       Position Tolerance: 0.10000000149011612
       Queue Size: 10
       Shape:
         Alpha: 1
-        Axes Length: 2
+        Axes Length: 5
         Axes Radius: 0.05000000074505806
         Color: 255; 25; 0
         Head Length: 0.30000001192092896
@@ -146,7 +147,7 @@ Visualization Manager:
         Value: Axes
       Topic: /imu_odom_raw
       Unreliable: false
-      Value: true
+      Value: false
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -164,7 +165,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 10000
       Name: LIDAR_LOC
       Position Tolerance: 0.10000000149011612
@@ -181,7 +182,7 @@ Visualization Manager:
         Value: Axes
       Topic: /lidar_odometry
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Class: rviz/Axes
       Enabled: true
@@ -323,7 +324,7 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 3
+      Size (Pixels): 4
       Size (m): 0.009999999776482582
       Style: Points
       Topic: /priorMap_surf
@@ -348,15 +349,15 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: false
+      Enabled: true
       Keep: 100
-      Name: pubtoFuse
+      Name: LidarKF
       Position Tolerance: 0.10000000149011612
       Queue Size: 10
       Shape:
         Alpha: 1
-        Axes Length: 3
-        Axes Radius: 0.30000001192092896
+        Axes Length: 1
+        Axes Radius: 0.5
         Color: 255; 25; 0
         Head Length: 0.30000001192092896
         Head Radius: 0.10000000149011612
@@ -365,7 +366,42 @@ Visualization Manager:
         Value: Axes
       Topic: /lidar_origin_odometry
       Unreliable: false
-      Value: false
+      Value: true
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: true
+      Keep: 100
+      Name: RollBack
+      Position Tolerance: 0.10000000149011612
+      Queue Size: 10
+      Shape:
+        Alpha: 1
+        Axes Length: 5
+        Axes Radius: 0.20000000298023224
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Axes
+      Topic: /loc_result_roll_back
+      Unreliable: false
+      Value: true
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -390,7 +426,7 @@ Visualization Manager:
       Queue Size: 10
       Shape:
         Alpha: 1
-        Axes Length: 5
+        Axes Length: 3
         Axes Radius: 0.15000000596046448
         Color: 255; 25; 0
         Head Length: 0.30000001192092896
@@ -416,20 +452,26 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -0.10000686347484589
-      Class: rviz/TopDownOrtho
+      Class: rviz/ThirdPersonFollower
+      Distance: 30.34230613708496
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: -140.51947021484375
+        Y: 108.58297729492188
+        Z: -6.623986337217502e-08
+      Focal Shape Fixed Size: false
+      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 96.46293640136719
+      Pitch: 0.4997974932193756
       Target Frame: map
-      X: 0
-      Y: 0
+      Yaw: 3.643606662750244
     Saved: ~
 Window Geometry:
   Displays:
@@ -445,5 +487,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 3635
-  X: 4198
-  Y: 866
+  X: 4768
+  Y: 531

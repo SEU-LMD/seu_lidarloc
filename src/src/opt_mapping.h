@@ -1735,7 +1735,7 @@ public:
        // current_lidar_pose_world.pose = PoseT(Lidarodom_2_map.matrix().cast<double>());
         pubsub->PublishOdometry(topic_current_pose, current_lidar_pose_world);
        // Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
-     //   EZLOG(INFO)<<"pub topic_current_pose  "<<std::endl;
+     //   EZLOG(INFO)<<"pub topic_highHz_pose  "<<std::endl;
         EZLOG(INFO)<<"get out publishOdometry "<<endl;
 
     }

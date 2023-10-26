@@ -55,7 +55,6 @@ public:
     };
     FRAME current_frame = WORLD;
     PubSubInterface* pubsub;
-    std::function<void(const OdometryType&)> Function_AddOdometryTypeToIMUPreintegration;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToFuse;
 
     std::thread* do_work_thread;
@@ -1480,7 +1479,6 @@ public:
 
         }
 
-        Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
         pubsub->PublishOdometry(topic_lidar_odometry, current_lidar_pose_world);
     }
 

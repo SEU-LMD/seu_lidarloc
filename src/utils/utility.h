@@ -233,6 +233,9 @@ public:
     PoseT inverse() const{
         return PoseT(pose.inverse());
     }
+    PoseT between(const PoseT& g) const {
+        return PoseT(pose.inverse() * g.pose.matrix());
+    }
 };
 
 #endif

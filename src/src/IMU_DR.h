@@ -137,7 +137,7 @@ public:
 //        }
 //        lidarodom_mutex.unlock();
 
-//      use lidar, but only in logic
+//      come from last lidar pose
         lidarodom_mutex.lock();
         lidar_poseQueue.push_back(data);
         lidarodom_mutex.unlock();
@@ -161,6 +161,22 @@ public:
             state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
         }
         else{
+//            lidarodom_mutex.lock();
+//            if(!lidar_poseQueue.empty()){
+//                OdometryType now_lidar;
+////                update DR
+//                if(now_lidar.timestamp < imuTime){ //  --------lidar | DR DR DR ------>>>>
+//                    last_state.Rwb_ = lidar_poseQueue.front().pose.GetR();
+//                    last_state.p_wb_ = lidar_poseQueue.front().pose.GetXYZ();
+//                    lidar_poseQueue.pop_front();
+//                    lidarodom_mutex.unlock();
+//                }
+//                else{
+//                    lidarodom_mutex.unlock();
+//                    return;
+//                }
+//            }
+//            lidarodom_mutex.unlock();
             state.Rwb_ = last_state.Rwb_;
             state.Rwb_ = rotationUpdate(state.Rwb_ , dR);
             Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;

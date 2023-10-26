@@ -55,10 +55,6 @@ public:
                 std::bind(&FeatureExtraction::AddCloudData, &ft_extr,std::placeholders::_1);
         auto add_CloudFeature_from_ftextr_to_locmapping =
                 std::bind(&LOCMapping::AddCloudData, &loc_mapping,std::placeholders::_1);
-        auto add_OdometryType_from_locmapping_to_imupre =
-                std::bind(&IMU_DR::AddOdomData, &imu_pre, std::placeholders::_1);
-        auto add_OdometryType_from_imupre_to_imgproj =
-                std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
 
 //       to fuse
         auto add_GNSSOdometryType_from_imgproj_to_fuse =
@@ -67,10 +63,8 @@ public:
                 std::bind(&Fuse::AddLidarLocToFuse, &fuse,std::placeholders::_1);
         auto add_DROdometryType_from_DR_to_fuse =
                 std::bind(&Fuse::AddIMUToFuse, &fuse,std::placeholders::_1);
-
         img_proj.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_imgproj_to_ftextr;
         ft_extr.Function_AddCloudFeatureToLOCMapping = add_CloudFeature_from_ftextr_to_locmapping;
-        loc_mapping.Function_AddOdometryTypeToIMUPreintegration = add_OdometryType_from_locmapping_to_imupre;
 
 //        to fuse
         img_proj.Function_AddGNSSOdometryTypeToFuse = add_GNSSOdometryType_from_imgproj_to_fuse;
