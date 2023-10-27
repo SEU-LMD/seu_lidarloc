@@ -45,7 +45,7 @@ LoadTxt(const std::string& map_in_path,const int& frame_sum)
     Eigen::Vector3d tanslation;
     Eigen::Quaterniond rotation;
     Eigen::Isometry3d T=Eigen::Isometry3d::Identity();
-    std::ifstream downfile(map_in_path+"Pose_TUM.txt");
+    std::ifstream downfile(map_in_path+"Opt_Poses.txt");
     Tum tum;
     for(int j=0;j<frame_sum;j++){
         std::string line;

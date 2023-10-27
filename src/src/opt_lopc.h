@@ -55,6 +55,7 @@ public:
     };
     FRAME current_frame = WORLD;
     PubSubInterface* pubsub;
+    std::function<void(const OdometryType&)> Function_AddOdometryTypeToIMUPreintegration;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToFuse;
 
     std::thread* do_work_thread;
@@ -126,6 +127,7 @@ public:
 
     int Keyframe_Poses3D_last_num = 3;
     int flag_scan_mode_change = 0;
+    int flag_load_localMap = 0;
     int localMap_corner_ds_num = 0;
     int localMap_surf_ds_num = 0;
     int current_corner_ds_num = 0;
@@ -133,6 +135,7 @@ public:
     int current_frameID = 0;
     int current_lidar_frameID = 0;
     int last_lidar_frameID = 0;
+    int flag_use_world_localMap = 1;
 
     gtsam::Pose3 last_gnss_poses;
     gtsam::ISAM2 *isam;
@@ -184,12 +187,14 @@ public:
 
     void AddPriorMap(const PriorMap& PriorMap_data){
         mtxPriorMap.lock();
-        priorMap_surf = PriorMap_data.PriorSurfMap;
-        priorMap_corner = PriorMap_data.PriorSurfMap;
-        kdtree_priorMap_surf = PriorMap_data.PriorSurfMapKDTree;
-        kdtree_priorMap_corner = PriorMap_data.PriorCornerMapKDTree;
+        if(MappingConfig::if_LoadFromMapManager == 1){
+            priorMap_surf = PriorMap_data.PriorSurfMap;
+            priorMap_corner = PriorMap_data.PriorSurfMap;
+            kdtree_priorMap_surf = PriorMap_data.PriorSurfMapKDTree;
+            kdtree_priorMap_corner = PriorMap_data.PriorCornerMapKDTree;
+            flag_MM_loadMap = 1;
+        }
         mtxPriorMap.unlock();
-        flag_MM_loadMap = 1;
     }
 
 
@@ -493,7 +498,7 @@ public:
 //            EZLOG(INFO) << "MODE: Scan to Map!";
             // 添加标志位，需要下一帧再加载。现在可以先写着1.5s换一次local map
             current_lidar_frameID =  init_point.intensity;
-            if(MappingConfig::if_LoadFromMapManager ==0 ){
+            if(MappingConfig::if_LoadFromMapManager == 0 ){
                 if(current_lidar_frameID - last_lidar_frameID < MappingConfig::LocalMap_updata_perframe && !flagLoadMap){
                     EZLOG(INFO)<<"already have local map and don't need to update";
 //                flag_need_load_localMap = 0; // do not need to load map
@@ -501,9 +506,11 @@ public:
                 }
                 flagLoadMap = 0;
             }
-            if(flag_MM_loadMap == 0){
-                EZLOG(INFO)<<"Waiting for MapManager send new Map!!";
-                return ;
+            if(MappingConfig::if_LoadFromMapManager == 1 ){
+                if(flag_MM_loadMap == 0){
+                    EZLOG(INFO)<<"Waiting for MapManager send new Map!!";
+                    return ;
+                }
             }
 //            flag_need_load_localMap = 1; // need to load map
             localMap_corner->clear();
@@ -567,7 +574,7 @@ public:
             T_matrix_L_B(2,3) = 0.0;
             pcl::transformPointCloud(*localMap_surf_ds, *localMap_surf_ds, T_matrix_L_B.inverse());
             pcl::transformPointCloud(*localMap_corner_ds, *localMap_corner_ds, T_matrix_L_B.inverse());
-
+            flag_load_localMap = 1;
             flag_MM_loadMap = 0;
         }
         else //TODO else scan to scan_incremental flag_scan_mode_change == 0
@@ -1504,11 +1511,12 @@ public:
 
         }
 
+        Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
         pubsub->PublishOdometry(topic_lidar_odometry, current_lidar_pose_world);
     }
 
     void DoWork(){
-        allocateMemory();
+
         while(1){
             if(deque_cloud.size()!=0){
                 CloudFeature cur_ft;
@@ -1593,6 +1601,7 @@ public:
 */
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
+        allocateMemory();
         pubsub->addPublisher(topic_priorMap_corner, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_priorMap_surf, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_lidar_odometry, DataType::ODOMETRY, 10);

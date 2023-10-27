@@ -44,7 +44,8 @@ public:
 
     static void SaveOriginLLA(const Eigen::Vector3d gps_point){
         std::fstream originStream( MappingConfig::save_map_path +"Origin.txt", std::fstream::out);
-        originStream.precision(6);
+        EZLOG(INFO)<<"save GNSS init point!"<<std::endl;
+        originStream.precision(9);
         originStream << gps_point[0] << " " << gps_point[1] << " " << gps_point[2]
                      << std::endl;
         originStream.close();

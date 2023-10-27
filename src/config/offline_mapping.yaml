@@ -1,9 +1,9 @@
 #offline_mapping Setting
-map_in_path: "/home/today/mapin/"
-map_out_path: "/home/today/mapyang/"
+map_in_path: "/media/sy/R/dataSet/wxy/loop-test/"
+map_out_path: "/home/sy/SEU_WS/seu_lidarloc/map/"
 up2down_num: 2    #up_grid_size/down_grid_size，该数值必须为整数倍
-lidar_range: 50
-frame_sum: 184
+lidar_range: 100 #big grid, small grid = big grid / 2
+frame_sum: 1190    # frame
 up_grid_size: 120
 lasercloud_width: 14
 lasercloud_height: 8

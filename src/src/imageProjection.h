@@ -537,9 +537,24 @@ public:
 //        deque_gnssins.push_back(data);
         if(!init)
         {
-            geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
+            double x,y,z;
+            if(MappingConfig::slam_mode_switch){
+                std::ifstream downfile(MappingConfig::save_map_path+"Origin.txt");  //打开文件
+                std::string line; //字符串
+                std::getline(downfile, line);//
+                std::istringstream iss(line);
+                iss >> x >> y >> z;
+                downfile.close(); // 关闭文件
+                geoConverter.Reset(x, y, z);
+            }
+            else{
+                geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
+            }
             init = true;
-            MapSaver::SaveOriginLLA(data.lla);
+            if(MappingConfig::slam_mode_switch == 0 || MappingConfig::if_need_first_position == 1){
+                MapSaver::SaveOriginLLA(data.lla);
+            }
+
             return;
         }
 

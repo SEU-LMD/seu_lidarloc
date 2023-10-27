@@ -98,6 +98,7 @@ class MappingConfig{
         static bool use_deskew;
         // save map
         static std::string save_map_path;
+        static int if_need_first_position;
 
         //Export settings
         static bool  savePCD;
@@ -141,6 +142,7 @@ class MappingConfig{
         static std::string prior_map_surf;
         static std::string prior_map_corner;
         static int if_LoadFromMapManager;
+
 
         //Loop closure
         static bool  loopClosureEnableFlag;
@@ -262,6 +264,7 @@ int SensorConfig::lidarScanDownSample = 2;
 int MappingConfig::slam_mode_switch = 1;
 int MappingConfig::if_debug = 1;
 std::string MappingConfig::save_map_path = "";
+int MappingConfig::if_need_first_position = 1;
 
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
 bool  MappingConfig::savePCD=false;
@@ -494,6 +497,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::use_deskew=mappingconfig["use_deskew"].as<bool >();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();
+        MappingConfig::if_need_first_position = mappingconfig["if_need_first_position"].as<int>();
         // //Export settings
         MappingConfig::savePCD=mappingconfig["savePCD"].as<bool >();
         MappingConfig::savePCDDirectory=mappingconfig["savePCDDirectory"].as<std::string >();
@@ -576,6 +580,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         std::cout<<"MappingConfig::mappingSurfRadiusSize_US: "<< MappingConfig::mappingSurfRadiusSize_US<<std::endl;
         std::cout<<"MappingConfig::surroundingKeyframeDensity_US: "<< MappingConfig::surroundingKeyframeDensity_US<<std::endl;
         std::cout<<"MappingConfig::if_LoadFromMapManager: "<<MappingConfig::if_LoadFromMapManager<<std::endl;
+        std::cout<<"MappingConfig::if_need_first_position: "<<MappingConfig::if_need_first_position<<std::endl;
         std::cout<<"mapping yaml success load"<<std::endl;
 
 }//end function Load_Mapping_YAML
