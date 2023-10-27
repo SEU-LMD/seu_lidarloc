@@ -18,6 +18,9 @@
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 
+Eigen::Vector3d imu_angular_bias;
+Eigen::Vector3d imu_linear_acc_bias;
+
 class ROSPubSub:public PubSubInterface{
 public:
     ros::NodeHandle* pNH;
@@ -113,8 +116,29 @@ public:
         (this->cloud_callbacks[topic_name])(data_out);
     }
 
+    bool init_estimate_bias = false;
+    int estimate_bias_n = 500;
+
     //组合导航设备转换函数
     void convertROSGNSSINSMsgToGNSSINS(const gps_imu::ivsensorgpsConstPtr& gnss_ins_in, GNSSINSType& gnss_ins_out ){
+
+            if(!init_estimate_bias){
+
+            if(estimate_bias_n){
+                imu_angular_bias[0] += gnss_ins_in->angx;
+                imu_angular_bias[1] += gnss_ins_in->angy;
+                imu_angular_bias[2] += gnss_ins_in->yaw;
+                imu_linear_acc_bias[0] += gnss_ins_in->accx;
+                imu_linear_acc_bias[1] += gnss_ins_in->accy;
+                imu_linear_acc_bias[2] += gnss_ins_in->accz;
+                --estimate_bias_n;
+                return;
+            }
+                imu_angular_bias = imu_angular_bias / 500;
+                imu_linear_acc_bias = imu_linear_acc_bias /500;
+            init_estimate_bias = true;
+        }
+
         gnss_ins_out.lla[0] = gnss_ins_in->lat;
         gnss_ins_out.lla[1] = gnss_ins_in->lon;
         gnss_ins_out.lla[2] = gnss_ins_in->height;
@@ -123,18 +147,25 @@ public:
         gnss_ins_out.roll = gnss_ins_in->roll;
         gnss_ins_out.yaw = gnss_ins_in->heading;
 
-        gnss_ins_out.imu_angular_v[0] = gnss_ins_in->angx;
-        gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy;
-        gnss_ins_out.imu_angular_v[2] = gnss_ins_in->yaw;
+        gnss_ins_out.imu_angular_v[0] = gnss_ins_in->angx - imu_angular_bias[0];
+        gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy - imu_angular_bias[1];
+        gnss_ins_out.imu_angular_v[2] = gnss_ins_in->yaw - imu_angular_bias[2];
 
-        gnss_ins_out.imu_linear_acc[0] = gnss_ins_in->accx;
-        gnss_ins_out.imu_linear_acc[1] = gnss_ins_in->accy;
-        gnss_ins_out.imu_linear_acc[2] = gnss_ins_in->accz;
+        gnss_ins_out.imu_linear_acc[0] = gnss_ins_in->accx - imu_linear_acc_bias[0];
+        gnss_ins_out.imu_linear_acc[1] = gnss_ins_in->accy - imu_linear_acc_bias[1];
+        gnss_ins_out.imu_linear_acc[2] = gnss_ins_in->accz - imu_linear_acc_bias[2];
 
         gnss_ins_out.timestamp = gnss_ins_in->header.stamp.toSec();
         gnss_ins_out.frame = gnss_ins_in->header.frame_id;
 
         gnss_ins_out.gps_status = gnss_ins_in->status;
+        if(gnss_ins_in->status == "42" && gnss_ins_in->satenum >20 &&
+           (gnss_ins_in->lon > 117 && gnss_ins_in->lon < 118) &&
+           (gnss_ins_in->lat > 31 && gnss_ins_in->lat < 32))
+        {
+            gnss_ins_out.gps_status = true;
+        }
+
         gnss_ins_out.velocity = gnss_ins_in->velocity;
 
     }
