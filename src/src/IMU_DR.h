@@ -315,6 +315,7 @@ public:
         Odometry_imuPredict_pub.timestamp = currentTime;
         Odometry_imuPredict_pub.frame = "map";
 
+        Function_AddOdometryTypeToImageProjection(Odometry_imuPredict_pub);
         //for debug use
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";

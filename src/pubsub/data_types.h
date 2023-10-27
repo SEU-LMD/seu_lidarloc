@@ -105,6 +105,7 @@ typedef std::shared_ptr<DROdometryType> DROdometryTypePtr;
 class GNSSOdometryType:public BaseType{
 public:
     PoseT pose;
+    Eigen::Matrix<double,6,1> cov;
     DataType getType(){
         return DataType::GNSS;
     }
@@ -179,6 +180,7 @@ public:
     int frame_id;
     double timestamp;
     PoseT pose;
+
 //    std::vector<int> label;
     std::vector<int> startRingIndex;
     std::vector<int> endRingIndex;

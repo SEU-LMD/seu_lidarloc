@@ -1,5 +1,5 @@
 # 0 for opt mapping->wxy, 1 for loc mapping->sy.
-  slam_mode_switch: 1
+  slam_mode_switch: 0
 #  1 for use fuse, 0 is not use
   if_use_fuseNode: 1 
 # 1 for debug (pub to rviz),0 for not debug
@@ -8,13 +8,13 @@
 
   # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!
-#  save_map_path: "/home/wxy/seu/noros/seu_lidarloc/src/result"
-  save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/map/"
+  save_map_path: "/home/wxy/seu/fuse/seu_lidarloc/src/test/"
+#  save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/map/"
 #  save_map_path: "/home/lsy/map/"
   if_need_first_position: 0
 
   # Export settings
-  savePCD: false                              # https://github.com/TixiaoShan/LIO-SAM/issues/3
+  savePCD: true                             # https://github.com/TixiaoShan/LIO-SAM/issues/3
   savePCDDirectory: "/Downloads/LOAM/"        # actually we do not use the floder to save maps
 
   # LOAM feature threshold

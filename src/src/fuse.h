@@ -102,7 +102,7 @@ public:
     void GNSS_StatusCheck(std::deque<std::shared_ptr<BaseType>> _gnss_data_deque){
         static int cnt_test = 0;
         if(cnt_test > 100){
-            EZLOG(INFO)<<"GNSS: "<< cnt_test;
+          //  EZLOG(INFO)<<"GNSS: "<< cnt_test;
             cnt_test = 0;
         }
         cnt_test++;
