@@ -29,7 +29,7 @@ using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
 
-class IMU_DR  {
+class IMU_DR {
 public:
     PubSubInterface* pubsub;
     std::mutex odom_mutex;
@@ -168,16 +168,16 @@ public:
             state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
         }
 
-        EZLOG(INFO)<<"gyr_unbias : "<<gyr_unbias.transpose();
-        EZLOG(INFO)<<"dR :"<<dR;
-        EZLOG(INFO)<<"state Rwb_: ";
-        std::cout<<state.Rwb_<< std::endl;
-        EZLOG(INFO)<<"state p_wb_: "<<state.p_wb_.transpose();
-        EZLOG(INFO)<<"state v_wb_: "<<state.v_w_.transpose();
-        EZLOG(INFO)<<"last_state Rwb_: ";
-        std::cout<<last_state.Rwb_<< std::endl;
-        EZLOG(INFO)<<"last_state p_wb_: "<<last_state.p_wb_.transpose();
-        EZLOG(INFO)<<"last_state v_wb_: "<<last_state.v_w_.transpose();
+      //  EZLOG(INFO)<<"gyr_unbias : "<<gyr_unbias.transpose();
+      //  EZLOG(INFO)<<"dR :"<<dR;
+      //  EZLOG(INFO)<<"state Rwb_: ";
+      //  std::cout<<state.Rwb_<< std::endl;
+      //  EZLOG(INFO)<<"state p_wb_: "<<state.p_wb_.transpose();
+      //  EZLOG(INFO)<<"state v_wb_: "<<state.v_w_.transpose();
+      //  EZLOG(INFO)<<"last_state Rwb_: ";
+      //  std::cout<<last_state.Rwb_<< std::endl;
+      //  EZLOG(INFO)<<"last_state p_wb_: "<<last_state.p_wb_.transpose();
+      //  EZLOG(INFO)<<"last_state v_wb_: "<<last_state.v_w_.transpose();
         last_state = state;
 //        EZLOG(INFO) <<"Rwb_: "<<_imu_raw->imu_linear_acc.transpose()
 //                    <<" imu_raw->imu_angular_v: "<<_imu_raw->imu_angular_v.transpose()
@@ -209,13 +209,13 @@ public:
                 dt);
         lastImuT_imu = imuTime;
 
-        EZLOG(INFO)<<"firstLidarPose: "<<firstLidarPose;
+      //  EZLOG(INFO)<<"firstLidarPose: "<<firstLidarPose;
         gtsam::NavState _currentState = imuIntegratorImu_->predict(firstLidarPose, prior_imu_bias);//both are input parameters
-        EZLOG(INFO) <<" imu_raw->imu_linear_acc: "<<_imu_raw->imu_linear_acc.transpose()
-                    <<" imu_raw->imu_angular_v: "<<_imu_raw->imu_angular_v.transpose()
-                    <<" dt: "<< dt
-                    <<" prevBiasOdom: "<<prior_imu_bias;
-        EZLOG(INFO)<<" currentState: "<<_currentState;
+      //  EZLOG(INFO) <<" imu_raw->imu_linear_acc: "<<_imu_raw->imu_linear_acc.transpose()
+       //             <<" imu_raw->imu_angular_v: "<<_imu_raw->imu_angular_v.transpose()
+        //            <<" dt: "<< dt
+        //            <<" prevBiasOdom: "<<prior_imu_bias;
+      //  EZLOG(INFO)<<" currentState: "<<_currentState;
 
         return _currentState;
     }
@@ -279,6 +279,8 @@ public:
             lidar_preditct_pose_Rwb_ = DR2lidar * DR2lidar * state.Rwb_;
             lidar_preditct_pose_p_wb_ = DR2lidar * state.p_wb_; // 地面存在高程误差——外参？ 建图？
             lidar_preditct_pose_p_wb_ =  lidar_preditct_pose_p_wb_;
+           // EZLOG(INFO)<<" lidar_preditct_pose_p_wb_"<<lidar_preditct_pose_p_wb_<<endl;
+         //   EZLOG(INFO)<<"lidar_preditct_pose_Rwb_"<<lidar_preditct_pose_Rwb_<<endl;
 
             PoseT lidar_preditct_pose(lidar_preditct_pose_p_wb_,lidar_preditct_pose_Rwb_);
             Odometry_imuPredict_pub.pose = lidar_preditct_pose;
@@ -298,11 +300,12 @@ public:
         Odometry_imuPredict_pub.timestamp = currentTime;
         Odometry_imuPredict_pub.frame = "map";
 
+        Function_AddOdometryTypeToImageProjection(Odometry_imuPredict_pub);
         //for debug use
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";
 
-        Function_AddDROdometryTypeToFuse(DR_pose);
+       // Function_AddDROdometryTypeToFuse(DR_pose);
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
         EZLOG(INFO)<<" time in ms: "<<time1.toc();
 //        imu_cnt++;
@@ -397,8 +400,6 @@ public:
             lastState = gtsam::NavState(firstLidarPose_pose3,firstLidarVel);
 
         }
-
-
 
     }
 

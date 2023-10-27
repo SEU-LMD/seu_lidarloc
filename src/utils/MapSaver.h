@@ -21,7 +21,7 @@
 struct CloudInfoFt{
     pcl::PointCloud<PointType>::Ptr corner_cloud;
     pcl::PointCloud<PointType>::Ptr surf_cloud;
-    pcl::PointCloud<PointType>::Ptr raw_Cloud;
+  //  pcl::PointCloud<PointType>::Ptr raw_Cloud;
    // pcl::PointCloud<PointXYZICOLRANGE>::Ptr raw_cloud;
 //    CloudInfo raw_cloud;
     int frame_id;
@@ -51,7 +51,7 @@ public:
     }
 
     static void SavePoses(const std::vector<PoseT>& opt_poses) {
-        std::fstream stream(MappingConfig::save_map_path + "Opt_Poses.txt",std::fstream::out);
+        std::fstream stream(MappingConfig::save_map_path + "opt_poses.txt",std::fstream::out);
         stream.precision(6);
         for (int i = 0; i < opt_poses.size(); i++) {
             Eigen::Vector3d p = opt_poses[i].GetXYZ();

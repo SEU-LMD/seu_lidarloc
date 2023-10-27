@@ -298,14 +298,14 @@ public:
             }
 
             if(!isempty){
-                EZLOG(INFO)<<"featureext_DoWork  "<<std::endl;
+              //  EZLOG(INFO)<<"featureext_DoWork  "<<std::endl;
                 CloudInfo cur_cloud;
                 cloud_mutex.lock();
                 cur_cloud = deque_cloud.front();
                 deque_cloud.pop_front();
                 cloud_mutex.unlock();
 
-                EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
+              //  EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
           //      EZLOG(INFO)<<"cur_cloud.frame_id = "<<cur_cloud.frame_id<<std::endl;
 //                EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
 //                EZLOG(INFO)<<"cur_cloud.frame_id = "<<cur_cloud.frame_id<<std::endl;
@@ -333,9 +333,9 @@ public:
 //                    }
 //                }
 //                EZLOG(INFO)<<"n_cor = "<<n_cor<<std::endl;
-                EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size();
+          //      EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size();
 //                EZLOG(INFO)<<"n_sur = "<<n_sur<<std::endl;
-                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size();
+           //     EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size();
 //                int n_cor =0;
 //                int n_sur =0;
 //                for(int k_rawCloud = 0;k_rawCloud <= rawCloud->size();++k_rawCloud){
@@ -351,14 +351,14 @@ public:
 //                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<std::endl;
 
 //                ///save cloud with label
-                if(MappingConfig::slam_mode_switch == 0)
-                {
-                    CloudInfoFt raw_cloud;
-                    raw_cloud.raw_Cloud = rawCloud;
-                    raw_cloud.frame_id = ++frame_id;
-                    map_saver.AddCloudToSave(raw_cloud);
-                    EZLOG(INFO)<<"save cloud with label!"<<std::endl;
-                }
+//                if(MappingConfig::slam_mode_switch == 0)
+//                {
+//                    CloudInfoFt raw_cloud;
+//                    raw_cloud.raw_Cloud = rawCloud;
+//                    raw_cloud.frame_id = ++frame_id;
+//                    //map_saver.AddCloudToSave(raw_cloud);
+//                    EZLOG(INFO)<<"save cloud with label!"<<std::endl;
+//                }
 //                CloudInfoFt raw_cloud;
 //                raw_cloud.raw_cloud = cur_cloud.cloud_ptr;
 //                raw_cloud.frame_id = ++frame_id;
@@ -406,11 +406,8 @@ public:
         }
     }
 
-
-
-
     void AddCloudData(const CloudInfo& data){
-        EZLOG(INFO)<<"featureext_AddCloudData  "<<std::endl;
+      //  EZLOG(INFO)<<"featureext_AddCloudData  "<<std::endl;
         cloud_mutex.lock();
         deque_cloud.push_back(data);
         cloud_mutex.unlock();

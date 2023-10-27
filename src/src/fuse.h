@@ -103,7 +103,7 @@ public:
     void GNSS_StatusCheck(std::deque<std::shared_ptr<BaseType>> _gnss_data_deque){
         static int cnt_test = 0;
         if(cnt_test > 100){
-            EZLOG(INFO)<<"GNSS: "<< cnt_test;
+          //  EZLOG(INFO)<<"GNSS: "<< cnt_test;
             cnt_test = 0;
         }
         cnt_test++;
@@ -122,7 +122,7 @@ public:
                         (gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-6).finished());
 
 
-        EZLOG(INFO)<<" Fuse Init Successful!";
+      //  EZLOG(INFO)<<" Fuse Init Successful!";
     }
 
     void LIDAR_PoseRollBack(std::deque<std::shared_ptr<BaseType>> _lidar_data_deque){
@@ -137,7 +137,7 @@ public:
                                                      cur_lidar_odom->pose.GetQ().y(),
                                                      cur_lidar_odom->pose.GetQ().z()),
                              gtsam::Point3(cur_lidar_odom->pose.GetXYZ()));
-        EZLOG(INFO)<<"lidarPose: "<<lidarPose;
+       // EZLOG(INFO)<<"lidarPose: "<<lidarPose;
 
 
     }
@@ -182,7 +182,7 @@ public:
 
                             last_lidar_pose = current_lidar_pose;
                             lidar_keyFrame_cnt++;
-                            EZLOG(INFO)<<"GTSAM Optimization Init Successful!";
+                           // EZLOG(INFO)<<"GTSAM Optimization Init Successful!";
                             break;
                         }
                         else{
@@ -204,7 +204,7 @@ public:
                             firstLidarFlag = true;
                         }
 
-                        std::cout << "****************************************************" << std::endl;
+                       // std::cout << "****************************************************" << std::endl;
                         gtSAMgraph.print("Fuse GTSAM Graph:\n");
                         // update iSAM
                         isam->update(gtSAMgraph, initialEstimate);
@@ -215,7 +215,7 @@ public:
                         gtsam::Pose3 latestEstimate;
                         isamCurrentEstimate = isam->calculateEstimate();
                         latestEstimate = isamCurrentEstimate.at<gtsam::Pose3>(isamCurrentEstimate.size() - 1);
-                        std::cout << "****************************************************" << std::endl;
+                       // std::cout << "****************************************************" << std::endl;
 //                        isamCurrentEstimate.print("Fuse Current estimate: ");
 
                         PoseT current_pose(latestEstimate.translation(),latestEstimate.rotation().matrix());
