@@ -117,8 +117,8 @@ public:
     Eigen::Affine3f transPointAssociateToMap;
     Eigen::Affine3f T_wl;
 
-    Eigen::Vector3d t_w_cur;
-    Eigen::Quaterniond q_w_cur;
+    Eigen::Vector3d t_w_cur,t_w_cur_DR;
+    Eigen::Quaterniond q_w_cur,q_w_cur_DR;
     Eigen::Matrix3d q_w_cur_matrix;
     double q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
     int frame_cnt = 0;
@@ -440,6 +440,7 @@ public:
         if (Keyframe_Poses3D->points.empty()) {
             systemInitialized = false;
             if (SensorConfig::useGPS) {
+
                 ;
             } else {
                 current_T_m_l[0] = q_w_cur_roll;
@@ -458,10 +459,8 @@ public:
             EZLOG(INFO)<<"sysyem need to be initialized";
             return;
         }
-//        Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
-//                t_w_cur[0], t_w_cur[1], t_w_cur[2],q_w_cur_roll,
-//                q_w_cur_pitch , q_w_cur_yaw);
-//      世界系
+
+//        GNSS
         Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
                 t_w_cur[0], t_w_cur[1], t_w_cur[2],q_w_cur_roll,
                 q_w_cur_pitch , q_w_cur_yaw);
@@ -470,7 +469,46 @@ public:
                 pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
                 current_T_m_l[5], current_T_m_l[0],
                 current_T_m_l[1], current_T_m_l[2]);
+
+//      DR
+//        Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
+//                t_w_cur_DR[0], t_w_cur_DR[1], t_w_cur_DR[2],q_w_cur_roll,
+//                q_w_cur_pitch , q_w_cur_yaw);
+////      current_T_m_l -> 世界系
+//        pcl::getTranslationAndEulerAngles(
+//                pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
+//                current_T_m_l[5], current_T_m_l[0],
+//                current_T_m_l[1], current_T_m_l[2]);
+
         current_frame = WORLD;
+
+//        static bool lastImuPreTransAvailable = false;
+//        static Eigen::Affine3f lastImuPreTransformation;
+////        Euldar form GNSS, t from DR
+//        Eigen::Affine3f transBack = pcl::getTransformation(
+//                t_w_cur_DR[0], t_w_cur_DR[1], t_w_cur_DR[2], q_w_cur_roll, q_w_cur_pitch,
+//                q_w_cur_yaw);
+////                EZLOG(INFO)<<"transBack success"<<transBack.translation().x()<<endl;
+//        if (lastImuPreTransAvailable == false) {
+//            lastImuPreTransformation = transBack;
+//            lastImuPreTransAvailable = true;
+//        } else {
+//            Eigen::Affine3f transIncre =
+//                    lastImuPreTransformation.inverse() * transBack;
+//            Eigen::Affine3f transTobe = trans2Affine3f(current_T_m_l);
+//            Eigen::Affine3f transFinal = transTobe * transIncre;
+//            pcl::getTranslationAndEulerAngles(
+//                    transFinal, current_T_m_l[3], current_T_m_l[4],
+//                    current_T_m_l[5], current_T_m_l[0],
+//                    current_T_m_l[1], current_T_m_l[2]);
+//
+//            lastImuPreTransformation = transBack;
+//
+//              EZLOG(INFO)<<" success"<<endl;
+//
+//            return;
+//        }
+
     }
 
 /**
@@ -1535,8 +1573,15 @@ public:
                 current_corner = cur_ft.cornerCloud;
 //                current_corner = &cur_corner;
 //                current_surf = &cur_surf;
-                t_w_cur = cur_ft.pose.GetXYZ();
-                q_w_cur = cur_ft.pose.GetQ();
+
+                // use DR
+                t_w_cur_DR = cur_ft.DRPose.GetXYZ();
+                q_w_cur_DR = cur_ft.DRPose.GetR();
+                t_w_cur = t_w_cur_DR;
+                q_w_cur = q_w_cur_DR;
+//                use GNSS
+//                t_w_cur = cur_ft.pose.GetXYZ();
+//                q_w_cur = cur_ft.pose.GetQ();
                 q_w_cur.normalize();
                 q_w_cur_matrix = q_w_cur.toRotationMatrix();
                 current_frameID = cur_ft.frame_id;
@@ -1549,6 +1594,12 @@ public:
                     q_w_cur_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
                     q_w_cur_yaw = atan2(-q_w_cur_matrix(0, 1), q_w_cur_matrix(1, 1)); // 计算yaw
                 }
+
+                // get DR
+
+                EZLOG(INFO)<<"t_w_cur_DR: "<<t_w_cur_DR.transpose();
+                EZLOG(INFO)<<"q_w_cur_DR: ";
+                EZLOG(INFO)<<q_w_cur_DR;
 
 //                std::lock_guard<std::mutex> lock(mtx);
                 static double timeLastProcessing = -1;

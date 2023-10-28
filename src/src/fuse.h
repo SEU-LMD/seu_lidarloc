@@ -34,6 +34,7 @@ public:
     std::deque<std::shared_ptr<DROdometryType>> DR_data_deque;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToDR;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToMapManager;
+    std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToImageProjection;
     std::mutex mutex_data;
     std::mutex mutex_DR_data;
     std::mutex mtxGraph;
@@ -292,6 +293,10 @@ public:
 
                         // 4.iteration settings and pub the high frequency loc result
                         pubsub->PublishOdometry(topic_highHz_pose, loc_result);
+//                        Function_AddLidarOdometryTypeToMapManager(loc_result);
+                        if(MappingConfig::use_DR_or_fuse_in_loc == 0){
+                            Function_AddLidarOdometryTypeToImageProjection(loc_result);
+                        }
                         last_DR_pose = current_DR_pose;
                         EZLOG(INFO)<<"wheel pub cost in ms : "<<t1.toc();
 

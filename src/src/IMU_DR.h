@@ -34,7 +34,7 @@ public:
     std::mutex odom_mutex;
     std::mutex gnssins_mutex;
     std::mutex lidarodom_mutex;
-    std::function<void(const OdometryType&)> Function_AddOdometryTypeToImageProjection;
+    std::function<void(const OdometryType&)> Function_AddDROdometryTypeToImageProjection;
     std::function<void(const DROdometryType&)> Function_AddDROdometryTypeToFuse;
     std::ofstream outfile;
 
@@ -185,32 +185,18 @@ public:
             state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
         }
 
-        EZLOG(INFO)<<"gyr_unbias : "<<gyr_unbias.transpose();
-        EZLOG(INFO)<<"dR :"<<dR;
-        EZLOG(INFO)<<"state Rwb_: ";
-        std::cout<<state.Rwb_<< std::endl;
-        EZLOG(INFO)<<"state p_wb_: "<<state.p_wb_.transpose();
-        EZLOG(INFO)<<"state v_wb_: "<<state.v_w_.transpose();
-        EZLOG(INFO)<<"last_state Rwb_: ";
-        std::cout<<last_state.Rwb_<< std::endl;
-        EZLOG(INFO)<<"last_state p_wb_: "<<last_state.p_wb_.transpose();
-        EZLOG(INFO)<<"last_state v_wb_: "<<last_state.v_w_.transpose();
+//        EZLOG(INFO)<<"gyr_unbias : "<<gyr_unbias.transpose();
+//        EZLOG(INFO)<<"dR :"<<dR;
+//        EZLOG(INFO)<<"state Rwb_: ";
+//        std::cout<<state.Rwb_<< std::endl;
+//        EZLOG(INFO)<<"state p_wb_: "<<state.p_wb_.transpose();
+//        EZLOG(INFO)<<"state v_wb_: "<<state.v_w_.transpose();
+//        EZLOG(INFO)<<"last_state Rwb_: ";
+//        std::cout<<last_state.Rwb_<< std::endl;
+//        EZLOG(INFO)<<"last_state p_wb_: "<<last_state.p_wb_.transpose();
+//        EZLOG(INFO)<<"last_state v_wb_: "<<last_state.v_w_.transpose();
         last_state = state;
-//        EZLOG(INFO) <<"Rwb_: "<<_imu_raw->imu_linear_acc.transpose()
-//                    <<" imu_raw->imu_angular_v: "<<_imu_raw->imu_angular_v.transpose()
-//                    <<" dt: "<< dt
-//                    <<" prevBiasOdom: "<<prior_imu_bias;
-//        EZLOG(INFO)<<" currentState: "<<_currentState;
-//        double imuTime = _imuWheel_raw->timestamp;
-//        StateData last_state = state_;
-//        state_.timestamp = curr_imu->timestamp;
-//        const double dt = curr_imu->timestamp - last_imu->timestamp;
-//
-//        const Eigen::Vector3d gyr_unbias =  0.5*(last_imu->imu_angular_v + curr_imu->imu_angular_v);  // gyro not unbias for now
-//        const auto &dR = deltaRotMat(gyr_unbias * dt);
-//        state_.Rwi_ = rotationUpdate(last_state.Rwi_ , dR);
-//        state_.v_wi_ = (0, curr_imu->velocity,0);
-//        state_.p_wi_ = last_state->p_wi_ + (last_state->v_wi_ + state_->v_wi_)/2 *dt;//position
+
 
     }
     gtsam::NavState IMU_predict(IMURawDataPtr _imu_raw){
@@ -311,11 +297,12 @@ public:
             DR_pose.pose = lidar_preditct_pose;
         }
 
-        //          for debug
         Odometry_imuPredict_pub.timestamp = currentTime;
         Odometry_imuPredict_pub.frame = "map";
+        if(MappingConfig::use_DR_or_fuse_in_loc == 1){
+            Function_AddDROdometryTypeToImageProjection(Odometry_imuPredict_pub);
+        }
 
-        Function_AddOdometryTypeToImageProjection(Odometry_imuPredict_pub);
         //for debug use
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";

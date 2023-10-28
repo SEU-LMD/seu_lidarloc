@@ -368,6 +368,7 @@ public:
                 CloudFeature cloud_feature;
                 cloud_feature.timestamp = cur_cloud.timestamp;
                 cloud_feature.pose = cur_cloud.pose;
+                cloud_feature.DRPose = cur_cloud.DRPose;
                 cloud_feature.frame_id = cur_cloud.frame_id;
                 cloud_feature.cornerCloud = cornerCloud;
                 cloud_feature.surfaceCloud = surfaceCloud;

@@ -142,6 +142,7 @@ class MappingConfig{
         static std::string prior_map_surf;
         static std::string prior_map_corner;
         static int if_LoadFromMapManager;
+        static int use_DR_or_fuse_in_loc;
 
 
         //Loop closure
@@ -328,6 +329,7 @@ float MappingConfig::globalMapVisualizationLeafSize=-1;
 float MappingConfig::globalMapLeafSize=-1;
 int  MappingConfig::scan_2_scan_num_surf = 1;
 int  MappingConfig::scan_2_scan_num_corner = 1;
+int MappingConfig::use_DR_or_fuse_in_loc = 1;
 
 // offline mapping
 std::string SerializeConfig::map_in_path = "";
@@ -554,6 +556,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::prior_map_corner = mappingconfig["prior_corner_map_path"].as<std::string>();
         MappingConfig::prior_map_surf = mappingconfig["prior_surf_map_path"].as<std::string>();
         MappingConfig::if_LoadFromMapManager = mappingconfig["if_LoadFromMapManager"].as<int>();
+        MappingConfig::use_DR_or_fuse_in_loc = mappingconfig["use_DR_or_fuse_in_loc"].as<int>();
 
         // Visualization
         MappingConfig::globalMapVisualizationSearchRadius=mappingconfig["globalMapVisualizationSearchRadius"].as<float >();
@@ -581,6 +584,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         std::cout<<"MappingConfig::surroundingKeyframeDensity_US: "<< MappingConfig::surroundingKeyframeDensity_US<<std::endl;
         std::cout<<"MappingConfig::if_LoadFromMapManager: "<<MappingConfig::if_LoadFromMapManager<<std::endl;
         std::cout<<"MappingConfig::if_need_first_position: "<<MappingConfig::if_need_first_position<<std::endl;
+        std::cout<<"MappingConfig::use_DR_or_fuse_in_loc: "<<MappingConfig::use_DR_or_fuse_in_loc<<std::endl;
         std::cout<<"mapping yaml success load"<<std::endl;
 
 }//end function Load_Mapping_YAML
