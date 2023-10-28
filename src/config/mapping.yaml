@@ -59,7 +59,7 @@
   localMap_searchRadius_corner: 50.0
   LocalMap_updata_perframe: 20
 
-  if_LoadFromMapManager: 0  # 0 for load PriorMap from local, 1 for load from MapManager
+  if_LoadFromMapManager: 1  # 0 for load PriorMap from local, 1 for load from MapManager
   scan_2_prior_map: 1     # 0 for scan 2 localmap, 1 for scan 2 priormap, 2 for scan 2 scan
   prior_corner_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/yuanqu/global_corner.pcd"
   prior_surf_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/yuanqu/global_surf.pcd"

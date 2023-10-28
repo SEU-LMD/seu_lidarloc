@@ -76,8 +76,8 @@ public:
             imu_pre.Function_AddDROdometryTypeToImageProjection = add_OdometryType_from_DR_to_imageProj;
         }
 
-//        auto add_OdometryType_from_fuse_to_mapManager =
-//                std::bind(&MapManager::AddLoctoMapManager, &mapManager,std::placeholders::_1);
+        auto add_OdometryType_from_fuse_to_mapManager =
+                std::bind(&MapManager::AddLoctoMapManager, &mapManager,std::placeholders::_1);
 
 //       to fuse
         auto add_GNSSOdometryType_from_imgproj_to_fuse =
@@ -87,8 +87,8 @@ public:
         auto add_DROdometryType_from_DR_to_fuse =
                 std::bind(&Fuse::AddIMUToFuse, &fuse,std::placeholders::_1);
 
-//        auto add_PriorMap_from_mapManager_to_Loc =
-//                std::bind(&LOCMapping::AddPriorMap, &loc_mapping,std::placeholders::_1);
+        auto add_PriorMap_from_mapManager_to_Loc =
+                std::bind(&LOCMapping::AddPriorMap, &loc_mapping,std::placeholders::_1);
 
 //        img_proj 2 ft_extr
         img_proj.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_imgproj_to_ftextr;
@@ -97,7 +97,7 @@ public:
         //Loc 2 DR
         loc_mapping.Function_AddOdometryTypeToIMUPreintegration = add_OdometryType_from_locmapping_to_imupre;
         // mapManager 2 Loc
-//        mapManager.Function_AddPriorMapToLoc = add_PriorMap_from_mapManager_to_Loc;
+        mapManager.Function_AddPriorMapToLoc = add_PriorMap_from_mapManager_to_Loc;
 
 //        img_proj 2 fuse
         img_proj.Function_AddGNSSOdometryTypeToFuse = add_GNSSOdometryType_from_imgproj_to_fuse;
@@ -106,7 +106,7 @@ public:
 //        DR 2 fuse
         imu_pre.Function_AddDROdometryTypeToFuse = add_DROdometryType_from_DR_to_fuse;
 //        fuse 2 mapManager
-//        fuse.Function_AddLidarOdometryTypeToMapManager = add_OdometryType_from_fuse_to_mapManager;
+        fuse.Function_AddLidarOdometryTypeToMapManager = add_OdometryType_from_fuse_to_mapManager;
 
 
     }

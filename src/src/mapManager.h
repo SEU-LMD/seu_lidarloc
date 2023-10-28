@@ -25,6 +25,9 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (MyPointType,
 typedef pcl::PointXYZI PointType;
 
 class MapManager{
+//private:
+//    std::mutex mutex_priorMap;
+//    friend class LOCMapping;
 public:
     typedef struct{
         std::string down_grid_index;
@@ -44,6 +47,7 @@ public:
     std::mutex mutex_data;
     std::mutex mutex_DR_data;
     std::mutex mtxGraph;
+    std::mutex mutex_priorMap;
 
     std::string topic_priorMap_corner_mapManger = "/Prior_map_corner_MM";
     std::string topic_priorMap_surf_mapManger = "/Prior_map_surf_MM";
@@ -65,6 +69,7 @@ public:
 //建立的地图数据种类
     std::vector<std::string>   pcd_feature;
 //有多少个小grid就有多少个指针
+// TODO 为何？112？
     pcl::PointCloud<PointType>::Ptr laser_cloud_corner_array[112];
     pcl::PointCloud<PointType>::Ptr laser_cloud_surf_array[112];
 //需要建图的索引 3*3  jianshu
@@ -312,6 +317,7 @@ public:
 
         EZLOG(INFO)<<laser_cloud_corner_from_map->size()<<std::endl;
 
+        SafeLockCloud();
         kdtree_corner_from_map->setInputCloud(laser_cloud_corner_from_map);
         kdtree_surf_from_map->setInputCloud(laser_cloud_surf_from_map);
         { // for debug
@@ -337,6 +343,7 @@ public:
         priormap.PriorCornerMap = laser_cloud_corner_from_map;
         priormap.timestamp = cur_time;
         Function_AddPriorMapToLoc(priormap);
+        SafeUnlockCloud();
 
     }
 
@@ -436,6 +443,12 @@ public:
         EZLOG(INFO)<<" MapManager Init Successful!";
     }
 
+    void SafeLockCloud(){
+        mutex_priorMap.lock();
+    }
+    void SafeUnlockCloud(){
+        mutex_priorMap.unlock();
+    }
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
         MapManagerInitialized();
@@ -467,7 +480,7 @@ public:
 
             }
             else{
-                sleep(0.1);
+                sleep(0.01);
             }
         }
     }//end fucntion do work

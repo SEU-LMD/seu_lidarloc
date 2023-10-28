@@ -36,6 +36,7 @@ int main(int argc, char **argv) {
     //3.初始化配置参数
     Load_Sensor_YAML("./config/sensor.yaml");
     Load_Mapping_YAML("./config/mapping.yaml");
+    Load_offline_YAML("./config/offline_mapping.yaml");
 
     //4.启动多个线程
     LocManager loc_manager;

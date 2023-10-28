@@ -47,7 +47,9 @@
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "GeoGraphicLibInclude/Geoid.hpp"
 
+
 class LOCMapping{
+
 public:
     enum FRAME {
         LIDAR,    // 0
@@ -61,6 +63,7 @@ public:
     std::thread* do_work_thread;
     std::mutex cloud_mutex;
     std::mutex gnss_ins_mutex;
+
 
     std::deque<CloudFeature> deque_cloud;
     std::deque<GNSSINSType> deque_gnssins;
@@ -460,7 +463,6 @@ public:
             return;
         }
 
-//        GNSS
         Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
                 t_w_cur[0], t_w_cur[1], t_w_cur[2],q_w_cur_roll,
                 q_w_cur_pitch , q_w_cur_yaw);
@@ -551,12 +553,14 @@ public:
                 }
             }
 //            flag_need_load_localMap = 1; // need to load map
+            mtxPriorMap.lock();
             localMap_corner->clear();
             localMap_surf->clear();
             std::vector<int> pointSearchInd;
             std::vector<float> pointSearchSqDis;
 //            world frame
 //            EZLOG(INFO)<<"init_point is: " << init_point; // be aware of init_point's frame
+
             if(MappingConfig::if_LoadFromMapManager == 0){
                 kdtree_priorMap_surf->setInputCloud(priorMap_surf);
 
@@ -584,6 +588,7 @@ public:
                 int id = pointSearchInd[i];
                 localMap_corner->push_back(priorMap_corner->points[id]);
             }
+            mtxPriorMap.unlock();
 //            pub local map
 
 //            kdtree_localMap_corner->setInputCloud(localMap_corner);

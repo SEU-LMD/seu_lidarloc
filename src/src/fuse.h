@@ -293,7 +293,7 @@ public:
 
                         // 4.iteration settings and pub the high frequency loc result
                         pubsub->PublishOdometry(topic_highHz_pose, loc_result);
-//                        Function_AddLidarOdometryTypeToMapManager(loc_result);
+                        Function_AddLidarOdometryTypeToMapManager(loc_result);
                         if(MappingConfig::use_DR_or_fuse_in_loc == 0){
                             Function_AddLidarOdometryTypeToImageProjection(loc_result);
                         }
