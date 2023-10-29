@@ -89,7 +89,7 @@ public:
         client_addr.sin_family = AF_INET;  //使用IPv4地址 (地址族，IPv4 or IPv6：AF_INET6)
         client_addr.sin_addr.s_addr = inet_addr(client_ip);  //具体的32位IP地址，inet_addr将一个IP字符串转化为一个网络字节序的整数值,反向操作inet_ntoa()
         client_addr.sin_port = htons(client_port);  //端口号
-        //udp_thread = std::thread(&UDP_THREAD::DoWork,this);
+        udp_thread = std::thread(&UDP_THREAD::DoWork,this);
 
     }
 
