@@ -37,6 +37,7 @@ int main(int argc, char **argv) {
     Load_Sensor_YAML("./config/sensor.yaml");
     Load_Mapping_YAML("./config/mapping.yaml");
     Load_offline_YAML("./config/offline_mapping.yaml");
+    CONFIG::slam_mode_switch = 0;//TODO 1029
 
     //4.启动多个线程
     LocManager loc_manager;

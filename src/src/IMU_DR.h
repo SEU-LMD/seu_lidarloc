@@ -116,12 +116,14 @@ public:
         return updatedR;
     }
 
+    //TODO delete
     Eigen::Matrix3d skewMatrix(const Eigen::Vector3d &v){
         Eigen::Matrix3d w;
         w << 0. ,-v(2), v(1), v(2) , 0. , -v(1) , v(0), 0.;
         return w;
     }
 
+    //receive lidar loc res from loc node, not used any more
     void AddOdomData(const OdometryType &data){
 
 //      not use lidar
@@ -142,6 +144,8 @@ public:
         lidarodom_mutex.unlock();
     }
 
+
+    //
     void IMUWheel_predict(IMURawWheelDataPtr curr_imu, const Eigen::Matrix3d &_R_w_b){
         double imuTime = curr_imu->timestamp;
         double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
@@ -222,6 +226,7 @@ public:
 
         return _currentState;
     }
+
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
 
         TicToc time1;
@@ -259,7 +264,7 @@ public:
             imuWheel_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
             imuWheel_raw->timestamp = gnss_ins_data.timestamp;
             imuWheel_raw->velocity = gnss_ins_data.velocity;
-            IMUWheel_predict(imuWheel_raw,R_w_b);
+            IMUWheel_predict(imuWheel_raw,R_w_b);//very important function!!!!!
         }
         else{
             IMURawDataPtr imu_raw (new IMURawData);
@@ -269,7 +274,7 @@ public:
             gnssins_mutex.lock();
             imuQueImu.push_back(imu_raw);
             gnssins_mutex.unlock();
-            currentState = IMU_predict(imu_raw);
+            currentState = IMU_predict(imu_raw);//very important function!!!!!
         }
 
         OdometryType Odometry_imuPredict_pub;
@@ -278,8 +283,8 @@ public:
             Eigen::Matrix3d DR2lidar;
             Eigen::Vector3d lidar_preditct_pose_p_wb_;
             Eigen::Matrix3d lidar_preditct_pose_Rwb_;
-            DR2lidar = SensorConfig::T_L_DR.block<3,3>(0,0);
-            lidar_preditct_pose_Rwb_ = DR2lidar * DR2lidar * state.Rwb_;
+            DR2lidar = SensorConfig::T_L_DR.block<3,3>(0,0);//
+            lidar_preditct_pose_Rwb_ = DR2lidar.inverse() *  state.Rwb_ * DR2lidar;//TODO 1029 ??????? no reason
             lidar_preditct_pose_p_wb_ = DR2lidar * state.p_wb_; // 地面存在高程误差——外参？ 建图？
             lidar_preditct_pose_p_wb_ =  lidar_preditct_pose_p_wb_;
            // EZLOG(INFO)<<" lidar_preditct_pose_p_wb_"<<lidar_preditct_pose_p_wb_<<endl;
@@ -301,14 +306,17 @@ public:
 
         Odometry_imuPredict_pub.timestamp = currentTime;
         Odometry_imuPredict_pub.frame = "map";
-        if(MappingConfig::use_DR_or_fuse_in_loc == 1){
-            Function_AddDROdometryTypeToImageProjection(Odometry_imuPredict_pub);
-        }
+        
+        //TODO 1029
+        // if(MappingConfig::use_DR_or_fuse_in_loc == 1){
+        //     Function_AddDROdometryTypeToImageProjection(Odometry_imuPredict_pub);
+        // }
 
         Function_AddDROdometryTypeToImageProjection(Odometry_imuPredict_pub);
         //for debug use
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";
+        //just for map and loc node requirements
         if(MappingConfig::slam_mode_switch == 1){
             Function_AddDROdometryTypeToFuse(DR_pose);
         }
@@ -408,7 +416,9 @@ public:
         }
 
     }
+    
 
+    //TODO delete
     void ClearFactorGraph() {
         gtsam::ISAM2Params optParameters;
         optParameters.relinearizeThreshold = 0.1;
@@ -422,6 +432,8 @@ public:
         gtsam::Values NewGraphValues;
         graphValues = NewGraphValues;
     }
+
+    //TODO delete
     void DoPredict(){
         while(1){
             if(SensorConfig::if_use_Wheel_DR == 1){ // IMU+Wheel just don't do anything
@@ -465,7 +477,7 @@ public:
 
         pubsub = pubsub_;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
-        do_lidar_thread = new std::thread(&IMU_DR::DoPredict, this);
+        do_lidar_thread = new std::thread(&IMU_DR::DoPredict, this);//TODO delete
     }
 };
 

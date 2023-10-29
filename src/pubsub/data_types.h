@@ -196,8 +196,8 @@ class CloudFeature{
 public:
     int frame_id;
     double timestamp;
-    PoseT pose;
-    PoseT DRPose;
+    PoseT pose;//
+    PoseT DRPose;//
     pcl::PointCloud<PointType>::Ptr cornerCloud;
     pcl::PointCloud<PointType>::Ptr surfaceCloud;
 };

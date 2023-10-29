@@ -1,4 +1,5 @@
 # 0 for opt mapping->wxy, 1 for loc mapping->sy.
+#TODO
   slam_mode_switch: 1
 #  1 for use fuse, 0 is not use
   if_use_fuseNode: 0
