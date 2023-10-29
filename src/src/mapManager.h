@@ -108,6 +108,11 @@ public:
 //获得初始变量，对标志位赋值
     Gnsspostion now_position;
 
+    void GetCurMapCloud(pcl::PointCloud<PointType>::Ptr &corner_map,
+                       pcl::PointCloud<PointType>::Ptr &surf_map){
+        kdtree_surf_from_map = surf_map;
+        kdtree_corner_from_map = corner_map;
+    }
 
     void MapmanagerInitialized(const std::string& map_read_path){
         std::ifstream file(map_read_path+"index.txt",std::ios_base::in);
@@ -217,6 +222,8 @@ public:
         }
         EZLOG(INFO)<<"end_loop"<<std::endl;
     }
+
+
     void LoadMap(const int& center_cubeI,const int& center_cubeJ){
 
         int begin_load_cubeI;
@@ -307,6 +314,9 @@ public:
             }
         }
 
+        SafeLockCloud();
+        //TODO 1029
+
         for(int i=0; i<9; ++i){
             if(laser_cloud_corner_array[laser_cloud_valid_ind[i]]!= nullptr)
                 *laser_cloud_corner_from_map+=*laser_cloud_corner_array[laser_cloud_valid_ind[i]];
@@ -314,10 +324,8 @@ public:
                 *laser_cloud_surf_from_map+=*laser_cloud_surf_array[laser_cloud_valid_ind[i]];
         }
 
-
         EZLOG(INFO)<<laser_cloud_corner_from_map->size()<<std::endl;
 
-        SafeLockCloud();
         kdtree_corner_from_map->setInputCloud(laser_cloud_corner_from_map);
         kdtree_surf_from_map->setInputCloud(laser_cloud_surf_from_map);
         { // for debug
@@ -342,9 +350,9 @@ public:
         priormap.PriorSurfMap = laser_cloud_surf_from_map;
         priormap.PriorCornerMap = laser_cloud_corner_from_map;
         priormap.timestamp = cur_time;
-        Function_AddPriorMapToLoc(priormap);
-        SafeUnlockCloud();
+        //Function_AddPriorMapToLoc(priormap);
 
+        SafeUnlockCloud();
     }
 
     void ErasElement(){
@@ -387,8 +395,11 @@ public:
             for(int i=0;i<25;i++){
                 last_laser_cloud_load_ind[i]=laser_cloud_load_ind[i];
             }
+
+            //TODO 1029 
             laser_cloud_corner_from_map->clear();
             laser_cloud_surf_from_map->clear();
+
             is_initailed= true;
             return;
         }
@@ -405,12 +416,16 @@ public:
             top_cache_update = false;
             return;
         }
+
+
         //需要加载就加载
         if(top_cache_update) {
             LoadMap(center_cubeI, center_cubeJ);
         }
+        
         //建树
         BuildTree(center_cubeI,center_cubeJ);
+
         //清除多于的部分
         ErasElement();
 
@@ -420,8 +435,10 @@ public:
         for(int i=0;i<25;i++){
             last_laser_cloud_load_ind[i]=laser_cloud_load_ind[i];
         }
-        laser_cloud_corner_from_map->clear();
-        laser_cloud_surf_from_map->clear();
+
+        //TODO 1029
+        // laser_cloud_corner_from_map->clear();
+        // laser_cloud_surf_from_map->clear();
     }
 
     //this fucntion needs to be binded by lidar loc node
@@ -449,6 +466,7 @@ public:
     void SafeUnlockCloud(){
         mutex_priorMap.unlock();
     }
+
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
         MapManagerInitialized();

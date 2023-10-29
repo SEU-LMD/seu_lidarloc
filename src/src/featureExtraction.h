@@ -27,7 +27,7 @@ class FeatureExtraction  {
 public:
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
-    std::mutex work_mutex;
+    // std::mutex work_mutex;//TODO 1029 delete this mutex 
     std::deque<CloudInfo> deque_cloud;
     std::thread* do_work_thread;
     std::thread* save_Map_thread;
@@ -291,19 +291,28 @@ public:
     void DoWork(){
         while(1){
            // EZLOG(INFO)<<"featureext_DoWork while "<<std::endl;
-            bool isempty = false;
-            {
-                std::lock_guard<std::mutex> lock(work_mutex);
-                isempty = deque_cloud.empty();
+            int isempty = false;
+             
+            CloudInfo cur_cloud;
+            cloud_mutex.lock();
+            if(deque_cloud.size()==0){
+                isempty = true;
             }
-
-            if(!isempty){
-              //  EZLOG(INFO)<<"featureext_DoWork  "<<std::endl;
-                CloudInfo cur_cloud;
-                cloud_mutex.lock();
+            else{
+                isempty = false;
                 cur_cloud = deque_cloud.front();
                 deque_cloud.pop_front();
-                cloud_mutex.unlock();
+            }
+            cloud_mutex.unlock();
+
+        
+            if(!isempty){
+              //  EZLOG(INFO)<<"featureext_DoWork  "<<std::endl;
+                // CloudInfo cur_cloud;
+                // cloud_mutex.lock();
+                // cur_cloud = deque_cloud.front();
+                // deque_cloud.pop_front();
+                // cloud_mutex.unlock();
 
               //  EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
           //      EZLOG(INFO)<<"cur_cloud.frame_id = "<<cur_cloud.frame_id<<std::endl;

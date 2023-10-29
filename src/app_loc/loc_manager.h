@@ -45,14 +45,16 @@ public:
         pubsub = pubsub_;
 
         //然后开启各个线程
-        img_proj.Init(pubsub);
-        ft_extr.Init(pubsub);
-        loc_mapping.Init(pubsub);
-        imu_pre.Init(pubsub);
-        fuse.Init(pubsub);
         if(MappingConfig::if_LoadFromMapManager == 1){
             mapManager.Init(pubsub);
         }
+
+        img_proj.Init(pubsub);
+        ft_extr.Init(pubsub);
+        loc_mapping.Init(pubsub, &mapManager);
+        imu_pre.Init(pubsub);
+        fuse.Init(pubsub);
+        
 
         //构建数据流关系
 //        auto add_imuodo_to_imgproj = std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);

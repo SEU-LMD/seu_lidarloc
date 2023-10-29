@@ -23,10 +23,12 @@ public:
     PubSubInterface* pubsub;
     std::mutex gnss_mutex;
     std::mutex dr_mutex;
-    std::mutex work_mutex;
+    // std::mutex work_mutex;//TODO 1029 delete this mutex
     std::deque<OdometryType> gnssQueue;
     std::deque<WheelType> drQueue;
     std::thread* do_work_thread;
+
+    TicToc timer_dr;
 
     bool init = false;
     GeographicLib::LocalCartesian geoConverter;
@@ -47,6 +49,7 @@ public:
         }
         return distances;
     }
+
     std::deque<datapoint> extractDataInRange(const std::deque<datapoint>& inputQueue, double startTime, double endTime){  //该函数提取指定时间段的队列
         std::deque<datapoint> extractData;
         int n= inputQueue.size();
@@ -62,14 +65,13 @@ public:
 
     void DoWork(){
         while(1){
-           // EZLOG(INFO)<<"featureext_DoWork while "<<std::endl;
-            bool isempty = false;
-            {
-                std::lock_guard<std::mutex> lock(work_mutex);
-//                isempty = deque_cloud.empty();
-            }
 
-            if(!isempty){
+
+            if(timer_dr.toc()>5000){
+                
+                dr_mutex.lock();//hack operation just for use
+                gnss_mutex.lock();
+                
                 std::vector<double> distances;
 
                 std::vector<double> canbusdistances;
@@ -83,14 +85,12 @@ public:
                 std::deque<datapoint> shortcanbusData;
                 std::deque<datapoint> shortgnssData;
 
-                int m = drQueue.size();
-                for(int i=0;i<m;i++){
+                for(int i=0;i<drQueue.size();i++){
                     canbusData[i].timestamp=drQueue[i].timestamp;
                     canbusData[i].velocity=(drQueue[i].ESCWhlFLSpd+drQueue[i].ESCWhlFRSpd+drQueue[i].ESCWhlRLSpd+drQueue[i].ESCWhlRRSpd)/4;
                 }
 
-                int n = gnssQueue.size();
-                for(int i=0;i<n;i++){
+                for(int i=0;i<gnssQueue.size();i++){
                     gnssData[i].timestamp=gnssQueue[i].timestamp;
                     gnssData[i].gnssx=gnssQueue[i].pose.GetXYZ().x();
                     gnssData[i].gnssy=gnssQueue[i].pose.GetXYZ().y();
@@ -118,15 +118,22 @@ public:
                 for(int i=1;i<pieces;i++){
                     temData=extractDataInRange(gnssData,shortcanbusData[i-1].timestamp,shortcanbusData[i].timestamp);
                     distances[0]=0;
-                    for(int j=1;j<temData.size();i++){
+                    for(int j=1;j<temData.size();i++){//?????TODO???
+                        //TODO 1029
+                        // Eigen::Vector3d pre();
+                        // Eigen::Vector3 cur();
+                        // double dist =  (cur-pre).norm();
+                        // sum + = dist;
                         distances[j]=sqrt((temData[j].gnssx-temData[j-1].gnssx)*(temData[j].gnssx-temData[j-1].gnssx)+(temData[j].gnssy-temData[j-1].gnssy)*(temData[j].gnssy-temData[j-1].gnssy));
                         sum=sum+distances[j];
                     }
                     gnssdistances[i]=sum;  //得到gnss的距离
                     sum=0;
-                    std::deque<datapoint>().swap(temData);
+                    std::deque<datapoint>().swap(temData);//TODO delete!!!
                 }
 
+                //TODO 1029 not neccessary to use eigen to calc k and bias
+                //just use distance to calc k directly.
                 double k,bias;
                 Eigen::MatrixXd A(pieces,2);
                 Eigen::VectorXd b(pieces);
@@ -139,14 +146,15 @@ public:
                 Eigen::VectorXd x = A.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
 
                 EZLOG(INFO)<<"k:"<<x(0,0);
-                EZLOG(INFO)<<"bias:"<<x(1,0);
-            }
+                EZLOG(INFO)<<"bias:"<<x(1,0);//TODO 1029 erase bias
 
+                exit(-1);//add by fyy
+            }
             else{
                 sleep(0.01);
             }
-        }
-    }
+        }//end fucntion while(1)
+    }//end fucntion do work
 
 
 
@@ -154,6 +162,7 @@ public:
         EZLOG(INFO)<<"featureext_AddCloudData  "<<std::endl;
         dr_mutex.lock();
         drQueue.push_back(data);
+        timer_dr.tic();
         dr_mutex.unlock();
     }
 
@@ -216,7 +225,7 @@ public:
         T_w_l_to_mapopt.lla[1] = T_w_l.GetXYZ()[1];
         T_w_l_to_mapopt.lla[2] = T_w_l.GetXYZ()[2];
 //        opt_mapping_ptr->AddGNSSINSData(T_w_l_to_mapopt);
-
+       
         gnss_mutex.lock();
         gnssQueue.push_back(T_w_l_pub);
         gnss_mutex.unlock();
@@ -238,8 +247,6 @@ public:
         if(MappingConfig::slam_mode_switch == 0){
             //save_Map_thread = new std::thread(&MapSaver::do_work, &(FeatureExtraction::map_saver));
         }
-
-
     }
 
 };
