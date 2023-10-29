@@ -72,7 +72,7 @@ public:
 
         ft_extr.Function_AddCloudFeatureToOPTMapping = add_CloudFeature_from_ftextr_to_optmapping;
         img_proj.Function_AddGNSSOdometryTypeToOPTMapping = add_GNSSOdometryType_from_imgproj_to_optmapping;
-        imu_pre.Function_AddOdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
+        imu_pre.Function_AddDROdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
         EZLOG(INFO) << "Init finish!!! " << std::endl;
     }
 };

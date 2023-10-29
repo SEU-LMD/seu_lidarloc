@@ -305,7 +305,7 @@ public:
             Function_AddDROdometryTypeToImageProjection(Odometry_imuPredict_pub);
         }
 
-        Function_AddOdometryTypeToImageProjection(Odometry_imuPredict_pub);
+        Function_AddDROdometryTypeToImageProjection(Odometry_imuPredict_pub);
         //for debug use
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";
