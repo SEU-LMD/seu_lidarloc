@@ -94,6 +94,7 @@ class MappingConfig{
     public:
         static int slam_mode_switch;
         static int if_debug;
+        static int if_use_fuseNode;
         static Eigen::Vector3d origin_gnss;
         static bool use_deskew;
         // save map
@@ -240,8 +241,8 @@ double SensorConfig::imuConstBias_gyro=-1;
 int  SensorConfig::imuHZ = -1;
 int SensorConfig::imuGTSAMReset = 25;
 int SensorConfig::imu_angular_v_gain = 10;
-int SensorConfig::if_use_Wheel_DR = 0;
-int SensorConfig::if_DR_use_Euler = 0;
+int SensorConfig::if_use_Wheel_DR = -1;
+int SensorConfig::if_DR_use_Euler = -1;
 
 
 int SensorConfig::imu_type=-1;
@@ -259,7 +260,8 @@ bool SensorConfig::use_gnss_deskew=false;
 int SensorConfig::lidarScanDownSample = 2;
 
 int MappingConfig::slam_mode_switch = 1;
-int MappingConfig::if_debug = 1;
+int MappingConfig::if_debug = -1;
+int MappingConfig::if_use_fuseNode =-1;
 std::string MappingConfig::save_map_path = "";
 
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
@@ -401,14 +403,14 @@ void Load_Sensor_YAML(std::string sensorpath)
 
 
     //IMU Settings
-    SensorConfig:: imuAccNoise=sensorconfig["imuAccNoise"].as<double >();
-    SensorConfig:: imuGyrNoise=sensorconfig["imuGyrNoise"].as<double >();
-    SensorConfig::  imuAccBiasN=sensorconfig["imuAccBiasN"].as<double >();
-    SensorConfig::  imuGyrBiasN=sensorconfig["imuGyrBiasN"].as<double >();
-    SensorConfig::  imuGravity=sensorconfig["imuGravity"].as<double >();
-    SensorConfig::  imuRPYWeight=sensorconfig["imuRPYWeight"].as<double >();
-    SensorConfig::imuHZ = sensorconfig["imuHZ"].as<int >();
-    SensorConfig::use_gnss_deskew=sensorconfig["use_gnss_deskew"].as<bool >();
+    SensorConfig:: imuAccNoise=sensorconfig["imuAccNoise"].as<double>();
+    SensorConfig:: imuGyrNoise=sensorconfig["imuGyrNoise"].as<double>();
+    SensorConfig::  imuAccBiasN=sensorconfig["imuAccBiasN"].as<double>();
+    SensorConfig::  imuGyrBiasN=sensorconfig["imuGyrBiasN"].as<double>();
+    SensorConfig::  imuGravity=sensorconfig["imuGravity"].as<double>();
+    SensorConfig::  imuRPYWeight=sensorconfig["imuRPYWeight"].as<double>();
+    SensorConfig::imuHZ = sensorconfig["imuHZ"].as<int>();
+    SensorConfig::use_gnss_deskew=sensorconfig["use_gnss_deskew"].as<bool>();
     SensorConfig::imuGTSAMReset=sensorconfig["imuGTSAMReset"].as<int>();
     SensorConfig::imuConstBias_acc=sensorconfig["imuConstBias_acc"].as<double>();
     SensorConfig::imuConstBias_gyro=sensorconfig["imuConstBias_gyro"].as<double>();
@@ -489,6 +491,7 @@ void Load_Mapping_YAML(std::string mappingpath)
 
         MappingConfig::slam_mode_switch = mappingconfig["slam_mode_switch"].as<int>();
         MappingConfig::if_debug = mappingconfig["if_debug"].as<int>();
+        MappingConfig::if_use_fuseNode = mappingconfig["if_use_fuseNode"].as<int>();
         MappingConfig::use_deskew=mappingconfig["use_deskew"].as<bool >();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();
