@@ -122,22 +122,22 @@ public:
     //组合导航设备转换函数
     void convertROSGNSSINSMsgToGNSSINS(const gps_imu::ivsensorgpsConstPtr& gnss_ins_in, GNSSINSType& gnss_ins_out ){
 
-            if(!init_estimate_bias){
-
-            if(estimate_bias_n){
-                imu_angular_bias[0] += gnss_ins_in->angx;
-                imu_angular_bias[1] += gnss_ins_in->angy;
-                imu_angular_bias[2] += gnss_ins_in->yaw;
-                imu_linear_acc_bias[0] += gnss_ins_in->accx;
-                imu_linear_acc_bias[1] += gnss_ins_in->accy;
-                imu_linear_acc_bias[2] += gnss_ins_in->accz;
-                --estimate_bias_n;
-                return;
-            }
-                imu_angular_bias = imu_angular_bias / 500;
-                imu_linear_acc_bias = imu_linear_acc_bias /500;
-            init_estimate_bias = true;
-        }
+//            if(!init_estimate_bias){
+//
+//            if(estimate_bias_n){
+//                imu_angular_bias[0] += gnss_ins_in->angx;
+//                imu_angular_bias[1] += gnss_ins_in->angy;
+//                imu_angular_bias[2] += gnss_ins_in->yaw;
+//                imu_linear_acc_bias[0] += gnss_ins_in->accx;
+//                imu_linear_acc_bias[1] += gnss_ins_in->accy;
+//                imu_linear_acc_bias[2] += gnss_ins_in->accz;
+//                --estimate_bias_n;
+//                return;
+//            }
+//                imu_angular_bias = imu_angular_bias / 500;
+//                imu_linear_acc_bias = imu_linear_acc_bias /500;
+//            init_estimate_bias = true;
+//        }
 
         gnss_ins_out.lla[0] = gnss_ins_in->lat;
         gnss_ins_out.lla[1] = gnss_ins_in->lon;
@@ -147,13 +147,21 @@ public:
         gnss_ins_out.roll = gnss_ins_in->roll;
         gnss_ins_out.yaw = gnss_ins_in->heading;
 
-        gnss_ins_out.imu_angular_v[0] = gnss_ins_in->angx - imu_angular_bias[0];
-        gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy - imu_angular_bias[1];
-        gnss_ins_out.imu_angular_v[2] = gnss_ins_in->yaw - imu_angular_bias[2];
+//        gnss_ins_out.imu_angular_v[0] = gnss_ins_in->angx - imu_angular_bias[0];
+//        gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy - imu_angular_bias[1];
+//        gnss_ins_out.imu_angular_v[2] = gnss_ins_in->yaw - imu_angular_bias[2];
+//
+//        gnss_ins_out.imu_linear_acc[0] = gnss_ins_in->accx - imu_linear_acc_bias[0];
+//        gnss_ins_out.imu_linear_acc[1] = gnss_ins_in->accy - imu_linear_acc_bias[1];
+//        gnss_ins_out.imu_linear_acc[2] = gnss_ins_in->accz - imu_linear_acc_bias[2];
 
-        gnss_ins_out.imu_linear_acc[0] = gnss_ins_in->accx - imu_linear_acc_bias[0];
-        gnss_ins_out.imu_linear_acc[1] = gnss_ins_in->accy - imu_linear_acc_bias[1];
-        gnss_ins_out.imu_linear_acc[2] = gnss_ins_in->accz - imu_linear_acc_bias[2];
+        gnss_ins_out.imu_angular_v[0] = gnss_ins_in->angx;
+        gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy;
+        gnss_ins_out.imu_angular_v[2] = gnss_ins_in->yaw;
+
+        gnss_ins_out.imu_linear_acc[0] = gnss_ins_in->accx;
+        gnss_ins_out.imu_linear_acc[1] = gnss_ins_in->accy;
+        gnss_ins_out.imu_linear_acc[2] = gnss_ins_in->accz;
 
         gnss_ins_out.timestamp = gnss_ins_in->header.stamp.toSec();
         gnss_ins_out.frame = gnss_ins_in->header.frame_id;
