@@ -36,6 +36,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZIRT,
 
 struct PointXYZICOLRANGE {
     PCL_ADD_POINT4D
+    PCL_ADD_NORMAL4D
     uint8_t intensity;
     float range;
     uint16_t col;
@@ -43,8 +44,9 @@ struct PointXYZICOLRANGE {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 } EIGEN_ALIGN16;
 POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZICOLRANGE,
-                                    (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
-                                            (uint16_t, range, range)(uint16_t, col, col)(uint8_t, label, label))
+                                    (float, x, x)(float, y, y)(float, z, z)
+                                            (float, normal_x, normal_x)(float, normal_y, normal_y)(float, normal_z, normal_z)
+                                            (uint8_t, intensity, intensity)(uint16_t, range, range)(uint16_t, col, col)(uint8_t, label, label))
 
 //add by lsy
 struct PointXYZIL {
@@ -201,6 +203,16 @@ public:
 };
 typedef std::shared_ptr<CloudFeature> CloudFeaturePtr;
 
+class WheelType:public BaseType{
+public:
+    float ESCWhlRRSpd;
+    float ESCWhlRLSpd;
+    float ESCWhlFRSpd;
+    float ESCWhlFLSpd;
+    DataType getType(){
+        return DataType::WHEEL;
+    }
+};
 class PriorMap:public BaseType{
 public:
     pcl::KdTreeFLANN<PointType>::Ptr PriorSurfMapKDTree;

@@ -1,8 +1,8 @@
 dir_abs_path=$(pwd)
-sudo rm -rf ${dir_abs_path}/opencv-3.4.16-install/
+rm -rf ${dir_abs_path}/opencv-3.4.16-install/
 mkdir -p ${dir_abs_path}/opencv-3.4.16-install/
 cd opencv-3.4.16-install/
-sudo rm -rf ./build/
+rm -rf ./build/
 mkdir build
 cd build
 cmake ../../opencv-3.4.16/ -DCMAKE_BUILD_TYPE=Release \
@@ -21,8 +21,8 @@ cmake ../../opencv-3.4.16/ -DCMAKE_BUILD_TYPE=Release \
                            -DBUILD_opencv_python_tests=OFF \
                            -DBUILD_TESTS=OFF \
                            -DBUILD_PERF_TESTS=OFF\
-                           -DBUILD_opencv_dnn=OFF
-
+                           -DBUILD_opencv_dnn=OFF\
+			   -DWITH_VTK=OFF
 
 make -j8
 make install

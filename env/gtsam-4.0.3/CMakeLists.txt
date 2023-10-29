@@ -175,19 +175,32 @@ endif()
 option(GTSAM_DISABLE_NEW_TIMERS "Disables using Boost.chrono for timing" OFF)
 # Allow for not using the timer libraries on boost < 1.48 (GTSAM timing code falls back to old timer library)
 set(GTSAM_BOOST_LIBRARIES
-  Boost::serialization
-  Boost::system
-  Boost::filesystem
-  Boost::thread
-  Boost::date_time
-  Boost::regex
+	Boost::serialization
+	Boost::system
+	Boost::filesystem
+	Boost::thread
+	Boost::date_time
+	Boost::regex
+#        /usr/lib/aarch64-linux-gnu/libboost_serialization.so.1.65.1
+#       /usr/lib/aarch64-linux-gnu/libboost_system.so.1.65.1
+#        /usr/lib/aarch64-linux-gnu/libboost_filesystem.so.1.65.1
+#        /usr/lib/aarch64-linux-gnu/libboost_thread.so.1.65.1
+#       /usr/lib/aarch64-linux-gnu/libboost_date_time.so.1.65.1
+#        /usr/lib/aarch64-linux-gnu/libboost_regex.so.1.65.1
+
 )
 if (GTSAM_DISABLE_NEW_TIMERS)
     message("WARNING:  GTSAM timing instrumentation manually disabled")
     list_append_cache(GTSAM_COMPILE_DEFINITIONS_PUBLIC DGTSAM_DISABLE_NEW_TIMERS)
 else()
     if(Boost_TIMER_LIBRARY)
-      list(APPEND GTSAM_BOOST_LIBRARIES Boost::timer Boost::chrono)
+      list(APPEND GTSAM_BOOST_LIBRARIES 
+      Boost::timer
+      Boost::chrono      
+      
+#      /usr/lib/aarch64-linux-gnu/libboost_timer.so.1.65.1 
+ #     /usr/lib/aarch64-linux-gnu/libboost_chrono.so.1.65.1
+      )
     else()
       list(APPEND GTSAM_BOOST_LIBRARIES rt) # When using the header-only boost timer library, need -lrt
       message("WARNING:  GTSAM timing instrumentation will use the older, less accurate, Boost timer library because boost older than 1.48 was found.")
@@ -279,11 +292,14 @@ option(GTSAM_USE_SYSTEM_EIGEN "Find and use system-installed Eigen. If 'off', us
 option(GTSAM_WITH_EIGEN_UNSUPPORTED "Install Eigen's unsupported modules" OFF)
 
 # Switch for using system Eigen or GTSAM-bundled Eigen
-option(GTSAM_USE_SYSTEM_EIGEN "Find and use system-installed Eigen. If 'off', use the one bundled with GTSAM" OFF) #//////////////////////////////////////////////////sy 
+option(GTSAM_USE_SYSTEM_EIGEN "Find and use system-installed Eigen. If 'off', use the one bundled with GTSAM" ON) #//////////////////////////////////////////////////sy 
 if(GTSAM_USE_SYSTEM_EIGEN)
-	find_package(Eigen3 REQUIRED)
+set(Eigen3_DIR ${CMAKE_SOURCE_DIR}/../eigen-3.4.0-install-x86/share/eigen3/cmake)
 
+find_package(Eigen3 REQUIRED)
+ message("use our own eigen3")
 	# Use generic Eigen include paths e.g. <Eigen/Core>
+	set(EIGEN3_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../eigen-3.4.0-install-x86/include/eigen3)
 	set(GTSAM_EIGEN_INCLUDE_FOR_INSTALL "${EIGEN3_INCLUDE_DIR}")
 
 	# check if MKL is also enabled - can have one or the other, but not both!

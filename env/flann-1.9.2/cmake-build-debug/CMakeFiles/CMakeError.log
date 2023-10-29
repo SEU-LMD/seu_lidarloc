@@ -1,0 +1,61 @@
+Performing C SOURCE FILE Test CMAKE_HAVE_LIBC_PTHREAD failed with the following output:
+Change Dir: /home/today/thirtyparty/flann-1.9.2/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-OgjLPJ
+
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_43b66/fast && /usr/bin/make  -f CMakeFiles/cmTC_43b66.dir/build.make CMakeFiles/cmTC_43b66.dir/build
+make[1]: 进入目录“/home/today/thirtyparty/flann-1.9.2/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-OgjLPJ”
+Building C object CMakeFiles/cmTC_43b66.dir/src.c.o
+/usr/bin/gcc -DCMAKE_HAVE_LIBC_PTHREAD  -fdiagnostics-color=always -o CMakeFiles/cmTC_43b66.dir/src.c.o -c /home/today/thirtyparty/flann-1.9.2/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-OgjLPJ/src.c
+Linking C executable cmTC_43b66
+/home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cmake -E cmake_link_script CMakeFiles/cmTC_43b66.dir/link.txt --verbose=1
+/usr/bin/gcc -rdynamic CMakeFiles/cmTC_43b66.dir/src.c.o -o cmTC_43b66 
+/usr/bin/ld: CMakeFiles/cmTC_43b66.dir/src.c.o: in function `main':
+src.c:(.text+0x46): undefined reference to `pthread_create'
+/usr/bin/ld: src.c:(.text+0x52): undefined reference to `pthread_detach'
+/usr/bin/ld: src.c:(.text+0x5e): undefined reference to `pthread_cancel'
+/usr/bin/ld: src.c:(.text+0x6f): undefined reference to `pthread_join'
+collect2: error: ld returned 1 exit status
+make[1]: *** [CMakeFiles/cmTC_43b66.dir/build.make:99：cmTC_43b66] 错误 1
+make[1]: 离开目录“/home/today/thirtyparty/flann-1.9.2/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-OgjLPJ”
+make: *** [Makefile:127：cmTC_43b66/fast] 错误 2
+
+
+Source file was:
+#include <pthread.h>
+
+static void* test_func(void* data)
+{
+  return data;
+}
+
+int main(void)
+{
+  pthread_t thread;
+  pthread_create(&thread, NULL, test_func, NULL);
+  pthread_detach(thread);
+  pthread_cancel(thread);
+  pthread_join(thread, NULL);
+  pthread_atfork(NULL, NULL, NULL);
+  pthread_exit(NULL);
+
+  return 0;
+}
+
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/today/thirtyparty/flann-1.9.2/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-wUU7dL
+
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_b95b5/fast && /usr/bin/make  -f CMakeFiles/cmTC_b95b5.dir/build.make CMakeFiles/cmTC_b95b5.dir/build
+make[1]: 进入目录“/home/today/thirtyparty/flann-1.9.2/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-wUU7dL”
+Building C object CMakeFiles/cmTC_b95b5.dir/CheckFunctionExists.c.o
+/usr/bin/gcc   -DCHECK_FUNCTION_EXISTS=pthread_create -fdiagnostics-color=always -o CMakeFiles/cmTC_b95b5.dir/CheckFunctionExists.c.o -c /home/today/thirtyparty/flann-1.9.2/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-wUU7dL/CheckFunctionExists.c
+Linking C executable cmTC_b95b5
+/home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b95b5.dir/link.txt --verbose=1
+/usr/bin/gcc  -DCHECK_FUNCTION_EXISTS=pthread_create -rdynamic CMakeFiles/cmTC_b95b5.dir/CheckFunctionExists.c.o -o cmTC_b95b5  -lpthreads 
+/usr/bin/ld: 找不到 -lpthreads
+collect2: error: ld returned 1 exit status
+make[1]: *** [CMakeFiles/cmTC_b95b5.dir/build.make:99：cmTC_b95b5] 错误 1
+make[1]: 离开目录“/home/today/thirtyparty/flann-1.9.2/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-wUU7dL”
+make: *** [Makefile:127：cmTC_b95b5/fast] 错误 2
+
+
+
