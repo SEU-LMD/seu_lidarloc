@@ -292,7 +292,7 @@ option(GTSAM_USE_SYSTEM_EIGEN "Find and use system-installed Eigen. If 'off', us
 option(GTSAM_WITH_EIGEN_UNSUPPORTED "Install Eigen's unsupported modules" OFF)
 
 # Switch for using system Eigen or GTSAM-bundled Eigen
-option(GTSAM_USE_SYSTEM_EIGEN "Find and use system-installed Eigen. If 'off', use the one bundled with GTSAM" OFF) #//////////////////////////////////////////////////sy 
+option(GTSAM_USE_SYSTEM_EIGEN "Find and use system-installed Eigen. If 'off', use the one bundled with GTSAM" ON) #//////////////////////////////////////////////////sy 
 if(GTSAM_USE_SYSTEM_EIGEN)
 set(Eigen3_DIR ${CMAKE_SOURCE_DIR}/../eigen-3.4.0-install-x86/share/eigen3/cmake)
 
