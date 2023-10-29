@@ -212,13 +212,13 @@ public:
                 dt);
         lastImuT_imu = imuTime;
 
-        EZLOG(INFO)<<"firstLidarPose: "<<firstLidarPose;
+//        EZLOG(INFO)<<"firstLidarPose: "<<firstLidarPose;
         gtsam::NavState _currentState = imuIntegratorImu_->predict(firstLidarPose, prior_imu_bias);//both are input parameters
-        EZLOG(INFO) <<" imu_raw->imu_linear_acc: "<<_imu_raw->imu_linear_acc.transpose()
-                    <<" imu_raw->imu_angular_v: "<<_imu_raw->imu_angular_v.transpose()
-                    <<" dt: "<< dt
-                    <<" prevBiasOdom: "<<prior_imu_bias;
-        EZLOG(INFO)<<" currentState: "<<_currentState;
+//        EZLOG(INFO) <<" imu_raw->imu_linear_acc: "<<_imu_raw->imu_linear_acc.transpose()
+//                    <<" imu_raw->imu_angular_v: "<<_imu_raw->imu_angular_v.transpose()
+//                    <<" dt: "<< dt
+//                    <<" prevBiasOdom: "<<prior_imu_bias;
+//        EZLOG(INFO)<<" currentState: "<<_currentState;
 
         return _currentState;
     }
@@ -282,6 +282,8 @@ public:
             lidar_preditct_pose_Rwb_ = DR2lidar * DR2lidar * state.Rwb_;
             lidar_preditct_pose_p_wb_ = DR2lidar * state.p_wb_; // 地面存在高程误差——外参？ 建图？
             lidar_preditct_pose_p_wb_ =  lidar_preditct_pose_p_wb_;
+           // EZLOG(INFO)<<" lidar_preditct_pose_p_wb_"<<lidar_preditct_pose_p_wb_<<endl;
+         //   EZLOG(INFO)<<"lidar_preditct_pose_Rwb_"<<lidar_preditct_pose_Rwb_<<endl;
 
             PoseT lidar_preditct_pose(lidar_preditct_pose_p_wb_,lidar_preditct_pose_Rwb_);
             Odometry_imuPredict_pub.pose = lidar_preditct_pose;
@@ -303,6 +305,7 @@ public:
             Function_AddDROdometryTypeToImageProjection(Odometry_imuPredict_pub);
         }
 
+        Function_AddOdometryTypeToImageProjection(Odometry_imuPredict_pub);
         //for debug use
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";
@@ -403,8 +406,6 @@ public:
             lastState = gtsam::NavState(firstLidarPose_pose3,firstLidarVel);
 
         }
-
-
 
     }
 
