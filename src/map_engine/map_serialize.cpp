@@ -63,7 +63,7 @@ LoadTxt(const std::string& map_in_path,const int& frame_sum)
         tum.tx += origin[0];
         tum.ty += origin[1];
         tum.tz += origin[2];
-        tanslation<<tum.tx+origin[0],tum.ty+origin[1],tum.tz+origin[2];
+        tanslation<<tum.tx,tum.ty,tum.tz;
         rotation.x()=tum.qx;
         rotation.y()=tum.qy;
         rotation.z()=tum.qz;
