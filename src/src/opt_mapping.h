@@ -1946,7 +1946,7 @@ public:
                     std::lock_guard<std::mutex> lock(mtx);
                     timeLastProcessing = timeLaserInfoCur;
                     TicToc t0;
-//                    updateInitialGuess(cur_ft);//TODO
+                    updateInitialGuess();//TODO
                     EZLOG(INFO)<<" extractSurroundingKeyFrames COST TIME"<<t0.toc()<<endl;
                     EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
                     if (systemInitialized) {

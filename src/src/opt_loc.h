@@ -124,10 +124,7 @@ public:
     Eigen::Affine3f transPointAssociateToMap;
     Eigen::Affine3f T_wl;
 
-    Eigen::Vector3d t_w_cur,t_w_cur_DR;
-    Eigen::Quaterniond q_w_cur,q_w_cur_DR;
-    Eigen::Matrix3d q_w_cur_matrix;
-    double q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
+
     int frame_cnt = 0;
     int flagLoadMap = 1;
     int flag_need_load_localMap = 1;
@@ -438,13 +435,42 @@ public:
                                       transformIn[1], transformIn[2]);
     }
 
-    void updateInitialGuess() {
-        // save current transformation before any processing
-//        static Eigen::Affine3f lastImuTransformation;
+    void updateInitialGuess(CloudFeature &cur_ft,PointType &_init_point) {
 
+        Eigen::Vector3d t_w_cur,t_w_cur_DR;
+        Eigen::Quaterniond q_w_cur,q_w_cur_DR;
+        Eigen::Matrix3d q_w_cur_matrix;
+        double q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
+
+        // use DR
+        t_w_cur_DR = cur_ft.DRPose.GetXYZ();
+        q_w_cur_DR = cur_ft.DRPose.GetR();
+        t_w_cur = t_w_cur_DR;
+        q_w_cur = q_w_cur_DR;
+//                use GNSS
+//                t_w_cur = cur_ft.pose.GetXYZ();
+//                q_w_cur = cur_ft.pose.GetQ();
+
+        EZLOG(INFO)<<"t_w_cur_DR: "<<t_w_cur_DR.transpose();
+        EZLOG(INFO)<<"q_w_cur_DR: ";
+        EZLOG(INFO)<<q_w_cur_DR;
         // initialization the first frame
 //        根据gps信息，加载地图
         if (Keyframe_Poses3D->points.empty()) {
+            //TODO GNSS init
+            q_w_cur.normalize();
+            q_w_cur_matrix = q_w_cur.toRotationMatrix();
+            current_frameID = cur_ft.frame_id;
+            // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
+            q_w_cur_pitch = asin(-q_w_cur_matrix(2, 0)); // 计算pitch
+            if (cos(q_w_cur_pitch) != 0) {
+                q_w_cur_roll = atan2(q_w_cur_matrix(2, 1), q_w_cur_matrix(2, 2)); // 计算roll
+                q_w_cur_yaw = atan2(q_w_cur_matrix(1, 0), q_w_cur_matrix(0, 0));  // 计算yaw
+            } else {
+                q_w_cur_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
+                q_w_cur_yaw = atan2(-q_w_cur_matrix(0, 1), q_w_cur_matrix(1, 1)); // 计算yaw
+            }
+
             systemInitialized = false;
             current_T_m_l[0] = q_w_cur_roll;
             current_T_m_l[1] = q_w_cur_pitch;
@@ -454,6 +480,7 @@ public:
             current_T_m_l[5] = t_w_cur[2];
 //                lastImuTransformation = pcl::getTransformation(0, 0, 0, 0, 0,0);
             systemInitialized = true;
+
             return;
         }
 
@@ -477,6 +504,10 @@ public:
 //                current_T_m_l[1], current_T_m_l[2]);
 
         current_frame = WORLD;
+        _init_point.x = t_w_cur.x();
+        _init_point.y = t_w_cur.y();
+        _init_point.z = t_w_cur.z();
+        _init_point.intensity = cur_ft.frame_id;
 
 //        static bool lastImuPreTransAvailable = false;
 //        static Eigen::Affine3f lastImuPreTransformation;
@@ -510,28 +541,16 @@ public:
 /**
  * extract init points from map
  */
-    void extractFromPriorMap(){
+    void extractFromPriorMap(PointType& _init_point){
         std::cout <<"Keyframe_Poses3D->points size : "<< Keyframe_Poses3D->points.size() <<std::endl;
 
         TicToc extract_from_priorMap;
 //        flag_scan_mode_change = 0 init || flag_scan_mode_change == 1
         if(MappingConfig::scan_2_prior_map == 1 ){ //init load local map from prior
-            PointType init_point; //can be changed in gnss map
-            if(Keyframe_Poses3D->points.empty() ){
-                init_point.x = t_w_cur.x();
-                init_point.y = t_w_cur.y();
-                init_point.z = t_w_cur.z();
-                init_point.intensity = current_frameID;
-            }
-            else{
-                init_point.x = t_w_cur.x();
-                init_point.y = t_w_cur.y();
-                init_point.z = t_w_cur.z();
-                init_point.intensity = current_frameID;
-            }
+             //can be changed in gnss map
 //            EZLOG(INFO) << "MODE: Scan to Map!";
             // 添加标志位，需要下一帧再加载。现在可以先写着1.5s换一次local map
-            current_lidar_frameID =  init_point.intensity;
+            current_lidar_frameID =  _init_point.intensity;
             if(MappingConfig::if_LoadFromMapManager == 0 ){
                 if(current_lidar_frameID - last_lidar_frameID < MappingConfig::LocalMap_updata_perframe && !flagLoadMap){
                     EZLOG(INFO)<<"already have local map and don't need to update";
@@ -560,7 +579,7 @@ public:
 
             }
             kdtree_priorMap_surf->radiusSearch(
-                    init_point, (double) MappingConfig::localMap_searchRadius_surf,
+                    _init_point, (double) MappingConfig::localMap_searchRadius_surf,
                     pointSearchInd, pointSearchSqDis);
 
 //            std::cout<<"surf points in local map  : "<<pointSearchInd.size()<<std::endl;
@@ -575,7 +594,7 @@ public:
             }
 
             kdtree_priorMap_corner->radiusSearch(
-                    init_point, (double) MappingConfig::localMap_searchRadius_corner,
+                    _init_point, (double) MappingConfig::localMap_searchRadius_corner,
                     pointSearchInd, pointSearchSqDis);
             std::cout<<"corner points in local map ?  : "<<pointSearchInd.size()<<std::endl;
             for (int i = 0; i < (int) pointSearchInd.size(); ++i) {
@@ -1195,13 +1214,14 @@ public:
 
                 combineOptimizationCoeffs();
 
+                //LMOpt_Cnt = 30
                 if(iterCount > SensorConfig::LMOpt_Cnt){
-                    current_T_m_l[0] = q_w_cur_roll;
-                    current_T_m_l[1] = q_w_cur_pitch;
-                    current_T_m_l[2] = q_w_cur_yaw;
-                    current_T_m_l[3] = t_w_cur[0];
-                    current_T_m_l[4] = t_w_cur[1];
-                    current_T_m_l[5] = t_w_cur[2];
+//                    current_T_m_l[0] = q_w_cur_roll;
+//                    current_T_m_l[1] = q_w_cur_pitch;
+//                    current_T_m_l[2] = q_w_cur_yaw;
+//                    current_T_m_l[3] = t_w_cur[0];
+//                    current_T_m_l[4] = t_w_cur[1];
+//                    current_T_m_l[5] = t_w_cur[2];
                     EZLOG(INFO)<<"LMOptimization FAILED!!";
                     break;
                 }
@@ -1408,7 +1428,7 @@ public:
     {
         if (Keyframe_Poses3D->points.size() < 3) {
             EZLOG(INFO) << "GNSS init start from frame 3!";
-            last_gnss_poses = gtsam::Pose3(gtsam::Rot3(q_w_cur_matrix), gtsam::Point3(t_w_cur));
+//            last_gnss_poses = gtsam::Pose3(gtsam::Rot3(q_w_cur_matrix), gtsam::Point3(t_w_cur));
             Keyframe_Poses3D_last_num = Keyframe_Poses3D->points.size();
             return;
         }
@@ -1421,7 +1441,7 @@ public:
         } else {
 //            EZLOG(INFO) << "ADD GNSS BETWEEN FACTOR!!!";
 //            EZLOG(INFO) << "last_gnss_poses:"<<last_gnss_poses;
-            current_gnss_poses = gtsam::Pose3(gtsam::Rot3(q_w_cur_matrix), gtsam::Point3(t_w_cur));
+//            current_gnss_poses = gtsam::Pose3(gtsam::Rot3(q_w_cur_matrix), gtsam::Point3(t_w_cur));
 //            EZLOG(INFO) << "current_gnss_poses:"<<current_gnss_poses;
 //            EZLOG(INFO) << "last_gnss_poses No:"<<Keyframe_Poses3D_last_num;
 //            EZLOG(INFO) << "current_gnss_poses No:"<<Keyframe_Poses3D->points.size();
@@ -1556,96 +1576,65 @@ public:
 
         while(1){
             if(deque_cloud.size()!=0){
+                //TODO change position
                 CloudFeature cur_ft;
+                PointType init_point;
                 cloud_mutex.lock();
                 cur_ft = deque_cloud.front();
 //                EZLOG(INFO)<<"cur_ft.frame_id:  "<<cur_ft.frame_id;
                 deque_cloud.pop_front();
                 cloud_mutex.unlock();
 
-                //just do something
-//                timeLaserInfoStamp = msgIn->header.stamp;
-//                EZLOG(INFO)<<"cur_ft.surfaceCloud size: "<< cur_ft.surfaceCloud->points.size();
-//                EZLOG(INFO)<<"cur_ft.cornerCloud size: "<<  cur_ft.cornerCloud->points.size();
                 timeLaserInfoCur = cur_ft.timestamp;
                 current_surf = cur_ft.surfaceCloud;
                 current_corner = cur_ft.cornerCloud;
-//                current_corner = &cur_corner;
-//                current_surf = &cur_surf;
-
-                // use DR
-                t_w_cur_DR = cur_ft.DRPose.GetXYZ();
-                q_w_cur_DR = cur_ft.DRPose.GetR();
-                t_w_cur = t_w_cur_DR;
-                q_w_cur = q_w_cur_DR;
-//                use GNSS
-//                t_w_cur = cur_ft.pose.GetXYZ();
-//                q_w_cur = cur_ft.pose.GetQ();
-                q_w_cur.normalize();
-                q_w_cur_matrix = q_w_cur.toRotationMatrix();
-                current_frameID = cur_ft.frame_id;
-                // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
-                q_w_cur_pitch = asin(-q_w_cur_matrix(2, 0)); // 计算pitch
-                if (cos(q_w_cur_pitch) != 0) {
-                    q_w_cur_roll = atan2(q_w_cur_matrix(2, 1), q_w_cur_matrix(2, 2)); // 计算roll
-                    q_w_cur_yaw = atan2(q_w_cur_matrix(1, 0), q_w_cur_matrix(0, 0));  // 计算yaw
-                } else {
-                    q_w_cur_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
-                    q_w_cur_yaw = atan2(-q_w_cur_matrix(0, 1), q_w_cur_matrix(1, 1)); // 计算yaw
-                }
-
-                // get DR
-
-                EZLOG(INFO)<<"t_w_cur_DR: "<<t_w_cur_DR.transpose();
-                EZLOG(INFO)<<"q_w_cur_DR: ";
-                EZLOG(INFO)<<q_w_cur_DR;
 
 //                std::lock_guard<std::mutex> lock(mtx);
                 static double timeLastProcessing = -1;
-                if (timeLaserInfoCur - timeLastProcessing >= MappingConfig::mappingProcessInterval) {
-                    timeLastProcessing = timeLaserInfoCur;
-                    EZLOG(INFO) <<"Recive current_surf size: "<<current_surf->size()
-                                <<" current_corner size: "<<current_corner->size();
-                    updateInitialGuess();
-                    EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
-                    if (systemInitialized) {
-                        if(MappingConfig::if_LoadFromMapManager == 0){
-                            if(flagLoadMap){
-                                pub_CornerAndSurfFromMap();
-                            }
-                        }
-                        else{
-                            if(flag_MM_loadMap){
-                                pub_CornerAndSurfFromMap();
-                            }
-                        }
+                if(timeLaserInfoCur - timeLastProcessing < MappingConfig::mappingProcessInterval){
+                    continue;
+                }
+                timeLastProcessing = timeLaserInfoCur;
+                EZLOG(INFO) <<"Recive current_surf size: "<<current_surf->size()
+                            <<" current_corner size: "<<current_corner->size();
 
+                updateInitialGuess(cur_ft,init_point);
+                EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
 
-                        TicToc t_3;
-                        downsampleCurrentScan();
-                        EZLOG(INFO)<<"downsampleCurrentScan() time : "<<t_3.toc();
+                if(MappingConfig::if_LoadFromMapManager == 0){
+                    if(flagLoadMap){
+                        pub_CornerAndSurfFromMap();
+                    }
+                }
+                else{
+                    if(flag_MM_loadMap){
+                        pub_CornerAndSurfFromMap();
+                    }
+                }
 
-                        map_manager_ptr->SafeLockCloud();//very important fucniton to protect map manager memory!!!!!!!
-                        TicToc t_2;
-                        extractFromPriorMap();
-                        EZLOG(INFO)<<"extractFromPriorMap() time : "<<t_2.toc();
-                        
-                        TicToc t_4;
-                        scan2MapOptimization();
-                        EZLOG(INFO)<<"scan2MapOptimization() time : "<<t_4.toc();
+                TicToc t_3;
+                downsampleCurrentScan();
+                EZLOG(INFO)<<"downsampleCurrentScan() time : "<<t_3.toc();
+
+//                        map_manager_ptr->SafeLockCloud();//very important fucniton to protect map manager memory!!!!!!!
+                TicToc t_2;
+                extractFromPriorMap(init_point);
+                EZLOG(INFO)<<"extractFromPriorMap() time : "<<t_2.toc();
+
+                TicToc t_4;
+                scan2MapOptimization();
+                EZLOG(INFO)<<"scan2MapOptimization() time : "<<t_4.toc();
 
 //                        map_manager_ptr->SafeUnLockCloud();//very important fucniton to protect map manager memory!!!!!!!
 
-                        TicToc t_5;
-                        saveKeyFramesAndFactor();
-                        EZLOG(INFO)<<"saveKeyFramesAndFactor() time : "<<t_5.toc();
+                TicToc t_5;
+                saveKeyFramesAndFactor();
+                EZLOG(INFO)<<"saveKeyFramesAndFactor() time : "<<t_5.toc();
 
-                        TicToc t_6;
-                        publishOdometry();
-                        EZLOG(INFO)<<"publishOdometry() time : "<<t_6.toc();
+                TicToc t_6;
+                publishOdometry();
+                EZLOG(INFO)<<"publishOdometry() time : "<<t_6.toc();
 
-                    }
-                }
 
 
             }

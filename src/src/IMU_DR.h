@@ -113,8 +113,8 @@ public:
                                    const Eigen::Matrix3d &delta_rot_mat) {
 //        need debug
         Eigen::Matrix3d updatedR = Eigen::Matrix3d::Identity();
-        updatedR = Rwi * delta_rot_mat;
-        //updatedR = delta_rot_mat * Rwi;
+        updatedR = Rwi * delta_rot_mat;  // TODO left or right is the same?????
+//        updatedR = delta_rot_mat * Rwi;
         return updatedR;
     }
 
@@ -181,8 +181,8 @@ public:
             //pure DR
             state.Rwb_ = last_state.Rwb_;
             state.Rwb_ = rotationUpdate(state.Rwb_ , dR);
-            Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
-            state.v_w_ = state_v_w;
+            Eigen::Vector3d state_v_b = state.Rwb_ * state_v_b;
+            state.v_w_ = state_v_b;
             state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
         }
 
@@ -281,15 +281,18 @@ public:
             Eigen::Vector3d lidar_preditct_pose_p_wb_;
             Eigen::Matrix3d lidar_preditct_pose_Rwb_;
             DR2lidar = SensorConfig::T_L_DR.block<3,3>(0,0);//
-            lidar_preditct_pose_Rwb_ = DR2lidar.inverse() *  state.Rwb_ * DR2lidar;//TODO 1029 ??????? no reason
-            lidar_preditct_pose_p_wb_ = DR2lidar * state.p_wb_; // 地面存在高程误差——外参？ 建图？
-            lidar_preditct_pose_p_wb_ =  lidar_preditct_pose_p_wb_;
+//            PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
+            PoseT T_w_b(state.p_wb_,state.Rwb_);
+//            PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
+
+//            lidar_preditct_pose_Rwb_ = DR2lidar.inverse() *  state.Rwb_ * DR2lidar;//TODO 1029 ??????? no reason
+//            lidar_preditct_pose_p_wb_ = DR2lidar * state.p_wb_; // 地面存在高程误差——外参？ 建图？
            // EZLOG(INFO)<<" lidar_preditct_pose_p_wb_"<<lidar_preditct_pose_p_wb_<<endl;
          //   EZLOG(INFO)<<"lidar_preditct_pose_Rwb_"<<lidar_preditct_pose_Rwb_<<endl;
 
-            PoseT lidar_preditct_pose(lidar_preditct_pose_p_wb_,lidar_preditct_pose_Rwb_);
-            Odometry_imuPredict_pub.pose = lidar_preditct_pose;
-            DR_pose.pose = lidar_preditct_pose;
+//            PoseT lidar_preditct_pose(lidar_preditct_pose_p_wb_,lidar_preditct_pose_Rwb_);
+            Odometry_imuPredict_pub.pose = T_w_b;
+            DR_pose.pose = T_w_b;
         }
         else{
             gtsam::Pose3 imuPose = gtsam::Pose3(currentState.quaternion(), currentState.position());

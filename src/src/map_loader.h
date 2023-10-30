@@ -112,8 +112,8 @@ public:
     //TODO finish this Function
     void GetCurMapCloud(pcl::PointCloud<PointType>::Ptr &corner_map,
                        pcl::PointCloud<PointType>::Ptr &surf_map){
-        kdtree_surf_from_map = surf_map;
-        kdtree_corner_from_map = corner_map;
+        laser_cloud_surf_from_map = surf_map;
+        laser_cloud_corner_from_map = corner_map;
     }
 
     void MapmanagerInitialized(const std::string& map_read_path){
