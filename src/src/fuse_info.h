@@ -66,7 +66,8 @@ public:
     OdometryType loc_result;
     OdometryType current_lidar_world;
     PoseT last_pose;
-    bool if_roll_back = 0;//TODO :if abs loc arrived
+    PoseT last_DR_pose;
+    bool if_abs_loc_arrived = 0;//TODO :if abs loc arrived
 
     std::string topic_highHz_pose = "/loc_result";
     std::string topic_testforRollBack_pose = "/loc_result_roll_back";
@@ -90,9 +91,9 @@ public:
     }
 
     //it is DR ,TODO change function name!!
-    void AddIMUToFuse(const DROdometryType &imu_odom){
+    void AddDRToFuse(const DROdometryType &DR_odom){
         mutex_data.lock();
-        std::shared_ptr<BaseType> odometryPtr = std::make_shared<DROdometryType>(imu_odom);
+        std::shared_ptr<BaseType> odometryPtr = std::make_shared<DROdometryType>(DR_odom);
         data_deque.push_back(odometryPtr);
         mutex_data.unlock();
     }
@@ -126,37 +127,43 @@ public:
         // EZLOG(INFO)<<" Fuse Init Successful!";
     }
 
-    void RollBack(const OdometryType _current_pose,//obs_pose
+    void RollBack(const OdometryType _obs_pose,//obs_pose
                   std::deque<std::shared_ptr<DROdometryType>>& _DR_data_deque,//TODO 1029 fyy add &
-                  OdometryType &_current_pose_align){
-        while(!_DR_data_deque.empty()){
-            if(_current_pose.timestamp <_DR_data_deque.front()->timestamp){ // -------lidar | DR DR DR ------>>>>
-               
-                gtsam::Pose3 poseFrom(gtsam::Rot3(_DR_data_deque.front()->pose.GetR()),
-                                                gtsam::Point3(_DR_data_deque.front()->pose.GetXYZ()));
-                gtsam::Pose3 poseTo(gtsam::Rot3(_DR_data_deque.back()->pose.GetR()),
-                                      gtsam::Point3(_DR_data_deque.back()->pose.GetXYZ()));
-                //TODO 1029 remove gtsam
-                // auto& poseFrom = _DR_data_deque.front()->pose;
-                // auto& poseTo = _DR_data_deque.back()->pos;
-                // poseFrom.inverse()*poseTo;
+                  OdometryType &_current_pose_align) {
 
-                //TODO interporlate!!!!!
-                _current_pose_align.frame = "map";
-                _current_pose_align.timestamp = _DR_data_deque.back()->timestamp;
-                _current_pose_align.pose = PoseT(_current_pose.pose.pose * poseFrom.between(poseTo).matrix());
+        //TODO 1029 remove gtsam
+        // auto& poseFrom = _DR_data_deque.front()->pose;
+        // auto& poseTo = _DR_data_deque.back()->pos;
+        // poseFrom.inverse()*poseTo;
 
-                pubsub->PublishOdometry(topic_testforRollBack_pose, _current_pose_align);
-                _DR_data_deque.clear();
-                if_roll_back = 1;
-                last_pose = _current_pose_align.pose;
-
+        //TODO interporlate!!!!!---------------------------------------Done
+        //------ previous lidar(poseFrom) next --------poseTo >>>
+        std::shared_ptr<DROdometryType> dr_previous;
+        std::shared_ptr<DROdometryType> dr_next;
+        for (auto dr_data: _DR_data_deque) {
+            if (dr_data->timestamp > _obs_pose.timestamp) {
+                dr_next = dr_data;
                 break;
-            }
-            else{
-                _DR_data_deque.pop_front();
+            } else {
+                dr_previous = dr_data; // ------DR lidar ------->>>
             }
         }
+        PoseT poseFrom = dr_previous->pose.Linear_interpolation(dr_next->pose,
+                                                                dr_previous->timestamp,
+                                                                dr_next->timestamp);
+        PoseT &poseTo = _DR_data_deque.back()->pose;
+
+        _current_pose_align.frame = "map";
+        _current_pose_align.timestamp = _DR_data_deque.back()->timestamp;
+        _current_pose_align.pose = poseFrom.between(poseTo);
+        pubsub->PublishOdometry(topic_testforRollBack_pose, _current_pose_align);
+        _DR_data_deque.clear();
+        if_abs_loc_arrived = 1;
+
+        // update DR
+        last_pose = _current_pose_align.pose;
+
+
     }
 
     void Init(PubSubInterface* pubsub_){
@@ -183,6 +190,7 @@ public:
         pubsub->addPublisher(topic_testforRollBack_pose, DataType::ODOMETRY, 10);
 
         HighFrequencyLoc_thread = new std::thread(&Fuse::DoWork, this);
+        last_DR_pose  = PoseT(Eigen::Matrix4d::Identity());//TODO;------------------Done
     }
 
     void DoWork(){
@@ -292,7 +300,6 @@ public:
                         TicToc t1;
                         // 1. get wheel data and save it to deque
                         DROdometryTypePtr  cur_Wheel_odom;
-                        static PoseT last_DR_pose = PoseT(Eigen::Matrix4d::Identity());//TODO
                         cur_Wheel_odom = std::static_pointer_cast<DROdometryType>(std::move(front_data));
                         // mutex_DR_data.lock();//TODO 1029
                         DR_data_deque.push_back(cur_Wheel_odom);
@@ -309,7 +316,7 @@ public:
                         loc_result.frame = "map";
                         loc_result.timestamp = current_timeStamp;
                         //TODO 1029
-                        if(if_roll_back){// predict from last rollback
+                        if(if_abs_loc_arrived){// predict from last rollback
                             loc_result.pose.pose = last_pose.pose * delta_pose_DR.pose;
                             last_pose = loc_result.pose.pose;
 
@@ -321,7 +328,7 @@ public:
                             }
                             last_DR_pose = current_DR_pose;
                             EZLOG(INFO)<<"wheel pub cost in ms : "<<t1.toc();
-
+                        }
                         // }else{ // normal predict TODO 1029 delete
                         //     loc_result.pose.pose = last_DR_pose.pose * delta_pose_DR.pose;
                         // }

@@ -10,6 +10,7 @@
 #include "utils/MapSaver.h"
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
+//#include "map_engine/mapmanager.h"
 
 struct MyPointType{
     PCL_ADD_POINT4D;
@@ -108,11 +109,12 @@ public:
 //获得初始变量，对标志位赋值
     Gnsspostion now_position;
 
-    void GetCurMapCloud(pcl::PointCloud<PointType>::Ptr &corner_map,
-                       pcl::PointCloud<PointType>::Ptr &surf_map){
-        kdtree_surf_from_map = surf_map;
-        kdtree_corner_from_map = corner_map;
-    }
+    //TODO finish this Function
+//    void GetCurMapCloud(pcl::PointCloud<PointType>::Ptr &corner_map,
+//                       pcl::PointCloud<PointType>::Ptr &surf_map){
+//        kdtree_surf_from_map = surf_map;
+//        kdtree_corner_from_map = corner_map;
+//    }
 
     void MapmanagerInitialized(const std::string& map_read_path){
         std::ifstream file(map_read_path+"index.txt",std::ios_base::in);
@@ -498,7 +500,7 @@ public:
 
             }
             else{
-                sleep(0.01);
+                sleep(0.1);
             }
         }
     }//end fucntion do work

@@ -28,6 +28,7 @@ public:
 
 class ImageProjection  {
 public:
+    int slam_mode_switch = 1;
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     std::mutex work_mutex;
@@ -642,8 +643,8 @@ public:
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
-        if((lidarScan_cnt > SensorConfig::lidarScanDownSample && MappingConfig::slam_mode_switch == 1)
-            ||MappingConfig::slam_mode_switch == 0){
+        if((lidarScan_cnt > SensorConfig::lidarScanDownSample && slam_mode_switch == 1)
+            ||slam_mode_switch == 0){
             //        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
             CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
 
@@ -666,7 +667,7 @@ public:
         if(!init)
         {
             double x,y,z;
-            if(MappingConfig::slam_mode_switch){
+            if(slam_mode_switch == 1){
                 std::ifstream downfile(MappingConfig::save_map_path+"Origin.txt");  //打开文件
                 std::string line; //字符串
                 std::getline(downfile, line);//
@@ -679,7 +680,7 @@ public:
                 geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
             }
             init = true;
-            if(MappingConfig::slam_mode_switch == 0 || MappingConfig::if_need_first_position == 1){
+            if(slam_mode_switch == 0 || MappingConfig::if_need_first_position == 1){
                 MapSaver::SaveOriginLLA(data.lla);
             }
 
@@ -712,6 +713,7 @@ public:
         Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
         Eigen::Quaterniond q_w_b(R_w_b);//获得局部坐标系的四元数
         PoseT T_w_b(t_w_b, R_w_b);
+
 //        world is GNSS ,base is car, T_w_l =
         PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
 //        T_w_l:
@@ -745,7 +747,8 @@ public:
         T_w_l_gnss.frame = "map";
         T_w_l_gnss.timestamp = data.timestamp;
         T_w_l_gnss.pose = T_w_l;
-         if (MappingConfig::slam_mode_switch ==1){
+//        T_w_l_gnss.pose = T_w_b;
+         if (slam_mode_switch ==1){
              Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
          }
          else{  //mapping
@@ -766,8 +769,9 @@ public:
         imuodom_mutex.unlock();
     }
 
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_, int _slam_mode_switch){
         AllocateMemory();
+        slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
@@ -782,6 +786,7 @@ public:
         pubsub->addPublisher(topic_cloud_beam_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_cloud_facade_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_cloud_roof_world,DataType::LIDAR,1);
+
 
         do_work_thread = new std::thread(&ImageProjection::DoWork, this);
         EZLOG(INFO)<<"ImageProjection init success!"<<std::endl;

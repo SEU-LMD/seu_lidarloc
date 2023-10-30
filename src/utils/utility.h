@@ -234,8 +234,35 @@ public:
     PoseT inverse() const{
         return PoseT(pose.inverse());
     }
+    /**
+     * pose.inverse() * g
+     * @param g
+     * @return
+     */
     PoseT between(const PoseT& g) const {
         return PoseT(pose.inverse() * g.pose.matrix());
+    }
+    /**
+     * Linear Interpolation,
+     * requirement: t2 > t1
+     * @param g
+     * @param interpolation_t1 pose time
+     * @param interpolation_t2 g time
+     * @return
+     */
+    PoseT Linear_interpolation(const PoseT& g, const double& interpolation_t1, const double& interpolation_t2){
+        PoseT result_output;
+        double interpolation_alpha(interpolation_t2-interpolation_t1);
+        //t
+        Eigen::Vector3d result_output_t;
+        result_output_t = pose.block<3,1>(0,3)+
+                        interpolation_alpha * (g.GetXYZ() - pose.block<3,1>(0,3));
+        //R
+        Eigen::Quaterniond result_output_t_q;//旋转
+        result_output_t_q = Eigen::Quaterniond(pose.block<3,3>(0,0)).slerp(interpolation_alpha,g.GetQ());
+
+        //插值位姿态矩阵
+        return PoseT (result_output_t , result_output_t_q);
     }
 };
 

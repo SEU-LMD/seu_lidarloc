@@ -244,9 +244,7 @@ public:
         pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
         pubsub->addPublisher(topic_dr_odom_world, DataType::ODOMETRY,2000);
         do_work_thread = new std::thread(&DRCalibration::DoWork, this);
-        if(MappingConfig::slam_mode_switch == 0){
-            //save_Map_thread = new std::thread(&MapSaver::do_work, &(FeatureExtraction::map_saver));
-        }
+
     }
 
 };

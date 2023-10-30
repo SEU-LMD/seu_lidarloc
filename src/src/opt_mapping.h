@@ -37,6 +37,7 @@
 
 class OPTMapping{
 public:
+    int useGPS;
     PubSubInterface* pubsub;
     std::thread* do_work_thread;
     std::thread* loop_thread;
@@ -677,7 +678,7 @@ public:
         if (cloudKeyPoses3D->points.empty()) {
             systemInitialized = false;
 
-            if (SensorConfig::useGPS) {
+            if (useGPS) {
 
                  double t_enu[3];
                  //TODO 1029
@@ -1709,7 +1710,7 @@ public:
         // odom factor
         addOdomFactor();
 
-        if (SensorConfig::useGPS) {
+        if (useGPS) {
             //addGPSFactor();
         }
         // gps factor
@@ -1945,7 +1946,7 @@ public:
                     std::lock_guard<std::mutex> lock(mtx);
                     timeLastProcessing = timeLaserInfoCur;
                     TicToc t0;
-                    updateInitialGuess(cur_ft);//TODO
+//                    updateInitialGuess(cur_ft);//TODO
                     EZLOG(INFO)<<" extractSurroundingKeyFrames COST TIME"<<t0.toc()<<endl;
                     EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
                     if (systemInitialized) {
@@ -2079,9 +2080,10 @@ public:
   //  }
 
 
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_, int _useGPS){
         pubsub = pubsub_;
         allocateMemory();
+        useGPS = _useGPS;
 //        pubsub->addPublisher(topic_map_surf,DataType::LIDAR,10);
 //        pubsub->addPublisher(topic_map_corner,DataType::LIDAR,10);
         pubsub->addPublisher(topic_current_pose,DataType::ODOMETRY,10);

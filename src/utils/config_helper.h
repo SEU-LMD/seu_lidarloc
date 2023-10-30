@@ -92,7 +92,6 @@ class SensorConfig{
 
 class MappingConfig{
     public:
-        static int slam_mode_switch;
         static int if_debug;
         static int if_use_fuseNode;
         static Eigen::Vector3d origin_gnss;
@@ -263,7 +262,6 @@ int SensorConfig::gtsamGNSSBetweenFactorDistance = 10;
 bool SensorConfig::use_gnss_deskew=false;
 int SensorConfig::lidarScanDownSample = 2;
 
-int MappingConfig::slam_mode_switch = 1;
 int MappingConfig::if_debug = -1;
 int MappingConfig::if_use_fuseNode =-1;
 std::string MappingConfig::save_map_path = "";
@@ -496,7 +494,6 @@ void Load_Mapping_YAML(std::string mappingpath)
             exit(1);
         }
 
-        MappingConfig::slam_mode_switch = mappingconfig["slam_mode_switch"].as<int>();
         MappingConfig::if_debug = mappingconfig["if_debug"].as<int>();
         MappingConfig::if_use_fuseNode = mappingconfig["if_use_fuseNode"].as<int>();
         MappingConfig::use_deskew=mappingconfig["use_deskew"].as<bool >();

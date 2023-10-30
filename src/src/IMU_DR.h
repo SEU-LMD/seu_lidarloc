@@ -28,8 +28,10 @@ using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
 
-class IMU_DR  {
+class IMU_DR {
 public:
+
+    int slam_mode_switch = 1;
     PubSubInterface* pubsub;
     std::mutex odom_mutex;
     std::mutex gnssins_mutex;
@@ -116,15 +118,10 @@ public:
         return updatedR;
     }
 
-    //TODO delete
-    Eigen::Matrix3d skewMatrix(const Eigen::Vector3d &v){
-        Eigen::Matrix3d w;
-        w << 0. ,-v(2), v(1), v(2) , 0. , -v(1) , v(0), 0.;
-        return w;
-    }
+    //TODO delete-------Done 1030
 
     //receive lidar loc res from loc node, not used any more
-    void AddOdomData(const OdometryType &data){
+    void AddOdomData_fromLoc(const OdometryType &data){
 
 //      not use lidar
 //        lidarodom_mutex.lock();
@@ -140,7 +137,7 @@ public:
 
 //      come from last lidar pose
         lidarodom_mutex.lock();
-        lidar_poseQueue.push_back(data);
+//        lidar_poseQueue.push_back(data);
         lidarodom_mutex.unlock();
     }
 
@@ -317,7 +314,7 @@ public:
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";
         //just for map and loc node requirements
-        if(MappingConfig::slam_mode_switch == 1){
+        if(slam_mode_switch == 1){
             Function_AddDROdometryTypeToFuse(DR_pose);
         }
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
@@ -418,21 +415,7 @@ public:
     }
     
 
-    //TODO delete
-    void ClearFactorGraph() {
-        gtsam::ISAM2Params optParameters;
-        optParameters.relinearizeThreshold = 0.1;
-        optParameters.factorization = gtsam::ISAM2Params::CHOLESKY;
-        optParameters.relinearizeSkip = 10;
-        optimizer = gtsam::ISAM2(optParameters);
-
-        gtsam::NonlinearFactorGraph newGraphFactors;
-        graphFactors = newGraphFactors;
-
-        gtsam::Values NewGraphValues;
-        graphValues = NewGraphValues;
-    }
-
+    //TODO delete----------------Done
     //TODO delete
     void DoPredict(){
         while(1){
@@ -464,7 +447,7 @@ public:
         }
     }//end function DoLidar
 
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
 
         //设置imu的参数
         SetIMUPreParamter();
@@ -476,8 +459,9 @@ public:
 //        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
 
         pubsub = pubsub_;
+        slam_mode_switch = _slam_mode_switch;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
-        do_lidar_thread = new std::thread(&IMU_DR::DoPredict, this);//TODO delete
+//        do_lidar_thread = new std::thread(&IMU_DR::DoPredict, this);//TODO delete-----Done
     }
 };
 

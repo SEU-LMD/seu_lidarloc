@@ -5,8 +5,8 @@
 #include "pubsub/data_types.h"
 #include "utils/timer.h"
 #include "opt_mapping.h"
-#include "opt_lopc.h"
-#include "imageProjection.h"
+#include "opt_loc.h"
+#include "data_preprocess.h"
 #include "utils/MapSaver.h"
 
 
@@ -25,6 +25,7 @@ struct by_value {
 
 class FeatureExtraction  {
 public:
+    int slam_mode_switch = 0;
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     // std::mutex work_mutex;//TODO 1029 delete this mutex 
@@ -385,7 +386,7 @@ public:
 //                switch it when you test your code
 //                opt_mapping_ptr->AddCloudData(cloud_feature);
 //                loc_mapping_ptr->AddCloudData(cloud_feature);
-                if(MappingConfig::slam_mode_switch == 0 ){
+                if(slam_mode_switch == 0 ){
                     Function_AddCloudFeatureToOPTMapping(cloud_feature);
                 }
                 else{
@@ -423,7 +424,7 @@ public:
         cloud_mutex.unlock();
     }
 
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_, int _slam_mode_switch){
         AllocateMemeory();
         downSizeFilter.setLeafSize(MappingConfig::odometrySurfLeafSize, MappingConfig::odometrySurfLeafSize,
                                    MappingConfig::odometrySurfLeafSize);
@@ -432,7 +433,8 @@ public:
         pubsub->addPublisher(topic_corner_world, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_surf_world, DataType::LIDAR, 10);
         do_work_thread = new std::thread(&FeatureExtraction::DoWork, this);
-        if(MappingConfig::slam_mode_switch == 0){
+        slam_mode_switch = _slam_mode_switch;
+        if(slam_mode_switch == 0){
             //save_Map_thread = new std::thread(&MapSaver::do_work, &(FeatureExtraction::map_saver));
         }
 

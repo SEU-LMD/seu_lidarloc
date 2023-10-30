@@ -47,6 +47,8 @@
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "GeoGraphicLibInclude/Geoid.hpp"
 
+#include "map_loader.h"
+
 
 class LOCMapping{
 
@@ -444,24 +446,14 @@ public:
 //        根据gps信息，加载地图
         if (Keyframe_Poses3D->points.empty()) {
             systemInitialized = false;
-            if (SensorConfig::useGPS) {
-
-                ;
-            } else {
-                current_T_m_l[0] = q_w_cur_roll;
-                current_T_m_l[1] = q_w_cur_pitch;
-                current_T_m_l[2] = q_w_cur_yaw;
-                current_T_m_l[3] = t_w_cur[0];
-                current_T_m_l[4] = t_w_cur[1];
-                current_T_m_l[5] = t_w_cur[2];
+            current_T_m_l[0] = q_w_cur_roll;
+            current_T_m_l[1] = q_w_cur_pitch;
+            current_T_m_l[2] = q_w_cur_yaw;
+            current_T_m_l[3] = t_w_cur[0];
+            current_T_m_l[4] = t_w_cur[1];
+            current_T_m_l[5] = t_w_cur[2];
 //                lastImuTransformation = pcl::getTransformation(0, 0, 0, 0, 0,0);
-                systemInitialized = true;
-                return;
-            }
-        }
-
-        if (!systemInitialized) {
-            EZLOG(INFO)<<"sysyem need to be initialized";
+            systemInitialized = true;
             return;
         }
 
@@ -1642,7 +1634,7 @@ public:
                         scan2MapOptimization();
                         EZLOG(INFO)<<"scan2MapOptimization() time : "<<t_4.toc();
 
-                        map_manager_ptr->SafeUnLockCloud();//very important fucniton to protect map manager memory!!!!!!!
+//                        map_manager_ptr->SafeUnLockCloud();//very important fucniton to protect map manager memory!!!!!!!
 
                         TicToc t_5;
                         saveKeyFramesAndFactor();

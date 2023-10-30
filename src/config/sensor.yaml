@@ -72,8 +72,8 @@
 #DR 2 lidar
   extrinsicTrans_DR: [ 0.0, 0.0, 0.5135 ] #
   extrinsicRot_DR: [ 0, -1, 0,
-                  1, 0, 0,
-                  0, 0, 1 ]
+                    1, 0, 0,
+                    0, 0, 1 ]
 
   use_gnss_deskew: true
   

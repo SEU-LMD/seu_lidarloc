@@ -25,8 +25,8 @@
 #include <queue>
 #include <thread>
 #include <chrono>
-#include "timer.h"
-#include "config_helper.h"
+#include "../utils/timer.h"
+#include "../utils/config_helper.h"
 #include "easylogging++.h"
 INITIALIZE_EASYLOGGINGPP
 
