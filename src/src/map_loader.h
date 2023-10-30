@@ -88,8 +88,8 @@ public:
     pcl::PointCloud<PointType>::Ptr laser_cloud_surf_from_map;
 //build tree
 //shu chu
-    pcl::KdTreeFLANN<PointType>::Ptr kdtree_surf_from_map;
-    pcl::KdTreeFLANN<PointType>::Ptr kdtree_corner_from_map;
+//    pcl::KdTreeFLANN<PointType>::Ptr kdtree_surf_from_map;
+//    pcl::KdTreeFLANN<PointType>::Ptr kdtree_corner_from_map;
 //remeber empty
     std::vector<std::string>  corner_empty;
     std::vector<std::string>  surf_empty;
@@ -110,11 +110,11 @@ public:
     Gnsspostion now_position;
 
     //TODO finish this Function
-//    void GetCurMapCloud(pcl::PointCloud<PointType>::Ptr &corner_map,
-//                       pcl::PointCloud<PointType>::Ptr &surf_map){
-//        kdtree_surf_from_map = surf_map;
-//        kdtree_corner_from_map = corner_map;
-//    }
+    void GetCurMapCloud(pcl::PointCloud<PointType>::Ptr &corner_map,
+                       pcl::PointCloud<PointType>::Ptr &surf_map){
+        kdtree_surf_from_map = surf_map;
+        kdtree_corner_from_map = corner_map;
+    }
 
     void MapmanagerInitialized(const std::string& map_read_path){
         std::ifstream file(map_read_path+"index.txt",std::ios_base::in);
@@ -318,7 +318,8 @@ public:
 
         SafeLockCloud();
         //TODO 1029
-
+         laser_cloud_corner_from_map->clear();
+         laser_cloud_surf_from_map->clear();
         for(int i=0; i<9; ++i){
             if(laser_cloud_corner_array[laser_cloud_valid_ind[i]]!= nullptr)
                 *laser_cloud_corner_from_map+=*laser_cloud_corner_array[laser_cloud_valid_ind[i]];
@@ -326,10 +327,10 @@ public:
                 *laser_cloud_surf_from_map+=*laser_cloud_surf_array[laser_cloud_valid_ind[i]];
         }
 
-        EZLOG(INFO)<<laser_cloud_corner_from_map->size()<<std::endl;
+        EZLOG(INFO)<<"laadermap::laser_cloud_surf_num:"laser_cloud_corner_from_map->size()<<std::endl;
 
-        kdtree_corner_from_map->setInputCloud(laser_cloud_corner_from_map);
-        kdtree_surf_from_map->setInputCloud(laser_cloud_surf_from_map);
+//        kdtree_corner_from_map->setInputCloud(laser_cloud_corner_from_map);
+//        kdtree_surf_from_map->setInputCloud(laser_cloud_surf_from_map);
         { // for debug
             CloudTypeXYZI PriorMap_surf_pub;
             PriorMap_surf_pub.frame = "map";
@@ -368,6 +369,8 @@ public:
             }
             if(!is_equl){
                 laser_cloud_surf_array[last_laser_cloud_load_ind[i]]->clear();
+                laser_cloud_coner_array[last_laser_cloud_load_ind[i]]->clear();
+
                 // 遍历map并删除包含目标值的vector<int>
                 for (auto it = lasercloud_loaded_map.begin(); it != lasercloud_loaded_map.end();) {
                     if (*it == last_laser_cloud_load_ind[i]) {
@@ -399,8 +402,8 @@ public:
             }
 
             //TODO 1029 
-            laser_cloud_corner_from_map->clear();
-            laser_cloud_surf_from_map->clear();
+//            laser_cloud_corner_from_map->clear();
+//            laser_cloud_surf_from_map->clear();
 
             is_initailed= true;
             return;
@@ -456,8 +459,8 @@ public:
         MapmanagerInitialized(SerializeConfig::map_out_path);
         laser_cloud_corner_from_map.reset(new pcl::PointCloud<PointType>());
         laser_cloud_surf_from_map.reset(new pcl::PointCloud<PointType>());
-        kdtree_surf_from_map.reset(new pcl::KdTreeFLANN<PointType>());
-        kdtree_corner_from_map.reset(new pcl::KdTreeFLANN<PointType>());
+//        kdtree_surf_from_map.reset(new pcl::KdTreeFLANN<PointType>());
+//        kdtree_corner_from_map.reset(new pcl::KdTreeFLANN<PointType>());
 
         EZLOG(INFO)<<" MapManager Init Successful!";
     }
@@ -490,7 +493,7 @@ public:
 
                 now_position.x = current_loc_res->pose.GetXYZ().x();
                 now_position.y = current_loc_res->pose.GetXYZ().y();
-                now_position.z = current_loc_res->pose.GetXYZ().z();
+//                now_position.z = current_loc_res->pose.GetXYZ().z();
                 cur_time = current_loc_res->timestamp;
                 process(now_position);
 
@@ -504,7 +507,5 @@ public:
             }
         }
     }//end fucntion do work
-
-
 };
 #endif //SEU_LIDARLOC_MAPMANAGER_H

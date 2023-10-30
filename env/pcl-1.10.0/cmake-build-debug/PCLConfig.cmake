@@ -4,24 +4,6 @@
 # target_link_libraries(my_fabulous_target PCL_XXX_LIBRARIES) where XXX is the
 # upper cased xxx from :
 # 
-# - common
-# - kdtree
-# - octree
-# - search
-# - sample_consensus
-# - filters
-# - 2d
-# - geometry
-# - io
-# - features
-# - ml
-# - segmentation
-# - surface
-# - registration
-# - keypoints
-# - tracking
-# - recognition
-# - stereo
 #
 # PCL_INCLUDE_DIRS is filled with PCL and available 3rdparty headers
 # PCL_LIBRARY_DIRS is filled with PCL components libraries install directory and
@@ -141,7 +123,7 @@ macro(find_eigen)
   if(PCL_ALL_IN_ONE_INSTALLER)
     set(EIGEN_ROOT "${PCL_ROOT}/3rdParty/Eigen")
   elseif(NOT EIGEN_ROOT)
-    get_filename_component(EIGEN_ROOT "/home/today/thirtyparty/pcl-1.10.0/cmake/Modules/../../../eigen-3.4.0-install-x86/include/eigen3/" ABSOLUTE)
+    get_filename_component(EIGEN_ROOT "" ABSOLUTE)
   endif()
   find_package(Eigen 3.1)
   set(EIGEN_DEFINITIONS ${EIGEN_DEFINITIONS})
@@ -441,7 +423,7 @@ elseif(EXISTS "${PCL_DIR}/include/pcl/pcl_config.h")
   # pcl_message("PCL found into a build tree.")
   set(PCL_CONF_INCLUDE_DIR "${PCL_DIR}/include") # for pcl_config.h
   set(PCL_LIBRARY_DIRS "${PCL_DIR}/lib")
-  set(PCL_SOURCES_TREE "/home/today/thirtyparty/pcl-1.10.0")
+  set(PCL_SOURCES_TREE "/home/today/fuse/seu_lidarloc/env/pcl-1.10.0")
 else()
   pcl_report_not_found("PCL can not be found on this machine")
 endif()
@@ -456,38 +438,15 @@ set(PCL_RELEASE_SUFFIX "")
 list(APPEND PCL_DEFINITIONS )
 list(APPEND PCL_COMPILE_OPTIONS -march=native;-msse4.2;-mfpmath=sse)
 
-set(pcl_all_components  common kdtree octree search sample_consensus filters 2d geometry io features ml segmentation surface registration keypoints tracking recognition stereo)
+set(pcl_all_components )
 list(LENGTH pcl_all_components PCL_NB_COMPONENTS)
 
 #list each component dependencies IN PCL
-set(pcl_kdtree_int_dep common )
-set(pcl_octree_int_dep common )
-set(pcl_search_int_dep common kdtree octree )
-set(pcl_sample_consensus_int_dep common search )
-set(pcl_filters_int_dep common sample_consensus search kdtree octree )
-set(pcl_2d_int_dep common filters )
-set(pcl_geometry_int_dep common )
-set(pcl_io_int_dep common octree )
-set(pcl_features_int_dep common search kdtree octree filters 2d )
-set(pcl_ml_int_dep common )
-set(pcl_segmentation_int_dep common geometry search sample_consensus kdtree octree features filters ml )
-set(pcl_surface_int_dep common search kdtree octree )
-set(pcl_registration_int_dep common octree kdtree search sample_consensus features filters )
-set(pcl_keypoints_int_dep common search kdtree octree features filters )
-set(pcl_tracking_int_dep common search kdtree filters octree )
-set(pcl_recognition_int_dep common io search kdtree octree features filters registration sample_consensus ml )
-set(pcl_stereo_int_dep common io )
 
 
 #list each component external dependencies (ext means mandatory and opt means optional)
-set(pcl_common_ext_dep eigen boost )
-set(pcl_kdtree_ext_dep flann )
-set(pcl_search_ext_dep flann )
 
 
-set(pcl_2d_opt_dep )
-set(pcl_io_opt_dep openni openni2 )
-set(pcl_surface_opt_dep )
 
 
 # VTK components required by PCL

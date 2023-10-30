@@ -9,14 +9,14 @@ endif()
 
 get_filename_component(BOOST_ROOT "${Boost_INCLUDE_DIR}" PATH)
 get_filename_component(BOOST_ROOT "${BOOST_ROOT}" PATH)
-get_filename_component(EIGEN_ROOT "${EIGEN_INCLUDE_DIRS}" PATH)
+get_filename_component(EIGEN3_ROOT "${EIGEN3_INCLUDE_DIRS}" PATH)
 get_filename_component(QHULL_ROOT "${QHULL_INCLUDE_DIRS}" PATH)
 get_filename_component(VTK_ROOT "${VTK_DIR}" PATH)
 get_filename_component(VTK_ROOT "${VTK_ROOT}" PATH)
 get_filename_component(VTK_ROOT "${VTK_ROOT}" PATH)
 
 set(PCL_3RDPARTY_COMPONENTS)
-foreach(dep Eigen Boost Qhull FLANN VTK)
+foreach(dep Eigen3 Boost Qhull FLANN VTK)
   string(TOUPPER ${dep} DEP)
   install(
     DIRECTORY "${${DEP}_ROOT}/"

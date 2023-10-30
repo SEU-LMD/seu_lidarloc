@@ -1,4 +1,4 @@
-# Install script for directory: /home/today/thirtyparty/pcl-1.10.0/doc
+# Install script for directory: /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/doc
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,9 +44,9 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/doc/doxygen/cmake_install.cmake")
-  include("/home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/doc/advanced/cmake_install.cmake")
-  include("/home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/doc/tutorials/cmake_install.cmake")
+  include("/home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/doc/doxygen/cmake_install.cmake")
+  include("/home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/doc/advanced/cmake_install.cmake")
+  include("/home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/doc/tutorials/cmake_install.cmake")
 
 endif()
 

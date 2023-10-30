@@ -1,4 +1,4 @@
-# Install script for directory: /home/today/thirtyparty/pcl-1.10.0/2d
+# Install script for directory: /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/2d
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -40,27 +40,5 @@ endif()
 # Set default install directory permissions.
 if(NOT DEFINED CMAKE_OBJDUMP)
   set(CMAKE_OBJDUMP "/usr/bin/objdump")
-endif()
-
-if(CMAKE_INSTALL_COMPONENT STREQUAL "pcl_2d" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/2d/pcl_2d-1.10.pc")
-endif()
-
-if(CMAKE_INSTALL_COMPONENT STREQUAL "pcl_2d" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/pcl-1.10/pcl/2d" TYPE FILE FILES
-    "/home/today/thirtyparty/pcl-1.10.0/2d/include/pcl/2d/convolution.h"
-    "/home/today/thirtyparty/pcl-1.10.0/2d/include/pcl/2d/kernel.h"
-    "/home/today/thirtyparty/pcl-1.10.0/2d/include/pcl/2d/edge.h"
-    "/home/today/thirtyparty/pcl-1.10.0/2d/include/pcl/2d/morphology.h"
-    )
-endif()
-
-if(CMAKE_INSTALL_COMPONENT STREQUAL "pcl_2d" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/pcl-1.10/pcl/2d/impl" TYPE FILE FILES
-    "/home/today/thirtyparty/pcl-1.10.0/2d/include/pcl/2d/impl/convolution.hpp"
-    "/home/today/thirtyparty/pcl-1.10.0/2d/include/pcl/2d/impl/kernel.hpp"
-    "/home/today/thirtyparty/pcl-1.10.0/2d/include/pcl/2d/impl/edge.hpp"
-    "/home/today/thirtyparty/pcl-1.10.0/2d/include/pcl/2d/impl/morphology.hpp"
-    )
 endif()
 

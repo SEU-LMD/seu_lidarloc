@@ -1,4 +1,4 @@
-# Install script for directory: /home/today/thirtyparty/pcl-1.10.0/cuda
+# Install script for directory: /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cuda
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

@@ -1,6 +1,6 @@
 
 // PCL specific includes
-#include "serialize.h"
+#include "map_serialize.h"
 
 
 struct MyPointType{
@@ -45,6 +45,14 @@ LoadTxt(const std::string& map_in_path,const int& frame_sum)
     Eigen::Vector3d tanslation;
     Eigen::Quaterniond rotation;
     Eigen::Isometry3d T=Eigen::Isometry3d::Identity();
+    double origin[3];
+    std::ifstream originfile(map_in_path+"Origin.txt");
+    std::string originlie;
+    std::getline(originfile, originlie);
+    std::istringstream isss(originlie);
+    isss>>origin[0]>>origin[1]>>origin[2];
+    originfile.close();
+
     std::ifstream downfile(map_in_path+"Opt_Poses.txt");
     Tum tum;
     for(int j=0;j<frame_sum;j++){
@@ -52,7 +60,7 @@ LoadTxt(const std::string& map_in_path,const int& frame_sum)
         std::getline(downfile, line);
         std::istringstream iss(line);
         iss >> pcdindex >> tum.tx >> tum.ty >> tum.tz >> tum.qx >> tum.qy >> tum.qz >> tum.qw;
-        tanslation<<tum.tx,tum.ty,tum.tz;
+        tanslation<<(tum.tx+origin[0]),(tum.ty+origin[1]),(tum.tz+origin[2]);
         rotation.x()=tum.qx;
         rotation.y()=tum.qy;
         rotation.z()=tum.qz;

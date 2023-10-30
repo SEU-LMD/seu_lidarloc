@@ -57,10 +57,10 @@ RM = /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/today/thirtyparty/pcl-1.10.0
+CMAKE_SOURCE_DIR = /home/today/fuse/seu_lidarloc/env/pcl-1.10.0
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug
+CMAKE_BINARY_DIR = /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -68,7 +68,7 @@ CMAKE_BINARY_DIR = /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug
 # Special rule for the target package
 package: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Run CPack packaging tool..."
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cpack --config ./CPackConfig.cmake
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cpack --config ./CPackConfig.cmake
 .PHONY : package
 
 # Special rule for the target package
@@ -78,7 +78,7 @@ package/fast: package
 # Special rule for the target package_source
 package_source:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Run CPack packaging tool for source..."
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cpack --config ./CPackSourceConfig.cmake /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/CPackSourceConfig.cmake
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cpack --config ./CPackSourceConfig.cmake /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/CPackSourceConfig.cmake
 .PHONY : package_source
 
 # Special rule for the target package_source
@@ -107,7 +107,7 @@ rebuild_cache/fast: rebuild_cache
 
 # Special rule for the target list_install_components
 list_install_components:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"pcl_2d\" \"pcl_common\" \"pcl_features\" \"pcl_filters\" \"pcl_geometry\" \"pcl_io\" \"pcl_kdtree\" \"pcl_keypoints\" \"pcl_ml\" \"pcl_octree\" \"pcl_recognition\" \"pcl_registration\" \"pcl_sample_consensus\" \"pcl_search\" \"pcl_segmentation\" \"pcl_stereo\" \"pcl_surface\" \"pcl_tools\" \"pcl_tracking\" \"pclconfig\""
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"pcl_common\" \"pclconfig\""
 .PHONY : list_install_components
 
 # Special rule for the target list_install_components
@@ -152,14 +152,14 @@ install/strip/fast: preinstall/fast
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -E cmake_progress_start /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/CMakeFiles /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/ml//CMakeFiles/progress.marks
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ml/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/CMakeFiles 0
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -E cmake_progress_start /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/CMakeFiles /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/ml//CMakeFiles/progress.marks
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ml/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ml/clean
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ml/clean
 .PHONY : clean
 
 # The main clean target
@@ -168,224 +168,18 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ml/preinstall
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ml/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ml/preinstall
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ml/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
-
-# Convenience name for target.
-ml/CMakeFiles/pcl_ml.dir/rule:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ml/CMakeFiles/pcl_ml.dir/rule
-.PHONY : ml/CMakeFiles/pcl_ml.dir/rule
-
-# Convenience name for target.
-pcl_ml: ml/CMakeFiles/pcl_ml.dir/rule
-.PHONY : pcl_ml
-
-# fast build rule for target.
-pcl_ml/fast:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/build
-.PHONY : pcl_ml/fast
-
-src/densecrf.o: src/densecrf.cpp.o
-.PHONY : src/densecrf.o
-
-# target to build an object file
-src/densecrf.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/densecrf.cpp.o
-.PHONY : src/densecrf.cpp.o
-
-src/densecrf.i: src/densecrf.cpp.i
-.PHONY : src/densecrf.i
-
-# target to preprocess a source file
-src/densecrf.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/densecrf.cpp.i
-.PHONY : src/densecrf.cpp.i
-
-src/densecrf.s: src/densecrf.cpp.s
-.PHONY : src/densecrf.s
-
-# target to generate assembly for a file
-src/densecrf.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/densecrf.cpp.s
-.PHONY : src/densecrf.cpp.s
-
-src/kmeans.o: src/kmeans.cpp.o
-.PHONY : src/kmeans.o
-
-# target to build an object file
-src/kmeans.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/kmeans.cpp.o
-.PHONY : src/kmeans.cpp.o
-
-src/kmeans.i: src/kmeans.cpp.i
-.PHONY : src/kmeans.i
-
-# target to preprocess a source file
-src/kmeans.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/kmeans.cpp.i
-.PHONY : src/kmeans.cpp.i
-
-src/kmeans.s: src/kmeans.cpp.s
-.PHONY : src/kmeans.s
-
-# target to generate assembly for a file
-src/kmeans.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/kmeans.cpp.s
-.PHONY : src/kmeans.cpp.s
-
-src/pairwise_potential.o: src/pairwise_potential.cpp.o
-.PHONY : src/pairwise_potential.o
-
-# target to build an object file
-src/pairwise_potential.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/pairwise_potential.cpp.o
-.PHONY : src/pairwise_potential.cpp.o
-
-src/pairwise_potential.i: src/pairwise_potential.cpp.i
-.PHONY : src/pairwise_potential.i
-
-# target to preprocess a source file
-src/pairwise_potential.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/pairwise_potential.cpp.i
-.PHONY : src/pairwise_potential.cpp.i
-
-src/pairwise_potential.s: src/pairwise_potential.cpp.s
-.PHONY : src/pairwise_potential.s
-
-# target to generate assembly for a file
-src/pairwise_potential.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/pairwise_potential.cpp.s
-.PHONY : src/pairwise_potential.cpp.s
-
-src/permutohedral.o: src/permutohedral.cpp.o
-.PHONY : src/permutohedral.o
-
-# target to build an object file
-src/permutohedral.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/permutohedral.cpp.o
-.PHONY : src/permutohedral.cpp.o
-
-src/permutohedral.i: src/permutohedral.cpp.i
-.PHONY : src/permutohedral.i
-
-# target to preprocess a source file
-src/permutohedral.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/permutohedral.cpp.i
-.PHONY : src/permutohedral.cpp.i
-
-src/permutohedral.s: src/permutohedral.cpp.s
-.PHONY : src/permutohedral.s
-
-# target to generate assembly for a file
-src/permutohedral.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/permutohedral.cpp.s
-.PHONY : src/permutohedral.cpp.s
-
-src/point_xy_32f.o: src/point_xy_32f.cpp.o
-.PHONY : src/point_xy_32f.o
-
-# target to build an object file
-src/point_xy_32f.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/point_xy_32f.cpp.o
-.PHONY : src/point_xy_32f.cpp.o
-
-src/point_xy_32f.i: src/point_xy_32f.cpp.i
-.PHONY : src/point_xy_32f.i
-
-# target to preprocess a source file
-src/point_xy_32f.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/point_xy_32f.cpp.i
-.PHONY : src/point_xy_32f.cpp.i
-
-src/point_xy_32f.s: src/point_xy_32f.cpp.s
-.PHONY : src/point_xy_32f.s
-
-# target to generate assembly for a file
-src/point_xy_32f.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/point_xy_32f.cpp.s
-.PHONY : src/point_xy_32f.cpp.s
-
-src/point_xy_32i.o: src/point_xy_32i.cpp.o
-.PHONY : src/point_xy_32i.o
-
-# target to build an object file
-src/point_xy_32i.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/point_xy_32i.cpp.o
-.PHONY : src/point_xy_32i.cpp.o
-
-src/point_xy_32i.i: src/point_xy_32i.cpp.i
-.PHONY : src/point_xy_32i.i
-
-# target to preprocess a source file
-src/point_xy_32i.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/point_xy_32i.cpp.i
-.PHONY : src/point_xy_32i.cpp.i
-
-src/point_xy_32i.s: src/point_xy_32i.cpp.s
-.PHONY : src/point_xy_32i.s
-
-# target to generate assembly for a file
-src/point_xy_32i.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/point_xy_32i.cpp.s
-.PHONY : src/point_xy_32i.cpp.s
-
-src/svm.o: src/svm.cpp.o
-.PHONY : src/svm.o
-
-# target to build an object file
-src/svm.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/svm.cpp.o
-.PHONY : src/svm.cpp.o
-
-src/svm.i: src/svm.cpp.i
-.PHONY : src/svm.i
-
-# target to preprocess a source file
-src/svm.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/svm.cpp.i
-.PHONY : src/svm.cpp.i
-
-src/svm.s: src/svm.cpp.s
-.PHONY : src/svm.s
-
-# target to generate assembly for a file
-src/svm.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/svm.cpp.s
-.PHONY : src/svm.cpp.s
-
-src/svm_wrapper.o: src/svm_wrapper.cpp.o
-.PHONY : src/svm_wrapper.o
-
-# target to build an object file
-src/svm_wrapper.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/svm_wrapper.cpp.o
-.PHONY : src/svm_wrapper.cpp.o
-
-src/svm_wrapper.i: src/svm_wrapper.cpp.i
-.PHONY : src/svm_wrapper.i
-
-# target to preprocess a source file
-src/svm_wrapper.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/svm_wrapper.cpp.i
-.PHONY : src/svm_wrapper.cpp.i
-
-src/svm_wrapper.s: src/svm_wrapper.cpp.s
-.PHONY : src/svm_wrapper.s
-
-# target to generate assembly for a file
-src/svm_wrapper.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f ml/CMakeFiles/pcl_ml.dir/build.make ml/CMakeFiles/pcl_ml.dir/src/svm_wrapper.cpp.s
-.PHONY : src/svm_wrapper.cpp.s
 
 # Help Target
 help:
@@ -401,31 +195,6 @@ help:
 	@echo "... package"
 	@echo "... package_source"
 	@echo "... rebuild_cache"
-	@echo "... pcl_ml"
-	@echo "... src/densecrf.o"
-	@echo "... src/densecrf.i"
-	@echo "... src/densecrf.s"
-	@echo "... src/kmeans.o"
-	@echo "... src/kmeans.i"
-	@echo "... src/kmeans.s"
-	@echo "... src/pairwise_potential.o"
-	@echo "... src/pairwise_potential.i"
-	@echo "... src/pairwise_potential.s"
-	@echo "... src/permutohedral.o"
-	@echo "... src/permutohedral.i"
-	@echo "... src/permutohedral.s"
-	@echo "... src/point_xy_32f.o"
-	@echo "... src/point_xy_32f.i"
-	@echo "... src/point_xy_32f.s"
-	@echo "... src/point_xy_32i.o"
-	@echo "... src/point_xy_32i.i"
-	@echo "... src/point_xy_32i.s"
-	@echo "... src/svm.o"
-	@echo "... src/svm.i"
-	@echo "... src/svm.s"
-	@echo "... src/svm_wrapper.o"
-	@echo "... src/svm_wrapper.i"
-	@echo "... src/svm_wrapper.s"
 .PHONY : help
 
 
@@ -437,6 +206,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

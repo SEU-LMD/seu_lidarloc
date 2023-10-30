@@ -1,9 +1,8 @@
-/home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G "CodeBlocks - Unix Makefiles" -S /home/today/thirtyparty/pcl-1.10.0 -B /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug
+/home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G "CodeBlocks - Unix Makefiles" -S /home/today/fuse/seu_lidarloc/env/pcl-1.10.0 -B /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug
 -- Adding target 'format'
 -- Using CPU native flags for SSE optimization: -march=native
 -- Found OpenMP
--- Eigen found (include: /home/today/thirtyparty/pcl-1.10.0/cmake/Modules/../../../eigen-3.4.0-install-x86/include/eigen3/, version: 3.4.0)
-/home/today/thirtyparty/pcl-1.10.0/cmake/Modules/../../../eigen-3.4.0-install-x86/include/eigen3/
+/home/today/fuse/seu_lidarloc/env/eigen-3.4.0-install-x86/include/eigen3
 flann lib = 
 flann::flann
 CMake Warning (dev) at /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/share/cmake-3.25/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
@@ -56,33 +55,33 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
 -- HTML_HELP_COMPILER 
 -- Found CPack generators: DEB
 -- The following subsystems will be built:
---   common
---   kdtree
---   octree
---   search
---   sample_consensus
---   filters
---   2d
---   geometry
---   io
---   features
---   ml
---   segmentation
---   surface
---   registration
---   keypoints
---   tracking
---   recognition
---   stereo
---   tools
 -- The following subsystems will not be built:
+--   common: Requires external library eigen.
+--   kdtree: Requires common.
+--   octree: Requires common.
+--   search: Requires octree.
+--   sample_consensus: Requires search.
+--   filters: Requires octree.
+--   2d: Requires filters.
+--   geometry: Requires common.
+--   io: Requires octree.
+--   features: Requires 2d.
+--   ml: Requires common.
+--   segmentation: Requires ml.
 --   visualization: VTK was not found.
+--   surface: Requires octree.
+--   registration: Requires filters.
+--   keypoints: Requires filters.
+--   tracking: Requires octree.
+--   recognition: Requires ml.
+--   stereo: Requires io.
 --   apps: Disabled: visualization missing.
 --   outofcore: Requires visualization.
 --   examples: Code examples are disabled by default.
---   people: Requires visualization.
+--   people: Requires octree.
 --   simulation: Disabled: visualization missing.
 --   global_tests: No reason
+--   tools: Requires ml.
 -- Configuring done
 -- Generating done
--- Build files have been written to: /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug
+-- Build files have been written to: /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug

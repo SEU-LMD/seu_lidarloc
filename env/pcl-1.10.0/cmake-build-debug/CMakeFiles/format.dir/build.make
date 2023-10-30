@@ -53,10 +53,10 @@ RM = /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/today/thirtyparty/pcl-1.10.0
+CMAKE_SOURCE_DIR = /home/today/fuse/seu_lidarloc/env/pcl-1.10.0
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug
+CMAKE_BINARY_DIR = /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug
 
 # Utility rule file for format.
 
@@ -67,7 +67,7 @@ include CMakeFiles/format.dir/compiler_depend.make
 include CMakeFiles/format.dir/progress.make
 
 CMakeFiles/format:
-	sh /home/today/thirtyparty/pcl-1.10.0/.dev/format.sh /home/today/.local/bin/clang-format /home/today/thirtyparty/pcl-1.10.0
+	sh /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/.dev/format.sh /home/today/.local/bin/clang-format /home/today/fuse/seu_lidarloc/env/pcl-1.10.0
 
 format: CMakeFiles/format
 format: CMakeFiles/format.dir/build.make
@@ -82,6 +82,6 @@ CMakeFiles/format.dir/clean:
 .PHONY : CMakeFiles/format.dir/clean
 
 CMakeFiles/format.dir/depend:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/today/thirtyparty/pcl-1.10.0 /home/today/thirtyparty/pcl-1.10.0 /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/CMakeFiles/format.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/today/fuse/seu_lidarloc/env/pcl-1.10.0 /home/today/fuse/seu_lidarloc/env/pcl-1.10.0 /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/CMakeFiles/format.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/format.dir/depend
 

@@ -1,8 +1,8 @@
-if(NOT EXISTS "/home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/install_manifest.txt")
-  message(FATAL_ERROR "Cannot find install manifest: \"/home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/install_manifest.txt\"")
+if(NOT EXISTS "/home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/install_manifest.txt")
+  message(FATAL_ERROR "Cannot find install manifest: \"/home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/install_manifest.txt\"")
 endif()
 
-file(READ "/home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/install_manifest.txt" files)
+file(READ "/home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/install_manifest.txt" files)
 string(REGEX REPLACE "\n" ";" files "${files}")
 foreach(file ${files})
   message(STATUS "Uninstalling \"$ENV{DESTDIR}${file}\"")

@@ -53,10 +53,10 @@ RM = /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/today/thirtyparty/pcl-1.10.0
+CMAKE_SOURCE_DIR = /home/today/fuse/seu_lidarloc/env/pcl-1.10.0
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug
+CMAKE_BINARY_DIR = /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug
 
 # Utility rule file for uninstall.
 
@@ -67,7 +67,7 @@ include CMakeFiles/uninstall.dir/compiler_depend.make
 include CMakeFiles/uninstall.dir/progress.make
 
 CMakeFiles/uninstall:
-	/home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cmake -P /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/uninstall_target.cmake
+	/home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cmake -P /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/uninstall_target.cmake
 
 uninstall: CMakeFiles/uninstall
 uninstall: CMakeFiles/uninstall.dir/build.make
@@ -82,6 +82,6 @@ CMakeFiles/uninstall.dir/clean:
 .PHONY : CMakeFiles/uninstall.dir/clean
 
 CMakeFiles/uninstall.dir/depend:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/today/thirtyparty/pcl-1.10.0 /home/today/thirtyparty/pcl-1.10.0 /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/CMakeFiles/uninstall.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/today/fuse/seu_lidarloc/env/pcl-1.10.0 /home/today/fuse/seu_lidarloc/env/pcl-1.10.0 /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/CMakeFiles/uninstall.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/uninstall.dir/depend
 

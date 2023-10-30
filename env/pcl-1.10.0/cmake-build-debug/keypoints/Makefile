@@ -57,10 +57,10 @@ RM = /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/today/thirtyparty/pcl-1.10.0
+CMAKE_SOURCE_DIR = /home/today/fuse/seu_lidarloc/env/pcl-1.10.0
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug
+CMAKE_BINARY_DIR = /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -68,7 +68,7 @@ CMAKE_BINARY_DIR = /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug
 # Special rule for the target package
 package: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Run CPack packaging tool..."
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cpack --config ./CPackConfig.cmake
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cpack --config ./CPackConfig.cmake
 .PHONY : package
 
 # Special rule for the target package
@@ -78,7 +78,7 @@ package/fast: package
 # Special rule for the target package_source
 package_source:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Run CPack packaging tool for source..."
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cpack --config ./CPackSourceConfig.cmake /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/CPackSourceConfig.cmake
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cpack --config ./CPackSourceConfig.cmake /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/CPackSourceConfig.cmake
 .PHONY : package_source
 
 # Special rule for the target package_source
@@ -107,7 +107,7 @@ rebuild_cache/fast: rebuild_cache
 
 # Special rule for the target list_install_components
 list_install_components:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"pcl_2d\" \"pcl_common\" \"pcl_features\" \"pcl_filters\" \"pcl_geometry\" \"pcl_io\" \"pcl_kdtree\" \"pcl_keypoints\" \"pcl_ml\" \"pcl_octree\" \"pcl_recognition\" \"pcl_registration\" \"pcl_sample_consensus\" \"pcl_search\" \"pcl_segmentation\" \"pcl_stereo\" \"pcl_surface\" \"pcl_tools\" \"pcl_tracking\" \"pclconfig\""
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"pcl_common\" \"pclconfig\""
 .PHONY : list_install_components
 
 # Special rule for the target list_install_components
@@ -152,14 +152,14 @@ install/strip/fast: preinstall/fast
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -E cmake_progress_start /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/CMakeFiles /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/keypoints//CMakeFiles/progress.marks
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 keypoints/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/CMakeFiles 0
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -E cmake_progress_start /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/CMakeFiles /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/keypoints//CMakeFiles/progress.marks
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 keypoints/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 keypoints/clean
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 keypoints/clean
 .PHONY : clean
 
 # The main clean target
@@ -168,296 +168,18 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 keypoints/preinstall
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 keypoints/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 keypoints/preinstall
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 keypoints/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
-
-# Convenience name for target.
-keypoints/CMakeFiles/pcl_keypoints.dir/rule:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 keypoints/CMakeFiles/pcl_keypoints.dir/rule
-.PHONY : keypoints/CMakeFiles/pcl_keypoints.dir/rule
-
-# Convenience name for target.
-pcl_keypoints: keypoints/CMakeFiles/pcl_keypoints.dir/rule
-.PHONY : pcl_keypoints
-
-# fast build rule for target.
-pcl_keypoints/fast:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/build
-.PHONY : pcl_keypoints/fast
-
-src/agast_2d.o: src/agast_2d.cpp.o
-.PHONY : src/agast_2d.o
-
-# target to build an object file
-src/agast_2d.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/agast_2d.cpp.o
-.PHONY : src/agast_2d.cpp.o
-
-src/agast_2d.i: src/agast_2d.cpp.i
-.PHONY : src/agast_2d.i
-
-# target to preprocess a source file
-src/agast_2d.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/agast_2d.cpp.i
-.PHONY : src/agast_2d.cpp.i
-
-src/agast_2d.s: src/agast_2d.cpp.s
-.PHONY : src/agast_2d.s
-
-# target to generate assembly for a file
-src/agast_2d.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/agast_2d.cpp.s
-.PHONY : src/agast_2d.cpp.s
-
-src/brisk_2d.o: src/brisk_2d.cpp.o
-.PHONY : src/brisk_2d.o
-
-# target to build an object file
-src/brisk_2d.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/brisk_2d.cpp.o
-.PHONY : src/brisk_2d.cpp.o
-
-src/brisk_2d.i: src/brisk_2d.cpp.i
-.PHONY : src/brisk_2d.i
-
-# target to preprocess a source file
-src/brisk_2d.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/brisk_2d.cpp.i
-.PHONY : src/brisk_2d.cpp.i
-
-src/brisk_2d.s: src/brisk_2d.cpp.s
-.PHONY : src/brisk_2d.s
-
-# target to generate assembly for a file
-src/brisk_2d.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/brisk_2d.cpp.s
-.PHONY : src/brisk_2d.cpp.s
-
-src/harris_3d.o: src/harris_3d.cpp.o
-.PHONY : src/harris_3d.o
-
-# target to build an object file
-src/harris_3d.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/harris_3d.cpp.o
-.PHONY : src/harris_3d.cpp.o
-
-src/harris_3d.i: src/harris_3d.cpp.i
-.PHONY : src/harris_3d.i
-
-# target to preprocess a source file
-src/harris_3d.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/harris_3d.cpp.i
-.PHONY : src/harris_3d.cpp.i
-
-src/harris_3d.s: src/harris_3d.cpp.s
-.PHONY : src/harris_3d.s
-
-# target to generate assembly for a file
-src/harris_3d.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/harris_3d.cpp.s
-.PHONY : src/harris_3d.cpp.s
-
-src/harris_6d.o: src/harris_6d.cpp.o
-.PHONY : src/harris_6d.o
-
-# target to build an object file
-src/harris_6d.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/harris_6d.cpp.o
-.PHONY : src/harris_6d.cpp.o
-
-src/harris_6d.i: src/harris_6d.cpp.i
-.PHONY : src/harris_6d.i
-
-# target to preprocess a source file
-src/harris_6d.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/harris_6d.cpp.i
-.PHONY : src/harris_6d.cpp.i
-
-src/harris_6d.s: src/harris_6d.cpp.s
-.PHONY : src/harris_6d.s
-
-# target to generate assembly for a file
-src/harris_6d.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/harris_6d.cpp.s
-.PHONY : src/harris_6d.cpp.s
-
-src/iss_3d.o: src/iss_3d.cpp.o
-.PHONY : src/iss_3d.o
-
-# target to build an object file
-src/iss_3d.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/iss_3d.cpp.o
-.PHONY : src/iss_3d.cpp.o
-
-src/iss_3d.i: src/iss_3d.cpp.i
-.PHONY : src/iss_3d.i
-
-# target to preprocess a source file
-src/iss_3d.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/iss_3d.cpp.i
-.PHONY : src/iss_3d.cpp.i
-
-src/iss_3d.s: src/iss_3d.cpp.s
-.PHONY : src/iss_3d.s
-
-# target to generate assembly for a file
-src/iss_3d.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/iss_3d.cpp.s
-.PHONY : src/iss_3d.cpp.s
-
-src/narf_keypoint.o: src/narf_keypoint.cpp.o
-.PHONY : src/narf_keypoint.o
-
-# target to build an object file
-src/narf_keypoint.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/narf_keypoint.cpp.o
-.PHONY : src/narf_keypoint.cpp.o
-
-src/narf_keypoint.i: src/narf_keypoint.cpp.i
-.PHONY : src/narf_keypoint.i
-
-# target to preprocess a source file
-src/narf_keypoint.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/narf_keypoint.cpp.i
-.PHONY : src/narf_keypoint.cpp.i
-
-src/narf_keypoint.s: src/narf_keypoint.cpp.s
-.PHONY : src/narf_keypoint.s
-
-# target to generate assembly for a file
-src/narf_keypoint.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/narf_keypoint.cpp.s
-.PHONY : src/narf_keypoint.cpp.s
-
-src/sift_keypoint.o: src/sift_keypoint.cpp.o
-.PHONY : src/sift_keypoint.o
-
-# target to build an object file
-src/sift_keypoint.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/sift_keypoint.cpp.o
-.PHONY : src/sift_keypoint.cpp.o
-
-src/sift_keypoint.i: src/sift_keypoint.cpp.i
-.PHONY : src/sift_keypoint.i
-
-# target to preprocess a source file
-src/sift_keypoint.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/sift_keypoint.cpp.i
-.PHONY : src/sift_keypoint.cpp.i
-
-src/sift_keypoint.s: src/sift_keypoint.cpp.s
-.PHONY : src/sift_keypoint.s
-
-# target to generate assembly for a file
-src/sift_keypoint.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/sift_keypoint.cpp.s
-.PHONY : src/sift_keypoint.cpp.s
-
-src/smoothed_surfaces_keypoint.o: src/smoothed_surfaces_keypoint.cpp.o
-.PHONY : src/smoothed_surfaces_keypoint.o
-
-# target to build an object file
-src/smoothed_surfaces_keypoint.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/smoothed_surfaces_keypoint.cpp.o
-.PHONY : src/smoothed_surfaces_keypoint.cpp.o
-
-src/smoothed_surfaces_keypoint.i: src/smoothed_surfaces_keypoint.cpp.i
-.PHONY : src/smoothed_surfaces_keypoint.i
-
-# target to preprocess a source file
-src/smoothed_surfaces_keypoint.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/smoothed_surfaces_keypoint.cpp.i
-.PHONY : src/smoothed_surfaces_keypoint.cpp.i
-
-src/smoothed_surfaces_keypoint.s: src/smoothed_surfaces_keypoint.cpp.s
-.PHONY : src/smoothed_surfaces_keypoint.s
-
-# target to generate assembly for a file
-src/smoothed_surfaces_keypoint.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/smoothed_surfaces_keypoint.cpp.s
-.PHONY : src/smoothed_surfaces_keypoint.cpp.s
-
-src/susan.o: src/susan.cpp.o
-.PHONY : src/susan.o
-
-# target to build an object file
-src/susan.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/susan.cpp.o
-.PHONY : src/susan.cpp.o
-
-src/susan.i: src/susan.cpp.i
-.PHONY : src/susan.i
-
-# target to preprocess a source file
-src/susan.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/susan.cpp.i
-.PHONY : src/susan.cpp.i
-
-src/susan.s: src/susan.cpp.s
-.PHONY : src/susan.s
-
-# target to generate assembly for a file
-src/susan.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/susan.cpp.s
-.PHONY : src/susan.cpp.s
-
-src/trajkovic_2d.o: src/trajkovic_2d.cpp.o
-.PHONY : src/trajkovic_2d.o
-
-# target to build an object file
-src/trajkovic_2d.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/trajkovic_2d.cpp.o
-.PHONY : src/trajkovic_2d.cpp.o
-
-src/trajkovic_2d.i: src/trajkovic_2d.cpp.i
-.PHONY : src/trajkovic_2d.i
-
-# target to preprocess a source file
-src/trajkovic_2d.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/trajkovic_2d.cpp.i
-.PHONY : src/trajkovic_2d.cpp.i
-
-src/trajkovic_2d.s: src/trajkovic_2d.cpp.s
-.PHONY : src/trajkovic_2d.s
-
-# target to generate assembly for a file
-src/trajkovic_2d.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/trajkovic_2d.cpp.s
-.PHONY : src/trajkovic_2d.cpp.s
-
-src/trajkovic_3d.o: src/trajkovic_3d.cpp.o
-.PHONY : src/trajkovic_3d.o
-
-# target to build an object file
-src/trajkovic_3d.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/trajkovic_3d.cpp.o
-.PHONY : src/trajkovic_3d.cpp.o
-
-src/trajkovic_3d.i: src/trajkovic_3d.cpp.i
-.PHONY : src/trajkovic_3d.i
-
-# target to preprocess a source file
-src/trajkovic_3d.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/trajkovic_3d.cpp.i
-.PHONY : src/trajkovic_3d.cpp.i
-
-src/trajkovic_3d.s: src/trajkovic_3d.cpp.s
-.PHONY : src/trajkovic_3d.s
-
-# target to generate assembly for a file
-src/trajkovic_3d.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f keypoints/CMakeFiles/pcl_keypoints.dir/build.make keypoints/CMakeFiles/pcl_keypoints.dir/src/trajkovic_3d.cpp.s
-.PHONY : src/trajkovic_3d.cpp.s
 
 # Help Target
 help:
@@ -473,40 +195,6 @@ help:
 	@echo "... package"
 	@echo "... package_source"
 	@echo "... rebuild_cache"
-	@echo "... pcl_keypoints"
-	@echo "... src/agast_2d.o"
-	@echo "... src/agast_2d.i"
-	@echo "... src/agast_2d.s"
-	@echo "... src/brisk_2d.o"
-	@echo "... src/brisk_2d.i"
-	@echo "... src/brisk_2d.s"
-	@echo "... src/harris_3d.o"
-	@echo "... src/harris_3d.i"
-	@echo "... src/harris_3d.s"
-	@echo "... src/harris_6d.o"
-	@echo "... src/harris_6d.i"
-	@echo "... src/harris_6d.s"
-	@echo "... src/iss_3d.o"
-	@echo "... src/iss_3d.i"
-	@echo "... src/iss_3d.s"
-	@echo "... src/narf_keypoint.o"
-	@echo "... src/narf_keypoint.i"
-	@echo "... src/narf_keypoint.s"
-	@echo "... src/sift_keypoint.o"
-	@echo "... src/sift_keypoint.i"
-	@echo "... src/sift_keypoint.s"
-	@echo "... src/smoothed_surfaces_keypoint.o"
-	@echo "... src/smoothed_surfaces_keypoint.i"
-	@echo "... src/smoothed_surfaces_keypoint.s"
-	@echo "... src/susan.o"
-	@echo "... src/susan.i"
-	@echo "... src/susan.s"
-	@echo "... src/trajkovic_2d.o"
-	@echo "... src/trajkovic_2d.i"
-	@echo "... src/trajkovic_2d.s"
-	@echo "... src/trajkovic_3d.o"
-	@echo "... src/trajkovic_3d.i"
-	@echo "... src/trajkovic_3d.s"
 .PHONY : help
 
 
@@ -518,6 +206,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

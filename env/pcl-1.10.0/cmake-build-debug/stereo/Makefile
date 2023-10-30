@@ -57,10 +57,10 @@ RM = /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/today/thirtyparty/pcl-1.10.0
+CMAKE_SOURCE_DIR = /home/today/fuse/seu_lidarloc/env/pcl-1.10.0
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug
+CMAKE_BINARY_DIR = /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -68,7 +68,7 @@ CMAKE_BINARY_DIR = /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug
 # Special rule for the target package
 package: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Run CPack packaging tool..."
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cpack --config ./CPackConfig.cmake
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cpack --config ./CPackConfig.cmake
 .PHONY : package
 
 # Special rule for the target package
@@ -78,7 +78,7 @@ package/fast: package
 # Special rule for the target package_source
 package_source:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Run CPack packaging tool for source..."
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cpack --config ./CPackSourceConfig.cmake /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/CPackSourceConfig.cmake
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && /home/today/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/231.9225.21/bin/cmake/linux/x64/bin/cpack --config ./CPackSourceConfig.cmake /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/CPackSourceConfig.cmake
 .PHONY : package_source
 
 # Special rule for the target package_source
@@ -107,7 +107,7 @@ rebuild_cache/fast: rebuild_cache
 
 # Special rule for the target list_install_components
 list_install_components:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"pcl_2d\" \"pcl_common\" \"pcl_features\" \"pcl_filters\" \"pcl_geometry\" \"pcl_io\" \"pcl_kdtree\" \"pcl_keypoints\" \"pcl_ml\" \"pcl_octree\" \"pcl_recognition\" \"pcl_registration\" \"pcl_sample_consensus\" \"pcl_search\" \"pcl_segmentation\" \"pcl_stereo\" \"pcl_surface\" \"pcl_tools\" \"pcl_tracking\" \"pclconfig\""
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"pcl_common\" \"pclconfig\""
 .PHONY : list_install_components
 
 # Special rule for the target list_install_components
@@ -152,14 +152,14 @@ install/strip/fast: preinstall/fast
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -E cmake_progress_start /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/CMakeFiles /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/stereo//CMakeFiles/progress.marks
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 stereo/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/CMakeFiles 0
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -E cmake_progress_start /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/CMakeFiles /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/stereo//CMakeFiles/progress.marks
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 stereo/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 stereo/clean
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 stereo/clean
 .PHONY : clean
 
 # The main clean target
@@ -168,176 +168,18 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 stereo/preinstall
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 stereo/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 stereo/preinstall
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 stereo/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
-
-# Convenience name for target.
-stereo/CMakeFiles/pcl_stereo.dir/rule:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 stereo/CMakeFiles/pcl_stereo.dir/rule
-.PHONY : stereo/CMakeFiles/pcl_stereo.dir/rule
-
-# Convenience name for target.
-pcl_stereo: stereo/CMakeFiles/pcl_stereo.dir/rule
-.PHONY : pcl_stereo
-
-# fast build rule for target.
-pcl_stereo/fast:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/build
-.PHONY : pcl_stereo/fast
-
-src/digital_elevation_map.o: src/digital_elevation_map.cpp.o
-.PHONY : src/digital_elevation_map.o
-
-# target to build an object file
-src/digital_elevation_map.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/digital_elevation_map.cpp.o
-.PHONY : src/digital_elevation_map.cpp.o
-
-src/digital_elevation_map.i: src/digital_elevation_map.cpp.i
-.PHONY : src/digital_elevation_map.i
-
-# target to preprocess a source file
-src/digital_elevation_map.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/digital_elevation_map.cpp.i
-.PHONY : src/digital_elevation_map.cpp.i
-
-src/digital_elevation_map.s: src/digital_elevation_map.cpp.s
-.PHONY : src/digital_elevation_map.s
-
-# target to generate assembly for a file
-src/digital_elevation_map.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/digital_elevation_map.cpp.s
-.PHONY : src/digital_elevation_map.cpp.s
-
-src/disparity_map_converter.o: src/disparity_map_converter.cpp.o
-.PHONY : src/disparity_map_converter.o
-
-# target to build an object file
-src/disparity_map_converter.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/disparity_map_converter.cpp.o
-.PHONY : src/disparity_map_converter.cpp.o
-
-src/disparity_map_converter.i: src/disparity_map_converter.cpp.i
-.PHONY : src/disparity_map_converter.i
-
-# target to preprocess a source file
-src/disparity_map_converter.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/disparity_map_converter.cpp.i
-.PHONY : src/disparity_map_converter.cpp.i
-
-src/disparity_map_converter.s: src/disparity_map_converter.cpp.s
-.PHONY : src/disparity_map_converter.s
-
-# target to generate assembly for a file
-src/disparity_map_converter.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/disparity_map_converter.cpp.s
-.PHONY : src/disparity_map_converter.cpp.s
-
-src/stereo_adaptive_cost_so.o: src/stereo_adaptive_cost_so.cpp.o
-.PHONY : src/stereo_adaptive_cost_so.o
-
-# target to build an object file
-src/stereo_adaptive_cost_so.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/stereo_adaptive_cost_so.cpp.o
-.PHONY : src/stereo_adaptive_cost_so.cpp.o
-
-src/stereo_adaptive_cost_so.i: src/stereo_adaptive_cost_so.cpp.i
-.PHONY : src/stereo_adaptive_cost_so.i
-
-# target to preprocess a source file
-src/stereo_adaptive_cost_so.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/stereo_adaptive_cost_so.cpp.i
-.PHONY : src/stereo_adaptive_cost_so.cpp.i
-
-src/stereo_adaptive_cost_so.s: src/stereo_adaptive_cost_so.cpp.s
-.PHONY : src/stereo_adaptive_cost_so.s
-
-# target to generate assembly for a file
-src/stereo_adaptive_cost_so.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/stereo_adaptive_cost_so.cpp.s
-.PHONY : src/stereo_adaptive_cost_so.cpp.s
-
-src/stereo_block_based.o: src/stereo_block_based.cpp.o
-.PHONY : src/stereo_block_based.o
-
-# target to build an object file
-src/stereo_block_based.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/stereo_block_based.cpp.o
-.PHONY : src/stereo_block_based.cpp.o
-
-src/stereo_block_based.i: src/stereo_block_based.cpp.i
-.PHONY : src/stereo_block_based.i
-
-# target to preprocess a source file
-src/stereo_block_based.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/stereo_block_based.cpp.i
-.PHONY : src/stereo_block_based.cpp.i
-
-src/stereo_block_based.s: src/stereo_block_based.cpp.s
-.PHONY : src/stereo_block_based.s
-
-# target to generate assembly for a file
-src/stereo_block_based.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/stereo_block_based.cpp.s
-.PHONY : src/stereo_block_based.cpp.s
-
-src/stereo_grabber.o: src/stereo_grabber.cpp.o
-.PHONY : src/stereo_grabber.o
-
-# target to build an object file
-src/stereo_grabber.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/stereo_grabber.cpp.o
-.PHONY : src/stereo_grabber.cpp.o
-
-src/stereo_grabber.i: src/stereo_grabber.cpp.i
-.PHONY : src/stereo_grabber.i
-
-# target to preprocess a source file
-src/stereo_grabber.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/stereo_grabber.cpp.i
-.PHONY : src/stereo_grabber.cpp.i
-
-src/stereo_grabber.s: src/stereo_grabber.cpp.s
-.PHONY : src/stereo_grabber.s
-
-# target to generate assembly for a file
-src/stereo_grabber.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/stereo_grabber.cpp.s
-.PHONY : src/stereo_grabber.cpp.s
-
-src/stereo_matching.o: src/stereo_matching.cpp.o
-.PHONY : src/stereo_matching.o
-
-# target to build an object file
-src/stereo_matching.cpp.o:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/stereo_matching.cpp.o
-.PHONY : src/stereo_matching.cpp.o
-
-src/stereo_matching.i: src/stereo_matching.cpp.i
-.PHONY : src/stereo_matching.i
-
-# target to preprocess a source file
-src/stereo_matching.cpp.i:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/stereo_matching.cpp.i
-.PHONY : src/stereo_matching.cpp.i
-
-src/stereo_matching.s: src/stereo_matching.cpp.s
-.PHONY : src/stereo_matching.s
-
-# target to generate assembly for a file
-src/stereo_matching.cpp.s:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(MAKE) $(MAKESILENT) -f stereo/CMakeFiles/pcl_stereo.dir/build.make stereo/CMakeFiles/pcl_stereo.dir/src/stereo_matching.cpp.s
-.PHONY : src/stereo_matching.cpp.s
 
 # Help Target
 help:
@@ -353,25 +195,6 @@ help:
 	@echo "... package"
 	@echo "... package_source"
 	@echo "... rebuild_cache"
-	@echo "... pcl_stereo"
-	@echo "... src/digital_elevation_map.o"
-	@echo "... src/digital_elevation_map.i"
-	@echo "... src/digital_elevation_map.s"
-	@echo "... src/disparity_map_converter.o"
-	@echo "... src/disparity_map_converter.i"
-	@echo "... src/disparity_map_converter.s"
-	@echo "... src/stereo_adaptive_cost_so.o"
-	@echo "... src/stereo_adaptive_cost_so.i"
-	@echo "... src/stereo_adaptive_cost_so.s"
-	@echo "... src/stereo_block_based.o"
-	@echo "... src/stereo_block_based.i"
-	@echo "... src/stereo_block_based.s"
-	@echo "... src/stereo_grabber.o"
-	@echo "... src/stereo_grabber.i"
-	@echo "... src/stereo_grabber.s"
-	@echo "... src/stereo_matching.o"
-	@echo "... src/stereo_matching.i"
-	@echo "... src/stereo_matching.s"
 .PHONY : help
 
 
@@ -383,6 +206,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/today/thirtyparty/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/today/fuse/seu_lidarloc/env/pcl-1.10.0/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

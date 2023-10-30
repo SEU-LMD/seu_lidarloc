@@ -33,7 +33,7 @@ find_package(OpenCV REQUIRED)
 #set(PCL_DIR ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/share/pcl-1.10)
 #find_package(PCL REQUIRED)
 
-set(PCL_DIR "/usr/lib/x86_64-linux-gnu/cmake/pcl") # if noted, then sy will crush
+#set(PCL_DIR "/usr/lib/x86_64-linux-gnu/cmake/pcl") # if noted, then sy will crush
 #set(PCL_DIR ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/share/pcl-1.10)
 find_package(PCL REQUIRED)
 MESSAGE("-----------PCL_ROOT:${PCL_ROOT}-----------")

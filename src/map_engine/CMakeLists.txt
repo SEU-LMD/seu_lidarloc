@@ -55,8 +55,8 @@ MESSAGE(STATUS "------------${PCL_LIBRARY_DIRS}------------------")
 ###########
 
 #mapping related executabel
-add_executable(serialize ./serialize.cpp)
+add_executable(serialize ./map_serialize.cpp)
 target_link_libraries(serialize ${PCL_LIBRARIES} ${YAML_LIB})
 
-add_executable(mapmanager ./mapmanager.cpp)
-target_link_libraries(mapmanager ${PCL_LIBRARIES} ${YAML_LIB} ${catkin_LIBRARIES})
+#add_executable(mapmanager ./mapmanager.cpp)
+#target_link_libraries(mapmanager ${PCL_LIBRARIES} ${YAML_LIB} ${catkin_LIBRARIES})
