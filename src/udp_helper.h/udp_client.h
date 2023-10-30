@@ -45,7 +45,6 @@ public:
         socklen_t addrLen=sizeof (server_addr);
         //block mode!!!!
         int recv_len = recvfrom(client_sock, rev_buff,sizeof (rev_buff), 0,(struct sockaddr*)&server_addr,&addrLen);
-        std::cout<<"ok"<<recv_len<<std::endl;
         if (recv_len > 0){
             rev_buff[recv_len] = '\0';
             std::string rcv_msgs(rev_buff);

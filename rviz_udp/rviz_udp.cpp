@@ -10,13 +10,13 @@
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include "udp_client.h"
-#include "udp_helper.h"
+#include "udp_seralize.h"
 
 ros::Publisher publish_gnss_odom;
 ros::Publisher publish_lidar_odom;
 ros::Publisher publish_dr_odom;
 
-void PubilshCloud(const UDP_CLENT& client);
+void PubilshOdometry(const UDP_CLENT& client);
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "rviz_udp");
@@ -32,8 +32,7 @@ int main(int argc, char** argv){
     UDP_CLENT udp_client;
     int client_port = 8000;
     udp_client.init(client_port);  //只用来接受只绑定端口
-    std::cout<<"coming"<<"678"<<std::endl;
-    
+
     ros::Rate rate(100);
     while(ros::ok){
         udp_client.recvProcess();
@@ -45,7 +44,7 @@ int main(int argc, char** argv){
 
 void PubilshOdometry(const UDP_CLENT& client){
     Vis_Odometry vis_Odometry;
-    fromString(client.rcv_msg,vis_Odometry);
+    Vis_Odometry::fromString(client.rcv_msg,vis_Odometry);
     //"gn" means = gnss
     if(vis_Odometry.type=="gn"){
         nav_msgs::Odometry gnss_msg;
