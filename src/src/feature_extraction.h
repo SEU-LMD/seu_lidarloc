@@ -797,7 +797,7 @@ public:
     {
         //LOG(INFO) << "[" << in_cloud->points.size() << "] points used for PCA, pca down rate is [" << pca_down_rate << "]";
         features.resize(in_cloud->points.size());
-
+        EZLOG(INFO) << "start get pca feature "<< std::endl;
         for (int i = 0; i < in_cloud->points.size(); i += pca_down_rate) //faster way
         {
             // if (i % pca_down_rate == 0) {//this way is much slower
@@ -837,16 +837,17 @@ public:
                 else
                     features[i].close_to_query_point[j] = false;
             }
-
+            EZLOG(INFO) << "get current point feature"<< std::endl;
             get_pca_feature(in_cloud, search_indices, features[i]);
-
+            EZLOG(INFO) << "after current point feature, start assign normal"<< std::endl;
             if (features[i].pt_num > min_k)
                 assign_normal(in_cloud->points[i], features[i]);
-            EZLOG(INFO) << 1111 << std::endl;
+            EZLOG(INFO) << "after assign normal" << std::endl;
             std::vector<int>().swap(search_indices);
             std::vector<int>().swap(search_indices_used);
             std::vector<float>().swap(squared_distances);
         }
+        EZLOG(INFO) << "pca over! "<< std::endl;
         //}
         return true;
     }
@@ -868,7 +869,6 @@ public:
             return false;
 
         pcl::PointCloud<PointXYZICOLRANGE>::Ptr selected_cloud(new pcl::PointCloud<PointXYZICOLRANGE>());
-        EZLOG(INFO) << 1 << std::endl;
         const int maxIdx = in_cloud->points.size();
         for (int i = 0; i < pt_num; ++i) {
             int idx = search_indices[i];
@@ -876,9 +876,9 @@ public:
                 selected_cloud->points.push_back(in_cloud->points[search_indices[i]]);
             }else{
                 EZLOG(INFO) << "index out of range!!!" << std::endl;
+                exit(-1);
             }
         }
-        EZLOG(INFO) << 11 << std::endl;
         pcl::PCA<PointXYZICOLRANGE> pca_operator;
         pca_operator.setInputCloud(selected_cloud);
 
@@ -909,7 +909,6 @@ public:
         feature.spherical_2 = (feature.values.lamada3) / (feature.values.lamada1);
 
         search_indices.swap(feature.neighbor_indices);
-        EZLOG(INFO) << 111 << std::endl;
         return true;
     }
 
