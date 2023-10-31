@@ -1599,7 +1599,7 @@ public:
 
                 EZLOG(INFO)<<"t_w_cur_DR: "<<t_w_cur_DR.transpose();
                 EZLOG(INFO)<<"q_w_cur_DR: ";
-                EZLOG(INFO)<<q_w_cur_DR;
+                EZLOG(INFO)<<q_w_cur_DR.matrix();
 
 //                std::lock_guard<std::mutex> lock(mtx);
                 static double timeLastProcessing = -1;

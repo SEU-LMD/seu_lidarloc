@@ -212,13 +212,13 @@ public:
                 dt);
         lastImuT_imu = imuTime;
 
-        EZLOG(INFO)<<"firstLidarPose: "<<firstLidarPose;
+       // EZLOG(INFO)<<"firstLidarPose: "<<firstLidarPose;
         gtsam::NavState _currentState = imuIntegratorImu_->predict(firstLidarPose, prior_imu_bias);//both are input parameters
-        EZLOG(INFO) <<" imu_raw->imu_linear_acc: "<<_imu_raw->imu_linear_acc.transpose()
-                    <<" imu_raw->imu_angular_v: "<<_imu_raw->imu_angular_v.transpose()
-                    <<" dt: "<< dt
-                    <<" prevBiasOdom: "<<prior_imu_bias;
-        EZLOG(INFO)<<" currentState: "<<_currentState;
+      //  EZLOG(INFO) <<" imu_raw->imu_linear_acc: "<<_imu_raw->imu_linear_acc.transpose()
+      //              <<" imu_raw->imu_angular_v: "<<_imu_raw->imu_angular_v.transpose()
+      //              <<" dt: "<< dt
+     //               <<" prevBiasOdom: "<<prior_imu_bias;
+       // EZLOG(INFO)<<" currentState: "<<_currentState;
 
         return _currentState;
     }
@@ -310,7 +310,7 @@ public:
             Function_AddDROdometryTypeToFuse(DR_pose);
         }
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
-        EZLOG(INFO)<<" time in ms: "<<time1.toc();
+   //     EZLOG(INFO)<<" time in ms: "<<time1.toc();
 //        imu_cnt++;
 //        EZLOG(INFO)<<"imu_cnt: "<<imu_cnt;
 

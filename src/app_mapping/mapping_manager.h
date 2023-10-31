@@ -64,7 +64,7 @@ public:
          //       std::bind(&IMU_DR::AddOdomData, &imu_pre,std::placeholders::_1);
         auto add_GNSSOdometryType_from_imgproj_to_optmapping =
                 std::bind(&OPTMapping::AddGNSSToOpt, &opt_mapping,std::placeholders::_1);
-        auto add_OdometryType_from_imupre_to_imgproj =
+        auto add_DROdometryType_from_imupre_to_imgproj =
                 std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
 
        // img_proj.Function_AddOdometryTypeToOPTMapping = add_OdometryType_from_imgproj_to_optmapping;
@@ -72,7 +72,7 @@ public:
 
         ft_extr.Function_AddCloudFeatureToOPTMapping = add_CloudFeature_from_ftextr_to_optmapping;
         img_proj.Function_AddGNSSOdometryTypeToOPTMapping = add_GNSSOdometryType_from_imgproj_to_optmapping;
-        imu_pre.Function_AddOdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
+        imu_pre.Function_AddDROdometryTypeToImageProjection = add_DROdometryType_from_imupre_to_imgproj;
         EZLOG(INFO) << "Init finish!!! " << std::endl;
     }
 };
