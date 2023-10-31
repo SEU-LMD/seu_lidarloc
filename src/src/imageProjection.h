@@ -519,6 +519,7 @@ public:
                     double cost_time_findpose = FindIMUOdomPose(cloud_with_time, imuodom_copy,//in
                                                                    T_w_l_lidar_first_pose);//out
                     cloudinfo.pose = T_w_l_lidar_first_pose;
+                    cloudinfo.DRPose = T_w_l_lidar_first_pose;
                     Eigen::Vector3d t_w_cur;
                     Eigen::Quaterniond q_w_cur;
                     Eigen::Matrix3d q_w_cur_matrix;
@@ -676,13 +677,17 @@ public:
         T_w_l_gnss.timestamp = data.timestamp;
         T_w_l_gnss.pose = T_w_l;
 
-        Function_AddGNSSOdometryTypeToOPTMapping(T_w_l_gnss);
-      //  EZLOG(INFO)<<"SUCCESS"<<endl;
-//         if (MappingConfig::slam_mode_switch ==1){
-//             Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
-//         }
-//
-           // pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
+         if (MappingConfig::slam_mode_switch ==1){
+             Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
+         }
+         else{  //mapping
+             Function_AddGNSSOdometryTypeToOPTMapping(T_w_l_gnss);
+         }
+       // Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
+        //pub gnss odometry in rviz
+//        if(MappingConfig::if_debug){
+            // TODO T_w_l_pub->>>>>>> is Gnss result need UDP
+            pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
 //        }
     }
 

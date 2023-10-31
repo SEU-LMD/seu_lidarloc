@@ -1,5 +1,5 @@
 # 0 for opt mapping->wxy, 1 for loc mapping->sy.
-  slam_mode_switch: 0
+  slam_mode_switch: 1
 #  1 for use fuse, 0 is not use
   if_use_fuseNode: 1
 # 1 for debug (pub to rviz),0 for not debug

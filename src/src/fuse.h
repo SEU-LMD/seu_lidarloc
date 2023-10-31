@@ -297,6 +297,7 @@ public:
                         if(MappingConfig::use_DR_or_fuse_in_loc == 0){
                             Function_AddLidarOdometryTypeToImageProjection(loc_result);
                         }
+                        // TODO loc_result->>>>>>> is high frequency loc result need UDP
                         last_DR_pose = current_DR_pose;
                         EZLOG(INFO)<<"wheel pub cost in ms : "<<t1.toc();
 

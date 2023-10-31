@@ -1456,6 +1456,7 @@ public:
         current_Lidar_pose.pose.pose = Lidarodom_2_map.matrix().cast<double>();
 
         Function_AddLidarOdometryTypeToFuse(current_Lidar_pose);
+        // TODO current_Lidar_pose->>>>>>> is lidar loc result need UDP
         pubsub->PublishOdometry(topic_lidar_origin_odometry, current_Lidar_pose);
 
         // odom factor
