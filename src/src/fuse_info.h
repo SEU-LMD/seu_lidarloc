@@ -150,6 +150,7 @@ public:
         }
         PoseT poseFrom = dr_previous->pose.Linear_interpolation(dr_next->pose,
                                                                 dr_previous->timestamp,
+                                                                _obs_pose.timestamp,
                                                                 dr_next->timestamp);
         PoseT &poseTo = _DR_data_deque.back()->pose;
 

@@ -242,17 +242,18 @@ public:
     PoseT between(const PoseT& g) const {
         return PoseT(pose.inverse() * g.pose.matrix());
     }
-    /**
-     * Linear Interpolation,
-     * requirement: t2 > t1
-     * @param g
-     * @param interpolation_t1 pose time
-     * @param interpolation_t2 g time
-     * @return
-     */
-    PoseT Linear_interpolation(const PoseT& g, const double& interpolation_t1, const double& interpolation_t2){
+/**
+ * Linear Interpolation,
+ * requirement: t2 > t1 > t0
+ * @param g-> interpolation_t2 pose
+ * @param interpolation_t0
+ * @param interpolation_t1
+ * @param interpolation_t2
+ * @return interpolation_t1 Pose
+ */
+    PoseT Linear_interpolation(const PoseT& g, const double& interpolation_t0, const double& interpolation_t1, const double& interpolation_t2){
         PoseT result_output;
-        double interpolation_alpha(interpolation_t2-interpolation_t1);
+        double interpolation_alpha = (interpolation_t1-interpolation_t0)/(interpolation_t2-interpolation_t1);
         //t
         Eigen::Vector3d result_output_t;
         result_output_t = pose.block<3,1>(0,3)+

@@ -11,7 +11,7 @@
 #include "pubsub/pubusb.h"
 #include "data_preprocess.h"
 #include "feature_extraction.h"
-#include "IMU_DR.h"
+#include "imu_wheel_dr.h"
 #include "utils/config_helper.h"
 #include "opt_loc.h"
 #include "fuse_info.h"

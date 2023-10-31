@@ -156,7 +156,6 @@ public:
     bool flag_MM_loadMap = 0;
 
     Eigen::Vector3d originLLA;
-    bool systemInitialized = false;
     bool gpsTransfromInit = false;
     GeographicLib::LocalCartesian geo_converter;
     std::vector<gtsam::GPSFactor> keyframeGPSfactor;
@@ -190,18 +189,6 @@ public:
     }
 
     //TODO delete 1030
-    void AddPriorMap(const PriorMap& PriorMap_data){
-        mtxPriorMap.lock();
-        if(MappingConfig::if_LoadFromMapManager == 1){
-            priorMap_surf = PriorMap_data.PriorSurfMap;
-            priorMap_corner = PriorMap_data.PriorSurfMap;
-            kdtree_priorMap_surf = PriorMap_data.PriorSurfMapKDTree;
-            kdtree_priorMap_corner = PriorMap_data.PriorCornerMapKDTree;
-            flag_MM_loadMap = 1;
-        }
-        mtxPriorMap.unlock();
-    }
-
 
     void allocateMemory() {
         gtsam::ISAM2Params parameters;
@@ -286,19 +273,11 @@ public:
 
         }
 
-        if(MappingConfig::if_LoadFromMapManager == 0){
-            if(flagLoadMap){
-                // 从晓强接收
-                Load_PriorMap_Surf(MappingConfig::prior_map_surf,priorMap_surf);
-                Load_PriorMap_Corner(MappingConfig::prior_map_corner,priorMap_corner);
-            }
-        }
+
 
         EZLOG(INFO)<<"opt Loc init success!"<<std::endl;
-
-
     }
-    
+
 
     //just for test
     void Load_PriorMap_Corner(std::string mapFile,pcl::PointCloud<PointType>::Ptr _priorMap_corner)
@@ -333,13 +312,13 @@ public:
         std::cout << "Read Surf Map!"<<std::endl;
     }
 
-    void pub_CornerAndSurfFromMap()
+    void pub_CornerAndSurfFromMap(pcl::PointCloud<PointType>::Ptr &_corner_map, pcl::PointCloud<PointType>::Ptr &_surf_map)
     {
 //      PriorMap surf
         CloudTypeXYZI PriorMap_surf_pub;
         PriorMap_surf_pub.frame = "map";
         PriorMap_surf_pub.timestamp = timeLaserInfoCur;
-        PriorMap_surf_pub.cloud = *priorMap_surf;
+        PriorMap_surf_pub.cloud = *_surf_map;
         pubsub->PublishCloud(topic_priorMap_surf, PriorMap_surf_pub);
         std::cout << "Pub Surf Map!"<<std::endl;
 
@@ -347,12 +326,11 @@ public:
         CloudTypeXYZI PriorMap_corner_pub;
         PriorMap_corner_pub.frame = "map";
         PriorMap_corner_pub.timestamp = timeLaserInfoCur;
-        PriorMap_corner_pub.cloud = *priorMap_corner;
+        PriorMap_corner_pub.cloud = *_corner_map;
         pubsub->PublishCloud(topic_priorMap_corner, PriorMap_corner_pub);
         std::cout << "Pub Corner Map!"<<std::endl;
 
     }
-
     void pointAssociateToMap(PointType const *const pi, PointType *const po) {
         if(MappingConfig::scan_2_prior_map == 1){
             po->x = T_wl(0, 0) * pi->x +
@@ -440,7 +418,7 @@ public:
                                       transformIn[5], transformIn[0],
                                       transformIn[1], transformIn[2]);
     }
-    
+
 
     //cur_ft = fuse res TODO 1030
     void updateInitialGuess(CloudFeature &cur_ft,PointType &_init_point) {
@@ -451,66 +429,33 @@ public:
         double q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
 
         // use DR
-        t_w_cur_DR = cur_ft.DRPose.GetXYZ();//TODO 1030 you should not use DR pose as inital guess!!!!!!!!
-        q_w_cur_DR = cur_ft.DRPose.GetR();
-        t_w_cur = t_w_cur_DR;
-        q_w_cur = q_w_cur_DR;
-//                use GNSS
-//                t_w_cur = cur_ft.pose.GetXYZ();
-//                q_w_cur = cur_ft.pose.GetQ();
+        t_w_cur = cur_ft.DRPose.GetXYZ();
+        q_w_cur = cur_ft.DRPose.GetR();
+        q_w_cur.normalize();
+        q_w_cur_matrix = q_w_cur.toRotationMatrix();
+        current_frameID = cur_ft.frame_id;
+        // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
+        q_w_cur_pitch = asin(-q_w_cur_matrix(2, 0)); // 计算pitch
+        if (cos(q_w_cur_pitch) != 0) {
+            q_w_cur_roll = atan2(q_w_cur_matrix(2, 1), q_w_cur_matrix(2, 2)); // 计算roll
+            q_w_cur_yaw = atan2(q_w_cur_matrix(1, 0), q_w_cur_matrix(0, 0));  // 计算yaw
+        } else {
+            q_w_cur_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
+            q_w_cur_yaw = atan2(-q_w_cur_matrix(0, 1), q_w_cur_matrix(1, 1)); // 计算yaw
+        }
 
         EZLOG(INFO)<<"t_w_cur_DR: "<<t_w_cur_DR.transpose();
         EZLOG(INFO)<<"q_w_cur_DR: ";
         EZLOG(INFO)<<q_w_cur_DR;
-        // initialization the first frame
-//        根据gps信息，加载地图
-        if (Keyframe_Poses3D->points.empty()) {
-            //TODO GNSS init
-            q_w_cur.normalize();
-            q_w_cur_matrix = q_w_cur.toRotationMatrix();
-            current_frameID = cur_ft.frame_id;
-            // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
-            q_w_cur_pitch = asin(-q_w_cur_matrix(2, 0)); // 计算pitch
-            if (cos(q_w_cur_pitch) != 0) {
-                q_w_cur_roll = atan2(q_w_cur_matrix(2, 1), q_w_cur_matrix(2, 2)); // 计算roll
-                q_w_cur_yaw = atan2(q_w_cur_matrix(1, 0), q_w_cur_matrix(0, 0));  // 计算yaw
-            } else {
-                q_w_cur_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
-                q_w_cur_yaw = atan2(-q_w_cur_matrix(0, 1), q_w_cur_matrix(1, 1)); // 计算yaw
-            }
+        // initialization the  frame
 
-            systemInitialized = false;
-            current_T_m_l[0] = q_w_cur_roll;
-            current_T_m_l[1] = q_w_cur_pitch;
-            current_T_m_l[2] = q_w_cur_yaw;
-            current_T_m_l[3] = t_w_cur[0];
-            current_T_m_l[4] = t_w_cur[1];
-            current_T_m_l[5] = t_w_cur[2];
-//                lastImuTransformation = pcl::getTransformation(0, 0, 0, 0, 0,0);
-            systemInitialized = true;
-
-            return;
-        }
-
-        //TODO 1030 lack code!!!!!!
-        Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
-                t_w_cur[0], t_w_cur[1], t_w_cur[2],
-                q_w_cur_roll, q_w_cur_pitch , q_w_cur_yaw);
-//      current_T_m_l -> 世界系
-        pcl::getTranslationAndEulerAngles(
-                pose_guess_from_gnss, 
-                current_T_m_l[3], current_T_m_l[4],current_T_m_l[5], 
-                current_T_m_l[0], current_T_m_l[1], current_T_m_l[2]);
-
-//      DR
-//        Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
-//                t_w_cur_DR[0], t_w_cur_DR[1], t_w_cur_DR[2],q_w_cur_roll,
-//                q_w_cur_pitch , q_w_cur_yaw);
-////      current_T_m_l -> 世界系
-//        pcl::getTranslationAndEulerAngles(
-//                pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
-//                current_T_m_l[5], current_T_m_l[0],
-//                current_T_m_l[1], current_T_m_l[2]);
+        //TODO GNSS init
+        current_T_m_l[0] = q_w_cur_roll;
+        current_T_m_l[1] = q_w_cur_pitch;
+        current_T_m_l[2] = q_w_cur_yaw;
+        current_T_m_l[3] = t_w_cur[0];
+        current_T_m_l[4] = t_w_cur[1];
+        current_T_m_l[5] = t_w_cur[2];
 
         current_frame = WORLD;
         _init_point.x = t_w_cur.x();
@@ -518,32 +463,6 @@ public:
         _init_point.z = t_w_cur.z();
         _init_point.intensity = cur_ft.frame_id;
 
-//        static bool lastImuPreTransAvailable = false;
-//        static Eigen::Affine3f lastImuPreTransformation;
-////        Euldar form GNSS, t from DR
-//        Eigen::Affine3f transBack = pcl::getTransformation(
-//                t_w_cur_DR[0], t_w_cur_DR[1], t_w_cur_DR[2], q_w_cur_roll, q_w_cur_pitch,
-//                q_w_cur_yaw);
-////                EZLOG(INFO)<<"transBack success"<<transBack.translation().x()<<endl;
-//        if (lastImuPreTransAvailable == false) {
-//            lastImuPreTransformation = transBack;
-//            lastImuPreTransAvailable = true;
-//        } else {
-//            Eigen::Affine3f transIncre =
-//                    lastImuPreTransformation.inverse() * transBack;
-//            Eigen::Affine3f transTobe = trans2Affine3f(current_T_m_l);
-//            Eigen::Affine3f transFinal = transTobe * transIncre;
-//            pcl::getTranslationAndEulerAngles(
-//                    transFinal, current_T_m_l[3], current_T_m_l[4],
-//                    current_T_m_l[5], current_T_m_l[0],
-//                    current_T_m_l[1], current_T_m_l[2]);
-//
-//            lastImuPreTransformation = transBack;
-//
-//              EZLOG(INFO)<<" success"<<endl;
-//
-//            return;
-//        }
 
     }//end funtion updateInitialGuess
 
@@ -553,7 +472,7 @@ public:
     void extractFromPriorMap(PointType& _init_point){
 
         //TODO 1030 not used any std::cout, use EZLOG(INFO) << instead
-        std::cout <<"Keyframe_Poses3D->points size : "<< Keyframe_Poses3D->points.size() <<std::endl;
+        EZLOG(INFO) <<"Keyframe_Poses3D->points size : "<< Keyframe_Poses3D->points.size();
 
         TicToc extract_from_priorMap;
 //        flag_scan_mode_change = 0 init || flag_scan_mode_change == 1
@@ -591,7 +510,7 @@ public:
             if(MappingConfig::if_LoadFromMapManager == 0){
                 kdtree_priorMap_surf->setInputCloud(priorMap_surf);
             }
-            
+
             kdtree_priorMap_surf->radiusSearch(
                     _init_point, (double) MappingConfig::localMap_searchRadius_surf,
                     pointSearchInd, pointSearchSqDis);
@@ -681,7 +600,10 @@ public:
      * current_corner_ds 当前帧角点降采样
      * current_surf_ds 当前帧面点降采样
      */
-    void downsampleCurrentScan() {
+    void downsampleCurrentScan( pcl::PointCloud<PointType>::Ptr &current_corner,
+                                pcl::PointCloud<PointType>::Ptr &current_surf,
+                                pcl::PointCloud<PointType>::Ptr &_current_corner_ds,
+                                pcl::PointCloud<PointType>::Ptr &_current_surf_ds) {
 
         current_corner_ds->clear();
         current_surf_ds->clear();
@@ -1280,9 +1202,10 @@ public:
         return value;
     }
 
-    bool saveFrame() {
-        if (Keyframe_Poses3D->points.empty()) return true;
-
+    bool WhetherThisFrameIsKeyFrame() {
+        if (Keyframe_Poses3D->points.empty()) {
+            return true;
+        }
         Eigen::Affine3f transStart = pclPointToAffine3f(Keyframe_Poses6D->back());
         Eigen::Affine3f transFinal = pcl::getTransformation(
                 current_T_m_l[3], current_T_m_l[4], current_T_m_l[5],
@@ -1490,7 +1413,7 @@ public:
     }
 
     void saveKeyFramesAndFactor() {
-        if (saveFrame() == false) { return; }
+
 
         OdometryType current_Lidar_pose;
         Eigen::Affine3f Lidarodom_2_map = trans2Affine3f(current_T_m_l);//T_ml
@@ -1567,7 +1490,7 @@ public:
 //        current_T_m_l[5] = latestEstimate.translation().z();
 
     }
-    
+
 
     //TODO 1030 delete
     void correctPoses() {
@@ -1609,12 +1532,8 @@ public:
                 CloudFeature cur_ft;
                 PointType init_point;
                 cloud_mutex.lock();
-                cur_ft = deque_cloud.front();
-                //cur_ft = deque_cloud.back();TODO 1030
-//                EZLOG(INFO)<<"cur_ft.frame_id:  "<<cur_ft.frame_id;
-                deque_cloud.pop_front();//
-                //TODO 1030
-                //deque_cloud.clear();
+                cur_ft = deque_cloud.back(); //TODO 1030---Done
+                deque_cloud.clear();//TODO 1030---Done
                 cloud_mutex.unlock();
 
                 timeLaserInfoCur = cur_ft.timestamp;
@@ -1629,35 +1548,30 @@ public:
                 timeLastProcessing = timeLaserInfoCur;
                 EZLOG(INFO) <<"Recive current_surf size: "<<current_surf->size()
                             <<" current_corner size: "<<current_corner->size();
-
+                //1. init pose
                 updateInitialGuess(cur_ft,init_point);
-                EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
 
-                //for debug use
+                //2. Keyframe //TOOD 1030 add keyframe selection strategy!!!------Done
+                if (WhetherThisFrameIsKeyFrame() == false) { continue; }
+
+                TicToc t_2;
+                //3.load PriorMap
+                map_manager_ptr->SafeLockCloud();
+                map_manager_ptr->GetCurMapCloud(priorMap_corner,priorMap_surf);
+                map_manager_ptr->SafeUnlockCloud();
+                EZLOG(INFO)<<"GetCurMapCloud() time : "<<t_2.toc();
                 {
-                    if(MappingConfig::if_LoadFromMapManager == 0){
-                    if(flagLoadMap){
-                        pub_CornerAndSurfFromMap();
-                    }
-                    }
-                    else{
-                        if(flag_MM_loadMap){
-                            pub_CornerAndSurfFromMap();
-                        }
-                    }
+                    pub_CornerAndSurfFromMap(priorMap_corner,priorMap_surf); // debug use
                 }
-                
-                //TOOD 1030 add keyframe selection strategy!!!
-
 
                 TicToc t_3;
-                downsampleCurrentScan();
+//                downsampleCurrentScan();
                 EZLOG(INFO)<<"downsampleCurrentScan() time : "<<t_3.toc();
 
 //                        map_manager_ptr->SafeLockCloud();//very important fucniton to protect map manager memory!!!!!!!
-                TicToc t_2;
+                TicToc t_7;
                 extractFromPriorMap(init_point);
-                EZLOG(INFO)<<"extractFromPriorMap() time : "<<t_2.toc();
+                EZLOG(INFO)<<"extractFromPriorMap() time : "<<t_7.toc();
 
                 TicToc t_4;
                 scan2MapOptimization();
