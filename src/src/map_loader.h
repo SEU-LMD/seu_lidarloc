@@ -55,7 +55,6 @@ public:
     std::deque<std::shared_ptr<OdometryType>> data_deque;
 
     //是否更新标志位
-    bool top_cache_update=false;
     //是否是第一帧标志位
     bool is_initailed= false;
 
@@ -112,8 +111,8 @@ public:
     //TODO finish this Function
     void GetCurMapCloud(pcl::PointCloud<PointType>::Ptr &corner_map,
                        pcl::PointCloud<PointType>::Ptr &surf_map){
-        laser_cloud_surf_from_map = surf_map;
-        laser_cloud_corner_from_map = corner_map;
+        surf_map  = laser_cloud_surf_from_map;
+        corner_map = laser_cloud_corner_from_map;
     }
 
     void MapmanagerInitialized(const std::string& map_read_path){
@@ -386,6 +385,7 @@ public:
 
     void process(const Gnsspostion& gnsspostion){
 
+        bool top_cache_update=false;
 
         int center_cubeI=static_cast<int>(std::floor(gnsspostion.x-x_min_t)/(SerializeConfig::up_grid_size/SerializeConfig::up2down_num));
         int center_cubeJ=static_cast<int>(std::floor(gnsspostion.y-y_min_t)/(SerializeConfig::up_grid_size/SerializeConfig::up2down_num));
@@ -421,7 +421,6 @@ public:
             top_cache_update = false;
             return;
         }
-
 
         //需要加载就加载
         if(top_cache_update) {
