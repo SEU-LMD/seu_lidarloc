@@ -327,7 +327,7 @@ public:
                 *laser_cloud_surf_from_map+=*laser_cloud_surf_array[laser_cloud_valid_ind[i]];
         }
 
-        EZLOG(INFO)<<"laadermap::laser_cloud_surf_num:"laser_cloud_corner_from_map->size()<<std::endl;
+        EZLOG(INFO)<<"laadermap::laser_cloud_surf_num:"<<laser_cloud_corner_from_map->size()<<std::endl;
 
 //        kdtree_corner_from_map->setInputCloud(laser_cloud_corner_from_map);
 //        kdtree_surf_from_map->setInputCloud(laser_cloud_surf_from_map);
@@ -348,8 +348,8 @@ public:
         }
         // pub to Loc
         PriorMap priormap;
-        priormap.PriorSurfMapKDTree = kdtree_surf_from_map;
-        priormap.PriorCornerMapKDTree = kdtree_corner_from_map;
+//        priormap.PriorSurfMapKDTree = kdtree_surf_from_map;
+//        priormap.PriorCornerMapKDTree = kdtree_corner_from_map;
         priormap.PriorSurfMap = laser_cloud_surf_from_map;
         priormap.PriorCornerMap = laser_cloud_corner_from_map;
         priormap.timestamp = cur_time;
@@ -369,7 +369,7 @@ public:
             }
             if(!is_equl){
                 laser_cloud_surf_array[last_laser_cloud_load_ind[i]]->clear();
-                laser_cloud_coner_array[last_laser_cloud_load_ind[i]]->clear();
+                laser_cloud_corner_array[last_laser_cloud_load_ind[i]]->clear();
 
                 // 遍历map并删除包含目标值的vector<int>
                 for (auto it = lasercloud_loaded_map.begin(); it != lasercloud_loaded_map.end();) {

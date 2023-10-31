@@ -10,8 +10,8 @@
 #include <deque>
 
 #include "pubsub/pubusb.h"
-#include "imageProjection.h"
-#include "featureExtraction.h"
+#include "data_preprocess.h"
+#include "feature_extraction.h"
 #include "IMU_DR.h"
 #include "opt_mapping.h"
 #include "utils/config_helper.h"

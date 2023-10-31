@@ -1,12 +1,15 @@
 
 // Use the Velodyne point format as a common representation
-#ifndef SEU_LIDARLOC_IMGPROJECTION_H
-#define SEU_LIDARLOC_IMGPROJECTION_H
+#ifndef SEU_LIDARLOC_DATAPREPROCESS_H
+#define SEU_LIDARLOC_DATAPREPROCESS_H
+
+#define DBL_MAX		__DBL_MAX__
+
 #include <mutex>
 #include <thread>
 
 #include "pubsub/pubusb.h"
-//#include "featureExtraction.h"
+#include "feature_extraction.h"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
@@ -26,25 +29,21 @@ public:
     double min_latency_timestamp;
 };
 
-class ImageProjection  {
+class DataPreprocess  {
 public:
     int slam_mode_switch = 1;
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     std::mutex work_mutex;
-    std::mutex gnssins_mutex;
-    std::mutex imuodom_mutex;
+    std::mutex drodom_mutex;
+    std::mutex gnss_mutex;
 
     std::thread* do_work_thread;
 
     std::deque<CloudTypeXYZIRTPtr> deque_cloud;
-    std::deque<OdometryType> poseQueue;//TODO , not used any more, you can use dr to correct lidar either
-    std::deque<OdometryType> IMUOdomQueue;//TODO change name
+    std::deque<OdometryType> DrOdomQueue;//TODO , not used any more, you can use dr to correct lidar either
+    std::deque<OdometryType> GNSSQueue;//TODO change name
 
-//    FeatureExtraction* ft_extr_ptr;
-//    OPTMapping* opt_mapping_ptr;
-//    IMU_DR* imu_pre_ptr;
-//    OPTMapping* opt_mapping_ptr;
     std::function<void(const CloudInfo&)> Function_AddCloudInfoToFeatureExtraction;
     std::function<void(const GNSSOdometryType&)> Function_AddGNSSOdometryTypeToFuse;
     std::function<void(const GNSSOdometryType&)>Function_AddGNSSOdometryTypeToOPTMapping;
@@ -420,9 +419,9 @@ public:
                 //EZLOG(INFO)<<deque_cloud.size()<<endl;
                 ///0.do something
                 std::deque<OdometryType> odo_poses_copy;
-                gnssins_mutex.lock();
-                odo_poses_copy = poseQueue;
-                gnssins_mutex.unlock();
+                drodom_mutex.lock();
+                odo_poses_copy = DrOdomQueue;
+                drodom_mutex.unlock();
                 TicToc t_imgProj;
 
                 double odo_min_ros_time =  odo_poses_copy.front().timestamp;
@@ -431,21 +430,21 @@ public:
                 OdometryType current_imu_data;
                 double cur_lidar_time = deque_cloud.front()->timestamp;
 
-                // for align DR pose with
-                imuodom_mutex.lock();
-                while (!IMUOdomQueue.empty()){
-                    current_imu_data = IMUOdomQueue.front();
-                    // DR-DR-DR pop lidar-------DR DR DR------------>>>>
-                    if(current_imu_data.timestamp < cur_lidar_time){
-                        IMUOdomQueue.pop_front();
-                        continue;
-                    }
-                    else{
-                        cloudinfo.DRPose = current_imu_data.pose;//TODO 1029
-                    }
-                    break;
-                }
-                imuodom_mutex.unlock();
+                /// for align GNSS pose with lidar
+//                gnss_mutex.lock();
+//                while (!GNSSQueue.empty()){
+//                    current_imu_data = GNSSQueue.front();
+//                    // DR-DR-DR pop lidar-------DR DR DR------------>>>>
+//                    if(current_imu_data.timestamp < cur_lidar_time){
+//                        GNSSQueue.pop_front();
+//                        continue;
+//                    }
+//                    else{
+//                        cloudinfo.DRPose = current_imu_data.pose;// TODO 1029
+//                    }
+//                    break;
+//                }
+//                gnss_mutex.unlock();
 
                 ///1.get cloud max and min time stamp to
                 CloudTypeXYZIRTPtr cur_scan;
@@ -463,17 +462,17 @@ public:
 //                    exit(1);
 //                }
 
-                if(!poseQueue.empty() && odo_min_ros_time >= cloud_min_ros_timestamp){
-                    auto temp = poseQueue.front();
+                if(!DrOdomQueue.empty() && odo_min_ros_time >= cloud_min_ros_timestamp){
+                    auto temp = DrOdomQueue.front();
                     temp.timestamp = cloud_min_ros_timestamp - 0.01f;
-                    poseQueue.push_front(temp);
+                    DrOdomQueue.push_front(temp);
                 }
                 if(odo_min_ros_time<cloud_min_ros_timestamp&&odo_max_ros_time>cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
                     EZLOG(INFO)<<"get in odo_min_ros_time"<<endl;
 //                        if(odo_min_ros_time >= cloud_min_ros_timestamp){
-//                            auto temp = poseQueue.front();
+//                            auto temp = DrOdomQueue.front();
 //                            temp.timestamp = cloud_min_ros_timestamp - 0.01f;
-//                            poseQueue.push_front(temp);
+//                            DrOdomQueue.push_front(temp);
 //                        }
                         deque_cloud.pop_front();
                         cloud_mutex.unlock();
@@ -500,7 +499,7 @@ public:
                         ///ground filter
                         //TODO function
                         int gf_grid_pt_num_thre = 8;float gf_grid_resolution = 1.5;float gf_max_grid_height_diff; float gf_neighbor_height_diff = 1.5;
-                        float gf_max_ground_height;int gf_down_rate_ground = 15;int gf_down_down_rate_ground = 2;
+                        float gf_max_ground_height = DBL_MAX;int gf_down_rate_ground = 15;int gf_down_down_rate_ground = 2;
                         int gf_downsample_rate_nonground = 1;int gf_reliable_neighbor_grid_thre = 0;int estimate_ground_normal_method;float normal_estimation_radius = 2.0;
                         int distance_inverse_sampling_method = 0;float standard_distance = 15.0;bool fixed_num_downsampling = false;int ground_down_fixed_num = 500;bool extract_curb_or_not = false;
                         float intensity_thre = FLT_MAX;bool apply_scanner_filter = false;
@@ -617,15 +616,15 @@ public:
 
 
                         ///5.pop used odom
-                        gnssins_mutex.lock();
-//                        while(poseQueue.front().timestamp < cloud_max_ros_timestamp - 0.1f){
-//                            poseQueue.pop_front();
+                    drodom_mutex.lock();
+//                        while(DrOdomQueue.front().timestamp < cloud_max_ros_timestamp - 0.1f){
+//                            DrOdomQueue.pop_front();
 //                        }
                         double thresh = cloud_max_ros_timestamp - 0.05f;
-                        while(poseQueue.front().timestamp < thresh){
-                            poseQueue.pop_front();
+                        while(DrOdomQueue.front().timestamp < thresh){
+                            DrOdomQueue.pop_front();
                         }
-                        gnssins_mutex.unlock();
+                    drodom_mutex.unlock();
 
                         ResetParameters();
                 }//end function if
@@ -739,9 +738,9 @@ public:
         // T_w_l_to_mapopt.lla[2] = T_w_l.GetXYZ()[2];
 //        opt_mapping_ptr->AddGNSSINSData(T_w_l_to_mapopt);
 
-        gnssins_mutex.lock();
-        poseQueue.push_back(T_w_l_pub);//TODO Receive DR
-        gnssins_mutex.unlock();
+        gnss_mutex.lock();
+        GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
+        gnss_mutex.unlock();
 
         GNSSOdometryType T_w_l_gnss;
         T_w_l_gnss.frame = "map";
@@ -763,10 +762,10 @@ public:
 
 
     //TODO change name
-    void AddIMUOdomData(const OdometryType& data){
-        imuodom_mutex.lock();
-        IMUOdomQueue.push_back(data);
-        imuodom_mutex.unlock();
+    void AddDrOdomData(const OdometryType& data){
+        drodom_mutex.lock();
+        DrOdomQueue.push_back(data);
+        drodom_mutex.unlock();
     }
 
     void Init(PubSubInterface* pubsub_, int _slam_mode_switch){
@@ -788,8 +787,8 @@ public:
         pubsub->addPublisher(topic_cloud_roof_world,DataType::LIDAR,1);
 
 
-        do_work_thread = new std::thread(&ImageProjection::DoWork, this);
-        EZLOG(INFO)<<"ImageProjection init success!"<<std::endl;
+        do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
+        EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
     }
 
     struct eigenvalue_t // Eigen Value ,lamada1 > lamada2 > lamada3;

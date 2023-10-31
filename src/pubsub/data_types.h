@@ -126,11 +126,18 @@ typedef std::shared_ptr<IMUOdometryType> IMUOdometryTypePtr;
 class GNSSINSType:public BaseType{
     public:
         Eigen::Vector3d lla;
+        Eigen::Vector3d lla_sigma;
         double roll,pitch,yaw;
+        Eigen::Vector3d rpy_sigma;
         Eigen::Vector3d imu_angular_v;
         Eigen::Vector3d imu_linear_acc;
+        Eigen::Vector3d imu_angular_v_raw;
+        Eigen::Vector3d imu_linear_acc_raw;
+        Eigen::Vector3d imu_angular_v_body;
+        Eigen::Vector3d imu_linear_acc_body;
         Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
         double velocity;
+        Eigen::Vector4d wheel_speed;
         string gps_status;
         DataType getType(){
              return DataType::GNSS_INS;
@@ -189,6 +196,11 @@ public:
     std::vector<int> endRingIndex;
 
     pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ptr;
+
+
+
+
+
 };
 typedef std::shared_ptr<CloudInfo> CloudInfoPtr;
 

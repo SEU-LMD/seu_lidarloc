@@ -10,6 +10,7 @@
 
 #include "pubsub/pubusb.h"
 #include "./ivsensorgps.h"
+//#include "./ivsensorgps_new.h"
 
 #include <std_msgs/Header.h>
 #include <sensor_msgs/Imu.h>
@@ -121,6 +122,7 @@ public:
 
     //组合导航设备转换函数
     void convertROSGNSSINSMsgToGNSSINS(const gps_imu::ivsensorgpsConstPtr& gnss_ins_in, GNSSINSType& gnss_ins_out ){
+//    void convertROSGNSSINSMsgToGNSSINS(const gps_imu::ivsensorgpsConstPtr& gnss_ins_in, GNSSINSType& gnss_ins_out ){
 
 //            if(!init_estimate_bias){
 //
@@ -139,13 +141,7 @@ public:
 //            init_estimate_bias = true;
 //        }
 
-        gnss_ins_out.lla[0] = gnss_ins_in->lat;
-        gnss_ins_out.lla[1] = gnss_ins_in->lon;
-        gnss_ins_out.lla[2] = gnss_ins_in->height;
 
-        gnss_ins_out.pitch= gnss_ins_in->pitch;
-        gnss_ins_out.roll = gnss_ins_in->roll;
-        gnss_ins_out.yaw = gnss_ins_in->heading;
 
 //        gnss_ins_out.imu_angular_v[0] = gnss_ins_in->angx - imu_angular_bias[0];
 //        gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy - imu_angular_bias[1];
@@ -154,6 +150,16 @@ public:
 //        gnss_ins_out.imu_linear_acc[0] = gnss_ins_in->accx - imu_linear_acc_bias[0];
 //        gnss_ins_out.imu_linear_acc[1] = gnss_ins_in->accy - imu_linear_acc_bias[1];
 //        gnss_ins_out.imu_linear_acc[2] = gnss_ins_in->accz - imu_linear_acc_bias[2];
+
+///before
+
+        gnss_ins_out.lla[0] = gnss_ins_in->lat;
+        gnss_ins_out.lla[1] = gnss_ins_in->lon;
+        gnss_ins_out.lla[2] = gnss_ins_in->height;
+
+        gnss_ins_out.pitch= gnss_ins_in->pitch;
+        gnss_ins_out.roll = gnss_ins_in->roll;
+        gnss_ins_out.yaw = gnss_ins_in->heading;
 
         gnss_ins_out.imu_angular_v[0] = gnss_ins_in->angx;
         gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy;
@@ -175,6 +181,18 @@ public:
         }
 
         gnss_ins_out.velocity = gnss_ins_in->velocity;
+        ///use for test new bag
+//        EZLOG(INFO)<<"gnss_ins_in->position"<<gnss_ins_in->position<<endl;
+//        EZLOG(INFO)<<"gnss_ins_in->positionSigma"<<gnss_ins_in->positionSigma<<endl;
+//        EZLOG(INFO)<<"gnss_ins_in->whlspd"<<gnss_ins_in->whlspd<<endl;
+//        EZLOG(INFO)<<"gnss_ins_in->imuAngular"<<gnss_ins_in->imuAngular<<endl;
+
+//gnss_ins_in->imuAngular;
+//gnss_ins_in->position;
+//gnss_ins_in->positionSigma;
+//gnss_ins_in->whlspd;
+
+
 
     }
     void GNSSINSROSCallback(const gps_imu::ivsensorgpsConstPtr& data, const std::string& topic_name){
