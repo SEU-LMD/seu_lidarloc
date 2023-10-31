@@ -63,7 +63,7 @@ public:
         auto add_CloudFeature_from_ftextr_to_locmapping =
                 std::bind(&LOCMapping::AddCloudData, &loc_mapping,std::placeholders::_1);
         auto add_OdometryType_from_locmapping_to_imupre =
-                std::bind(&IMU_DR::AddOdomData_fromLoc, &imu_pre, std::placeholders::_1);
+                std::bind(&IMU_DR::AddOdomData, &imu_pre, std::placeholders::_1);
         if(MappingConfig::use_DR_or_fuse_in_loc == 0){ // use_DR_or_fuse_in_loc = 0, use fuse
             EZLOG(INFO)<<" use fuse to imageProj";
             auto add_OdometryType_from_fuse_to_imageProj =

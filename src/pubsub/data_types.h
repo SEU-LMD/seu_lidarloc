@@ -185,6 +185,7 @@ typedef std::shared_ptr<StateData> StateDataPtr;
 
 //used to commnicate with other thread
 class CloudInfo{
+
 public:
     int frame_id;
     double timestamp;
@@ -196,10 +197,17 @@ public:
     std::vector<int> endRingIndex;
 
     pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ptr;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground_down;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_unground;
 
-
-
-
+    CloudInfo()
+    {
+        cloud_ptr = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_ground = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_ground_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_unground = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+    }
 
 };
 typedef std::shared_ptr<CloudInfo> CloudInfoPtr;
@@ -212,6 +220,29 @@ public:
     PoseT DRPose;//
     pcl::PointCloud<PointType>::Ptr cornerCloud;
     pcl::PointCloud<PointType>::Ptr surfaceCloud;
+
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof;
+
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar_down;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam_down;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade_down;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof_down;
+
+    CloudFeature()
+    {
+        cloud_pillar = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_beam = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_facade = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_roof = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_pillar_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_beam_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_facade_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_roof_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+    }
+
 };
 typedef std::shared_ptr<CloudFeature> CloudFeaturePtr;
 
