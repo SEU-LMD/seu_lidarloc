@@ -1,7 +1,8 @@
 #ifndef _UTILITY_LIDAR_ODOMETRY_H_
 #define _UTILITY_LIDAR_ODOMETRY_H_
 #define PCL_NO_PRECOMPILE
-
+#define max_(a, b) (((a) > (b)) ? (a) : (b))
+#define min_(a, b) (((a) < (b)) ? (a) : (b))
 #include <ros/ros.h>
 
 #include <std_msgs/Header.h>

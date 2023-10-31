@@ -32,11 +32,13 @@ public:
     int front_index = 0;
     std::deque<std::shared_ptr<BaseType>> data_deque;
     std::deque<std::shared_ptr<DROdometryType>> DR_data_deque;
+    std::deque<std::shared_ptr<GNSSOdometryType>> Gnss_data_deque;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToDR;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToMapManager;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToImageProjection;
     std::mutex mutex_data;
     std::mutex mutex_DR_data;
+    std::mutex Gnssmtx;
     std::mutex mtxGraph;
 
     gtsam::NonlinearFactorGraph gtSAMgraph;
@@ -63,10 +65,12 @@ public:
     int lidar_keyFrame_cnt = 0;
     double lastImuT_imu = -1;
     double current_lidar_time;
+    double current_gnss_time;
     OdometryType loc_result;
     OdometryType current_lidar_world;
     PoseT last_pose;
-    bool if_roll_back = 0;
+    PoseT last_DR_pose;
+    bool if_roll_back = 0;//TODO :if abs loc arrived
 
     std::string topic_highHz_pose = "/loc_result";
     std::string topic_testforRollBack_pose = "/loc_result_roll_back";
@@ -159,6 +163,7 @@ public:
         pubsub->addPublisher(topic_highHz_pose, DataType::ODOMETRY, 10);
         pubsub->addPublisher(topic_current_lidar_pose, DataType::ODOMETRY, 10);
         pubsub->addPublisher(topic_testforRollBack_pose, DataType::ODOMETRY, 10);
+
         HighFrequencyLoc_thread = new std::thread(&Fuse::DoWork, this);
     }
 
@@ -244,22 +249,7 @@ public:
 
                     case DataType::GNSS:
                     {
-                        // TODO  GNSS factor
-//                        if(firstLidarFlag == false){
-//                            data_deque.pop_front();
-//                            mutex_data.unlock();
-//                            EZLOG(INFO)<<"DataType::GNSS  : wait fot first lidar pose!!";
-//                            break;
-//                        }
-//                        gnss_data_deque.push_back(front_data);
-//                        data_deque.pop_front();
-//                        mutex_data.unlock();
-//
-//                        EZLOG(INFO)<<"GET GNSS! now we got gnss_data_deque size: "<<gnss_data_deque.size();
-//                        GNSS_StatusCheck(gnss_data_deque);
-                            ;
 
-//                        front_index++;
                         break;
                     }
 
