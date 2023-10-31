@@ -87,7 +87,7 @@ class SensorConfig{
     static Eigen::Vector3d t_body_sensor;
     static Eigen::Quaterniond q_body_sensor;
 
-    static bool use_gnss_deskew;
+    static bool use_drodom_deskew;
     static int gtsamGNSSBetweenFactorDistance;
     static int lidarScanDownSample;
 };
@@ -332,7 +332,7 @@ Eigen::Vector3d SensorConfig::t_body_sensor;
 Eigen::Quaterniond SensorConfig::q_body_sensor;
 int SensorConfig::gtsamGNSSBetweenFactorDistance = 10;
 
-bool SensorConfig::use_gnss_deskew=false;
+bool SensorConfig::use_drodom_deskew=false;
 int SensorConfig::lidarScanDownSample = 2;
 
 int MappingConfig::if_debug = -1;
@@ -536,7 +536,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::  imuGravity=sensorconfig["imuGravity"].as<double>();
     SensorConfig::  imuRPYWeight=sensorconfig["imuRPYWeight"].as<double>();
     SensorConfig::imuHZ = sensorconfig["imuHZ"].as<int>();
-    SensorConfig::use_gnss_deskew=sensorconfig["use_gnss_deskew"].as<bool>();
+    SensorConfig::use_drodom_deskew=sensorconfig["use_drodom_deskew"].as<bool>();
     SensorConfig::imuGTSAMReset=sensorconfig["imuGTSAMReset"].as<int>();
     SensorConfig::imuConstBias_acc=sensorconfig["imuConstBias_acc"].as<double>();
     SensorConfig::imuConstBias_gyro=sensorconfig["imuConstBias_gyro"].as<double>();
@@ -593,7 +593,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     std::cout<<"SensorConfig::lidarScanDownSample: "<<SensorConfig::lidarScanDownSample<<std::endl;
     std::cout<<"SensorConfig::lidarMaxRing: "<<SensorConfig::lidarMaxRing<<std::endl;
     std::cout<<"SensorConfig::lidarMinRing: "<<SensorConfig::lidarMinRing<<std::endl;
-    std::cout<<"SensorConfig::use_gnss_deskew: "<<SensorConfig::use_gnss_deskew<<std::endl;
+    std::cout<<"SensorConfig::use_drodom_deskew: "<<SensorConfig::use_drodom_deskew<<std::endl;
     std::cout<<"SensorConfig::imuConstBias_acc: "<<SensorConfig::imuConstBias_acc<<std::endl;
     std::cout<<"SensorConfig::imuConstBias_gyro: "<<SensorConfig::imuConstBias_gyro<<std::endl;
     std::cout<<"SensorConfig::imu_angular_v_gain: "<<SensorConfig::imu_angular_v_gain<<std::endl;

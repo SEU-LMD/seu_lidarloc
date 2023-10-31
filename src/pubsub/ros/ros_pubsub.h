@@ -122,7 +122,6 @@ public:
 
     //组合导航设备转换函数
     void convertROSGNSSINSMsgToGNSSINS(const gps_imu::ivsensorgpsConstPtr& gnss_ins_in, GNSSINSType& gnss_ins_out ){
-//    void convertROSGNSSINSMsgToGNSSINS(const gps_imu::ivsensorgpsConstPtr& gnss_ins_in, GNSSINSType& gnss_ins_out ){
 
 //            if(!init_estimate_bias){
 //

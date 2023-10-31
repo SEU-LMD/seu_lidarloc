@@ -75,5 +75,5 @@
                     1, 0, 0,
                     0, 0, 1 ]
 
-  use_gnss_deskew: true
+  use_drodom_deskew: true
   

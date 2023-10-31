@@ -194,9 +194,9 @@ public:
 
         return _currentState;
     }
-
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
 
+//        TicToc time1;
         double currentTime = gnss_ins_data.timestamp;
         //calculate Quaternion
         Eigen::Matrix3d z_matrix;
