@@ -52,9 +52,6 @@ struct wheelspeed_
   _ESCWhlFLSpd_type ESCWhlFLSpd;
 
 
-
-
-
   typedef boost::shared_ptr< ::gen_h::wheelspeed_<ContainerAllocator> > Ptr;
   typedef boost::shared_ptr< ::gen_h::wheelspeed_<ContainerAllocator> const> ConstPtr;
 

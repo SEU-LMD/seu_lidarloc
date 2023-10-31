@@ -502,7 +502,7 @@ void Load_Sensor_YAML(std::string sensorpath)
 //     //GPS Setting
     SensorConfig::useGPS=sensorconfig["useGPS"].as<bool>();
     SensorConfig::updateOrigin=sensorconfig["updateOrigin"].as<bool>();
-    SensorConfig::gpsFrequence=sensorconfig["gpsFrequence"].as<int >();
+    SensorConfig::gpsFrequence=sensorconfig["gpsFrequence"].as<int>();
     SensorConfig::useImuHeadingInitialization=sensorconfig["useImuHeadingInitialization"].as<bool>();
     SensorConfig::useGpsElevation=sensorconfig["useGpsElevation"].as<bool>();
     SensorConfig::gpsCovThreshold=sensorconfig["gpsCovThreshold"].as<float >();

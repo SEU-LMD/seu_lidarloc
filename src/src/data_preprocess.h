@@ -31,7 +31,7 @@ public:
 
 class DataPreprocess  {
 public:
-    int slam_mode_switch = 1;
+    int slam_mode_switch = 0;
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     std::mutex work_mutex;
@@ -42,7 +42,7 @@ public:
 
     std::deque<CloudTypeXYZIRTPtr> deque_cloud;
     std::deque<OdometryType> DrOdomQueue;//TODO , not used any more, you can use dr to correct lidar either
-    std::deque<OdometryType> GNSSQueue;//TODO change name
+   std::deque<GNSSOdometryType> GnssQueue;//TODO change name
 
     std::function<void(const CloudInfo&)> Function_AddCloudInfoToFeatureExtraction;
     std::function<void(const GNSSOdometryType&)> Function_AddGNSSOdometryTypeToFuse;
@@ -431,11 +431,37 @@ public:
                 double cur_lidar_time = deque_cloud.front()->timestamp;
 
                 /// for align GNSS pose with lidar
-//                gnss_mutex.lock();
+
+                while(!GnssQueue.empty()) {
+                    gnss_mutex.lock();
+                    EZLOG(INFO) << "get out addGps factor" << endl;
+                    if (GnssQueue.front().timestamp < cur_lidar_time - 0.1) {
+                        // message too old
+                        GnssQueue.pop_front();
+                        gnss_mutex.unlock();
+                        EZLOG(INFO) << "get out addGps factor" << endl;
+                    } else if (GnssQueue.front().timestamp > cur_lidar_time + 0.1) {
+                        // message too new
+                        gnss_mutex.unlock();
+                        break;
+                    } else {
+                        GNSSOdometryType GPS_lidar_odom = GnssQueue.front();
+                        GnssQueue.pop_front();
+
+                        if (slam_mode_switch ==0){
+                            Function_AddGNSSOdometryTypeToOPTMapping(GPS_lidar_odom);
+                        }
+//                        else{
+//                            Function_AddGNSSOdometryTypeToOPTMapping(GPS_lidar_odom);
+//                        }
+
+                        gnss_mutex.unlock();
+                    }
+                }
 //                while (!GNSSQueue.empty()){
+//                    gnss_mutex.lock();
 //                    current_imu_data = GNSSQueue.front();
-//                    // DR-DR-DR pop lidar-------DR DR DR------------>>>>
-//                    if(current_imu_data.timestamp < cur_lidar_time){
+//                    if(current_imu_data.timestamp < cur_lidar_time - 0.05){
 //                        GNSSQueue.pop_front();
 //                        continue;
 //                    }
@@ -485,6 +511,7 @@ public:
                         double cost_time_findpose = FindLidarFirstPose(cloud_with_time, odo_poses_copy,//in
                                                                        T_w_l_lidar_first_pose);//out
                         cloudinfo.pose = T_w_l_lidar_first_pose;
+
                         EZLOG(INFO) << "FindLidarFirstPose cost time(ms) = " << cost_time_findpose << std::endl;
 
                         ///2.imgprojection
@@ -726,10 +753,10 @@ public:
 //        -0.0211169  -0.0010472    0.999776    -0.43929
 //        0           0           0           1
 
-        OdometryType T_w_l_pub;
-        T_w_l_pub.frame = "map";
-        T_w_l_pub.timestamp = data.timestamp;
-        T_w_l_pub.pose = T_w_l;
+//        OdometryType T_w_l_pub;
+//        T_w_l_pub.frame = "map";
+//        T_w_l_pub.timestamp = data.timestamp;
+//        T_w_l_pub.pose = T_w_l;
 
         //TODO 1029
         // GNSSINSType T_w_l_to_mapopt;
@@ -738,26 +765,30 @@ public:
         // T_w_l_to_mapopt.lla[2] = T_w_l.GetXYZ()[2];
 //        opt_mapping_ptr->AddGNSSINSData(T_w_l_to_mapopt);
 
-        gnss_mutex.lock();
-        GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
-        gnss_mutex.unlock();
+//        gnss_mutex.lock();
+//        GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
+//        gnss_mutex.unlock();
 
         GNSSOdometryType T_w_l_gnss;
         T_w_l_gnss.frame = "map";
         T_w_l_gnss.timestamp = data.timestamp;
         T_w_l_gnss.pose = T_w_l;
+
+        gnss_mutex.lock();
+        GnssQueue.push_back(T_w_l_gnss);//TODO Receive DR     Done--receive gnss to align with lidar
+        gnss_mutex.unlock();
 //        T_w_l_gnss.pose = T_w_b;
          if (slam_mode_switch ==1){
              Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
          }
-         else{  //mapping
-             Function_AddGNSSOdometryTypeToOPTMapping(T_w_l_gnss);
-         }
+//         else{  //mapping
+//             Function_AddGNSSOdometryTypeToOPTMapping(T_w_l_gnss);
+//         }
        // Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
         //pub gnss odometry in rviz
-        if(MappingConfig::if_debug){
-            pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
-        }
+//        if(MappingConfig::if_debug){
+//            pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
+//        }
     }
 
 
