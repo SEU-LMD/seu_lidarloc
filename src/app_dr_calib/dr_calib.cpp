@@ -46,8 +46,7 @@ int main(int argc, char **argv) {
 
     pubsub->addSubscriber(SensorConfig::gpsTopic, DataType::GNSS_INS, gnssins_callback);
     pubsub->addSubscriber(SensorConfig::gpsTopic, DataType::WHEEL, dr_callback);//TODO
-
-
+    
     //开始运行程序
     pubsub->run();
 }
