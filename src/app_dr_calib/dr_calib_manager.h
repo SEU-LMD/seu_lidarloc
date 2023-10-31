@@ -9,18 +9,18 @@
 #include <deque>
 
 #include "pubsub/pubusb.h"
-#include "imageProjection.h"
-#include "featureExtraction.h"
+#include "data_preprocess.h"
+#include "feature_extraction.h"
 #include "utils/config_helper.h"
-#include "opt_lopc.h"
-#include "fuse.h"
+#include "opt_loc.h"
+#include "fuse_info.h"
 #include "dr_calib.h"
 
 class DRCalibManager{
 public:
     PubSubInterface* pubsub;
 
-    ImageProjection img_proj;
+    DataPreprocess data_prep;
     FeatureExtraction ft_extr;
     LOCMapping loc_mapping;
     Fuse fuse;

@@ -266,5 +266,15 @@ public:
         return PoseT (result_output_t , result_output_t_q);
     }
 };
+class FtsamFusion final
+{
+    gtsam::ISAM2Params isam_params;
+    gtsam::ISAM2 isam2_;
+    gtsam::Values values_;
+    //gtsam::Values result_;
+    gtsam::NonlinearFactorGraph graph_;
+    size_t count_;
+};
+
 
 #endif

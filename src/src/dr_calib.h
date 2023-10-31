@@ -6,16 +6,15 @@
 #include "pubsub/data_types.h"
 #include "utils/timer.h"
 #include "opt_mapping.h"
-#include "opt_lopc.h"
-#include "imageProjection.h"
+#include "opt_loc.h"
+#include "data_preprocess.h"
 #include "utils/MapSaver.h"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 
 struct datapoint{
     double timestamp;
     double velocity;
-    double gnssx;
-    double gnssy;
+    Eigen::Vector3d gnss;
 };
 
 class DRCalibration  {
@@ -62,6 +61,27 @@ public:
         return extractData;
     }
 
+    double leastsquare(const std::vector<double>& x, const std::vector<double>& y, double k){
+        int n = x.size();
+        double sumX =0, sumY =0,sumXY =0, sumXSquare = 0;
+
+        for(int i = 0;i<n;i++){
+            sumX += x[i];
+            sumY += y[i];
+            sumXY += x[i] * y[i];
+            sumXSquare += x[i] * x[i];
+        }
+
+        double temp = n * sumXSquare -sumX * sumX;
+        if(temp != 0){
+            k = (n * sumXY -sumX * sumY) / temp;
+        }
+        else{
+            EZLOG(INFO)<<"error: division by zero";
+        }
+        return k;
+    }
+
 
     void DoWork(){
         while(1){
@@ -76,7 +96,7 @@ public:
 
                 std::vector<double> canbusdistances;
                 std::vector<double> shorttimestamps;
-                std::vector<double> shortvelcoities;
+                std::vector<double> shortvelocities;
 
                 //待输入数据
                 std::deque<datapoint> canbusData;
@@ -92,25 +112,26 @@ public:
 
                 for(int i=0;i<gnssQueue.size();i++){
                     gnssData[i].timestamp=gnssQueue[i].timestamp;
-                    gnssData[i].gnssx=gnssQueue[i].pose.GetXYZ().x();
-                    gnssData[i].gnssy=gnssQueue[i].pose.GetXYZ().y();
+                    gnssData[i].gnss=gnssQueue[i].pose.GetXYZ();
                 }
 
 
                 int divisor=0;
-                int sum=0;
+                double sum=0;
                 int length = canbusData.size();
                 divisor = length/pieces;
+                Eigen::Vector3d pre();
+                Eigen::Vector3d cur();
 
                 shortcanbusData[0]=canbusData[0];
                 shorttimestamps[0]=shortcanbusData[0].timestamp;
-                shortvelcoities[0]=shortcanbusData[0].velocity;
+                shortvelocities[0]=shortcanbusData[0].velocity;
                 for(int i=1;i<pieces;i++){
                     shortcanbusData[i]=canbusData[i*divisor-1];
                     shorttimestamps[i]=shortcanbusData[i].timestamp;
-                    shortvelcoities[i]=shortcanbusData[i].velocity;
+                    shortvelocities[i]=shortcanbusData[i].velocity;
                 }
-                canbusdistances = speedIntegration(shorttimestamps, shortvelcoities);  //得到canbus的距离
+                canbusdistances = speedIntegration(shorttimestamps, shortvelocities);  //得到canbus的距离
 
                 std::deque<datapoint>temData;
                 //std::deque<datapoint>temData=extractDataInRange(gnssData,0,shortcanbusData[0].timestamp);
@@ -119,35 +140,22 @@ public:
                     temData=extractDataInRange(gnssData,shortcanbusData[i-1].timestamp,shortcanbusData[i].timestamp);
                     distances[0]=0;
                     for(int j=1;j<temData.size();i++){//?????TODO???
-                        //TODO 1029
-                        // Eigen::Vector3d pre();
-                        // Eigen::Vector3 cur();
-                        // double dist =  (cur-pre).norm();
-                        // sum + = dist;
-                        distances[j]=sqrt((temData[j].gnssx-temData[j-1].gnssx)*(temData[j].gnssx-temData[j-1].gnssx)+(temData[j].gnssy-temData[j-1].gnssy)*(temData[j].gnssy-temData[j-1].gnssy));
-                        sum=sum+distances[j];
+                        pre() = temData[j-1].gnss;
+                        cur() = temData[j].gnss;
+                        double dist =  (cur()-pre()).norm();
+                        sum = sum + dist;
                     }
                     gnssdistances[i]=sum;  //得到gnss的距离
                     sum=0;
                     std::deque<datapoint>().swap(temData);//TODO delete!!!
+                    // temData.clear();
                 }
 
                 //TODO 1029 not neccessary to use eigen to calc k and bias
                 //just use distance to calc k directly.
-                double k,bias;
-                Eigen::MatrixXd A(pieces,2);
-                Eigen::VectorXd b(pieces);
-
-                for(int i=0;i<pieces;i++){
-                    b(i)=gnssdistances[i];
-                    A(i,1)=shorttimestamps[i];
-                    A(i,0)=canbusdistances[i];
-                }
-                Eigen::VectorXd x = A.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
-
-                EZLOG(INFO)<<"k:"<<x(0,0);
-                EZLOG(INFO)<<"bias:"<<x(1,0);//TODO 1029 erase bias
-
+                double k = 0;
+                k = leastsquare(canbusdistances, gnssdistances, k);  //TODO 1029 erase bias
+                EZLOG(INFO)<<"k:"<<k;
                 exit(-1);//add by fyy
             }
             else{

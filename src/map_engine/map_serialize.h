@@ -19,6 +19,7 @@
 #include "Eigen/Core"           //eigen
 #include "Eigen/Geometry"       //Isometry3d
 #include "config_helper.h"
+#include <pcl/filters/uniform_sampling.h>
 #include "easylogging++.h"
 INITIALIZE_EASYLOGGINGPP
 

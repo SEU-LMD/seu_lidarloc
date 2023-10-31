@@ -38,6 +38,9 @@ int y_up_num=0;
 int up_bloc_count=0;
 int write_sum=0;
 
+
+
+
 void
 LoadTxt(const std::string& map_in_path,const int& frame_sum)
 {
@@ -142,6 +145,14 @@ PointPoseTrance(const pcl::PointXYZI& piont_in,const Eigen::Isometry3d& trans ){
 
 void
 CutMap(const std::string& feature,const std::string& map_out_path,const std::string& map_in_path,const int frame_sum){
+    //down size
+    pcl::UniformSampling<PointType> downSizeFilterCorner_US;
+    pcl::UniformSampling<PointType> downSizeFilterSurf_US;
+
+    downSizeFilterCorner_US.setRadiusSearch(MappingConfig::mappingCornerRadiusSize_US);
+    downSizeFilterSurf_US.setRadiusSearch(MappingConfig::mappingSurfRadiusSize_US);
+
+
     //大grid
         //内层为x加数据即 x先y后加
     for(int i=0;i<y_up_num;i++){        //外层为y
@@ -176,8 +187,20 @@ CutMap(const std::string& feature,const std::string& map_out_path,const std::str
                 }
             }
             std::string filename=map_out_path+std::to_string(j)+"_"+std::to_string(i)+feature+".pcd";
-            if(out_cloud->size()!=0)
-                pcl::io::savePCDFileBinary (filename, *out_cloud);
+            if(out_cloud->size()!=0){
+                if(feature=="corner"){
+                    pcl::PointCloud<PointType>::Ptr localMap_corner_ds(new pcl::PointCloud<PointType>);
+                    downSizeFilterCorner_US.setInputCloud(out_cloud);
+                    downSizeFilterCorner_US.filter(*localMap_corner_ds);
+                    pcl::io::savePCDFileBinary (filename, *localMap_corner_ds);
+                }
+                if(feature=="surf"){
+                    pcl::PointCloud<PointType>::Ptr localMap_surf_ds(new pcl::PointCloud<PointType>);
+                    downSizeFilterSurf_US.setInputCloud(out_cloud);
+                    downSizeFilterSurf_US.filter(*localMap_surf_ds);
+                    pcl::io::savePCDFileBinary (filename, *localMap_surf_ds);
+                }
+            }
             else{
                 std::ofstream file(map_out_path+"index.txt",std::ios_base::app);
                 file<<feature<<" "<<std::to_string(j)+"_"+std::to_string(i)<<std::endl;
@@ -194,6 +217,8 @@ int
 main (int argc, char** argv)
 {
     Load_offline_YAML("./config/offline_mapping.yaml");
+    Load_offline_YAML("./config/mapping.yaml");
+
     LoadTxt(SerializeConfig::map_in_path,SerializeConfig::frame_sum);
     FindMinMaxUsePose(SerializeConfig::map_out_path,SerializeConfig::lidar_range);
     CutDownMapCaulate();
