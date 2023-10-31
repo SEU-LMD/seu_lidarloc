@@ -32,11 +32,13 @@ public:
     int front_index = 0;
     std::deque<std::shared_ptr<BaseType>> data_deque;
     std::deque<std::shared_ptr<DROdometryType>> DR_data_deque;
+    std::deque<std::shared_ptr<GNSSOdometryType>> Gnss_data_deque;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToDR;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToMapManager;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToImageProjection;
     std::mutex mutex_data;
     std::mutex mutex_DR_data;
+    std::mutex Gnssmtx;
     std::mutex mtxGraph;
 
     gtsam::NonlinearFactorGraph gtSAMgraph;
@@ -63,6 +65,7 @@ public:
     int lidar_keyFrame_cnt = 0;
     double lastImuT_imu = -1;
     double current_lidar_time;
+    double current_gnss_time;
     OdometryType loc_result;
     OdometryType current_lidar_world;
     PoseT last_pose;
@@ -73,7 +76,6 @@ public:
     std::string topic_testforRollBack_pose = "/loc_result_roll_back";
     std::string topic_current_lidar_pose = "/loc_lidar_result";
 
-
     //this fucntion needs to be binded by lidar loc node
     void AddLidarLocToFuse(const OdometryType &lidar_loc_res){
         mutex_data.lock();
@@ -81,7 +83,6 @@ public:
         data_deque.push_back(odometryPtr);
         mutex_data.unlock();
     }
-
 
     void AddGNSSToFuse(const GNSSOdometryType &gnss_odom){
         mutex_data.lock();
@@ -96,35 +97,6 @@ public:
         std::shared_ptr<BaseType> odometryPtr = std::make_shared<DROdometryType>(DR_odom);
         data_deque.push_back(odometryPtr);
         mutex_data.unlock();
-    }
-
-//    std::vector<GNSS_INSType> = FindAfterTimestampIMU(front_data.time_stamp){
-//
-//    }
-
-    void GNSS_StatusCheck(std::deque<std::shared_ptr<BaseType>> _gnss_data_deque){
-        static int cnt_test = 0;
-        if(cnt_test > 100){
-          //  EZLOG(INFO)<<"GNSS: "<< cnt_test;
-            cnt_test = 0;
-        }
-        cnt_test++;
-    }
-
-    void fuseInitialized(){
-        // gtsam::ISAM2Params parameters;
-        // parameters.relinearizeThreshold = 0.1;
-        // parameters.relinearizeSkip = 1;
-        // isam = new gtsam::ISAM2(parameters);
-
-        // priorNoise = gtsam::noiseModel::Diagonal::Variances(
-        //                 (gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8)
-        //                         .finished());  // rad*rad, meter*meter
-        // odometryNoise = gtsam::noiseModel::Diagonal::Variances(
-        //                 (gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-6).finished());
-        // last_pose = PoseT(Eigen::Matrix4d::Identity());
-
-        // EZLOG(INFO)<<" Fuse Init Successful!";
     }
 
     void RollBack(const OdometryType _obs_pose,//obs_pose
@@ -200,11 +172,6 @@ public:
                 OdometryType send_data;//final send data
 
                 mutex_data.lock();
-//                if(front_index > data_deque.size()-1){
-//                    front_index = data_deque.size()-1;
-//                    continue;
-//                }
-//                auto front_data = data_deque[front_index];
                 auto front_data = data_deque.front();
                 data_deque.pop_front();
                 mutex_data.unlock();
@@ -226,7 +193,7 @@ public:
 
                             last_lidar_pose = current_lidar_pose;
                             lidar_keyFrame_cnt++;
-                            EZLOG(INFO)<<"GTSAM Optimization Init Successful!";
+                           // EZLOG(INFO)<<"GTSAM Optimization Init Successful!";
                             break;
                         }
                         else{
@@ -277,7 +244,89 @@ public:
 
                     case DataType::GNSS:
                     {
+                        GNSSOdometryTypePtr cur_GNSS_odom;
+                        cur_GNSS_odom = std::static_pointer_cast<GNSSOdometryType>(std::move(front_data));
+
+                        if(lidar_keyFrame_cnt == 0){
+                            PoseT current_GNSS_pose(cur_GNSS_odom->pose);
+                            OdometryType init_location;
+                            init_location.timestamp = cur_GNSS_odom->timestamp;
+                            init_location.pose = current_GNSS_pose;
+
+                            EZLOG(INFO)<<" init_location.pose: ";
+                            EZLOG(INFO)<<init_location.pose.pose;
+                            Function_AddLidarOdometryTypeToMapManager(init_location);
+                        }
+
                         // TODO  addd GNSS prior factor
+                        GNSSOdometryTypePtr cur_gnss_odom;
+                        cur_gnss_odom = std::static_pointer_cast<GNSSOdometryType>(std::move(front_data));
+                        Gnss_data_deque.push_back(cur_gnss_odom);
+                        current_gnss_time = cur_gnss_odom->timestamp;
+
+                           if (Gnss_data_deque.empty()) {return ;}
+                            static PointType lastGPSPoint;
+                            while(!Gnss_data_deque.empty()){
+                                Gnssmtx.lock();
+                                if (Gnss_data_deque.front()->timestamp< current_lidar_time - 0.1)
+                                {
+                                    Gnss_data_deque.pop_front();
+                                    Gnssmtx.unlock();
+                                }
+                                else if (Gnss_data_deque.front()->timestamp> current_lidar_time + 0.1)
+                               {
+                                   Gnssmtx.unlock();
+                                 break;
+                               }
+                                else
+                                {
+                                    GNSSOdometryTypePtr thisGPS = Gnss_data_deque.front();
+
+                                     Gnssmtx.unlock();
+                                     Gnss_data_deque.pop_front();
+                                     // EZLOG(INFO)<<"get out addGps factor"<<endl;
+                                     // GPS too noisy, skip
+//                                   double noise_x =  thisGPS.cov.x();
+//                                   double noise_y =  thisGPS.cov.y();
+//                                   double noise_z =  thisGPS.cov.z();
+                                     double noise_x = 1;
+                                     double noise_y = 1;
+                                     double noise_z = 1;
+
+                                     double gps_x = cur_gnss_odom->pose.GetXYZ().x();
+                                     double gps_y = cur_gnss_odom->pose.GetXYZ().y();
+                                     double gps_z = cur_gnss_odom->pose.GetXYZ().z();
+
+                                     if (abs(gps_x) < 1e-6 && abs(gps_y) < 1e-6)
+                                       continue;
+
+                                        // Add GPS every a few meters
+                                         PointType curGPSPoint;
+                                         curGPSPoint.x = gps_x;
+                                         curGPSPoint.y = gps_y;
+                                         curGPSPoint.z = gps_z;
+                                         if (pointDistance(curGPSPoint, lastGPSPoint) < 5.0){
+                                             continue;
+                                         }
+                                         else{
+                                             lastGPSPoint = curGPSPoint;
+                                         }
+
+                                gtsam::Vector Vector3(3);
+                                Vector3 << noise_x,noise_y,noise_z;
+                                //Vector3 << max(noise_x, 1.0), max(noise_y, 1.0), max(noise_z, 1.0);
+                                gtsam::noiseModel::Diagonal::shared_ptr gps_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
+                                gtsam::GPSFactor gps_factor(lidar_keyFrame_cnt, gtsam::Point3(gps_x, gps_y, gps_z), gps_noise);
+                                gtSAMgraph.add(gps_factor);
+
+                               // EZLOG(INFO)<<"get out addGps factor"<<endl;
+
+                                    Gnssmtx.unlock();
+                                break;
+                                // }
+                            }
+
+                        }
 //                        if(firstLidarFlag == false){
 //                            data_deque.pop_front();
 //                            mutex_data.unlock();
@@ -316,6 +365,14 @@ public:
                         // 3.iteration of DR: update iteration init point when rollback
                         loc_result.frame = "map";
                         loc_result.timestamp = current_timeStamp;
+                        if(lidar_keyFrame_cnt == 0){
+                            OdometryType init_location;
+                            init_location.timestamp = cur_Wheel_odom->timestamp;
+                            init_location.pose = current_DR_pose;
+                            EZLOG(INFO)<<" init_location.pose: ";
+                            EZLOG(INFO)<<init_location.pose.pose;
+                            Function_AddLidarOdometryTypeToMapManager(init_location);
+                        }
                         //TODO 1029
                         if(if_abs_loc_arrived){// predict from last rollback
                             loc_result.pose.pose = last_pose.pose * delta_pose_DR.pose;
@@ -328,7 +385,7 @@ public:
                                 Function_AddLidarOdometryTypeToImageProjection(loc_result);
                             }
                             last_DR_pose = current_DR_pose;
-                            EZLOG(INFO)<<"wheel pub cost in ms : "<<t1.toc();
+                            //EZLOG(INFO)<<"wheel pub cost in ms : "<<t1.toc();
                         }
                         // }else{ // normal predict TODO 1029 delete
                         //     loc_result.pose.pose = last_DR_pose.pose * delta_pose_DR.pose;

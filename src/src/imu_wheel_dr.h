@@ -36,7 +36,7 @@ public:
     std::mutex odom_mutex;
     std::mutex gnssins_mutex;
     std::mutex lidarodom_mutex;
-    std::function<void(const OdometryType&)> Function_AddDROdometryTypeToImageProjection;
+    std::function<void(const OdometryType&)> Function_AddDROdometryTypeToDataPreprocess;
     std::function<void(const DROdometryType&)> Function_AddDROdometryTypeToFuse;
     std::ofstream outfile;
 
@@ -90,14 +90,9 @@ public:
     gtsam::NavState currentState,lastState;
     StateData state,last_state;
     Eigen::Matrix3d R_w_b;
-    double current_V;
     IMURawDataPtr cur_imu;
     gtsam::NonlinearFactorGraph* graph;
 
-
-    Eigen::Matrix3d rotVecToMat(const Eigen::Vector3d &rvec){
-        return Eigen::AngleAxisd(rvec.norm(),rvec.normalized()).toRotationMatrix();
-    }
 
     Eigen::Matrix3d deltaRotMat(const Eigen::Vector3d &delta_rot_vec) {
         Eigen::Matrix3d delta_R = Eigen::Matrix3d::Identity();
@@ -113,37 +108,12 @@ public:
                                    const Eigen::Matrix3d &delta_rot_mat) {
 //        need debug
         Eigen::Matrix3d updatedR = Eigen::Matrix3d::Identity();
-        updatedR = Rwi * delta_rot_mat;
-        //updatedR = delta_rot_mat * Rwi;
+        updatedR = Rwi * delta_rot_mat;  // TODO left or right is the same?????
+//        updatedR = delta_rot_mat * Rwi;
         return updatedR;
     }
 
-    Eigen::Matrix3d skewMatrix(const Eigen::Vector3d &v){
-        Eigen::Matrix3d w;
-        w << 0. ,-v(2), v(1), v(2) , 0. , -v(1) , v(0), 0.;
-        return w;
-    }
-
-    void AddOdomData(const OdometryType &data){
-
-//      not use lidar
-//        lidarodom_mutex.lock();
-//        if(lidar_poseQueue.empty()){
-//            lidar_poseQueue.push_back(data);
-//            EZLOG(INFO)<<"lidar_poseQueue.size() "<<lidar_poseQueue.size()<<std::endl;
-//            first_lidar_odom = lidar_poseQueue.front();
-//
-////            firstLidarPose.pose();
-//            lidarodom_mutex.unlock();
-//        }
-//        lidarodom_mutex.unlock();
-
-//      come from last lidar pose
-        lidarodom_mutex.lock();
-        lidar_poseQueue.push_back(data);
-        lidarodom_mutex.unlock();
-    }
-
+    //TODO delete-------Done 1030
     void IMUWheel_predict(IMURawWheelDataPtr curr_imu, const Eigen::Matrix3d &_R_w_b){
         double imuTime = curr_imu->timestamp;
         double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
@@ -182,8 +152,8 @@ public:
             //pure DR
             state.Rwb_ = last_state.Rwb_;
             state.Rwb_ = rotationUpdate(state.Rwb_ , dR);
-            Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
-            state.v_w_ = state_v_w;
+            Eigen::Vector3d state_v_b = state.Rwb_ * state_v_b;
+            state.v_w_ = state_v_b;
             state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
         }
 
@@ -249,19 +219,13 @@ public:
 
         R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb
 
-//        static int imu_cnt = 0;
-//          for debug
-//        outfile.precision(6);
-//        outfile << imu_raw->imu_angular_v.x()<<" "<< imu_raw->imu_angular_v.y()<<" "<<imu_raw->imu_angular_v.z()<<std::endl;
-
-
         if(SensorConfig::if_use_Wheel_DR == 1){
             IMURawWheelDataPtr imuWheel_raw (new IMURawWheelData);
             imuWheel_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
             imuWheel_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
             imuWheel_raw->timestamp = gnss_ins_data.timestamp;
             imuWheel_raw->velocity = gnss_ins_data.velocity;
-            IMUWheel_predict(imuWheel_raw,R_w_b);
+            IMUWheel_predict(imuWheel_raw,R_w_b);//very important function!!!!!
         }
         else{
             IMURawDataPtr imu_raw (new IMURawData);
@@ -271,7 +235,7 @@ public:
             gnssins_mutex.lock();
             imuQueImu.push_back(imu_raw);
             gnssins_mutex.unlock();
-            currentState = IMU_predict(imu_raw);
+            currentState = IMU_predict(imu_raw);//very important function!!!!!
         }
 
         OdometryType Odometry_imuPredict_pub;
@@ -280,12 +244,14 @@ public:
             Eigen::Matrix3d DR2lidar;
             Eigen::Vector3d lidar_preditct_pose_p_wb_;
             Eigen::Matrix3d lidar_preditct_pose_Rwb_;
-            DR2lidar = SensorConfig::T_L_DR.block<3,3>(0,0);
-            lidar_preditct_pose_Rwb_ = DR2lidar * DR2lidar * state.Rwb_;
+            DR2lidar = SensorConfig::T_L_DR.block<3,3>(0,0);//
+            PoseT T_w_b(state.p_wb_,state.Rwb_);
+            PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
+
+            lidar_preditct_pose_Rwb_ = DR2lidar *  DR2lidar * state.Rwb_ ;//TODO 1029 ??????? no reason
             lidar_preditct_pose_p_wb_ = DR2lidar * state.p_wb_; // 地面存在高程误差——外参？ 建图？
-            lidar_preditct_pose_p_wb_ =  lidar_preditct_pose_p_wb_;
-           // EZLOG(INFO)<<" lidar_preditct_pose_p_wb_"<<lidar_preditct_pose_p_wb_<<endl;
-         //   EZLOG(INFO)<<"lidar_preditct_pose_Rwb_"<<lidar_preditct_pose_Rwb_<<endl;
+            EZLOG(INFO)<<" lidar_preditct_pose_p_wb_"<<lidar_preditct_pose_p_wb_.transpose()<<endl;
+            EZLOG(INFO)<<"lidar_preditct_pose_Rwb_"<<lidar_preditct_pose_Rwb_<<endl;
 
             PoseT lidar_preditct_pose(lidar_preditct_pose_p_wb_,lidar_preditct_pose_Rwb_);
             Odometry_imuPredict_pub.pose = lidar_preditct_pose;
@@ -303,11 +269,8 @@ public:
 
         Odometry_imuPredict_pub.timestamp = currentTime;
         Odometry_imuPredict_pub.frame = "map";
-        if(MappingConfig::use_DR_or_fuse_in_loc == 1){
-            Function_AddDROdometryTypeToImageProjection(Odometry_imuPredict_pub);
-        }
 
-        Function_AddDROdometryTypeToImageProjection(Odometry_imuPredict_pub);
+
         //for debug use
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";
@@ -316,9 +279,7 @@ public:
             Function_AddDROdometryTypeToFuse(DR_pose);
         }
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
-//        EZLOG(INFO)<<" time in ms: "<<time1.toc();
-//        imu_cnt++;
-//        EZLOG(INFO)<<"imu_cnt: "<<imu_cnt;
+        Function_AddDROdometryTypeToDataPreprocess(Odometry_imuPredict_pub);
 
     }
 
@@ -412,64 +373,14 @@ public:
 
     }
 
-    void ClearFactorGraph() {
-        gtsam::ISAM2Params optParameters;
-        optParameters.relinearizeThreshold = 0.1;
-        optParameters.factorization = gtsam::ISAM2Params::CHOLESKY;
-        optParameters.relinearizeSkip = 10;
-        optimizer = gtsam::ISAM2(optParameters);
-
-        gtsam::NonlinearFactorGraph newGraphFactors;
-        graphFactors = newGraphFactors;
-
-        gtsam::Values NewGraphValues;
-        graphValues = NewGraphValues;
-    }
-    void DoPredict(){
-        while(1){
-            if(SensorConfig::if_use_Wheel_DR == 1){ // IMU+Wheel just don't do anything
-                sleep(0.001);
-            }
-            else{ // TODO only imu integration
-                if(!lidar_poseQueue.empty()){
-                    lidarodom_mutex.lock();
-                    double current_time = lidar_poseQueue.front().timestamp;
-                    lidar_poseQueue.pop_front();
-                    lidarodom_mutex.unlock();
-
-                    if (imuQueImu.empty())
-                    {
-                        continue;
-                    }
-
-                    gnssins_mutex.lock();
-                    prevPose_ = firstLidarPose.pose();
-                    // TODO measurement
-
-
-                }//end if(imuQueImu.size()!=0){
-                else{
-                    sleep(0.001);
-                }
-            }
-        }
-    }//end function DoLidar
-
     void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
 
         //设置imu的参数
         SetIMUPreParamter();
-        //debug
-//        outfile.open("imu_gyro.txt",std::ios::app);
-//        if (!outfile.is_open()) {
-//            std::cerr << "无法打开输出文件 " << std::endl;
-//        }
-//        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
-
         pubsub = pubsub_;
         slam_mode_switch = _slam_mode_switch;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
-        do_lidar_thread = new std::thread(&IMU_DR::DoPredict, this);
+//        do_lidar_thread = new std::thread(&IMU_DR::DoPredict, this);//TODO delete-----Done
     }
 };
 
