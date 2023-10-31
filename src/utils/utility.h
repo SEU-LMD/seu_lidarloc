@@ -230,7 +230,10 @@ public:
     Eigen::Vector3d operator*(const Eigen::Vector3d& pt) const{
         return pose.block<3,3>(0,0)*pt+pose.block<3,1>(0,3);
     }
-
+    PoseT& operator=(const PoseT& d){
+        pose = d.pose;
+        return *this;
+    }
     PoseT inverse() const{
         return PoseT(pose.inverse());
     }

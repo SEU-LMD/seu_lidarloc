@@ -10,8 +10,8 @@
   # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!
 #  save_map_path: "/home/wxy/seu/fuse/seu_lidarloc/src/test/"
-  save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/map/"
-#  save_map_path: "/home/lsy/map/"
+#  save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/map/"
+  save_map_path: "/home/lsy/map/"
   if_need_first_position: 0
 # 1 use DR , 0 use fuse
   use_DR_or_fuse_in_loc: 1
@@ -60,10 +60,10 @@
 
   if_LoadFromMapManager: 1  # 0 for load PriorMap from local, 1 for load from MapManager
   scan_2_prior_map: 1     # 0 for scan 2 localmap, 1 for scan 2 priormap, 2 for scan 2 scan
-  prior_corner_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/yuanqu/global_corner.pcd"
-  prior_surf_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/yuanqu/global_surf.pcd"
-#  prior_corner_map_path: "/home/lsy/seu_lidarloc/src/global_corner.pcd"
-#  prior_surf_map_path: "/home/lsy/seu_lidarloc/src/global_surf.pcd"
+#  prior_corner_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/yuanqu/global_corner.pcd"
+#  prior_surf_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/yuanqu/global_surf.pcd"
+  prior_corner_map_path: "/home/lsy/seu_lidarloc/src/global_corner.pcd"
+  prior_surf_map_path: "/home/lsy/seu_lidarloc/src/global_surf.pcd"
   scan_2_scan_num_surf: 50000
   scan_2_scan_num_corner: 30000
 
