@@ -21,10 +21,7 @@
 struct CloudInfoFt{
     pcl::PointCloud<PointType>::Ptr corner_cloud;
     pcl::PointCloud<PointType>::Ptr surf_cloud;
-    pcl::PointCloud<PointType>::Ptr raw_Cloud;
-    pcl::PointCloud<PointType>::Ptr global_corner_cloud;
-    pcl::PointCloud<PointType>::Ptr global_surf_cloud;
-
+  //  pcl::PointCloud<PointType>::Ptr raw_Cloud;
    // pcl::PointCloud<PointXYZICOLRANGE>::Ptr raw_cloud;
 //    CloudInfo raw_cloud;
     int frame_id;
@@ -41,20 +38,21 @@ public:
        // pcl::io::savePCDFileBinary(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_raw.pcd", *cloud_info.raw_Cloud);
         pcl::io::savePCDFileBinary(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_surf.pcd", *cloud_info.surf_cloud);
         pcl::io::savePCDFileBinary(MappingConfig::save_map_path+std::to_string(cloud_info.frame_id)+"_corner.pcd", *cloud_info.corner_cloud);
-       // pcl::io::savePCDFileBinary(MappingConfig::save_map_path+"global_corner.pcd", *cloud_info.global_corner_cloud);
-       // pcl::io::savePCDFileBinary(MappingConfig::save_map_path+"global_surf.pcd", *cloud_info.global_surf_cloud);
+        //pcl::io::savePCDFileBinary(MappingConfig::save_map_path+"global_corner.pcd", *cloud_info.global_corner_cloud);
+      //  pcl::io::savePCDFileBinary(MappingConfig::save_map_path+"global_surf.pcd", *cloud_info.global_surf_cloud);
     }
 
     static void SaveOriginLLA(const Eigen::Vector3d gps_point){
         std::fstream originStream( MappingConfig::save_map_path +"Origin.txt", std::fstream::out);
-        originStream.precision(6);
+        EZLOG(INFO)<<"save GNSS init point!"<<std::endl;
+        originStream.precision(9);
         originStream << gps_point[0] << " " << gps_point[1] << " " << gps_point[2]
                      << std::endl;
         originStream.close();
     }
 
     static void SavePoses(const std::vector<PoseT>& opt_poses) {
-        std::fstream stream(MappingConfig::save_map_path + "Opt_Poses.txt",std::fstream::out);
+        std::fstream stream(MappingConfig::save_map_path + "opt_poses.txt",std::fstream::out);
         stream.precision(6);
         for (int i = 0; i < opt_poses.size(); i++) {
             Eigen::Vector3d p = opt_poses[i].GetXYZ();

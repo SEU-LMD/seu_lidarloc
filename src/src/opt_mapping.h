@@ -25,7 +25,7 @@
 
 #include <std_srvs/Empty.h>
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
-#include "imu_preintegration.h"
+#include "IMU_DR.h"
 //#include "GeoGraphicLibInclude/Geocentric.hpp"
 //#include "GeoGraphicLibInclude/LocalCartesian.hpp"
 //#include "GeoGraphicLibInclude/Geoid.hpp"
@@ -34,7 +34,6 @@
 #include "utils/utm/utm_convert.h"
 #include "utils/timer.h"
 #include "utils/MapSaver.h"
-
 
 class OPTMapping{
 public:
@@ -46,15 +45,21 @@ public:
     std::mutex cloud_mutex;
     std::mutex gnss_ins_mutex;
     std::mutex work_mutex;
+    std::mutex imuodom_mutex;
+    std::mutex gnssins_mutex;
     //std::mutex timer_mutex;
     TicToc timer_cloud;
     MapSaver map_saver;
 
-    //    IMUPreintegration* imu_pre_ptr;
-    //std::function<void(const OdometryType&)> Function_AddOdometryTypeToIMUPreintegration;
+    //    IMU_DR* imu_pre_ptr;
+    std::function<void(const OdometryType&)> Function_AddOdometryTypeToIMUPreintegration;
+
 
      std::deque<CloudFeature> deque_cloud;
      std::deque<GNSSINSType> deque_gnssins;
+    // std::deque<OdometryType> deque_imu;
+     std::deque<OdometryType> poseQueue;
+    std::deque<GNSSOdometryType> GnssQueue;
 
 //    std::string topic_map_surf = "/map_cloud_surf_global";
 //    std::string topic_map_corner = "/map_cloud_corner_global";
@@ -133,7 +138,7 @@ public:
     vector <pair<int, int>> loopIndexQueue;
     vector <gtsam::Pose3> loopPoseQueue;
     vector <gtsam::noiseModel::Diagonal::shared_ptr> loopNoiseQueue;
-    deque <std_msgs::Float64MultiArray> loopInfoVec;
+  //  deque <std_msgs::Float64MultiArray> loopInfoVec;
     vector<PoseT> opt_poses;
     map<int, int> loopIndexContainer;  // from new to old
     map<int, int> gpsIndexContainer;
@@ -141,6 +146,7 @@ public:
     bool flg_exit = false;
     bool aLoopIsClosed = false;
     bool timer_start = false;
+    bool init = false;
 
     int lastLoopIndex = -1;
     int laserCloudCornerFromMapDSNum = 0;
@@ -335,28 +341,56 @@ public:
         return thisPose6D;
     }
 
+    bool syncGPS(std::deque<GNSSINSType> &gpsBuf,
+                 GNSSINSType &aligedGps, double timestamp,
+                 double eps_cam) {
+        bool hasGPS = false;
+        while (!deque_gnssins.empty()) {
+            mtxGpsInfo.lock();
+            if (deque_gnssins.front().timestamp< timestamp - eps_cam) {
+                // message too old
+                deque_gnssins.pop_front();
+                mtxGpsInfo.unlock();
+            } else if (deque_gnssins.front().timestamp> timestamp + eps_cam) {
+                // message too new
+                mtxGpsInfo.unlock();
+                break;
+            } else {
+                hasGPS = true;
+                aligedGps = deque_gnssins.front();
+                deque_gnssins.pop_front();
+                mtxGpsInfo.unlock();
+            }
+        }
+
+        if (hasGPS)
+            return true;
+        else
+            return false;
+    }
+
     void loopClosureThread() {
         if (MappingConfig::loopClosureEnableFlag == false) return;
         //设置回环的
        // ros::Rate rate(MappingConfig::loopClosureFrequency);
         while (1) {
-           // ros::spinOnce();
-            TicToc timer;
+            //ros::spinOnce();
+            TicToc t1;
             performLoopClosure();
-            EZLOG(INFO)<<"LOOP COST TIME"<<timer.toc();
-            //visualizeLoopClosure();
-            sleep(1);
+            EZLOG(INFO)<<"loopClosure"<<t1.toc()<<endl;
+
+            sleep(0.01);
         }
     }
 
-   // void loopInfoHandler(const std_msgs::Float64MultiArray::ConstPtr &loopMsg) {
-      //  std::lock_guard<std::mutex> lock(mtxLoopInfo);
-       // if (loopMsg->data.size() != 2) return;
-
-        //loopInfoVec.push_back(*loopMsg);
-
-       // while (loopInfoVec.size() > 5) loopInfoVec.pop_front();
-   // }
+//    void loopInfoHandler(const std_msgs::Float64MultiArray::ConstPtr &loopMsg) {
+//        std::lock_guard<std::mutex> lock(mtxLoopInfo);
+//        if (loopMsg->data.size() != 2) return;
+//
+//        loopInfoVec.push_back(*loopMsg);
+//
+//        while (loopInfoVec.size() > 5) loopInfoVec.pop_front();
+//    }
    /**
     * 1.在历史关键帧中查找与当前关键帧距离最近的关键帧集合，选择时间相隔较远的一帧作为候选闭环帧
     * 2.提取当前关键帧特征点集合，降采样；提取闭环匹配关键帧前后相邻若干帧的关键帧特征点集合，降采样
@@ -364,12 +398,12 @@ public:
     * note:闭环
     */
     void performLoopClosure() {
-        if (cloudKeyPoses3D->points.empty() ==  true) return;
+    //    EZLOG(INFO)<<"gwi in loop"<<endl;
+        if (cloudKeyPoses3D->points.empty() == true) return;
 
         mtx.lock();
-        //防止冲突
         *copy_cloudKeyPoses3D = *cloudKeyPoses3D;
-        *copy_cloudKeyPoses2D = *cloudKeyPoses3D;//z=0
+        *copy_cloudKeyPoses2D = *cloudKeyPoses3D;
         *copy_cloudKeyPoses6D = *cloudKeyPoses6D;
         mtx.unlock();
 
@@ -377,7 +411,7 @@ public:
         int loopKeyCur;
         int loopKeyPre;
        // if (detectLoopClosureExternal(&loopKeyCur, &loopKeyPre) == false)
-       //在历史关键帧中查找与当前关键帧距离最近的关键帧集合，选择距离大于12m的相隔较远的关键帧作为候选闭环帧
+       //在历史关键帧中查找与当前关键帧距离最近的关键帧集合，选择时间相隔较远的一帧作为候选闭环帧
             if (detectLoopClosureDistance(&loopKeyCur, &loopKeyPre) == false) return;
 
         // extract cloud
@@ -394,15 +428,18 @@ public:
             //如果特征点较少，返回
             if (cureKeyframeCloud->size() < 300 || prevKeyframeCloud->size() < 1000)
                 return;
+           // if (pubHistoryKeyFrames.getNumSubscribers() != 0)
+              //  publishCloud(pubHistoryKeyFrames, prevKeyframeCloud, timeLaserInfoStamp,
+              //               SensorConfig::odometryFrame);
         }
-
+       EZLOG(INFO)<<"get  in ICP"<<endl;
         // ICP Settings
         static pcl::IterativeClosestPoint<PointType, PointType> icp;
         icp.setMaxCorrespondenceDistance(MappingConfig::historyKeyframeSearchRadius * 2);
-        icp.setMaximumIterations(30);
-        icp.setTransformationEpsilon(1e-6);//最大平移平方差
-        icp.setEuclideanFitnessEpsilon(1e-6);//欧几里德误差
-        icp.setRANSACIterations(0);//随机抽样的最大运行次数
+        icp.setMaximumIterations(50);
+        icp.setTransformationEpsilon(1e-6);
+        icp.setEuclideanFitnessEpsilon(1e-6);
+        icp.setRANSACIterations(0);
 
         // Align clouds
         //ICP配准，源点云是当前帧，历史关键帧是目标点云；
@@ -411,13 +448,24 @@ public:
         pcl::PointCloud<PointType>::Ptr unused_result(
                 new pcl::PointCloud<PointType>());
         icp.align(*unused_result);
-        //未收敛或者ICP匹配结果不好，getFitnessScore返回最邻近点距离的平均值
+
         if (icp.hasConverged() == false ||
             icp.getFitnessScore() > MappingConfig::historyKeyframeFitnessScore)
             return;
 
+        // publish corrected cloud
+//        if (pubIcpKeyFrames.getNumSubscribers() != 0) {
+//            pcl::PointCloud<PointType>::Ptr closed_cloud(
+//                    new pcl::PointCloud<PointType>());
+//            pcl::transformPointCloud(*cureKeyframeCloud, *closed_cloud,
+//                                     icp.getFinalTransformation());
+//            publishCloud(pubIcpKeyFrames, closed_cloud, timeLaserInfoStamp,
+//                         SensorConfig::odometryFrame);
+//        }
 
+        // Get pose transformation
         //闭环优化得到的当前帧与闭环关键帧之间的位姿变换
+       EZLOG(INFO)<<"get  OUT OF ICP"<<endl;
         float x, y, z, roll, pitch, yaw;
         Eigen::Affine3f correctionLidarFrame;
         correctionLidarFrame = icp.getFinalTransformation();
@@ -426,25 +474,31 @@ public:
         Eigen::Affine3f tWrong =
                 pclPointToAffine3f(copy_cloudKeyPoses6D->points[loopKeyCur]);
         // transform from world origin to corrected pose
+       pcl::getTranslationAndEulerAngles(tWrong, x, y, z, roll, pitch, yaw);
+
+
         //闭环优化后当前帧的位姿
         Eigen::Affine3f tCorrect =
                 correctionLidarFrame *
                 tWrong;  // pre-multiplying -> successive rotation about a fixed frame
+
         pcl::getTranslationAndEulerAngles(tCorrect, x, y, z, roll, pitch, yaw);
         //当前帧的位姿
+
+       EZLOG(INFO)<<"get IN gtsam "<<endl;
         gtsam::Pose3 poseFrom =
                 gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
         //闭环匹配帧的位姿
         gtsam::Pose3 poseTo =
                 pclPointTogtsamPose3(copy_cloudKeyPoses6D->points[loopKeyPre]);
-
+       EZLOG(INFO)<<"get IN gtsam "<<poseTo.translation()<<endl;
         gtsam::Vector Vector6(6);
         float noiseScore = icp.getFitnessScore();
         Vector6 << noiseScore, noiseScore, noiseScore, noiseScore, noiseScore,
                 noiseScore;
         gtsam::noiseModel::Diagonal::shared_ptr constraintNoise =
                 gtsam::noiseModel::Diagonal::Variances(Vector6);
-
+       EZLOG(INFO)<<"get out of gtsam "<<endl;
         // Add pose constraint
         mtx.lock();
         loopIndexQueue.push_back(make_pair(loopKeyCur, loopKeyPre));
@@ -455,21 +509,28 @@ public:
         // add loop constriant
         loopIndexContainer[loopKeyCur] = loopKeyPre;
         lastLoopIndex = loopKeyCur;
+       EZLOG(INFO)<<"get out of loop "<<endl;
     }
-
+//    double distance(const pcl::PointCloud<PointType>::Ptr &frame1,
+//                    const pcl::PointCloud<PointType>::Ptr &frame2){
+//        double dx =
+//    }
 
     bool detectLoopClosureDistance(int *latestID, int *closestID) {
+        EZLOG(INFO)<<"get  in find detectLoopClosure"<<endl;
         //取出最新帧的索引
         int loopKeyCur = copy_cloudKeyPoses3D->size() - 1;
         int loopKeyPre = -1;
 
+        // check loop constraint added before
         //检查当前帧是否已经添加了回环约束，如果已经添加了回环约束，则将不再继续添加
         auto it = loopIndexContainer.find(loopKeyCur);
         if (it != loopIndexContainer.end()) return false;
 
         // tricks
         // Two consecutive loop edges represent the closed loop of the same scene.
-
+        // Adding all of them to the pose graph has little meaning and may reduce
+        // the accuracy.
         if (abs(lastLoopIndex - loopKeyCur) < 5 && lastLoopIndex != -1)
             return false;
 
@@ -489,60 +550,97 @@ public:
                 copy_cloudKeyPoses2D->back(), MappingConfig::historyKeyframeSearchRadius,
                 pointSearchIndLoop, pointSearchSqDisLoop, 0);
 
-       /***
-        * 1.在候选关键帧中，选与当前帧积分距离大于20m的关键帧作为被选取的回环帧，并构建局部地图；
-        */
-//
-       for (int i = 0;i < (int ) pointSearchIndLoop.size();++i){
-           int id = pointSearchIndLoop[i];
-           loopKeyPre = id;
-           double distance =0.0;
-           for (int j = loopKeyPre; j < loopKeyCur;++j){
-               distance += keyframeDistances.at(j);
-               //EZLOG(INFO)
-           }
-           if (distance < 20){
-               break;
-           }
-       }
-       /***
-        * 1.在候选关键帧中，选与当前帧时间相隔60秒的关键帧作为候选帧
-        * 2.然后再筛选距离大于20m的候选帧构建局部地图
-        */
-       // 在候选关键帧中，选与当前帧时间相隔60秒的关键帧作为候选帧
-//        for (int i = 0; i < (int) pointSearchIndLoop.size(); ++i) {
-//            int id = pointSearchIndLoop[i];
-//            if (abs(copy_cloudKeyPoses6D->points[id].time - timeLaserInfoCur) >
-//                MappingConfig::historyKeyframeSearchTimeDiff) {
-//                loopKeyPre = id;
-//                break;
-//            }
-//        }
-//
-//        if (keyframeDistances.size() >= loopKeyCur) {
-//            double distance = 0.0;
-//            for (int j = loopKeyPre; j < loopKeyCur; ++j) {
-//                distance += keyframeDistances.at(j);
-//            }
-//            if (distance < 20) {
-//                std::cout << "CLOSE FRAME MUST FILTER OUT " << distance << std::endl;
-//                return false;
-//            }
-//        }
+       //在候选关键帧中，选与当前帧时间相隔60秒的关键帧作为候选帧
+//       for (int i = 0;i < (int ) pointSearchIndLoop.size();++i){
+//           int id = pointSearchIndLoop[i];
+//              double totalDistance += distance(copy_cloudKeyPoses2D->points[id],copy_cloudKeyPoses2D->points[id])
+//       }
+        for (int i = 0; i < (int) pointSearchIndLoop.size(); ++i) {
+            int id = pointSearchIndLoop[i];
+            if (abs(copy_cloudKeyPoses6D->points[id].time - timeLaserInfoCur) >
+                MappingConfig::historyKeyframeSearchTimeDiff) {
+                loopKeyPre = id;
+                break;
+            }
+        }
 
         if (loopKeyPre == -1 || loopKeyCur == loopKeyPre) return false;
 
+        // we also need to care about the accumulated distance between keyframe;
+        // LOOPs that are too close together have no meaning and may reduce
+        // accuracy. For example, the lidar starts to move after being stationary
+        // for 30s in a certain place. At this time, the IMU should be trusted more
+        // than the lidar.
+        if (keyframeDistances.size() >= loopKeyCur) {
+            double distance = 0.0;
+            for (int j = loopKeyPre; j < loopKeyCur; ++j) {
+                distance += keyframeDistances.at(j);
+            }
+            if (distance < 12) {
+                std::cout << "CLOSE FRAME MUST FILTER OUT " << distance << std::endl;
+                return false;
+            }
+        }
+        EZLOG(INFO)<<"get  out of find detectLoopClosure"<<endl;
+        if (loopKeyPre == -1 || loopKeyCur == loopKeyPre) return false;
+        EZLOG(INFO)<<"get  out of find detectLoopClosure"<<endl;
         *latestID = loopKeyCur;
         *closestID = loopKeyPre;
-
+        EZLOG(INFO)<<"get  out of find detectLoopClosure"<<endl;
         return true;
     }
-    bool detectLoopClosureExternal(int *latestID, int *closestID) {
-
-    }
+//    bool detectLoopClosureExternal(int *latestID, int *closestID) {
+//        // this function is not used yet, please ignore it
+//        int loopKeyCur = -1;
+//        int loopKeyPre = -1;
+//
+//        std::lock_guard<std::mutex> lock(mtxLoopInfo);
+//        if (loopInfoVec.empty()) return false;
+//
+//        double loopTimeCur = loopInfoVec.front().data[0];
+//        double loopTimePre = loopInfoVec.front().data[1];
+//        loopInfoVec.pop_front();
+//
+//        if (abs(loopTimeCur - loopTimePre) < MappingConfig::historyKeyframeSearchTimeDiff)
+//            return false;
+//
+//        int cloudSize = copy_cloudKeyPoses6D->size();
+//        if (cloudSize < 2) return false;
+//
+//        // latest key
+//        loopKeyCur = cloudSize - 1;
+//        for (int i = cloudSize - 1; i >= 0; --i) {
+//            if (copy_cloudKeyPoses6D->points[i].time >= loopTimeCur)
+//                loopKeyCur = round(copy_cloudKeyPoses6D->points[i].intensity);
+//            else
+//                break;
+//        }
+//
+//        // previous key
+//        loopKeyPre = 0;
+//        for (int i = 0; i < cloudSize; ++i) {
+//            if (copy_cloudKeyPoses6D->points[i].time <= loopTimePre)
+//                loopKeyPre = round(copy_cloudKeyPoses6D->points[i].intensity);
+//            else
+//                break;
+//        }
+//
+//        if (loopKeyCur == loopKeyPre) return false;
+//
+//        auto it = loopIndexContainer.find(loopKeyCur);
+//        if (it != loopIndexContainer.end()) return false;
+//
+//        *latestID = loopKeyCur;
+//        *closestID = loopKeyPre;
+//
+//        ROS_INFO("VISUAL LOOP INDEX: %d, %d", loopKeyCur, loopKeyPre);
+//
+//        return true;
+//    }
 
     void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes,
                                const int &key, const int &searchNum) {
+        EZLOG(INFO)<<"get  in find nearkeyframes"<<endl;
         // extract near keyframes
         nearKeyframes->clear();
         int cloudSize = copy_cloudKeyPoses6D->size();
@@ -566,10 +664,11 @@ public:
         downSizeFilterICP.setInputCloud(nearKeyframes);
         downSizeFilterICP.filter(*cloud_temp);
         *nearKeyframes = *cloud_temp;
+        EZLOG(INFO)<<"get  out of find nearkeyframes"<<endl;
     }
 
     void updateInitialGuess() {
-       // EZLOG(INFO)<<"get in  updateInitialGuess() "<<endl;
+        EZLOG(INFO)<<"get in  updateInitialGuess() "<<endl;
 
         incrementalOdometryAffineFront = trans2Affine3f(transformTobeMapped);
 
@@ -579,53 +678,52 @@ public:
             systemInitialized = false;
 
             if (SensorConfig::useGPS) {
-               // if (gps_status = true){
 
-                    double t_enu[3];
-                    geoConverter.Forward(deque_gnssins.front().lla[0], deque_gnssins.front().lla[1], deque_gnssins.front().lla[2],
-                                         t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
+                 double t_enu[3];
+                geoConverter.Forward(deque_gnssins.front().lla[0], deque_gnssins.front().lla[1], deque_gnssins.front().lla[2],
+                                     t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
 
-                    if (SensorConfig::debugGps) {
-                        //std::cout << "initial gps yaw: " << q_w_yaw_cur << std::endl;
-                        // std::cout << "GPS Position: " << t_enutranspose() << std::endl;
-                        //std::cout << "GPS LLA: " << originLLA.transpose() << std::endl;
-                        //  ROS_WARN("GPS init success");
-                    }
+               if (SensorConfig::debugGps) {
+                    //std::cout << "initial gps yaw: " << q_w_yaw_cur << std::endl;
+                   // std::cout << "GPS Position: " << t_enutranspose() << std::endl;
+                    //std::cout << "GPS LLA: " << originLLA.transpose() << std::endl;
+                  //  ROS_WARN("GPS init success");
+                }
 
-                    /** add the first factor, we need this origin GPS point for prior map based localization,
-                        * but we need to optimize its value by pose graph if the origin gps RTK status is not fixed.*/
-                    PointType gnssPoint;
-                    gnssPoint.x = t_enu[0],
-                    gnssPoint.y = t_enu[1],
-                    gnssPoint.z = t_enu[2];
-                    //?????????  协方差怎么拿过来
-                    double noise_x = 0.00001;
-                    double noise_y = 0.00001;
-                    double noise_z = 0.00001;
-                    /** if we get reliable origin point, we adjust the weight of this gps factor */
-                    if (!SensorConfig::updateOrigin) {
-                        noise_x *= 1e-4;
-                        noise_y *= 1e-4;
-                        noise_z *= 1e-4;
-                    }
-                    gtsam::Vector Vector3(3);
-                    Vector3 << noise_x, noise_y, noise_z;
-                    gtsam::noiseModel::Diagonal::shared_ptr gps_noise =
-                            gtsam::noiseModel::Diagonal::Variances(Vector3);
-                    gtsam::GPSFactor gps_factor(
-                            0, gtsam::Point3(gnssPoint.x, gnssPoint.y, gnssPoint.z),
-                            gps_noise);
-                    keyframeGPSfactor.push_back(gps_factor);
-                    cloudKeyGPSPoses3D->points.push_back(gnssPoint);
+                /** add the first factor, we need this origin GPS point for prior map based localization,
+                    * but we need to optimize its value by pose graph if the origin gps RTK status is not fixed.*/
+                PointType gnssPoint;
+                gnssPoint.x = t_enu[0],
+                gnssPoint.y = t_enu[1],
+                gnssPoint.z = t_enu[2];
+                //?????????  协方差怎么拿过来
+                double noise_x = 0.00001;
+                double noise_y = 0.00001;
+                double noise_z = 0.00001;
+                /** if we get reliable origin point, we adjust the weight of this gps factor */
+                if (!SensorConfig::updateOrigin) {
+                    noise_x *= 1e-4;
+                    noise_y *= 1e-4;
+                    noise_z *= 1e-4;
+                }
+                gtsam::Vector Vector3(3);
+                Vector3 << noise_x, noise_y, noise_z;
+                gtsam::noiseModel::Diagonal::shared_ptr gps_noise =
+                        gtsam::noiseModel::Diagonal::Variances(Vector3);
+                gtsam::GPSFactor gps_factor(
+                        0, gtsam::Point3(gnssPoint.x, gnssPoint.y, gnssPoint.z),
+                        gps_noise);
+                keyframeGPSfactor.push_back(gps_factor);
+                cloudKeyGPSPoses3D->points.push_back(gnssPoint);
+                //mark1 by wxy
+                transformTobeMapped[0] = q_w_roll;
+                transformTobeMapped[1] = q_w_pitch;
+                transformTobeMapped[2] = q_w_yaw;
 
-                    transformTobeMapped[0] = q_w_roll;
-                    transformTobeMapped[1] = q_w_pitch;
-                    transformTobeMapped[2] = q_w_yaw;
+                systemInitialized = true;
 
-                    systemInitialized = true;
-                //}
-
-            }else{
+            }
+            else{
                 //取激光帧信息中的IMU原始数据的RPY进行初始化
                   transformTobeMapped[3] = 0;
                   transformTobeMapped[4] = 0;
@@ -645,32 +743,49 @@ public:
             return;
         }
 
+        static bool lastImuPreTransAvailable = false;
+        static Eigen::Affine3f lastImuPreTransformation;
+        Eigen::Affine3f transBack = pcl::getTransformation(
+                t_w_cur[0], t_w_cur[1], t_w_cur[2], q_w_roll, q_w_pitch,
+                q_w_yaw);
+//                EZLOG(INFO)<<"transBack success"<<transBack.translation().x()<<endl;
+        if (lastImuPreTransAvailable == false) {
+            lastImuPreTransformation = transBack;
+            lastImuPreTransAvailable = true;
+            EZLOG(INFO)<<"lastImuPreTransAvailable TRUE"<<endl;
+        } else {
+            Eigen::Affine3f transIncre =
+                    lastImuPreTransformation.inverse() * transBack;
+            Eigen::Affine3f transTobe = trans2Affine3f(transformTobeMapped);
+            Eigen::Affine3f transFinal = transTobe * transIncre  ;
+            pcl::getTranslationAndEulerAngles(
+                    transFinal, transformTobeMapped[3], transformTobeMapped[4],
+                    transformTobeMapped[5], transformTobeMapped[0],
+                    transformTobeMapped[1], transformTobeMapped[2]);
 
- //       if (gps_status = true){
-//            Eigen::Affine3f transBack = pcl::getTransformation(
-//                    t_w_cur[0], t_w_cur[1], t_w_cur[2], q_w_roll, q_w_pitch,
-//                    q_w_yaw);
+            lastImuPreTransformation = transBack;
+
+            //   lastImuTransformation = pcl::getTransformation(
+            //           0, 0, 0, q_imu_roll, q_imu_pitch,
+            //         q_imu_yaw);  // save imu before return;
+            //  EZLOG(INFO)<<" success"<<endl;
+            return;
+        }
+
+
+//        Eigen::Affine3f transBack = pcl::getTransformation(
+//                t_w_cur[0], t_w_cur[1], t_w_cur[2], q_w_roll, q_w_pitch,
+//                q_w_yaw);
 //            pcl::getTranslationAndEulerAngles(
 //                    transBack, transformTobeMapped[3], transformTobeMapped[4],
 //                    transformTobeMapped[5], transformTobeMapped[0],
 //                    transformTobeMapped[1], transformTobeMapped[2]);
-       // }else{
-
-       // }
-
-        Eigen::Affine3f transBack = pcl::getTransformation(
-                t_w_cur[0], t_w_cur[1], t_w_cur[2], q_w_roll, q_w_pitch,
-                q_w_yaw);
-            pcl::getTranslationAndEulerAngles(
-                    transBack, transformTobeMapped[3], transformTobeMapped[4],
-                    transformTobeMapped[5], transformTobeMapped[0],
-                    transformTobeMapped[1], transformTobeMapped[2]);
-       // EZLOG(INFO)<<"get out of  updateInitialGuess() "<<endl;
-        return;
+//        EZLOG(INFO)<<"get out of  updateInitialGuess() "<<endl;
+//        return;
     }
 
     void extractNearby() {
-       // EZLOG(INFO)<<"get in extractNearby "<<endl;
+        EZLOG(INFO)<<"get in extractNearby "<<endl;
         pcl::PointCloud<PointType>::Ptr surroundingKeyPoses(
                 new pcl::PointCloud<PointType>());
         pcl::PointCloud<PointType>::Ptr surroundingKeyPosesDS(
@@ -720,12 +835,12 @@ public:
        //根据挑选出的关键帧进行局部地图构建
         extractCloud(surroundingKeyPosesDS);
         //EZLOG(INFO)<<"extract Cloud"<<t8.toc()<<endl;
-     //   EZLOG(INFO)<<"get out of extractNearby "<<endl;
+        EZLOG(INFO)<<"get out of extractNearby "<<endl;
     }
 
-    void extractCloud(pcl::PointCloud<PointType>::Ptr cloudToExtract)  {
+    void extractCloud(pcl::PointCloud<PointType>::Ptr cloudToExtract) {
         // fuse the map
-    //    EZLOG(INFO)<<"get in extractCloud "<<endl;
+        EZLOG(INFO)<<"get in extractCloud "<<endl;
         laserCloudCornerFromMap->clear();
         laserCloudSurfFromMap->clear();
       //  TicToc t1;
@@ -777,17 +892,17 @@ public:
       //  EZLOG(INFO)<<"laserCloudMapContainer size:"<<laserCloudMapContainer.size();
 //        laserCloudMapContainer
         if (laserCloudMapContainer.size() > 500) laserCloudMapContainer.clear();
-       // EZLOG(INFO)<<"get ou  extractCloud "<<endl;
+        EZLOG(INFO)<<"get ou  extractCloud "<<endl;
     }
 
     void extractSurroundingKeyFrames() {
-     //   EZLOG(INFO)<<"get in extractSurroundingKeyFrames "<<endl;
+        EZLOG(INFO)<<"get in extractSurroundingKeyFrames "<<endl;
 
         if (cloudKeyPoses3D->points.empty() == true) { return; }
      //   TicToc t9;
         extractNearby();
       //     EZLOG(INFO)<<"extractNearby "<<t9.toc()<<endl;
-    //    EZLOG(INFO)<<"get out extractSurroundingKeyFrames "<<endl;
+        EZLOG(INFO)<<"get out extractSurroundingKeyFrames "<<endl;
     }
 
     void downsampleCurrentScan() {
@@ -798,7 +913,7 @@ public:
        // downSizeFilterRaw.filter(*laserCloudRawDS);
 
         // Downsample cloud from current scan
-     //   EZLOG(INFO)<<"get in downsampleCurrentScan "<<endl;
+        EZLOG(INFO)<<"get in downsampleCurrentScan "<<endl;
         laserCloudCornerLastDS->clear();
         downSizeFilterCorner.setInputCloud(laserCloudCornerLast);
         downSizeFilterCorner.filter(*laserCloudCornerLastDS);
@@ -808,7 +923,7 @@ public:
         downSizeFilterSurf.setInputCloud(laserCloudSurfLast);
         downSizeFilterSurf.filter(*laserCloudSurfLastDS);
         laserCloudSurfLastDSNum = laserCloudSurfLastDS->size();
-     //   EZLOG(INFO)<<"get out downsampleCurrentScan "<<endl;
+        EZLOG(INFO)<<"get out downsampleCurrentScan "<<endl;
 
         //double downsample_current_sacn_cost_time = timer.toc();
        // EZLOG(INFO)<<"downsample_current_sacn_cost_time"<<downsample_current_sacn_cost_time<<endl;
@@ -819,7 +934,7 @@ public:
     }
 
     void cornerOptimization() {
-     //   EZLOG(INFO)<<"get in cornerOptimization "<<endl;
+        EZLOG(INFO)<<"get in cornerOptimization "<<endl;
 
         updatePointAssociateToMap();
 
@@ -832,14 +947,17 @@ public:
             pointOri = laserCloudCornerLastDS->points[i];
 
             pointAssociateToMap(&pointOri, &pointSel);
+            EZLOG(INFO)<<"get in kdtreeCornerFromMap "<<endl;
+            EZLOG(INFO)<<"POINTSel"<<pointOri.x<<" "<<pointOri.y<<" "<<pointOri.z;
 
             kdtreeCornerFromMap->nearestKSearch(pointSel, 5, pointSearchInd,
                                                 pointSearchSqDis);
-
+            EZLOG(INFO)<<"get out kdtreeCornerFromMap "<<endl;
             cv::Mat matA1(3, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matD1(1, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matV1(3, 3, CV_32F, cv::Scalar::all(0));
             //计算找到的点中距离当前点最远的点，如果距离太大那说明这个约束不可信，就跳过
+            EZLOG(INFO)<<"get out pointSearchSqDis "<<endl;
             if (pointSearchSqDis[4] < 1.0) {
                 float cx = 0, cy = 0, cz = 0;
                 for (int j = 0; j < 5; j++) {
@@ -960,18 +1078,18 @@ public:
 
                     if (s > 0.1) {
                         laserCloudOriCornerVec[i] = pointOri;
-                       // EZLOG(INFO)<<laserCloudOriSurfVec.size()<<endl;
                         coeffSelCornerVec[i] = coeff;
                         laserCloudOriCornerFlag[i] = true;
                     }
                 }
+                EZLOG(INFO)<<"get out pointSearchSqDis "<<endl;
             }
         }
-      //  EZLOG(INFO)<<"get out cornerOptimization "<<endl;
+        EZLOG(INFO)<<"get out cornerOptimization "<<endl;
     }
 
     void surfOptimization() {
-     //   EZLOG(INFO)<<"get in surfOptimization "<<endl;
+        EZLOG(INFO)<<"get in surfOptimization "<<endl;
         updatePointAssociateToMap();
 
         for (int i = 0; i < laserCloudSurfLastDSNum; i++) {
@@ -1040,18 +1158,17 @@ public:
 
                     if (s > 0.1) {
                         laserCloudOriSurfVec[i] = pointOri;
-                      //  EZLOG(INFO)<<laserCloudOriSurfVec.size()<<endl;
                         coeffSelSurfVec[i] = coeff;
                         laserCloudOriSurfFlag[i] = true;
                     }
                 }
             }
         }
-     //   EZLOG(INFO)<<"get out surfOptimization "<<endl;
+        EZLOG(INFO)<<"get out surfOptimization "<<endl;
     }
 
     void combineOptimizationCoeffs() {
-      //  EZLOG(INFO)<<"get in combineOptimizationCoeffs "<<endl;
+        EZLOG(INFO)<<"get in combineOptimizationCoeffs "<<endl;
 
         for (int i = 0; i < laserCloudCornerLastDSNum; ++i) {
             if (laserCloudOriCornerFlag[i] == true) {
@@ -1059,22 +1176,13 @@ public:
                 coeffSel->push_back(coeffSelCornerVec[i]);
             }
         }
-       // EZLOG(INFO)<<laserCloudOri->size()<<endl;
-       // EZLOG(INFO)<<coeffSel->size()<<endl;
         // combine surf coeffs
         for (int i = 0; i < laserCloudSurfLastDSNum; ++i) {
             if (laserCloudOriSurfFlag[i] == true) {
                 laserCloudOri->push_back(laserCloudOriSurfVec[i]);
-                //EZLOG(INFO)<<laserCloudOri->size()<<endl;
                 coeffSel->push_back(coeffSelSurfVec[i]);
-               // EZLOG(INFO)<<coeffSel->size()<<endl;
             }
-
         }
-       // EZLOG(INFO)<<laserCloudOri->size()<<endl;
-        //EZLOG(INFO)<<coeffSel->size()<<endl;
-
-
         // reset flag for next iteration
 
         std::fill(laserCloudOriCornerFlag.begin(), laserCloudOriCornerFlag.end(),
@@ -1265,14 +1373,14 @@ public:
         if (deltaR < 0.05 && deltaT < 0.05) {
             return true;  // converged
         }
-     //   EZLOG(INFO)<<"get out LMOptimization "<<endl;
+        EZLOG(INFO)<<"get out LMOptimization "<<endl;
       //  EZLOG(INFO)<<"LM cost "<< timer.toc()<<endl;
         return false;  // keep optimizing
     }
 
     void scan2MapOptimization() {
        // TicToc timer;
-     //   EZLOG(INFO)<<"get in scan2MapOptimization "<<endl;
+        EZLOG(INFO)<<"get in scan2MapOptimization "<<endl;
         if (cloudKeyPoses3D->points.empty()) return;
 
         if (laserCloudCornerLastDSNum > MappingConfig::edgeFeatureMinValidNum &&
@@ -1280,10 +1388,10 @@ public:
 
             kdtreeCornerFromMap->setInputCloud(laserCloudCornerFromMapDS);
             kdtreeSurfFromMap->setInputCloud(laserCloudSurfFromMapDS);
-            EZLOG(INFO)<<"corner scan number"<<laserCloudCornerLastDSNum<<endl;
-            EZLOG(INFO)<<"surf scan number"<<laserCloudSurfLastDSNum<<endl;
-            EZLOG(INFO)<<"corner map number"<<laserCloudCornerFromMapDS->size()<<endl;
-            EZLOG(INFO)<<"surf map number"<<laserCloudSurfFromMapDS->size()<<endl;
+            EZLOG(INFO)<<laserCloudCornerLastDSNum<<endl;
+            EZLOG(INFO)<<laserCloudSurfLastDSNum<<endl;
+            EZLOG(INFO)<<laserCloudCornerFromMapDS->size()<<endl;
+            EZLOG(INFO)<<laserCloudSurfFromMapDS->size()<<endl;
             for (int iterCount = 0; iterCount < 10; iterCount++) {
                 laserCloudOri->clear();
                 coeffSel->clear();
@@ -1309,15 +1417,13 @@ public:
                 {
                  //   EZLOG(INFO)<<"iterCount"<<iterCount<<endl;
                     break; }
-
                 //把转换后加入到container
-
 
             }
             //把优化后的结果和imu进行一次加权融合；
 
         }
-     //   EZLOG(INFO)<<"get out scan2MapOptimization "<<endl;
+        EZLOG(INFO)<<"get out scan2MapOptimization "<<endl;
     }
 
 //    void transformUpdate() {
@@ -1332,7 +1438,7 @@ public:
     }
 
     bool saveFrame() {
-    //    EZLOG(INFO)<<"get in saveFrame "<<endl;
+        EZLOG(INFO)<<"get in saveFrame "<<endl;
         if (cloudKeyPoses3D->points.empty()) return true;
 
         // if (sensor == SensorType::LIVOX) {
@@ -1358,7 +1464,7 @@ public:
 
         // std::cout << "distance gap: " << sqrt(x * x + y * y) << std::endl;
         keyframeDistances.push_back(sqrt(x * x + y * y));
-      //  EZLOG(INFO)<<"get out saveFrame "<<endl;
+        EZLOG(INFO)<<"get out saveFrame "<<endl;
         return true;
     }
 
@@ -1367,9 +1473,7 @@ public:
         //对于第一帧关键帧，则将置信度设置差一点。尤其是平移和yaw角
         //将Lidar转到世界坐标系
 
-//            float current_T_w[6];
-//             lidar2word(current_T_w_l,current_T_w);
-      //  EZLOG(INFO)<<"get in addOdomFactor "<<endl;
+        EZLOG(INFO)<<"get in addOdomFactor "<<endl;
         if (cloudKeyPoses3D->points.empty()) {
             gtsam::noiseModel::Diagonal::shared_ptr priorNoise =
                     gtsam::noiseModel::Diagonal::Variances(
@@ -1400,123 +1504,186 @@ public:
                 //加入节点信息 先验位姿
                 initialEstimate.insert(cloudKeyPoses3D->size(), poseTo);
             }
-
+            EZLOG(INFO)<<"get in addOdomFactor "<<endl;
         }
-     //   EZLOG(INFO)<<"get out addOdomFactor "<<endl;
+
     }
 
     void addGPSFactor() {
-        if (deque_gnssins.empty()) return;
+        EZLOG(INFO)<<"get  in addGPSFactor"<<endl;
+        if (GnssQueue.empty()) return;
 
         // wait for system initialized and settles down
         //第一个关键帧和最后一个关键帧相差很近，也就算了，要么刚起步，要么会触发回环
         if (cloudKeyPoses3D->points.empty() || cloudKeyPoses3D->points.size() == 1)
             return;
-        else {
-            if (pointDistance(cloudKeyPoses3D->front(), cloudKeyPoses3D->back())
-                < 5.0)
+        else{
+            if (pointDistance(cloudKeyPoses3D->front(), cloudKeyPoses3D->back()) < 5.0)
                 return;
         }
-
         // last gps position
+//        std::deque<GNSSOdometryType> gnssodom_copy;
+//        gnssins_mutex.lock();
+//        gnssodom_copy = GnssQueue;
+//        EZLOG(INFO)<<gnssodom_copy.size()<<endl;
+//        gnssins_mutex.unlock();
+
         static PointType lastGPSPoint;
-        //nav_msgs::Odometry thisGPS;
+       // GNSSINSType thisGPS;
 
-        //  if (syncGPS(gpsQueue, thisGPS, timeLaserInfoCur, 1.0 / SensorConfig::gpsFrequence)) {
-        //GPS too noisy, skip
-
-//                float noise_x = thisGPS.pose.covariance[0];
-//                float noise_y = thisGPS.pose.covariance[7];
-//                float noise_z = thisGPS.pose.covariance[14];
-        float noise_x = 0.0001;
-        float noise_y = 0.0001;
-        float noise_z = 0.0001;
-
-        // make sure the gps data is stable encough
-        //如果gps的置信度也不高，也没有必要使用了
-
-        if (abs(noise_x) > SensorConfig::gpsCovThreshold || abs(noise_y) > SensorConfig::gpsCovThreshold)
-            return;
-//                 double gps_x = 0.0, gps_y = 0.0, gps_z = 0.0;
-//                Eigen::Vector3d LLA(t_w_cur[0],t_w_cur[1], t_w_cur[2]);
-//                geo_converter.Forward(LLA[0], LLA[1], LLA[2], gps_x, gps_y, gps_z);
-        //取出gps的位置
-
-        double gps_x = deque_gnssins.front().lla[0];
-        double gps_y = deque_gnssins.front().lla[1];
-        double gps_z = deque_gnssins.front().lla[2];
-
-
-        //通常gps 的z 没有 x y准，因此这里可以不使用z值 useGpsElevation 默认为0
-        //直接拿里程计的z 并 设置 高置信度
-        if (!SensorConfig::useGpsElevation) {
-            gps_z = transformTobeMapped[5];
-            noise_z = 0.01;
-        }
-
-        //如果gps 的 x 或者 y 太小，说明还没有初始化好
-        if (abs(gps_x) < 1e-6 && abs(gps_y) < 1e-6) return;
-
-        // Add GPS every a few meters
-        //加入gps观测不宜太频繁，相邻不能超过5m
-        PointType curGPSPoint;
-        curGPSPoint.x = gps_x;
-        curGPSPoint.y = gps_y;
-        curGPSPoint.z = gps_z;
-
-//        EZLOG(INFO)<<"x"<< gps_x<<endl;
-//        EZLOG(INFO)<<"y"<< gps_y<<endl;
-//        EZLOG(INFO)<<"z"<< gps_z<<endl;
-
-        if (pointDistance(curGPSPoint, lastGPSPoint) < SensorConfig::gpsDistance)
-            return;
-        else
-            lastGPSPoint = curGPSPoint;
-
-        //gps 的 置信度，标准差设置成最小1m，也就是不会特别信任gps信息
-        gtsam::Vector Vector3(3);
-        Vector3 << noise_x, noise_y, noise_z;
-        Vector3 << max(noise_x, 1.0f), max(noise_y, 1.0f), max(noise_z, 1.0f);
-        gtsam::noiseModel::Diagonal::shared_ptr gps_noise =
-                gtsam::noiseModel::Diagonal::Variances(Vector3);
-
-        gtsam::GPSFactor gps_factor(cloudKeyPoses3D->size(),
-                                    gtsam::Point3(gps_x, gps_y, gps_z),
-                                    gps_noise);
-        keyframeGPSfactor.push_back(gps_factor);
-        cloudKeyGPSPoses3D->points.push_back(curGPSPoint);
-
-        if (keyframeGPSfactor.size() < 20) {
-          //  ROS_INFO("Accumulated gps factor: %d", keyframeGPSfactor.size());
-            return;
-        }
-
-        if (!gpsTransfromInit) {
-          //  ROS_INFO("Initialize GNSS transform!");
-            for (int i = 0; i < keyframeGPSfactor.size(); ++i) {
-                gtsam::GPSFactor gpsFactor = keyframeGPSfactor.at(i);
-                gtSAMgraph.add(gpsFactor);
-                gpsIndexContainer[gpsFactor.key()] = i;
+        while(!GnssQueue.empty()){
+            mtxGpsInfo.lock();
+            EZLOG(INFO)<<"get out addGps factor"<<endl;
+            if (GnssQueue.front().timestamp< timeLaserInfoCur - 0.2)
+            {
+                // message too old
+                GnssQueue.pop_front();
+                mtxGpsInfo.unlock();
+                EZLOG(INFO)<<"get out addGps factor"<<endl;
             }
-            gpsTransfromInit = true;
-        } else {
+            else if (GnssQueue.front().timestamp> timeLaserInfoCur + 0.2)
+            {
+                // message too new
+                mtxGpsInfo.unlock();
+                break;
+            }
+            else
+            {
 
-            mtxGraph.lock();
-            gtSAMgraph.add(gps_factor);
-            mtxGraph.unlock();
-            gpsIndexContainer[cloudKeyPoses3D->size()] =
-                    cloudKeyGPSPoses3D->size() - 1;
+                GNSSOdometryType thisGPS = GnssQueue.front();
+
+                GnssQueue.pop_front();
+                EZLOG(INFO)<<"get out addGps factor"<<endl;
+                // GPS too noisy, skip
+//                double noise_x =  thisGPS.cov.x();
+//                double noise_y =  thisGPS.cov.y();
+//                double noise_z =  thisGPS.cov.z();
+                double noise_x = 1;
+                double noise_y = 1;
+                double noise_z = 1;
+                EZLOG(INFO)<<"get out addGps factor"<<endl;
+                if (abs(noise_x) > SensorConfig::gpsCovThreshold || abs(noise_y) > SensorConfig::gpsCovThreshold)
+                    continue;
+                EZLOG(INFO)<<"get out addGps factor"<<endl;
+
+                double gps_x = thisGPS.pose.GetXYZ().x();
+                double gps_y = thisGPS.pose.GetXYZ().y();
+                double gps_z = thisGPS.pose.GetXYZ().z();
+               // Eigen::Vector3d LLA(t_w_cur[0],t_w_cur[1], t_w_cur[2]);
+               // geoConverter.Forward(LLA[0], LLA[1], LLA[2], gps_x, gps_y, gps_z);
+
+                EZLOG(INFO)<<"GPS POSITION"<<gps_x<<" "<<gps_y<<" "<<gps_z;
+                EZLOG(INFO)<<"LIDAR POSITION "<<transformTobeMapped[3]<<" "<<transformTobeMapped[4]<<" "<<
+                                               transformTobeMapped[5];
+
+                EZLOG(INFO)<<"get out addGps factor"<<endl;
+                if (!SensorConfig::useGpsElevation)
+                {
+                    gps_z = transformTobeMapped[5];
+                    noise_z = 0.01;
+                }
+                EZLOG(INFO)<<"get out addGps factor"<<endl;
+                // GPS not properly initialized (0,0,0)
+                if (abs(gps_x) < 1e-6 && abs(gps_y) < 1e-6)
+                    continue;
+                EZLOG(INFO)<<"get out addGps factor"<<endl;
+                // Add GPS every a few meters
+                PointType curGPSPoint;
+                curGPSPoint.x = gps_x;
+                curGPSPoint.y = gps_y;
+                curGPSPoint.z = gps_z;
+                if (pointDistance(curGPSPoint, lastGPSPoint) < 5.0)
+                    continue;
+                else
+                    lastGPSPoint = curGPSPoint;
+
+                gtsam::Vector Vector3(3);
+                Vector3 << noise_x,noise_y,noise_z;
+                //Vector3 << max(noise_x, 1.0), max(noise_y, 1.0), max(noise_z, 1.0);
+                gtsam::noiseModel::Diagonal::shared_ptr gps_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
+                gtsam::GPSFactor gps_factor(cloudKeyPoses3D->size(), gtsam::Point3(gps_x, gps_y, gps_z), gps_noise);
+                gtSAMgraph.add(gps_factor);
+
+                EZLOG(INFO)<<"get out addGps factor"<<endl;
+                aLoopIsClosed = true;
+                break;
+            }
         }
-        //加入gps 之后 等同于回环，需要触发较多的isam update
-        aLoopIsClosed = true;
+
+//          if (syncGPS(gnssodom_copy, thisGPS, timeLaserInfoCur, 1.0 / SensorConfig::gpsFrequence)) {
+////              double noise_x =  deque_gnssins.front().cov.x();
+////              double noise_y =  deque_gnssins.front().cov.y();
+////              double noise_z =  deque_gnssins.front().cov.z();
+//              double noise_x =  1;
+//              double noise_y =  1;
+//              double noise_z =  1;
 //
+//              if (abs(noise_x) > SensorConfig::gpsCovThreshold || abs(noise_y) > SensorConfig::gpsCovThreshold)
+//                  return;
+//              double gps_x = 0.0, gps_y = 0.0, gps_z = 0.0;
+//              Eigen::Vector3d LLA(thisGPS.lla[0],thisGPS.lla[1], thisGPS.lla[2]);
+//              geoConverter.Forward(LLA[0], LLA[1], LLA[2], gps_x, gps_y, gps_z);
+//              EZLOG(INFO)<<"get  in useGpsElevation"<<endl;
+//              if (!SensorConfig::useGpsElevation) {
+//                  gps_z = transformTobeMapped[5];
+//                  noise_z = 0.01;
+//              }
+//              if (abs(gps_x) < 1e-6 && abs(gps_y) < 1e-6) return;
+//              PointType curGPSPoint;
+//              curGPSPoint.x = gps_x;
+//              curGPSPoint.y = gps_y;
+//              curGPSPoint.z = gps_z;
+//
+//              if (pointDistance(curGPSPoint, lastGPSPoint) < SensorConfig::gpsDistance)
+//                  return;
+//              else
+//                  lastGPSPoint = curGPSPoint;
+//
+//              gtsam::Vector Vector3(3);
+//              Vector3 << noise_x, noise_y, noise_z;
+//             // Vector3 << max(noise_x, 1.0f), max(noise_y, 1.0f), max(noise_z, 1.0f);
+//              gtsam::noiseModel::Diagonal::shared_ptr gps_noise =
+//                      gtsam::noiseModel::Diagonal::Variances(Vector3);
+//
+//              gtsam::GPSFactor gps_factor(cloudKeyPoses3D->size(),
+//                                          gtsam::Point3(gps_x, gps_y, gps_z),
+//                                          gps_noise);
+//              keyframeGPSfactor.push_back(gps_factor);
+//              cloudKeyGPSPoses3D->points.push_back(curGPSPoint);
+//              EZLOG(INFO)<<"get  in keyframeGPSfactor"<<endl;
+//              if (keyframeGPSfactor.size() < 20) {
+//                  //  ROS_INFO("Accumulated gps factor: %d", keyframeGPSfactor.size());
+//                  return;
+//              }
+//
+//              if (!gpsTransfromInit) {
+//                  //  ROS_INFO("Initialize GNSS transform!");
+//                  for (int i = 0; i < keyframeGPSfactor.size(); ++i) {
+//                      gtsam::GPSFactor gpsFactor = keyframeGPSfactor.at(i);
+//                      gtSAMgraph.add(gpsFactor);
+//                      gpsIndexContainer[gpsFactor.key()] = i;
+//                  }
+//                  gpsTransfromInit = true;
+//              } else {
+//
+//                  mtxGraph.lock();
+//                  gtSAMgraph.add(gps_factor);
+//                  mtxGraph.unlock();
+//                  gpsIndexContainer[cloudKeyPoses3D->size()] =
+//                          cloudKeyGPSPoses3D->size() - 1;
+//              }
+//              aLoopIsClosed = true;
+//              EZLOG(INFO)<<"get out addGps factor"<<endl;
+//          }
+
     }
     void addLoopFactor() {
+        EZLOG(INFO)<<"get in addLoop factor"<<endl;
         if (loopIndexQueue.empty()) return;
 
         for (int i = 0; i < (int) loopIndexQueue.size(); ++i) {
-            int indexFrom = loopIndexQueue[i].first;//当前帧
-            int indexTo = loopIndexQueue[i].second;//回环帧
+            int indexFrom = loopIndexQueue[i].first;
+            int indexTo = loopIndexQueue[i].second;
             gtsam::Pose3 poseBetween = loopPoseQueue[i];
             gtsam::noiseModel::Diagonal::shared_ptr noiseBetween = loopNoiseQueue[i];
             mtxGraph.lock();
@@ -1529,27 +1696,25 @@ public:
         loopPoseQueue.clear();
         loopNoiseQueue.clear();
         aLoopIsClosed = true;
+        EZLOG(INFO)<<"get out of addLoop factor"<<endl;
     }
     void saveKeyFramesAndFactor() {
      //   TicToc timer;
-      //  EZLOG(INFO)<<"get in saveKeyFramesAndFactor "<<endl;
+        EZLOG(INFO)<<"get in saveKeyFramesAndFactor "<<endl;
         //通过旋转和平移增量来判断是否是关键帧，不是则不会添加factor;
         if (saveFrame() == false) return;
         // odom factor
-        TicToc t1;
         addOdomFactor();
-        EZLOG(INFO)<<"add loop factor"<<t1.toc()<<endl;
-        // gps factor
-         TicToc t2;
-        addLoopFactor();
-        EZLOG(INFO)<<"add loop factor"<<t2.toc()<<endl;
-        TicToc t3;
-         if (SensorConfig::useGPS)  {
-             addGPSFactor();
-    }
-        EZLOG(INFO)<<"add loop factor"<<t3.toc()<<endl;
 
-        gtSAMgraph.print("GTSAM Graph:\n");// update iSAM
+        if (SensorConfig::useGPS) {
+            //addGPSFactor();
+        }
+        // gps factor
+        addLoopFactor();
+
+   // }
+
+       // gtSAMgraph.print("GTSAM Graph:\n");// update iSAM
         //调用isam,更新图模型
         isam->update(gtSAMgraph, initialEstimate);
         isam->update();
@@ -1574,22 +1739,11 @@ public:
         latestEstimate =
                 isamCurrentEstimate.at<gtsam::Pose3>(isamCurrentEstimate.size() - 1);
 
-       // TicToc t4;
-        //for (int i = 0;i < isamCurrentEstimate.size();i++){
-//            PoseT latest_Estimate_lidar;
-//            auto &lidar_pose = isamCurrentEstimate.at<gtsam::Pose3>();
-//            latest_Estimate_lidar.GetXYZ() = lidar_pose.translation();
-//            latest_Estimate_lidar.GetQ() = lidar_pose.rotation().toQuaternion();
-//            opt_poses.push_back(latest_Estimate_lidar);
-//            map_saver.SavePoses(opt_poses);
-       // }
-        TicToc t4;
-       // EZLOG(INFO)<<"add opt poses"<<t4.toc()<<endl;
         PoseT latest_Estimate_lidar;
             latest_Estimate_lidar = latestEstimate.matrix();
             opt_poses.push_back(latest_Estimate_lidar);
            map_saver.SavePoses(opt_poses);
-        EZLOG(INFO)<<"add opt poses"<<t4.toc()<<endl;
+
         thisPose3D.x = latestEstimate.translation().x();
         thisPose3D.y = latestEstimate.translation().y();
         thisPose3D.z = latestEstimate.translation().z();
@@ -1660,18 +1814,18 @@ public:
                 cloud_info.frame_id = ++frame_id;
                 cloud_info.corner_cloud = thisCornerKeyFrame;
                 cloud_info.surf_cloud = thisSurfKeyFrame;
-              //  cloud_info.global_corner_cloud = globalCornerCloudDS;
-               // cloud_info.global_surf_cloud = globalSurfCloudDS;
+                //cloud_info.global_corner_cloud = globalCornerCloudDS;
+                //cloud_info.global_surf_cloud = globalSurfCloudDS;
 
                map_saver.AddCloudToSave(cloud_info);
 
                //updatePath(thisPose6D);
-    //    EZLOG(INFO)<<"get out saveKeyFramesAndFactor "<<endl;
+        EZLOG(INFO)<<"get out saveKeyFramesAndFactor "<<endl;
     }
 
     void correctPoses() {
        // TicToc timer;
-       // EZLOG(INFO)<<"get in correctPoses "<<endl;
+        EZLOG(INFO)<<"get in correctPoses "<<endl;
         if (cloudKeyPoses3D->points.empty()) return;
         //只有回环以及gps信息这些会触发全局调整信息才会触发
         if (aLoopIsClosed == true) {
@@ -1709,14 +1863,14 @@ public:
          //   EZLOG(INFO)<<"dorrectposes cost time "<< correctposes<<endl;
 
         }
-     //   EZLOG(INFO)<<"get out correctPoses "<<endl;
+        EZLOG(INFO)<<"get out correctPoses "<<endl;
     }
 
     //发布优化后的里程计
     void publishOdometry() {
         // Publish odometry for ROS (global)
         //发布优化后的里程计
-       // EZLOG(INFO)<<"get in publishOdometry "<<endl;
+        EZLOG(INFO)<<"get in publishOdometry "<<endl;
 
         OdometryType current_lidar_pose_world;
         Eigen::Affine3f Lidarodom_2_map = trans2Affine3f(transformTobeMapped);
@@ -1728,30 +1882,30 @@ public:
        // current_lidar_pose_world.pose = PoseT(Lidarodom_2_map.matrix().cast<double>());
         pubsub->PublishOdometry(topic_current_pose, current_lidar_pose_world);
        // Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
-     //   EZLOG(INFO)<<"pub topic_current_pose  "<<std::endl;
-     //   EZLOG(INFO)<<"get out publishOdometry "<<endl;
+     //   EZLOG(INFO)<<"pub topic_highHz_pose  "<<std::endl;
+        EZLOG(INFO)<<"get out publishOdometry "<<endl;
 
     }
 
     void DoWork(){
 
         while(1){
-            bool isempty = false;
+            bool isEmpty = false;
             {
                 std::lock_guard<std::mutex> lock(work_mutex);
-                isempty = deque_cloud.empty();
+                isEmpty = deque_cloud.empty();
             }
 
-            if(!isempty){
+            if(!isEmpty){
 
-                //EZLOG(INFO)<<deque_cloud.size()<<endl;
+                EZLOG(INFO)<<deque_cloud.size()<<endl;
                 CloudFeature cur_ft;
                 {
                     std::lock_guard<std::mutex> lock(cloud_mutex);
                     cur_ft = deque_cloud.front();
                     deque_cloud.pop_front();
                 }
-               // EZLOG(INFO)<<"add cloud success  "<<endl;
+                EZLOG(INFO)<<"add cloud success  "<<endl;
                 t_w_cur = cur_ft.pose.GetXYZ();
                 q_w_cur = cur_ft.pose.GetQ();
                 q_w_cur.normalize();
@@ -1772,36 +1926,40 @@ public:
                 laserCloudCornerLast = cur_ft.cornerCloud;
                 //auto cur_corner = *cur_ft.cornerCloud;
                 laserCloudSurfLast = cur_ft.surfaceCloud;
-               // EZLOG(INFO)<<"Transform success"<<endl;
+                EZLOG(INFO)<<"Transform success"<<endl;
 
-                std::lock_guard<std::mutex> lock(mtx);
+
                 static double timeLastProcessing = -1;
                 if (timeLaserInfoCur - timeLastProcessing >= MappingConfig::mappingProcessInterval) {
+                    std::lock_guard<std::mutex> lock(mtx);
                     timeLastProcessing = timeLaserInfoCur;
-
+                    TicToc t0;
                     updateInitialGuess();
-                    //EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
+                    EZLOG(INFO)<<" extractSurroundingKeyFrames COST TIME"<<t0.toc()<<endl;
+                    EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
                     if (systemInitialized) {
+                        TicToc t1;
                         extractSurroundingKeyFrames();
-
-                        downsampleCurrentScan();
-                        TicToc timer;
-                        scan2MapOptimization();
-                        EZLOG(INFO)<<"scan to map cost"<<timer.toc();
+                        EZLOG(INFO)<<" extractSurroundingKeyFrames COST TIME"<<t1.toc()<<endl;
                         TicToc t2;
+                        downsampleCurrentScan();
+                        EZLOG(INFO)<<" downsampleCurrentScan COST TIME"<<t2.toc()<<endl;
+                        TicToc t3;
+                        scan2MapOptimization();
+                        EZLOG(INFO)<<" scan2MapOptimization COST TIME"<<t3.toc()<<endl;
+                        TicToc t4;
                         saveKeyFramesAndFactor();
-                        EZLOG(INFO)<<"SAVE KEY FRAME cost"<<t2.toc();
-
+                        EZLOG(INFO)<<" saveKeyFramesAndFactor COST TIME"<<t4.toc()<<endl;
+                        TicToc t5;
                         correctPoses();
-
+                        EZLOG(INFO)<<" correctPoses COST TIME"<<t5.toc()<<endl;
                         publishOdometry();
-                   //     EZLOG(INFO)<< "publishOdometry : "<<endl;
+                        EZLOG(INFO)<< "publishOdometry : "<<endl;
                       //  pub_CornerAndSurfGlobalMap();
 
                     }
 
                 }
-
 
             }
             else{
@@ -1817,24 +1975,110 @@ public:
         deque_cloud.push_back(cloud_ft);
         EZLOG(INFO)<<deque_cloud.size()<<endl;
     }
-
+//
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
         std::lock_guard<std::mutex> lock(gnss_ins_mutex);
         deque_gnssins.push_back(gnss_ins_data);
     }
 
-    void Init(PubSubInterface* pubsub_){
-        allocateMemory();
-        pubsub = pubsub_;
+    void AddGNSSToOpt(const GNSSOdometryType &gnss_odom){
+        gnssins_mutex.lock();
+        GnssQueue.push_back(gnss_odom);
+        gnssins_mutex.unlock();
+//        GNSSOdometryType T_w_l_gnss;
+//        T_w_l_gnss.frame = "map";
+//        T_w_l_gnss.timestamp = gnss_odom.timestamp;
+//        T_w_l_gnss.pose = T_w_l;
+    }
 
+//    void AddGNSSINSData(const GNSSINSType& data){
+//        std::lock_guard<std::mutex> lock(gnss_ins_mutex);
+//        deque_gnssins.push_back(data);
+//        if(!init)
+//        {
+//            geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
+//            init = true;
+//            MapSaver::SaveOriginLLA(data.lla);
+//            return;
+//        }
+//
+//        double t_enu[3];
+//        geoConverter.Forward(data.lla[0], data.lla[1], data.lla[2],
+//                             t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
+//
+//        Eigen::Matrix3d z_matrix;//calculate Quaternion
+//        Eigen::Matrix3d x_matrix;
+//        Eigen::Matrix3d y_matrix;
+//        double heading_Z = -data.yaw * 3.1415926535 / 180.0;
+//        double pitch_Y = data.pitch * 3.1415926535 / 180.0;
+//        double roll_X = data.roll * 3.1415926535 / 180.0;
+//        z_matrix << cos(heading_Z), -sin(heading_Z), 0,
+//                sin(heading_Z), cos(heading_Z),  0,
+//                0,                 0,            1;
+//
+//        x_matrix << 1,                 0,              0,
+//                0,            cos(pitch_Y),     -sin(pitch_Y),
+//                0,            sin(pitch_Y),    cos(pitch_Y);
+//
+//        y_matrix << cos(roll_X) ,     0,        sin(roll_X),
+//                0,                 1,               0 ,
+//                -sin(roll_X),      0,         cos(roll_X);
+//
+//        Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb
+//        Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
+//        Eigen::Quaterniond q_w_b(R_w_b);//获得局部坐标系的四元数
+//        PoseT T_w_b(t_w_b, R_w_b);
+////        world is GNSS ,base is car, T_w_l =
+//        PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
+//        T_w_l:
+//        -0.973379  -0.229171 0.00382091   -128.353
+//        0.2292  -0.973157  0.0207947 0.00482607
+//        -0.0010472  0.0211169   0.999776  0.0740949
+//        0          0          0          1
+//        T_w_b:
+//        0.229171   -0.973379  0.00382091    -128.355
+//        0.973157      0.2292   0.0207947 -0.00585202
+//        -0.0211169  -0.0010472    0.999776    -0.43929
+//        0           0           0           1
+
+//        OdometryType T_w_l_pub;
+//        T_w_l_pub.frame = "map";
+//        T_w_l_pub.timestamp = data.timestamp;
+//        T_w_l_pub.pose = T_w_l;
+
+//        GNSSINSType T_w_l_to_mapopt;
+//        T_w_l_to_mapopt.lla[0] = T_w_l.GetXYZ()[0];
+//        T_w_l_to_mapopt.lla[1] = T_w_l.GetXYZ()[1];
+//        T_w_l_to_mapopt.lla[2] = T_w_l.GetXYZ()[2];
+////        opt_mapping_ptr->AddGNSSINSData(T_w_l_to_mapopt);
+//
+//        gnssins_mutex.lock();
+//        poseQueue.push_back(T_w_l_pub);
+//        gnssins_mutex.unlock();
+
+//        GNSSOdometryType T_w_l_gnss;
+//        T_w_l_gnss.frame = "map";
+//        T_w_l_gnss.timestamp = data.timestamp;
+//        T_w_l_gnss.pose = T_w_l;
+//
+//        gnssins_mutex.lock();
+//        GnssQueue.push_back(T_w_l_gnss);
+//        gnssins_mutex.unlock();
+
+  //  }
+
+
+    void Init(PubSubInterface* pubsub_){
+        pubsub = pubsub_;
+        allocateMemory();
 //        pubsub->addPublisher(topic_map_surf,DataType::LIDAR,10);
 //        pubsub->addPublisher(topic_map_corner,DataType::LIDAR,10);
-          pubsub->addPublisher(topic_current_pose,DataType::ODOMETRY,10);
+        pubsub->addPublisher(topic_current_pose,DataType::ODOMETRY,10);
 //        pubsub->addPublisher(topic_gnss_pose,DataType::ODOMETRY,10);
 
         do_work_thread = new std::thread(&OPTMapping::DoWork, this);
-      //  loop_thread =new std::thread(&OPTMapping::loopClosureThread, this);
-        save_Map_thread = new std::thread(&MapSaver::do_work, &(OPTMapping::map_saver));
+       // loop_thread =new std::thread(&OPTMapping::loopClosureThread, this);
+        //save_Map_thread = new std::thread(&MapSaver::do_work, &(OPTMapping::map_saver));
         //save_path_thread = new std::thread (&OPTMapping::savePathThread, this);
 
     }

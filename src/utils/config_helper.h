@@ -69,12 +69,17 @@ class SensorConfig{
     static double imuConstBias_acc;
     static double imuConstBias_gyro;
     static int imu_angular_v_gain;
+    static int if_use_Wheel_DR;
+    static int if_DR_use_Euler;
 
     //Extrinsics (lidar -> IMU)
     static int imu_type;//meiyong buyiyang********
     static Eigen::Vector3d  extrinsicTrans;//
     static Eigen::Matrix3d extrinsicRot;//
+    static Eigen::Vector3d  extrinsicTrans_DR;//
+    static Eigen::Matrix3d extrinsicRot_DR;//
     static Eigen::Matrix4d T_L_B;
+    static Eigen::Matrix4d T_L_DR;
     static Eigen::Matrix3d extrinsicRPY;//  **meiyong
     static Eigen::Quaterniond extrinsicQRPY;//not
     static Eigen::Vector3d t_body_sensor;
@@ -93,6 +98,7 @@ class MappingConfig{
         static bool use_deskew;
         // save map
         static std::string save_map_path;
+        static int if_need_first_position;
 
         //Export settings
         static bool  savePCD;
@@ -135,6 +141,9 @@ class MappingConfig{
         static int scan_2_prior_map;
         static std::string prior_map_surf;
         static std::string prior_map_corner;
+        static int if_LoadFromMapManager;
+        static int use_DR_or_fuse_in_loc;
+
 
         //Loop closure
         static bool  loopClosureEnableFlag;
@@ -196,6 +205,7 @@ std::string  SensorConfig::mapFrame="";
 
 //GPS Setting
 Eigen::Matrix4d SensorConfig::T_L_B = Eigen::Matrix4d::Identity();
+Eigen::Matrix4d SensorConfig::T_L_DR = Eigen::Matrix4d::Identity();
 bool  SensorConfig::useGPS=false;
 bool   SensorConfig::updateOrigin=false;
 int  SensorConfig::gpsFrequence=-1;
@@ -234,11 +244,15 @@ double SensorConfig::imuConstBias_gyro=-1;
 int  SensorConfig::imuHZ = -1;
 int SensorConfig::imuGTSAMReset = 25;
 int SensorConfig::imu_angular_v_gain = 10;
+int SensorConfig::if_use_Wheel_DR = 0;
+int SensorConfig::if_DR_use_Euler = 0;
 
 
 int SensorConfig::imu_type=-1;
 Eigen::Vector3d SensorConfig::extrinsicTrans;
 Eigen::Matrix3d SensorConfig::extrinsicRot;
+Eigen::Vector3d SensorConfig::extrinsicTrans_DR;
+Eigen::Matrix3d SensorConfig::extrinsicRot_DR;
 Eigen::Matrix3d SensorConfig::extrinsicRPY;
 Eigen::Quaterniond SensorConfig::extrinsicQRPY;
 Eigen::Vector3d SensorConfig::t_body_sensor;
@@ -251,12 +265,14 @@ int SensorConfig::lidarScanDownSample = 2;
 int MappingConfig::slam_mode_switch = 1;
 int MappingConfig::if_debug = 1;
 std::string MappingConfig::save_map_path = "";
+int MappingConfig::if_need_first_position = 1;
 
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
 bool  MappingConfig::savePCD=false;
 std::string  MappingConfig::savePCDDirectory="";
 std::string MappingConfig::prior_map_surf = " ";
 std::string MappingConfig::prior_map_corner = " ";
+int MappingConfig::if_LoadFromMapManager = 1;
 
 // LOAM feature threshold
 float MappingConfig::edgeThreshold=-1;
@@ -313,6 +329,7 @@ float MappingConfig::globalMapVisualizationLeafSize=-1;
 float MappingConfig::globalMapLeafSize=-1;
 int  MappingConfig::scan_2_scan_num_surf = 1;
 int  MappingConfig::scan_2_scan_num_corner = 1;
+int MappingConfig::use_DR_or_fuse_in_loc = 1;
 
 // offline mapping
 std::string SerializeConfig::map_in_path = "";
@@ -403,6 +420,8 @@ void Load_Sensor_YAML(std::string sensorpath)
     SensorConfig::imuConstBias_acc=sensorconfig["imuConstBias_acc"].as<double>();
     SensorConfig::imuConstBias_gyro=sensorconfig["imuConstBias_gyro"].as<double>();
     SensorConfig::imu_angular_v_gain = sensorconfig["imu_angular_v_gain"].as<int>();
+    SensorConfig::if_use_Wheel_DR = sensorconfig["if_use_Wheel_DR"].as<int>();
+    SensorConfig::if_DR_use_Euler = sensorconfig["if_DR_use_Euler"].as<int>();
 
 //    std::cout<<SensorConfig::imuRPYWeight<<std::endl;
 
@@ -423,10 +442,25 @@ void Load_Sensor_YAML(std::string sensorpath)
             sensorconfig["extrinsicRPY"][3].as<double >(),sensorconfig["extrinsicRPY"][4].as<double >(),sensorconfig["extrinsicRPY"][5].as<double >(),
             sensorconfig["extrinsicRPY"][6].as<double >(),sensorconfig["extrinsicRPY"][7].as<double >(),sensorconfig["extrinsicRPY"][8].as<double >();
 
+    SensorConfig::extrinsicRot_DR<<sensorconfig["extrinsicRot_DR"][0].as<double >(),sensorconfig["extrinsicRot_DR"][1].as<double >(),sensorconfig["extrinsicRot_DR"][2].as<double >(),
+            sensorconfig["extrinsicRot_DR"][3].as<double >(),sensorconfig["extrinsicRot_DR"][4].as<double >(),sensorconfig["extrinsicRot_DR"][5].as<double >(),
+            sensorconfig["extrinsicRot_DR"][6].as<double >(),sensorconfig["extrinsicRot_DR"][7].as<double >(),sensorconfig["extrinsicRot_DR"][8].as<double >();
+
+
+    SensorConfig::extrinsicTrans_DR<< sensorconfig["extrinsicTrans_DR"][0].as<double >(),
+                                    sensorconfig["extrinsicTrans_DR"][1].as<double >(),
+                                    sensorconfig["extrinsicTrans_DR"][2].as<double >();
+
+
     Eigen::Matrix4d T_L_B_tmp = Eigen::Matrix4d::Identity();
     T_L_B_tmp.block<3,3>(0,0) = SensorConfig::extrinsicRot;
     T_L_B_tmp.block<3,1>(0,3) = SensorConfig::extrinsicTrans;
     SensorConfig::T_L_B = T_L_B_tmp;
+
+    Eigen::Matrix4d T_L_DR_tmp = Eigen::Matrix4d::Identity();
+    T_L_DR_tmp.block<3,3>(0,0) = SensorConfig::extrinsicRot_DR;
+    T_L_DR_tmp.block<3,1>(0,3) = SensorConfig::extrinsicTrans_DR;
+    SensorConfig::T_L_DR = T_L_DR_tmp;
 
     SensorConfig::extrinsicQRPY = Eigen::Quaterniond(SensorConfig::extrinsicRPY);
     Eigen::Quaterniond q_sensor_body(SensorConfig::extrinsicRPY);
@@ -442,7 +476,12 @@ void Load_Sensor_YAML(std::string sensorpath)
     std::cout<<"SensorConfig::imuConstBias_acc: "<<SensorConfig::imuConstBias_acc<<std::endl;
     std::cout<<"SensorConfig::imuConstBias_gyro: "<<SensorConfig::imuConstBias_gyro<<std::endl;
     std::cout<<"SensorConfig::imu_angular_v_gain: "<<SensorConfig::imu_angular_v_gain<<std::endl;
+    std::cout<<"SensorConfig::imu_angular_v_gain: "<<SensorConfig::imu_angular_v_gain<<std::endl;
+    std::cout<<"SensorConfig::if_DR_use_Euler: "<<SensorConfig::if_DR_use_Euler<<std::endl;
+    std::cout<<"SensorConfig::T_L_DR : "<<std::endl;
+    std::cout<< SensorConfig::T_L_DR << std::endl;
     std::cout<<"SensorConfig::sensorconfig yaml success load"<<std::endl;
+
 }
 
 void Load_Mapping_YAML(std::string mappingpath)
@@ -460,6 +499,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::use_deskew=mappingconfig["use_deskew"].as<bool >();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();
+        MappingConfig::if_need_first_position = mappingconfig["if_need_first_position"].as<int>();
         // //Export settings
         MappingConfig::savePCD=mappingconfig["savePCD"].as<bool >();
         MappingConfig::savePCDDirectory=mappingconfig["savePCDDirectory"].as<std::string >();
@@ -515,6 +555,8 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::localMap_searchRadius = mappingconfig["localMap_searchRadius"].as<double >();
         MappingConfig::prior_map_corner = mappingconfig["prior_corner_map_path"].as<std::string>();
         MappingConfig::prior_map_surf = mappingconfig["prior_surf_map_path"].as<std::string>();
+        MappingConfig::if_LoadFromMapManager = mappingconfig["if_LoadFromMapManager"].as<int>();
+        MappingConfig::use_DR_or_fuse_in_loc = mappingconfig["use_DR_or_fuse_in_loc"].as<int>();
 
         // Visualization
         MappingConfig::globalMapVisualizationSearchRadius=mappingconfig["globalMapVisualizationSearchRadius"].as<float >();
@@ -540,7 +582,9 @@ void Load_Mapping_YAML(std::string mappingpath)
         std::cout<<"MappingConfig::mappingCornerRadiusSize_US: "<<MappingConfig::mappingCornerRadiusSize_US<<std::endl;
         std::cout<<"MappingConfig::mappingSurfRadiusSize_US: "<< MappingConfig::mappingSurfRadiusSize_US<<std::endl;
         std::cout<<"MappingConfig::surroundingKeyframeDensity_US: "<< MappingConfig::surroundingKeyframeDensity_US<<std::endl;
-
+        std::cout<<"MappingConfig::if_LoadFromMapManager: "<<MappingConfig::if_LoadFromMapManager<<std::endl;
+        std::cout<<"MappingConfig::if_need_first_position: "<<MappingConfig::if_need_first_position<<std::endl;
+        std::cout<<"MappingConfig::use_DR_or_fuse_in_loc: "<<MappingConfig::use_DR_or_fuse_in_loc<<std::endl;
         std::cout<<"mapping yaml success load"<<std::endl;
 
 }//end function Load_Mapping_YAML

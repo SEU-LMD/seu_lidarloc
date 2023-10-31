@@ -14,7 +14,7 @@
 //所有数据的基类
 
 enum DataType {IMU, LIDAR,GNSS, WHEEL, GNSS_INS,//from sensor
-                ODOMETRY, PATH};//common used type
+                ODOMETRY, PATH,MAP};//common used type
 
 class BaseType{
 public:
@@ -105,6 +105,7 @@ typedef std::shared_ptr<DROdometryType> DROdometryTypePtr;
 class GNSSOdometryType:public BaseType{
 public:
     PoseT pose;
+    Eigen::Matrix<double,6,1> cov;
     DataType getType(){
         return DataType::GNSS;
     }
@@ -127,6 +128,7 @@ class GNSSINSType:public BaseType{
         Eigen::Vector3d imu_angular_v;
         Eigen::Vector3d imu_linear_acc;
         Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
+        double velocity;
         string gps_status;
         DataType getType(){
              return DataType::GNSS_INS;
@@ -151,12 +153,35 @@ public:
 };
 typedef std::shared_ptr<IMURawData> IMURawDataPtr;
 
+class IMURawWheelData{
+public:
+    double timestamp;
+    Eigen::Vector3d imu_angular_v;
+    Eigen::Vector3d imu_linear_acc;
+    Eigen::Vector3d position;
+    double velocity;
+};
+typedef std::shared_ptr<IMURawWheelData> IMURawWheelDataPtr;
+
+class StateData{
+public:
+    double timestamp;
+    Eigen::Vector3d p_wb_;
+    Eigen::Vector3d v_w_;
+    Eigen::Matrix3d Rwb_;
+    Eigen::Vector3d acc_bias_;
+    Eigen::Vector3d gyr_bias_;
+};
+typedef std::shared_ptr<StateData> StateDataPtr;
+
 //used to commnicate with other thread
 class CloudInfo{
 public:
     int frame_id;
     double timestamp;
     PoseT pose;
+    PoseT DRPose;
+
 //    std::vector<int> label;
     std::vector<int> startRingIndex;
     std::vector<int> endRingIndex;
@@ -170,11 +195,22 @@ public:
     int frame_id;
     double timestamp;
     PoseT pose;
+    PoseT DRPose;
     pcl::PointCloud<PointType>::Ptr cornerCloud;
     pcl::PointCloud<PointType>::Ptr surfaceCloud;
 };
 typedef std::shared_ptr<CloudFeature> CloudFeaturePtr;
 
-
+class PriorMap:public BaseType{
+public:
+    pcl::KdTreeFLANN<PointType>::Ptr PriorSurfMapKDTree;
+    pcl::KdTreeFLANN<PointType>::Ptr PriorCornerMapKDTree;
+    pcl::PointCloud<PointType>::Ptr PriorSurfMap;
+    pcl::PointCloud<PointType>::Ptr PriorCornerMap;
+    DataType getType(){
+        return DataType::MAP;
+    }
+};
+typedef std::shared_ptr<PriorMap> PriorMapPtr;
 
 #endif //SEU_LIDARLOC_BASE_TYPE_H

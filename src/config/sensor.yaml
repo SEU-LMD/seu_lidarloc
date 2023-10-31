@@ -53,7 +53,10 @@
   imuHZ: 100
   imuGTSAMReset: 100
   imu_angular_v_gain: 1 # gain for gyro
+  if_DR_use_Euler: 0 #use CH610 Euler in DR
 
+# 0 for only imu mode , 1 for imu+wheel mode in ------------->DR
+  if_use_Wheel_DR: 1
 
   # Extrinsics (lidar -> IMU)
   imu_type: 0   # 0: 6axis, 1:9 axis
@@ -64,6 +67,12 @@
                   0, 0, 1 ]
   extrinsicRPY: [ 0, 1, 0,
                   -1, 0, 0,
+                  0, 0, 1 ]
+
+#DR 2 lidar
+  extrinsicTrans_DR: [ 0.0, 0.0, 0.5135 ] #
+  extrinsicRot_DR: [ 0, -1, 0,
+                  1, 0, 0,
                   0, 0, 1 ]
 
   use_gnss_deskew: true

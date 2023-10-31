@@ -34,6 +34,7 @@ int laser_cloud_surf_load_ind[25];
 pcl::PointCloud<PointType>::Ptr laser_cloud_corner_from_map(new pcl::PointCloud<PointType>());
 pcl::PointCloud<PointType>::Ptr laser_cloud_surf_from_map(new pcl::PointCloud<PointType>());
 //build tree
+//shu chu
 pcl::KdTreeFLANN<PointType>::Ptr kdtree_surf_from_map(new pcl::KdTreeFLANN<PointType>());
 pcl::KdTreeFLANN<PointType>::Ptr kdtree_corner_from_map(new pcl::KdTreeFLANN<PointType>());
 //remeber empty

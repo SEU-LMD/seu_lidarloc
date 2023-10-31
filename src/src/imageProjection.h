@@ -37,16 +37,17 @@ public:
 
 //    FeatureExtraction* ft_extr_ptr;
 //    OPTMapping* opt_mapping_ptr;
-//    IMUPreintegration* imu_pre_ptr;
+//    IMU_DR* imu_pre_ptr;
 //    OPTMapping* opt_mapping_ptr;
     std::function<void(const CloudInfo&)> Function_AddCloudInfoToFeatureExtraction;
     std::function<void(const GNSSOdometryType&)> Function_AddGNSSOdometryTypeToFuse;
+    std::function<void(const GNSSOdometryType&)>Function_AddGNSSOdometryTypeToOPTMapping;
+
+   // std::function<void(const OdometryType&)> Function_AddOdometryTypeToOPTMapping;
 
     bool init = false;
     GeographicLib::LocalCartesian geoConverter;
     int frame_id = 0;
-    double last_cloud_max_timestamp = 0;
-    double last_data_cloud_timestamp = 0;
 
     std::string topic_origin_cloud_world = "/origin_cloud_world";
     std::string topic_deskew_cloud_world = "/deskew_cloud_world";
@@ -54,9 +55,12 @@ public:
     std::string topic_deskw_cloud_to_ft_world = "/deskw_cloud_to_ft_world";
     std::string topic_imuodom_curlidartime_world = "/imuodom_curlidartime_world";
 
+
     pcl::PointCloud<PointType>::Ptr deskewCloud_body;//去畸变之后的全部点云
     cv::Mat rangeMat;
     int lidarScan_cnt =0;
+    double cloud_min_ros_timestamp;
+    double cloud_max_ros_timestamp;
 
     void  AllocateMemory() {
         deskewCloud_body.reset(new pcl::PointCloud<PointType>());
@@ -115,6 +119,7 @@ public:
                 t_w_b_lidar_start = pose_deque[i - 1].pose.GetXYZ() +
                                     ktime * (pose_deque[i].pose.GetXYZ() - pose_deque[i - 1].pose.GetXYZ());
 
+              //  EZLOG(INFO)<<"t_w_b_lidar_start"<<t_w_b_lidar_start[0]<<t_w_b_lidar_start[1]<<t_w_b_lidar_start[2];
                 //旋转插值
                 Eigen::Quaterniond q_w_b_lidar_start;//旋转
                 q_w_b_lidar_start = pose_deque[i-1].pose.GetQ().slerp(ktime,pose_deque[i].pose.GetQ());
@@ -396,7 +401,7 @@ public:
                 isEmpty = deque_cloud.empty();
             }
             if(!isEmpty){
-                //EZLOG(INFO)<<deque_cloud.size()<<endl;
+//                EZLOG(INFO)<<"DoWork"<<endl;
                 ///0.do something
                 std::deque<OdometryType> odo_poses_copy;
                 gnssins_mutex.lock();
@@ -407,34 +412,23 @@ public:
                 double odo_min_ros_time =  odo_poses_copy.front().timestamp;
                 double odo_max_ros_time =  odo_poses_copy.back().timestamp;
 
-                if(!IMUOdomQueue.empty()){
-                    std::deque<OdometryType> imuodom_copy;
-                    imuodom_mutex.lock();
-                    imuodom_copy = IMUOdomQueue;
-                    imuodom_mutex.unlock();
-                    double imuodo_min_ros_time =  imuodom_copy.front().timestamp;
-                    double imuodo_max_ros_time =  imuodom_copy.back().timestamp;
+                OdometryType current_imu_data;
+                double cur_lidar_time = deque_cloud.front()->timestamp;
 
-                    double cur_lidar_time = deque_cloud.front()->timestamp;
-                    if(imuodo_min_ros_time<cur_lidar_time && imuodo_max_ros_time>cur_lidar_time){
-                        PoseT imuodom_curlidartime;
-                        double cost_time_findimupose = FindIMUOdomPose(cur_lidar_time, imuodom_copy,//in
-                                                                       imuodom_curlidartime);//out
-//                        EZLOG(INFO) << "FindIMUOdomPose cost time(ms) = " << cost_time_findimupose << std::endl;
-
-                        OdometryType Odometry_imuodom_curlidartime_pub;
-                        Odometry_imuodom_curlidartime_pub.timestamp = cur_lidar_time;
-                        Odometry_imuodom_curlidartime_pub.frame = "map";
-                        Odometry_imuodom_curlidartime_pub.pose = imuodom_curlidartime;
-                        pubsub->PublishOdometry(topic_imuodom_curlidartime_world, Odometry_imuodom_curlidartime_pub);
-
-                        imuodom_mutex.lock();
-                        while(IMUOdomQueue.front().timestamp < cur_lidar_time - 0.1){
-                            IMUOdomQueue.pop_front();
-                        }
-                        imuodom_mutex.unlock();
+                // for align DR pose with
+                imuodom_mutex.lock();
+                while (!IMUOdomQueue.empty()){
+                    current_imu_data = IMUOdomQueue.front();
+                    // DR-DR-DR pop lidar-------DR DR DR------------>>>>
+                    if(current_imu_data.timestamp < cur_lidar_time){
+                        IMUOdomQueue.pop_front();
+                        continue;
                     }
+                    cloudinfo.DRPose = current_imu_data.pose;
+                    break;
                 }
+                imuodom_mutex.unlock();
+
                 ///1.get cloud max and min time stamp to
                 CloudTypeXYZIRTPtr cur_scan;
                 cloud_mutex.lock();
@@ -444,40 +438,18 @@ public:
                 GetCloudTime(cur_scan , cloud_with_time);
                 double cloud_min_ros_timestamp = cloud_with_time.min_ros_timestamp;
                 double cloud_max_ros_timestamp = cloud_with_time.max_ros_timestamp;
-                double  cloud  = cloud_max_ros_timestamp- cloud_min_ros_timestamp;
-                if (cloud > 0.2){
-                    EZLOG(INFO)<<"last_cloud_max_timestamp-cloud_min_ros_timestamp"<<endl;
-                    exit(-1);
-                }
-                EZLOG(INFO)<<setprecision(6);
-                //EZLOG(INFO)<<"cloud_min_ros_timestamp"<<cloud_min_ros_timestamp<<endl;
-              //  EZLOG(INFO)<<"cloud_max_ros_timestamp-cloud_min_ros_timestamp"<<cloud_max_ros_timestamp-cloud_min_ros_timestamp;
-               if (last_cloud_max_timestamp == 0){
-                   last_cloud_max_timestamp = cloud_max_ros_timestamp;
-               }
-
-                double temp = cloud_min_ros_timestamp - last_cloud_max_timestamp;
-
-                if(temp > 0.05){
-                    EZLOG(INFO)<<"cloud_min_ros_timestamp - last_cloud_max_timestamp"<<temp;
-                    exit(-1);
-                  // EZLOG(INFO)<<"last_cloud_max_timestamp-cloud_min_ros_timestamp"<<temp;
-                }
-                EZLOG(INFO)<<"last_cloud_max_timestamp-cloud_min_ros_timestamp"<<temp;
-
-                last_cloud_max_timestamp = cloud_with_time.max_ros_timestamp;
-               // EZLOG(INFO)<<"last_cloud_max_timestamp"<<last_cloud_max_timestamp;
 
                 ///2.
 //                if(odo_min_ros_time>cloud_min_ros_timestamp){
 //                    EZLOG(INFO)<<"odo is larger than lidar" <<endl;
 //                    exit(1);
 //                }
-//                if(!poseQueue.empty() && odo_min_ros_time >= cloud_min_ros_timestamp){
-//                    auto temp = poseQueue.front();
-//                    temp.timestamp = cloud_min_ros_timestamp - 0.01f;
-//                    poseQueue.push_front(temp);
-//                }
+
+                if(!poseQueue.empty() && odo_min_ros_time >= cloud_min_ros_timestamp){
+                    auto temp = poseQueue.front();
+                    temp.timestamp = cloud_min_ros_timestamp - 0.01f;
+                    poseQueue.push_front(temp);
+                }
                 if(odo_min_ros_time<cloud_min_ros_timestamp&&odo_max_ros_time>cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
                     EZLOG(INFO)<<"get in odo_min_ros_time"<<endl;
 //                        if(odo_min_ros_time >= cloud_min_ros_timestamp){
@@ -519,7 +491,7 @@ public:
 //                        while(poseQueue.front().timestamp < cloud_max_ros_timestamp - 0.1f){
 //                            poseQueue.pop_front();
 //                        }
-                        double thresh = cloud_min_ros_timestamp - 0.05f;
+                        double thresh = cloud_max_ros_timestamp - 0.05f;
                         while(poseQueue.front().timestamp < thresh){
                             poseQueue.pop_front();
                         }
@@ -536,6 +508,7 @@ public:
             else{
                 sleep(0.01);//线程休息10ms
             }
+
         }
     }
 
@@ -562,9 +535,24 @@ public:
 //        deque_gnssins.push_back(data);
         if(!init)
         {
-            geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
+            double x,y,z;
+            if(MappingConfig::slam_mode_switch){
+                std::ifstream downfile(MappingConfig::save_map_path+"Origin.txt");  //打开文件
+                std::string line; //字符串
+                std::getline(downfile, line);//
+                std::istringstream iss(line);
+                iss >> x >> y >> z;
+                downfile.close(); // 关闭文件
+                geoConverter.Reset(x, y, z);
+            }
+            else{
+                geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
+            }
             init = true;
-            MapSaver::SaveOriginLLA(data.lla);
+            if(MappingConfig::slam_mode_switch == 0 || MappingConfig::if_need_first_position == 1){
+                MapSaver::SaveOriginLLA(data.lla);
+            }
+
             return;
         }
 
@@ -590,23 +578,26 @@ public:
                 0,                 1,               0 ,
                 -sin(roll_X),      0,         cos(roll_X);
 
-        Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);
+        Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb
         Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
         Eigen::Quaterniond q_w_b(R_w_b);//获得局部坐标系的四元数
         PoseT T_w_b(t_w_b, R_w_b);
-
-        PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse()));
+//        world is GNSS ,base is car, T_w_l =
+        PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
+//        T_w_l:
+//        -0.973379  -0.229171 0.00382091   -128.353
+//        0.2292  -0.973157  0.0207947 0.00482607
+//        -0.0010472  0.0211169   0.999776  0.0740949
+//        0          0          0          1
+//        T_w_b:
+//        0.229171   -0.973379  0.00382091    -128.355
+//        0.973157      0.2292   0.0207947 -0.00585202
+//        -0.0211169  -0.0010472    0.999776    -0.43929
+//        0           0           0           1
 
         OdometryType T_w_l_pub;
         T_w_l_pub.frame = "map";
         T_w_l_pub.timestamp = data.timestamp;
-
-        double data_timestamp_chazhi = last_data_cloud_timestamp - data.timestamp;
-        EZLOG(INFO)<<"data_timestamp_chazhi"<<data_timestamp_chazhi<<endl;
-        if(data_timestamp_chazhi >20){
-            EZLOG(INFO)<<data_timestamp_chazhi<<endl;
-        }
-        last_data_cloud_timestamp = data.timestamp;
         T_w_l_pub.pose = T_w_l;
 
         GNSSINSType T_w_l_to_mapopt;
@@ -625,6 +616,9 @@ public:
         T_w_l_gnss.pose = T_w_l;
          if (MappingConfig::slam_mode_switch ==1){
              Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
+         }
+         else{  //mapping
+             Function_AddGNSSOdometryTypeToOPTMapping(T_w_l_gnss);
          }
        // Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
         //pub gnss odometry in rviz

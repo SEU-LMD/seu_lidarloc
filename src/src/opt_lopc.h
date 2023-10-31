@@ -68,6 +68,7 @@ public:
     std::string topic_priorMap_surf= "/priorMap_surf";
     std::string topic_priorMap_corner = "/priorMap_corner";
     std::string topic_lidar_odometry = "/lidar_odometry";
+    std::string topic_lidar_origin_odometry = "/lidar_origin_odometry";
 
     pcl::PointCloud<PointType>::Ptr Keyframe_Poses3D;  //历史关键帧 位置
     pcl::PointCloud<PointType>::Ptr cloudKeyGPSPoses3D;
@@ -116,8 +117,8 @@ public:
     Eigen::Affine3f transPointAssociateToMap;
     Eigen::Affine3f T_wl;
 
-    Eigen::Vector3d t_w_cur;
-    Eigen::Quaterniond q_w_cur;
+    Eigen::Vector3d t_w_cur,t_w_cur_DR;
+    Eigen::Quaterniond q_w_cur,q_w_cur_DR;
     Eigen::Matrix3d q_w_cur_matrix;
     double q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
     int frame_cnt = 0;
@@ -148,6 +149,7 @@ public:
 //    double timeLaserInfoStamp;
     bool isDegenerate = false;
     cv::Mat matP;
+    bool flag_MM_loadMap = 0;
 
     Eigen::Vector3d originLLA;
     bool systemInitialized = false;
@@ -158,7 +160,10 @@ public:
     std::mutex mtx;
     std::mutex mtxGpsInfo;
     std::mutex mtxGraph;
+
+    std::mutex mtxPriorMap;
     int lidarScan_cnt = 0;
+
 
     void AddCloudData(const CloudFeature& cloud_ft){
         if(lidarScan_cnt > SensorConfig::lidarScanDownSample){
@@ -179,6 +184,19 @@ public:
         deque_gnssins.push_back(gnss_ins_data);
         gnss_ins_mutex.unlock();
     }
+
+    void AddPriorMap(const PriorMap& PriorMap_data){
+        mtxPriorMap.lock();
+        if(MappingConfig::if_LoadFromMapManager == 1){
+            priorMap_surf = PriorMap_data.PriorSurfMap;
+            priorMap_corner = PriorMap_data.PriorSurfMap;
+            kdtree_priorMap_surf = PriorMap_data.PriorSurfMapKDTree;
+            kdtree_priorMap_corner = PriorMap_data.PriorCornerMapKDTree;
+            flag_MM_loadMap = 1;
+        }
+        mtxPriorMap.unlock();
+    }
+
 
     void allocateMemory() {
         gtsam::ISAM2Params parameters;
@@ -263,12 +281,14 @@ public:
 
         }
 
-        if(flagLoadMap){
-            // 从晓强接收
-            Load_PriorMap_Surf(MappingConfig::prior_map_surf,priorMap_surf);
-            Load_PriorMap_Corner(MappingConfig::prior_map_corner,priorMap_corner);
-
+        if(MappingConfig::if_LoadFromMapManager == 0){
+            if(flagLoadMap){
+                // 从晓强接收
+                Load_PriorMap_Surf(MappingConfig::prior_map_surf,priorMap_surf);
+                Load_PriorMap_Corner(MappingConfig::prior_map_corner,priorMap_corner);
+            }
         }
+
         EZLOG(INFO)<<"opt Loc init success!"<<std::endl;
 
 
@@ -420,6 +440,7 @@ public:
         if (Keyframe_Poses3D->points.empty()) {
             systemInitialized = false;
             if (SensorConfig::useGPS) {
+
                 ;
             } else {
                 current_T_m_l[0] = q_w_cur_roll;
@@ -438,10 +459,8 @@ public:
             EZLOG(INFO)<<"sysyem need to be initialized";
             return;
         }
-//        Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
-//                t_w_cur[0], t_w_cur[1], t_w_cur[2],q_w_cur_roll,
-//                q_w_cur_pitch , q_w_cur_yaw);
-//      世界系
+
+//        GNSS
         Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
                 t_w_cur[0], t_w_cur[1], t_w_cur[2],q_w_cur_roll,
                 q_w_cur_pitch , q_w_cur_yaw);
@@ -450,7 +469,46 @@ public:
                 pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
                 current_T_m_l[5], current_T_m_l[0],
                 current_T_m_l[1], current_T_m_l[2]);
+
+//      DR
+//        Eigen::Affine3f pose_guess_from_gnss = pcl::getTransformation(
+//                t_w_cur_DR[0], t_w_cur_DR[1], t_w_cur_DR[2],q_w_cur_roll,
+//                q_w_cur_pitch , q_w_cur_yaw);
+////      current_T_m_l -> 世界系
+//        pcl::getTranslationAndEulerAngles(
+//                pose_guess_from_gnss, current_T_m_l[3], current_T_m_l[4],
+//                current_T_m_l[5], current_T_m_l[0],
+//                current_T_m_l[1], current_T_m_l[2]);
+
         current_frame = WORLD;
+
+//        static bool lastImuPreTransAvailable = false;
+//        static Eigen::Affine3f lastImuPreTransformation;
+////        Euldar form GNSS, t from DR
+//        Eigen::Affine3f transBack = pcl::getTransformation(
+//                t_w_cur_DR[0], t_w_cur_DR[1], t_w_cur_DR[2], q_w_cur_roll, q_w_cur_pitch,
+//                q_w_cur_yaw);
+////                EZLOG(INFO)<<"transBack success"<<transBack.translation().x()<<endl;
+//        if (lastImuPreTransAvailable == false) {
+//            lastImuPreTransformation = transBack;
+//            lastImuPreTransAvailable = true;
+//        } else {
+//            Eigen::Affine3f transIncre =
+//                    lastImuPreTransformation.inverse() * transBack;
+//            Eigen::Affine3f transTobe = trans2Affine3f(current_T_m_l);
+//            Eigen::Affine3f transFinal = transTobe * transIncre;
+//            pcl::getTranslationAndEulerAngles(
+//                    transFinal, current_T_m_l[3], current_T_m_l[4],
+//                    current_T_m_l[5], current_T_m_l[0],
+//                    current_T_m_l[1], current_T_m_l[2]);
+//
+//            lastImuPreTransformation = transBack;
+//
+//              EZLOG(INFO)<<" success"<<endl;
+//
+//            return;
+//        }
+
     }
 
 /**
@@ -478,14 +536,20 @@ public:
 //            EZLOG(INFO) << "MODE: Scan to Map!";
             // 添加标志位，需要下一帧再加载。现在可以先写着1.5s换一次local map
             current_lidar_frameID =  init_point.intensity;
-//            flag_load_localMap = 1; // unecessary to load local map
-            if(current_lidar_frameID - last_lidar_frameID < MappingConfig::LocalMap_updata_perframe && !flagLoadMap){
-                EZLOG(INFO)<<"already have local map and don't need to update";
-
+            if(MappingConfig::if_LoadFromMapManager == 0 ){
+                if(current_lidar_frameID - last_lidar_frameID < MappingConfig::LocalMap_updata_perframe && !flagLoadMap){
+                    EZLOG(INFO)<<"already have local map and don't need to update";
 //                flag_need_load_localMap = 0; // do not need to load map
-                return ; // 不需要重复加载localMap_corner_and_surf,但是如果没有加载过localMap就加载一次
+                    return ; // 不需要重复加载localMap_corner_and_surf,但是如果没有加载过localMap就加载一次
+                }
+                flagLoadMap = 0;
             }
-            flagLoadMap = 0;
+            if(MappingConfig::if_LoadFromMapManager == 1 ){
+                if(flag_MM_loadMap == 0){
+                    EZLOG(INFO)<<"Waiting for MapManager send new Map!!";
+                    return ;
+                }
+            }
 //            flag_need_load_localMap = 1; // need to load map
             localMap_corner->clear();
             localMap_surf->clear();
@@ -493,11 +557,14 @@ public:
             std::vector<float> pointSearchSqDis;
 //            world frame
 //            EZLOG(INFO)<<"init_point is: " << init_point; // be aware of init_point's frame
+            if(MappingConfig::if_LoadFromMapManager == 0){
+                kdtree_priorMap_surf->setInputCloud(priorMap_surf);
 
-            kdtree_priorMap_surf->setInputCloud(priorMap_surf);
+            }
             kdtree_priorMap_surf->radiusSearch(
                     init_point, (double) MappingConfig::localMap_searchRadius_surf,
                     pointSearchInd, pointSearchSqDis);
+
 //            std::cout<<"surf points in local map  : "<<pointSearchInd.size()<<std::endl;
             for (int i = 0; i < (int) pointSearchInd.size(); ++i) {
                 int id = pointSearchInd[i];
@@ -505,7 +572,10 @@ public:
             }
             pointSearchInd.clear();
             pointSearchSqDis.clear();
-            kdtree_priorMap_corner->setInputCloud(priorMap_corner);
+            if(MappingConfig::if_LoadFromMapManager == 0){
+                kdtree_priorMap_corner->setInputCloud(priorMap_corner);
+            }
+
             kdtree_priorMap_corner->radiusSearch(
                     init_point, (double) MappingConfig::localMap_searchRadius_corner,
                     pointSearchInd, pointSearchSqDis);
@@ -542,10 +612,10 @@ public:
             T_matrix_L_B(2,3) = 0.0;
             pcl::transformPointCloud(*localMap_surf_ds, *localMap_surf_ds, T_matrix_L_B.inverse());
             pcl::transformPointCloud(*localMap_corner_ds, *localMap_corner_ds, T_matrix_L_B.inverse());
-            flag_use_world_localMap = 1;
-            flag_load_localMap = 1; // load prior local map
+            flag_load_localMap = 1;
+            flag_MM_loadMap = 0;
         }
-        else //else scan to scan_incremental  flag_scan_mode_change == 0
+        else //TODO else scan to scan_incremental flag_scan_mode_change == 0
         {
             if(Keyframe_Poses3D->points.empty() != true)
             {
@@ -1192,7 +1262,7 @@ public:
 
         return true;
     }
-            void addOdomFactor() {
+    void addOdomFactor() {
         if (Keyframe_Poses3D->points.empty()) {
             gtsam::noiseModel::Diagonal::shared_ptr priorNoise =
                     gtsam::noiseModel::Diagonal::Variances(
@@ -1374,39 +1444,57 @@ public:
 
     }
     void saveKeyFramesAndFactor() {
-        if (saveFrame() == false) return;
+        if (saveFrame() == false) { return; }
+
+        OdometryType current_Lidar_pose;
+        Eigen::Affine3f Lidarodom_2_map = trans2Affine3f(current_T_m_l);//T_ml
+        Eigen::Matrix4d map_2_world = SensorConfig::T_L_B; //T_wm
+        Eigen::Matrix4d Lidar_odom_world = map_2_world * Lidarodom_2_map.matrix().cast<double>();// T_wl = T_wm * T_ml
+
+        current_Lidar_pose.frame = "map";
+        current_Lidar_pose.timestamp = timeLaserInfoCur;
+        current_Lidar_pose.pose.pose = Lidarodom_2_map.matrix().cast<double>();
+
+        Function_AddLidarOdometryTypeToFuse(current_Lidar_pose);
+        pubsub->PublishOdometry(topic_lidar_origin_odometry, current_Lidar_pose);
 
         // odom factor
-        addOdomFactor();
+//        addOdomFactor();
 
         // gps factor
 //        addGNSSBetweenFactor();
 //        if (SensorConfig::useGPS) addGPSFactor();
 
-        cout << "****************************************************" << endl;
-        gtSAMgraph.print("GTSAM Graph:\n");
-
-        // update iSAM
-        isam->update(gtSAMgraph, initialEstimate);
-        isam->update();
-
-        gtSAMgraph.resize(0);
-        initialEstimate.clear();
+//        cout << "****************************************************" << endl;
+//        gtSAMgraph.print("GTSAM Graph:\n");
+//
+//        // update iSAM
+//        isam->update(gtSAMgraph, initialEstimate);
+//        isam->update();
+//
+//        gtSAMgraph.resize(0);
+//        initialEstimate.clear();
 
         // save key poses
         PointType thisPose3D;
         PointTypePose thisPose6D;
         gtsam::Pose3 latestEstimate;
 
-        isamCurrentEstimate = isam->calculateEstimate();
-        latestEstimate =
-                isamCurrentEstimate.at<gtsam::Pose3>(isamCurrentEstimate.size() - 1);
+//        isamCurrentEstimate = isam->calculateEstimate();
+//        latestEstimate =
+//                isamCurrentEstimate.at<gtsam::Pose3>(isamCurrentEstimate.size() - 1);
         // cout << "****************************************************" << endl;
         // isamCurrentEstimate.print("Current estimate: ");
 
-        thisPose3D.x = latestEstimate.translation().x();
-        thisPose3D.y = latestEstimate.translation().y();
-        thisPose3D.z = latestEstimate.translation().z();
+//        thisPose3D.x = latestEstimate.translation().x();
+//        thisPose3D.y = latestEstimate.translation().y();
+//        thisPose3D.z = latestEstimate.translation().z();
+//        thisPose3D.intensity =
+//                Keyframe_Poses3D->size();  // this can be used as index
+//        Keyframe_Poses3D->push_back(thisPose3D);
+        thisPose3D.x = current_Lidar_pose.pose.GetXYZ().x();
+        thisPose3D.y = current_Lidar_pose.pose.GetXYZ().y();
+        thisPose3D.z = current_Lidar_pose.pose.GetXYZ().z();
         thisPose3D.intensity =
                 Keyframe_Poses3D->size();  // this can be used as index
         Keyframe_Poses3D->push_back(thisPose3D);
@@ -1415,19 +1503,22 @@ public:
         thisPose6D.y = thisPose3D.y;
         thisPose6D.z = thisPose3D.z;
         thisPose6D.intensity = thisPose3D.intensity;  // this can be used as index
-        thisPose6D.roll = latestEstimate.rotation().roll();
-        thisPose6D.pitch = latestEstimate.rotation().pitch();
-        thisPose6D.yaw = latestEstimate.rotation().yaw();
+        thisPose6D.roll = current_T_m_l[0];
+        thisPose6D.pitch = current_T_m_l[1];
+        thisPose6D.yaw = current_T_m_l[2];
+//        thisPose6D.roll = latestEstimate.rotation().roll();
+//        thisPose6D.pitch = latestEstimate.rotation().pitch();
+//        thisPose6D.yaw = latestEstimate.rotation().yaw();
         thisPose6D.time = timeLaserInfoCur;
         Keyframe_Poses6D->push_back(thisPose6D);
 
         // save updated transform
-        current_T_m_l[0] = latestEstimate.rotation().roll();
-        current_T_m_l[1] = latestEstimate.rotation().pitch();
-        current_T_m_l[2] = latestEstimate.rotation().yaw();
-        current_T_m_l[3] = latestEstimate.translation().x();
-        current_T_m_l[4] = latestEstimate.translation().y();
-        current_T_m_l[5] = latestEstimate.translation().z();
+//        current_T_m_l[0] = latestEstimate.rotation().roll();
+//        current_T_m_l[1] = latestEstimate.rotation().pitch();
+//        current_T_m_l[2] = latestEstimate.rotation().yaw();
+//        current_T_m_l[3] = latestEstimate.translation().x();
+//        current_T_m_l[4] = latestEstimate.translation().y();
+//        current_T_m_l[5] = latestEstimate.translation().z();
 
     }
 
@@ -1457,13 +1548,13 @@ public:
                 break;
 
         }
-        Function_AddLidarOdometryTypeToFuse(current_lidar_pose_world);
+
         Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
         pubsub->PublishOdometry(topic_lidar_odometry, current_lidar_pose_world);
     }
 
     void DoWork(){
-        allocateMemory();
+
         while(1){
             if(deque_cloud.size()!=0){
                 CloudFeature cur_ft;
@@ -1482,8 +1573,15 @@ public:
                 current_corner = cur_ft.cornerCloud;
 //                current_corner = &cur_corner;
 //                current_surf = &cur_surf;
-                t_w_cur = cur_ft.pose.GetXYZ();
-                q_w_cur = cur_ft.pose.GetQ();
+
+                // use DR
+                t_w_cur_DR = cur_ft.DRPose.GetXYZ();
+                q_w_cur_DR = cur_ft.DRPose.GetR();
+                t_w_cur = t_w_cur_DR;
+                q_w_cur = q_w_cur_DR;
+//                use GNSS
+//                t_w_cur = cur_ft.pose.GetXYZ();
+//                q_w_cur = cur_ft.pose.GetQ();
                 q_w_cur.normalize();
                 q_w_cur_matrix = q_w_cur.toRotationMatrix();
                 current_frameID = cur_ft.frame_id;
@@ -1497,6 +1595,12 @@ public:
                     q_w_cur_yaw = atan2(-q_w_cur_matrix(0, 1), q_w_cur_matrix(1, 1)); // 计算yaw
                 }
 
+                // get DR
+
+                EZLOG(INFO)<<"t_w_cur_DR: "<<t_w_cur_DR.transpose();
+                EZLOG(INFO)<<"q_w_cur_DR: ";
+                EZLOG(INFO)<<q_w_cur_DR;
+
 //                std::lock_guard<std::mutex> lock(mtx);
                 static double timeLastProcessing = -1;
                 if (timeLaserInfoCur - timeLastProcessing >= MappingConfig::mappingProcessInterval) {
@@ -1506,9 +1610,15 @@ public:
                     updateInitialGuess();
                     EZLOG(INFO)<<"------------updateInitialGuess finish---------------" <<std::endl;
                     if (systemInitialized) {
-                        if(flagLoadMap){
-                            pub_CornerAndSurfFromMap();
-
+                        if(MappingConfig::if_LoadFromMapManager == 0){
+                            if(flagLoadMap){
+                                pub_CornerAndSurfFromMap();
+                            }
+                        }
+                        else{
+                            if(flag_MM_loadMap){
+                                pub_CornerAndSurfFromMap();
+                            }
                         }
                         TicToc t_2;
                         extractFromPriorMap();
@@ -1542,9 +1652,11 @@ public:
 */
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
+        allocateMemory();
         pubsub->addPublisher(topic_priorMap_corner, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_priorMap_surf, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_lidar_odometry, DataType::ODOMETRY, 10);
+        pubsub->addPublisher(topic_lidar_origin_odometry, DataType::ODOMETRY, 10);
         do_work_thread = new std::thread(&LOCMapping::DoWork, this);
     }
 };

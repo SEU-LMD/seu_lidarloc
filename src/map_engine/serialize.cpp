@@ -19,6 +19,9 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (MyPointType,
 
 typedef MyPointType PointType;
 
+
+
+
 std::vector<std::string>  pcd_index;
 std::vector<Eigen::Isometry3d>  pcd_tans;
 std::vector<std::string>   pcd_feature;
@@ -42,11 +45,11 @@ LoadTxt(const std::string& map_in_path,const int& frame_sum)
     Eigen::Vector3d tanslation;
     Eigen::Quaterniond rotation;
     Eigen::Isometry3d T=Eigen::Isometry3d::Identity();
-    std::ifstream downfile(map_in_path+"opt_poses.txt");  //打开文件
+    std::ifstream downfile(map_in_path+"Opt_Poses.txt");
     Tum tum;
     for(int j=0;j<frame_sum;j++){
-        std::string line; //字符串
-        std::getline(downfile, line);//
+        std::string line;
+        std::getline(downfile, line);
         std::istringstream iss(line);
         iss >> pcdindex >> tum.tx >> tum.ty >> tum.tz >> tum.qx >> tum.qy >> tum.qz >> tum.qw;
         tanslation<<tum.tx,tum.ty,tum.tz;
@@ -123,27 +126,8 @@ PointPoseTrance(const pcl::PointXYZI& piont_in,const Eigen::Isometry3d& trans ){
     piont_out.intensity=piont_in.intensity;
     return piont_out;
 }
-void GlobalMap(const std::string& feature,const std::string& map_out_path,const std::string& map_in_path,const int frame_sum){
-    pcl::PointCloud<PointType>::Ptr out_cloud(new pcl::PointCloud<PointType>);
-    pcl::PointCloud<pcl::PointXYZI>::Ptr in_cloud(new pcl::PointCloud<pcl::PointXYZI>);
 
-    for(int k=0;k<frame_sum;k++){
-        if (pcl::io::loadPCDFile<pcl::PointXYZI> (map_in_path+pcd_index[k]+"_"+feature+".pcd", *in_cloud) == -1)
-        {
-//                            PCL_ERROR("Couldn't read file test_pcd.pcd \n");
-//                            continue;
-        }
-        for (const pcl::PointXYZI& point : *in_cloud){//  循环每一个点
-            PointType transformed_point;
-            transformed_point=PointPoseTrance(point,pcd_tans[k]);
-            transformed_point.down_grid_index=0;//目前不用
-            out_cloud->push_back(transformed_point);
-        }
-    }
-    EZLOG(INFO)<<"out_cloud size"<<out_cloud->size();
-    std::string filename = map_out_path+"global_"+feature+".pcd";
-    pcl::io::savePCDFileBinary (filename, *out_cloud);
-}
+
 
 void
 CutMap(const std::string& feature,const std::string& map_out_path,const std::string& map_in_path,const int frame_sum){
@@ -200,10 +184,8 @@ main (int argc, char** argv)
 {
     Load_offline_YAML("./config/offline_mapping.yaml");
     LoadTxt(SerializeConfig::map_in_path,SerializeConfig::frame_sum);
-//    FindMinMaxUsePose(SerializeConfig::map_out_path,SerializeConfig::lidar_range);
-//    CutDownMapCaulate();
-//    CutMap(pcd_feature[0],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
-//    CutMap(pcd_feature[1],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
-    GlobalMap(pcd_feature[0],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
-    GlobalMap(pcd_feature[1],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
+    FindMinMaxUsePose(SerializeConfig::map_out_path,SerializeConfig::lidar_range);
+    CutDownMapCaulate();
+    CutMap(pcd_feature[0],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
+    CutMap(pcd_feature[1],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
 }

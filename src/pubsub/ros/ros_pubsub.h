@@ -133,14 +133,9 @@ public:
 
         gnss_ins_out.timestamp = gnss_ins_in->header.stamp.toSec();
         gnss_ins_out.frame = gnss_ins_in->header.frame_id;
-        gnss_ins_out.gps_status = false;
 
-        if(gnss_ins_in->status == "42" && gnss_ins_in->satenum >20 &&
-           (gnss_ins_in->lon > 117 && gnss_ins_in->lon < 118) &&
-           (gnss_ins_in->lat > 31 && gnss_ins_in->lat < 32))
-        {
-            gnss_ins_out.gps_status = true;
-        }
+        gnss_ins_out.gps_status = gnss_ins_in->status;
+        gnss_ins_out.velocity = gnss_ins_in->velocity;
 
     }
     void GNSSINSROSCallback(const gps_imu::ivsensorgpsConstPtr& data, const std::string& topic_name){

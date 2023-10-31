@@ -12,7 +12,7 @@
 #include "pubsub/pubusb.h"
 #include "imageProjection.h"
 #include "featureExtraction.h"
-#include "imu_preintegration.h"
+#include "IMU_DR.h"
 #include "opt_mapping.h"
 #include "utils/config_helper.h"
 //#include "dead_reckoning.h"
@@ -23,7 +23,7 @@ public:
 
     ImageProjection img_proj;
     FeatureExtraction ft_extr;
-    IMUPreintegration imu_pre;
+    IMU_DR imu_pre;
     OPTMapping opt_mapping;
 
 
@@ -36,7 +36,7 @@ public:
 //        TicToc timer;
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         img_proj.AddGNSSINSSData(gnssins_data);
-        opt_mapping.AddGNSSINSData(gnssins_data);
+     //   opt_mapping.AddGNSSINSData(gnssins_data);
         imu_pre.AddGNSSINSData(gnssins_data);
 //        EZLOG(INFO)<<"GNSSINSCallback cost time(ms)"<<timer.toc()<<std::endl;
     }
@@ -60,13 +60,18 @@ public:
                 std::bind(&FeatureExtraction::AddCloudData, &ft_extr,std::placeholders::_1);
         auto add_CloudFeature_from_ftextr_to_optmapping =
                 std::bind(&OPTMapping::AddCloudData, &opt_mapping,std::placeholders::_1);
-        auto add_OdometryType_from_optmapping_to_imupre =
-                std::bind(&IMUPreintegration::AddOdomData, &imu_pre,std::placeholders::_1);
+       // auto add_OdometryType_from_optmapping_to_imupre =
+         //       std::bind(&IMU_DR::AddOdomData, &imu_pre,std::placeholders::_1);
+        auto add_GNSSOdometryType_from_imgproj_to_optmapping =
+                std::bind(&OPTMapping::AddGNSSToOpt, &opt_mapping,std::placeholders::_1);
         auto add_OdometryType_from_imupre_to_imgproj =
                 std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
+
+       // img_proj.Function_AddOdometryTypeToOPTMapping = add_OdometryType_from_imgproj_to_optmapping;
         img_proj.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_imgproj_to_ftextr;
+
         ft_extr.Function_AddCloudFeatureToOPTMapping = add_CloudFeature_from_ftextr_to_optmapping;
-        //opt_mapping.Function_AddOdometryTypeToIMUPreintegration = add_OdometryType_from_optmapping_to_imupre;
+        img_proj.Function_AddGNSSOdometryTypeToOPTMapping = add_GNSSOdometryType_from_imgproj_to_optmapping;
         imu_pre.Function_AddOdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
         EZLOG(INFO) << "Init finish!!! " << std::endl;
     }
