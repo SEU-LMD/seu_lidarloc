@@ -558,7 +558,7 @@ public:
         std::vector<bool> close_to_query_point;
     };
 
-    bool classify_nground_pts(const pcl::PointCloud<PointXYZICOLRANGE>::Ptr &cloud_in,//input 非地面点
+    bool classify_nground_pts(pcl::PointCloud<PointXYZICOLRANGE>::Ptr &cloud_in,//input 非地面点
                               pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar,
                               pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam,
                               pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade,
@@ -594,7 +594,7 @@ public:
         float unit_distance = 30.0;
         ///1.计算每个非地面点的pca参数
         //output  param = cloud_features
-        get_pc_pca_feature(cloud_in, cloud_features, tree, FrontEndConfig::neighbor_searching_radius, FrontEndConfig::neighbor_k, 1, FrontEndConfig::pca_down_rate, FrontEndConfig::use_distance_adaptive_pca, unit_distance);
+        get_pc_pca_feature(cloud_in, cloud_features, tree, FrontEndConfig::neighbor_searching_radius, FrontEndConfig::neighbor_k, 3, FrontEndConfig::pca_down_rate, FrontEndConfig::use_distance_adaptive_pca, unit_distance);
         //LOG(WARNING)<< "PCA done";
 
         std::chrono::steady_clock::time_point toc_pca = std::chrono::steady_clock::now();
@@ -789,9 +789,9 @@ public:
 
     // R - K neighborhood (with already built-kd tree)
     //within the radius, we would select the nearest K points for calculating PCA
-    bool get_pc_pca_feature(typename pcl::PointCloud<PointXYZICOLRANGE>::Ptr in_cloud,
+    bool get_pc_pca_feature(pcl::PointCloud<PointXYZICOLRANGE>::Ptr in_cloud,
                             std::vector<pca_feature_t> &features,
-                            typename pcl::KdTreeFLANN<PointXYZICOLRANGE>::Ptr &tree,
+                            pcl::KdTreeFLANN<PointXYZICOLRANGE>::Ptr &tree,
                             float radius, int nearest_k, int min_k = 1, int pca_down_rate = 1,
                             bool distance_adaptive_on = false, float unit_dist = 35.0)
     {
@@ -870,15 +870,10 @@ public:
 
         pcl::PointCloud<PointXYZICOLRANGE>::Ptr selected_cloud(new pcl::PointCloud<PointXYZICOLRANGE>());
         const int maxIdx = in_cloud->points.size();
-        for (int i = 0; i < pt_num; ++i) {
-            int idx = search_indices[i];
-            if(idx < maxIdx){
-                selected_cloud->points.push_back(in_cloud->points[search_indices[i]]);
-            }else{
-                EZLOG(INFO) << "index out of range!!!" << std::endl;
-                exit(-1);
-            }
-        }
+        EZLOG(INFO)<< "select points" << std::endl;
+        for (int i = 0; i < pt_num; ++i)
+            selected_cloud->points.push_back(in_cloud->points[search_indices[i]]);
+        EZLOG(INFO)<< "select points finish" << std::endl;
         pcl::PCA<PointXYZICOLRANGE> pca_operator;
         pca_operator.setInputCloud(selected_cloud);
 
@@ -917,9 +912,13 @@ public:
     {
         if (is_plane_feature)
         {
+            EZLOG(INFO)<< "select points step 1" << std::endl;
             pt.normal_x = pca_feature.vectors.normalDirection.x();
+            EZLOG(INFO)<< "select points step 2" << std::endl;
             pt.normal_y = pca_feature.vectors.normalDirection.y();
+            EZLOG(INFO)<< "select points step 3" << std::endl;
             pt.normal_z = pca_feature.vectors.normalDirection.z();
+            EZLOG(INFO)<< "select points step 4" << std::endl;
             pt.normal[3] = pca_feature.planar_2; //planrity
         }
         else

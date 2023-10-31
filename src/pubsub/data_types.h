@@ -237,6 +237,7 @@ public:
         cloud_beam = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
         cloud_facade = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
         cloud_roof = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+
         cloud_pillar_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
         cloud_beam_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
         cloud_facade_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
