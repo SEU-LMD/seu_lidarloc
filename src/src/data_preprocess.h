@@ -29,7 +29,7 @@ public:
     double min_latency_timestamp;
 };
 
-class DataPreprocess  {
+class DataPreprocess {
 public:
     int slam_mode_switch = 0;
     PubSubInterface* pubsub;
@@ -434,12 +434,10 @@ public:
 
                 while(!GnssQueue.empty()) {
                     gnss_mutex.lock();
-                    EZLOG(INFO) << "get out addGps factor" << endl;
                     if (GnssQueue.front().timestamp < cur_lidar_time - 0.1) {
                         // message too old
                         GnssQueue.pop_front();
                         gnss_mutex.unlock();
-                        EZLOG(INFO) << "get out addGps factor" << endl;
                     } else if (GnssQueue.front().timestamp > cur_lidar_time + 0.1) {
                         // message too new
                         gnss_mutex.unlock();
