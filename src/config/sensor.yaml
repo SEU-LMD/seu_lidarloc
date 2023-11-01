@@ -75,4 +75,5 @@
                   1, 0, 0,
                   0, 0, 1 ]
 
-  use_gnss_deskew: true
+  use_gnss_deskew: false
+  use_unground_classify: false

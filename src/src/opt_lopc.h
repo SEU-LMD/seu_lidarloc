@@ -1451,20 +1451,20 @@ public:
         }
 
     }
-    void Udp_OdomPub(const OdometryType& data){
+    void Udp_OdomPub(const PoseT& data){
         Vis_Odometry odom_out;
         std::string fu_str;
         odom_out.type = "li";
-        odom_out.t[0]= data.pose.GetXYZ().x();
-        odom_out.t[0]= data.pose.GetXYZ().y();
-        odom_out.t[0]= data.pose.GetXYZ().z();
+        odom_out.t[0]= data.GetXYZ().x();
+        odom_out.t[1]= data.GetXYZ().y();
+        odom_out.t[2]= data.GetXYZ().z();
 
 
 
-        odom_out.q.x() = data.pose.GetQ().x();
-        odom_out.q.y() = data.pose.GetQ().y();
-        odom_out.q.z() = data.pose.GetQ().z();
-        odom_out.q.w() = data.pose.GetQ().w();
+        odom_out.q.x() = data.GetQ().x();
+        odom_out.q.y() = data.GetQ().y();
+        odom_out.q.z() = data.GetQ().z();
+        odom_out.q.w() = data.GetQ().w();
 
         fu_str = odom_out.ToString();
         udp_thread -> SendUdpMSg(fu_str);
@@ -1484,7 +1484,7 @@ public:
 
         Function_AddLidarOdometryTypeToFuse(current_Lidar_pose);
         // TODO current_Lidar_pose->>>>>>> is lidar loc result need UDP
-        Udp_OdomPub(current_Lidar_pose);
+
         pubsub->PublishOdometry(topic_lidar_origin_odometry, current_Lidar_pose);
 
         // odom factor
@@ -1579,6 +1579,7 @@ public:
         }
 
         Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
+        Udp_OdomPub(current_lidar_pose_world.pose);
         pubsub->PublishOdometry(topic_lidar_odometry, current_lidar_pose_world);
     }
 

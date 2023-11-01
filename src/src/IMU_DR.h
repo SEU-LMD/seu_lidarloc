@@ -230,20 +230,20 @@ public:
     }
 
 
-    void Udp_OdomPub(const OdometryType& data){
+    void Udp_OdomPub(const PoseT& data){
         Vis_Odometry odom_out;
         std::string fu_str;
         odom_out.type = "dr";
-        odom_out.t[0]= data.pose.GetXYZ().x();
-        odom_out.t[0]= data.pose.GetXYZ().y();
-        odom_out.t[0]= data.pose.GetXYZ().z();
+        odom_out.t[0]= data.GetXYZ().x();
+        odom_out.t[1]= data.GetXYZ().y();
+        odom_out.t[2]= data.GetXYZ().z();
 
 
 
-        odom_out.q.x() = data.pose.GetQ().x();
-        odom_out.q.y() = data.pose.GetQ().y();
-        odom_out.q.z() = data.pose.GetQ().z();
-        odom_out.q.w() = data.pose.GetQ().w();
+        odom_out.q.x() = data.GetQ().x();
+        odom_out.q.y() = data.GetQ().y();
+        odom_out.q.z() = data.GetQ().z();
+        odom_out.q.w() = data.GetQ().w();
 
         fu_str = odom_out.ToString();
         udp_thread -> SendUdpMSg(fu_str);
@@ -337,8 +337,9 @@ public:
             Function_AddDROdometryTypeToFuse(DR_pose);
         }
 
+        Udp_OdomPub(Odometry_imuPredict_pub.pose);
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
-        Udp_OdomPub(Odometry_imuPredict_pub);
+
    //     EZLOG(INFO)<<" time in ms: "<<time1.toc();
 //        imu_cnt++;
 //        EZLOG(INFO)<<"imu_cnt: "<<imu_cnt;
@@ -493,6 +494,21 @@ public:
 
         pubsub = pubsub_;
         udp_thread = udp_thread_;
+        pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
+        do_lidar_thread = new std::thread(&IMU_DR::DoPredict, this);
+    }
+    void Init(PubSubInterface* pubsub_){
+
+        //设置imu的参数
+        SetIMUPreParamter();
+        //debug
+//        outfile.open("imu_gyro.txt",std::ios::app);
+//        if (!outfile.is_open()) {
+//            std::cerr << "无法打开输出文件 " << std::endl;
+//        }
+//        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
+
+        pubsub = pubsub_;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
         do_lidar_thread = new std::thread(&IMU_DR::DoPredict, this);
     }
