@@ -31,7 +31,7 @@ public:
     std::map<std::string, CallBackT> cloud_callbacks;
     std::map<std::string, CallBackT> imu_callbacks;
     std::map<std::string, CallBackT> gnss_ins_callbacks;
-    std::map<std::string, CallBackT> wheel_callbacks;
+//    std::map<std::string, CallBackT> wheel_callbacks;
 
 
     void initPubSub(int argc, char** argv, const std::string& node_name){
@@ -117,12 +117,17 @@ public:
         (this->cloud_callbacks[topic_name])(data_out);
     }
 
+//    void DrROSCallback(const sensor_msgs::PointCloud2ConstPtr& data, const std::string& topic_name){
+//        CloudTypeXYZIRT data_out;
+//        convertROSCloudMsgToCloud(data, data_out);
+//        (this->cloud_callbacks[topic_name])(data_out);
+//    }
+
     bool init_estimate_bias = false;
     int estimate_bias_n = 500;
 
     //组合导航设备转换函数
     void convertROSGNSSINSMsgToGNSSINS(const gen_h::ivsensorgpsConstPtr& gnss_ins_in, GNSSINSType& gnss_ins_out ){
-
 
 //            if(!init_estimate_bias){
 //
@@ -178,12 +183,12 @@ public:
         gnss_ins_out.wheel_speed[3] = gnss_ins_in->whlspd.ESCWhlFLSpd;
 
         gnss_ins_out.gps_status = gnss_ins_in->locationState;
-        if(gnss_ins_in->locationState == 11 && gnss_ins_in->locationState >20 &&
-           (gnss_ins_in->position.y > 117 && gnss_ins_in->position.y < 118) &&
-           (gnss_ins_in->position.x > 31 && gnss_ins_in->position.x < 32))
-        {
-            gnss_ins_out.gps_status = true;
-        }
+//        if(gnss_ins_in->locationState == 11 && gnss_ins_in->locationState >20 &&
+//           (gnss_ins_in->position.y > 117 && gnss_ins_in->position.y < 118) &&
+//           (gnss_ins_in->position.x > 31 && gnss_ins_in->position.x < 32))
+//        {
+//            gnss_ins_out.gps_status = true;
+//        }
 
         gnss_ins_out.velocity = gnss_ins_in->velocity;
         ///use for test new bag
@@ -292,9 +297,10 @@ public:
 //        else if(type==DataType::IMU){
 //
 //        }
-        else if(type==DataType::WHEEL){ //TODO::add data
-
-        }
+//        else if(type==DataType::WHEEL){ //TODO::add data
+//            this->subscribers.push_back(this->pNH->subscribe< gen_h::ivsensorgps>(topic_name,10,boost::bind(&ROSPubSub::GNSSINSROSCallback,this,_1,topic_name)));
+//            this->wheel_callbacks[topic_name] = callBack;
+//        }
     }//end function addSubscriber
 
 };

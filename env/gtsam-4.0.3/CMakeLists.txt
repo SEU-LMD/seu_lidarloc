@@ -293,13 +293,14 @@ option(GTSAM_WITH_EIGEN_UNSUPPORTED "Install Eigen's unsupported modules" OFF)
 
 # Switch for using system Eigen or GTSAM-bundled Eigen
 option(GTSAM_USE_SYSTEM_EIGEN "Find and use system-installed Eigen. If 'off', use the one bundled with GTSAM" ON) #//////////////////////////////////////////////////sy 
+set(GTSAM_USE_SYSTEM_EIGEN ON)
 if(GTSAM_USE_SYSTEM_EIGEN)
-set(Eigen3_DIR ${CMAKE_SOURCE_DIR}/../eigen-3.4.0-install-x86/share/eigen3/cmake)
+# set(Eigen3_DIR ${CMAKE_SOURCE_DIR}/../eigen-3.4.0-install-x86/share/eigen3/cmake)
 
 find_package(Eigen3 REQUIRED)
  message("use our own eigen3")
 	# Use generic Eigen include paths e.g. <Eigen/Core>
-	set(EIGEN3_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../eigen-3.4.0-install-x86/include/eigen3)
+	# set(EIGEN3_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../eigen-3.4.0-install-x86/include/eigen3)
 	set(GTSAM_EIGEN_INCLUDE_FOR_INSTALL "${EIGEN3_INCLUDE_DIR}")
 
 	# check if MKL is also enabled - can have one or the other, but not both!

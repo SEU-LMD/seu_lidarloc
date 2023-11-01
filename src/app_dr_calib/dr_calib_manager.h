@@ -31,10 +31,10 @@ public:
         dr_calib.AddGNSSINSData(gnssins_data);
     }
 
-    void DrCallback(const BaseType& msg){
-        const WheelType& dr_data = *((WheelType*)&msg);
-        dr_calib.AddDrData(dr_data);
-    }
+//    void DrCallback(const BaseType& msg){
+//        const WheelType& dr_data = *((WheelType*)&msg);
+//        dr_calib.AddDrData(dr_data);
+//    }
 
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;

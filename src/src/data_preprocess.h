@@ -279,6 +279,8 @@ public:
                 continue;
             }
 
+
+
             int columnIdn = -1;//获取列号
 
             float horizonAngle = atan2(thisPoint.x, thisPoint.y) * 180 / M_PI;//水平角分辨率
@@ -478,6 +480,7 @@ public:
                         double cost_time_findpose = FindLidarFirstPose(cloud_with_time, drodom_pose_copy,//in
                                                                        T_w_l_lidar_first_pose);//out
                         cloudinfo.pose = T_w_l_lidar_first_pose;
+
                         EZLOG(INFO) << "FindLidarFirstPose cost time(ms) = " << cost_time_findpose << std::endl;
 
                         ///2.imgprojection

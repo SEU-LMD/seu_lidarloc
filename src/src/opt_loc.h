@@ -323,7 +323,7 @@ public:
 
         EZLOG(INFO)<<"t_w_cur_DR: "<<t_w_cur_DR.transpose();
         EZLOG(INFO)<<"q_w_cur_DR: ";
-        EZLOG(INFO)<<q_w_cur_DR;
+        EZLOG(INFO)<<q_w_cur_DR.matrix();//change by lsy. before:EZLOG(INFO)<<q_w_cur_DR;
         // initialization the  frame
 
         //TODO GNSS init
