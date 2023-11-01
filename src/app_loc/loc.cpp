@@ -6,6 +6,8 @@
 #include "easylogging++.h"
 #include "./loc_manager.h"
 #include "utils/filesys.h"
+#include "utils/udp_thread.h"
+
 //选择中间件
 //#ifdef X86
 #include "pubsub/ros/ros_pubsub.h"
@@ -37,9 +39,17 @@ int main(int argc, char **argv) {
     Load_Sensor_YAML("./config/sensor.yaml");
     Load_Mapping_YAML("./config/mapping.yaml");
 
+    //3.5 udp
+    const char* cleint_ip = "192.168.1.116";//
+    int clinet_port=8000;
+    int server_port=7000;
+    std::shared_ptr<UDP_THREAD> udp_thread = make_shared<UDP_THREAD>();
+    udp_thread->init(cleint_ip,clinet_port,server_port);
+
+
     //4.启动多个线程
     LocManager loc_manager;
-    loc_manager.Init(pubsub);
+    loc_manager.Init(pubsub,udp_thread);
 
     //5.设置mapping manager的回调函数
     auto cloud_callback = std::bind(&LocManager::CloudCallback, &loc_manager,std::placeholders::_1);

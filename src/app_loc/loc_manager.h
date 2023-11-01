@@ -17,6 +17,8 @@
 #include "fuse.h"
 #include "mapManager.h"
 
+#include "utils/udp_thread.h"  //add udp
+
 class LocManager{
 public:
     PubSubInterface* pubsub;
@@ -27,6 +29,8 @@ public:
     IMU_DR imu_pre;
     Fuse fuse;
     MapManager mapManager;
+
+    std::shared_ptr<UDP_THREAD> udp_thread;
 
 
     void CloudCallback(const BaseType& msg){
@@ -41,15 +45,15 @@ public:
         imu_pre.AddGNSSINSData(gnssins_data);
     }
 
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
         pubsub = pubsub_;
-
+        udp_thread =udp_thread_;
         //然后开启各个线程
-        img_proj.Init(pubsub);
+        img_proj.Init(pubsub,udp_thread);
         ft_extr.Init(pubsub);
-        loc_mapping.Init(pubsub);
-        imu_pre.Init(pubsub);
-        fuse.Init(pubsub);
+        loc_mapping.Init(pubsub,udp_thread);
+        imu_pre.Init(pubsub,udp_thread);
+        fuse.Init(pubsub,udp_thread);
         if(MappingConfig::if_LoadFromMapManager == 1){
             mapManager.Init(pubsub);
         }

@@ -60,6 +60,7 @@ include_directories(
         ./ThirdParty/GeographicLib/
         ./ThirdParty/easylog-9.89/src/
         ${YAML_CPP_INCLUDE_DIR}
+        ./udp_helper.h
 )
 
 MESSAGE(STATUS "------------${EIGEN3_INCLUDE_DIR}------------------")

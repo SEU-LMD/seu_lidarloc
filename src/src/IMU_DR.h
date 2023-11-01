@@ -24,6 +24,9 @@
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
 
+#include "udp_seralize.h"
+#include "utils/udp_thread.h"
+
 using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p,y)
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
@@ -91,6 +94,9 @@ public:
     double current_V;
     IMURawDataPtr cur_imu;
     gtsam::NonlinearFactorGraph* graph;
+
+    std::shared_ptr<UDP_THREAD> udp_thread;
+
 
 
     Eigen::Matrix3d rotVecToMat(const Eigen::Vector3d &rvec){
@@ -222,6 +228,27 @@ public:
 
         return _currentState;
     }
+
+
+    void Udp_OdomPub(const OdometryType& data){
+        Vis_Odometry odom_out;
+        std::string fu_str;
+        odom_out.type = "dr";
+        odom_out.t[0]= data.pose.GetXYZ().x();
+        odom_out.t[0]= data.pose.GetXYZ().y();
+        odom_out.t[0]= data.pose.GetXYZ().z();
+
+
+
+        odom_out.q.x() = data.pose.GetQ().x();
+        odom_out.q.y() = data.pose.GetQ().y();
+        odom_out.q.z() = data.pose.GetQ().z();
+        odom_out.q.w() = data.pose.GetQ().w();
+
+        fu_str = odom_out.ToString();
+        udp_thread -> SendUdpMSg(fu_str);
+    }
+
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
 
         TicToc time1;
@@ -309,7 +336,9 @@ public:
         if(MappingConfig::slam_mode_switch == 1){
             Function_AddDROdometryTypeToFuse(DR_pose);
         }
+
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
+        Udp_OdomPub(Odometry_imuPredict_pub);
    //     EZLOG(INFO)<<" time in ms: "<<time1.toc();
 //        imu_cnt++;
 //        EZLOG(INFO)<<"imu_cnt: "<<imu_cnt;
@@ -451,7 +480,7 @@ public:
         }
     }//end function DoLidar
 
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
 
         //设置imu的参数
         SetIMUPreParamter();
@@ -463,6 +492,7 @@ public:
 //        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
 
         pubsub = pubsub_;
+        udp_thread = udp_thread_;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
         do_lidar_thread = new std::thread(&IMU_DR::DoPredict, this);
     }

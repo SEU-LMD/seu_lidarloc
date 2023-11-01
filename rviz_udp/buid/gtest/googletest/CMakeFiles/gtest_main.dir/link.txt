@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -std=c++11 -pthread -O3 -Wall -g -pthread  -shared -Wl,-soname,libgtest_main.so -o ../lib/libgtest_main.so CMakeFiles/gtest_main.dir/src/gtest_main.cc.o  -Wl,-rpath,/home/today/reborn/seu_lidarloc/rviz_udp/buid/gtest/lib ../lib/libgtest.so -lpthread 

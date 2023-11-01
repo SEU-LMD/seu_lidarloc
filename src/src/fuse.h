@@ -24,6 +24,10 @@
 #include <gtsam/slam/PriorFactor.h>
 #include <gtsam/slam/dataset.h>  // gtsam
 
+#include "udp_seralize.h"
+#include "utils/udp_thread.h"
+
+
 class Fuse{
 public:
     PubSubInterface* pubsub;
@@ -75,6 +79,10 @@ public:
     std::string topic_highHz_pose = "/loc_result";
     std::string topic_testforRollBack_pose = "/loc_result_roll_back";
     std::string topic_current_lidar_pose = "/loc_lidar_result";
+
+    std::shared_ptr<UDP_THREAD> udp_thread;
+//    Vis_Odometry fu_odom;
+
 
 
     //this fucntion needs to be binded by lidar loc node
@@ -155,9 +163,27 @@ public:
             }
         }
     }
+    void Udp_OdomPub(const PoseT& odom_in){
+        Vis_Odometry odom_out;
+        std::string fu_str;
+        odom_out.type = "fu";
+        odom_out.t[0]= odom_in.GetXYZ().x();
+        odom_out.t[1]= odom_in.GetXYZ().y();
+        odom_out.t[2]= odom_in.GetXYZ().z();
 
-    void Init(PubSubInterface* pubsub_){
+
+        odom_out.q.x() = odom_in.GetQ().x();
+        odom_out.q.y() = odom_in.GetQ().y();
+        odom_out.q.z() = odom_in.GetQ().z();
+        odom_out.q.w() = odom_in.GetQ().w();
+
+        fu_str = odom_out.ToString();
+        udp_thread -> SendUdpMSg(fu_str);
+    }
+
+    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
         pubsub = pubsub_;
+        udp_thread = udp_thread_;
         fuseInitialized();
 
         pubsub->addPublisher(topic_highHz_pose, DataType::ODOMETRY, 10);
@@ -288,6 +314,7 @@ public:
                             Function_AddLidarOdometryTypeToImageProjection(loc_result);
                         }
                         // TODO loc_result->>>>>>> is high frequency loc result need UDP
+                        Udp_OdomPub(current_DR_pose);
                         last_DR_pose = current_DR_pose;
                         EZLOG(INFO)<<"wheel pub cost in ms : "<<t1.toc();
 

@@ -47,6 +47,11 @@
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "GeoGraphicLibInclude/Geoid.hpp"
 
+#include "utils/udp_thread.h"
+
+#include "udp_helper.h/udp_seralize.h"
+#include "udp_helper.h/udp_client.h"
+
 class LOCMapping{
 public:
     enum FRAME {
@@ -163,6 +168,9 @@ public:
 
     std::mutex mtxPriorMap;
     int lidarScan_cnt = 0;
+
+    std::shared_ptr<UDP_THREAD> udp_thread;//udp
+
 
 
     void AddCloudData(const CloudFeature& cloud_ft){
@@ -1443,6 +1451,25 @@ public:
         }
 
     }
+    void Udp_OdomPub(const OdometryType& data){
+        Vis_Odometry odom_out;
+        std::string fu_str;
+        odom_out.type = "li";
+        odom_out.t[0]= data.pose.GetXYZ().x();
+        odom_out.t[0]= data.pose.GetXYZ().y();
+        odom_out.t[0]= data.pose.GetXYZ().z();
+
+
+
+        odom_out.q.x() = data.pose.GetQ().x();
+        odom_out.q.y() = data.pose.GetQ().y();
+        odom_out.q.z() = data.pose.GetQ().z();
+        odom_out.q.w() = data.pose.GetQ().w();
+
+        fu_str = odom_out.ToString();
+        udp_thread -> SendUdpMSg(fu_str);
+    }
+
     void saveKeyFramesAndFactor() {
         if (saveFrame() == false) { return; }
 
@@ -1457,6 +1484,7 @@ public:
 
         Function_AddLidarOdometryTypeToFuse(current_Lidar_pose);
         // TODO current_Lidar_pose->>>>>>> is lidar loc result need UDP
+        Udp_OdomPub(current_Lidar_pose);
         pubsub->PublishOdometry(topic_lidar_origin_odometry, current_Lidar_pose);
 
         // odom factor
@@ -1651,8 +1679,10 @@ public:
 * add by sy for load Prior map Corner
 * @param mapFile
 */
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
         pubsub = pubsub_;
+        udp_thread = udp_thread_;
+
         allocateMemory();
         pubsub->addPublisher(topic_priorMap_corner, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_priorMap_surf, DataType::LIDAR, 10);

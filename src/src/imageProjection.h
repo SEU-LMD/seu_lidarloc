@@ -18,6 +18,11 @@
 #include "pcl/common/pca.h"
 #include <fstream>
 
+#include "utils/udp_thread.h"
+
+#include "udp_helper.h/udp_seralize.h"
+#include "udp_helper.h/udp_client.h"
+
 class CloudWithTime{
 public:
     CloudTypeXYZIRTPtr cloud_ptr;
@@ -73,6 +78,10 @@ public:
     int lidarScan_cnt =0;
     double cloud_min_ros_timestamp;
     double cloud_max_ros_timestamp;
+
+
+    std::shared_ptr<UDP_THREAD> udp_thread;//udp
+
 
     void  AllocateMemory() {
         deskewCloud_body.reset(new pcl::PointCloud<PointType>());
@@ -720,6 +729,26 @@ public:
 
     }
 
+
+
+    void Udp_OdomPub(const PoseT& data){
+        Vis_Odometry odom_out;
+        std::string fu_str;
+        odom_out.type = "gn";
+        odom_out.t[0]= data.GetXYZ().x();
+        odom_out.t[1]= data.GetXYZ().y();
+        odom_out.t[2]= data.GetXYZ().z();
+
+
+        odom_out.q.x() = data.GetQ().x();
+        odom_out.q.y() = data.GetQ().y();
+        odom_out.q.z() = data.GetQ().z();
+        odom_out.q.w() = data.GetQ().w();
+
+        fu_str = odom_out.ToString();
+        udp_thread -> SendUdpMSg(fu_str);
+    }
+
     void AddGNSSINSSData(const GNSSINSType& data){
 
 //        if(!init)
@@ -827,9 +856,12 @@ public:
         //pub gnss odometry in rviz
 //        if(MappingConfig::if_debug){
             // TODO T_w_l_pub->>>>>>> is Gnss result need UDP
+            Udp_OdomPub(T_w_l);
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
 //        }
     }
+
+
 
     void AddIMUOdomData(const OdometryType& data){
         imuodom_mutex.lock();
@@ -837,9 +869,10 @@ public:
         imuodom_mutex.unlock();
     }
 
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
         AllocateMemory();
         pubsub = pubsub_;
+        udp_thread = udp_thread_;
         pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
