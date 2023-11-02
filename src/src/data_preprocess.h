@@ -83,6 +83,7 @@ public:
     void ResetParameters(){
 //        deskewCloud_body.reset();
         rangeMat =  cv::Scalar::all(FLT_MAX);
+
     }
 
     double GetCloudTime(CloudTypeXYZIRTPtr cloud_origin, CloudWithTime& cloud_with_time){
@@ -407,25 +408,33 @@ public:
 
         while(1){
           //  EZLOG(INFO)<<deque_cloud.size()<<endl;
-            bool isEmpty = false;
+//            bool isEmpty = false;
+//            {
+//                std::lock_guard<std::mutex> lock(work_mutex);
+//                isEmpty = deque_cloud.empty();
+//            }
             {
-                std::lock_guard<std::mutex> lock(work_mutex);
-                isEmpty = deque_cloud.empty();
+                std::lock_guard<std::mutex> lock(cloud_mutex);
+                if(deque_cloud.empty()){
+                    sleep(0.01);
+                    continue;
+                }
             }
-            if(!isEmpty){
+            {
                 //EZLOG(INFO)<<deque_cloud.size()<<endl;
                 ///0.do something
                 std::deque<OdometryType> drodom_pose_copy;
-                drodom_mutex.lock();
-                drodom_pose_copy = DrOdomQueue;
-                drodom_mutex.unlock();
+                {
+                    std::lock_guard<std::mutex> lock(drodom_mutex);
+                    if (DrOdomQueue.empty()) continue;
+                    drodom_pose_copy = DrOdomQueue;
+                }
                 TicToc t_imgProj;
-
                 double drodom_min_ros_time =  drodom_pose_copy.front().timestamp;
                 double drodom_max_ros_time =  drodom_pose_copy.back().timestamp;
 
                 OdometryType current_imu_data;
-                double cur_lidar_time = deque_cloud.front()->timestamp;
+                double cur_lidar_time = deque_cloud.front()->timestamp;//TODO
 
                 /// for align GNSS pose with lidar
                 gnss_mutex.lock();
@@ -447,6 +456,7 @@ public:
                 CloudTypeXYZIRTPtr cur_scan;
                 cloud_mutex.lock();
                 cur_scan = deque_cloud.front();
+                cloud_mutex.unlock();
 
                 CloudWithTime cloud_with_time;
                 GetCloudTime(cur_scan , cloud_with_time);
@@ -459,14 +469,17 @@ public:
 //                    exit(1);
 //                }
                 ///make sure to get in the next if
-                if(!DrOdomQueue.empty() && drodom_min_ros_time >= cloud_min_ros_timestamp){
-                    auto temp = DrOdomQueue.front();
-                    temp.timestamp = cloud_min_ros_timestamp - 0.01f;
-                    DrOdomQueue.push_front(temp);
+                {
+                    std::lock_guard<std::mutex> lock(drodom_mutex);
+                    if (!DrOdomQueue.empty() && drodom_min_ros_time >= cloud_min_ros_timestamp) {
+                        auto temp = DrOdomQueue.front();
+                        temp.timestamp = cloud_min_ros_timestamp - 0.01f;
+                        DrOdomQueue.push_front(temp);
+                    }
                 }
                 if(drodom_min_ros_time < cloud_min_ros_timestamp && drodom_max_ros_time > cloud_max_ros_timestamp){//drodom_min_ros_time<cloud_min_ros_timestamp&&
                     EZLOG(INFO)<<"get in drodom_min_ros_time"<<endl;
-//
+                        cloud_mutex.lock();
                         deque_cloud.pop_front();
                         cloud_mutex.unlock();
 
@@ -539,7 +552,6 @@ public:
 
                     if(FrontEndConfig::use_unground_pts_classify){
 
-
                         ///classify_nground_pts
 
                     pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar (new pcl::PointCloud<PointXYZICOLRANGE>);
@@ -593,6 +605,10 @@ public:
                             cloud_beam_pub.frame = "map";
                             cloud_facade_pub.frame = "map";
                             cloud_roof_pub.frame = "map";
+//                            cloud_pillar_pub.cloud = *cloud_pillar;
+//                            cloud_beam_pub.cloud = *cloud_beam;
+//                            cloud_facade_pub.cloud = *cloud_facade;
+//                            cloud_roof_pub.cloud = *cloud_roof;
                             pcl::transformPointCloud(*cloud_pillar, cloud_pillar_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
                             pcl::transformPointCloud(*cloud_beam, cloud_beam_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
                             pcl::transformPointCloud(*cloud_facade, cloud_facade_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
@@ -606,19 +622,25 @@ public:
 
                     } // end if(FrontEndConfig::use_unground_pts_classify)
 
+
+
                         ///4. send data to feature extraction node
 //                        ft_extr_ptr->AddCloudData(cloudinfo);
                         Function_AddCloudInfoToFeatureExtraction(cloudinfo);
 //                        EZLOG(INFO)<<"cloudinfo.frame_id = "<<cloudinfo.frame_id<<std::endl;
                         EZLOG(INFO)<<"cloudinfo.cloud_ptr->size() = "<<cloudinfo.cloud_ptr->size()<<std::endl;
 
+                    cloudinfo.cloud_ground->clear();
+                    cloudinfo.cloud_unground->clear();
+                    cloudinfo.cloud_ground_down->clear();
 
                         ///5.pop used odom
-                    drodom_mutex.lock();
+
 //                        while(DrOdomQueue.front().timestamp < cloud_max_ros_timestamp - 0.1f){
 //                            DrOdomQueue.pop_front();
 //                        }
-                        double thresh = cloud_max_ros_timestamp - 0.05f;
+                    double thresh = cloud_max_ros_timestamp - 0.05f;
+                    drodom_mutex.lock();
                         while(DrOdomQueue.front().timestamp < thresh){
                             DrOdomQueue.pop_front();
                         }
@@ -626,14 +648,11 @@ public:
 
                         ResetParameters();
                 }//end function if
-                else{
-                    cloud_mutex.unlock();
-                }
+//                else{
+//                    cloud_mutex.unlock();
+//                }
 
                 ResetParameters();
-            }//end if(deque_cloud.size()!=0){
-            else{
-                sleep(0.01);//线程休息10ms
             }
 
         }
@@ -861,7 +880,7 @@ public:
         float unit_distance = 30.0;
         ///1.计算每个非地面点的pca参数
         //output  param = cloud_features
-        get_pc_pca_feature(cloud_in, cloud_features, tree, FrontEndConfig::neighbor_searching_radius, FrontEndConfig::neighbor_k, 3, FrontEndConfig::pca_down_rate, FrontEndConfig::use_distance_adaptive_pca, unit_distance);
+        get_pc_pca_feature(cloud_in, cloud_features, tree, FrontEndConfig::neighbor_searching_radius, FrontEndConfig::neighbor_k, 1, FrontEndConfig::pca_down_rate, FrontEndConfig::use_distance_adaptive_pca, unit_distance);
         //LOG(WARNING)<< "PCA done";
 
         std::chrono::steady_clock::time_point toc_pca = std::chrono::steady_clock::now();

@@ -35,7 +35,7 @@ public:
     std::string topic_gnss_odom_world = "/gnss_odom_world";
     std::string topic_dr_odom_world = "/dr_odom_world";
 
-    int pieces=1000;  //矩阵大小
+    int pieces=10;  //矩阵大小
     std::vector<double> gnssdistances;
 
     std::vector<double> speedIntegration(const std::vector<double>& timestamps, const std::vector<double>& speeds){  //轮速计速度积分
@@ -175,6 +175,16 @@ public:
     }
 
     void AddGNSSINSData(const GNSSINSType& data){
+
+        WheelType wheel_tmp;
+        wheel_tmp.ESCWhlRRSpd = data.wheel_speed[0];
+        wheel_tmp.ESCWhlRLSpd = data.wheel_speed[1];
+        wheel_tmp.ESCWhlFRSpd = data.wheel_speed[2];
+        wheel_tmp.ESCWhlFLSpd = data.wheel_speed[3];
+
+        dr_mutex.lock();
+        drQueue.push_back(wheel_tmp);
+        dr_mutex.unlock();
 
         if(!init)
         {

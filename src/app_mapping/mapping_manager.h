@@ -37,7 +37,7 @@ public:
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         data_pre.AddGNSSINSSData(gnssins_data);
      //   opt_mapping.AddGNSSINSData(gnssins_data);
-       // imu_pre.AddGNSSINSData(gnssins_data);
+//        imu_pre.AddGNSSINSData(gnssins_data);
 //        EZLOG(INFO)<<"GNSSINSCallback cost time(ms)"<<timer.toc()<<std::endl;
     }
 

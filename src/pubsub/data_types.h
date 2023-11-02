@@ -138,7 +138,7 @@ class GNSSINSType:public BaseType{
         Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
         double velocity;
         Eigen::Vector4d wheel_speed;//RR RL FR FL
-        int gps_status;
+        string gps_status;
         DataType getType(){
              return DataType::GNSS_INS;
         }

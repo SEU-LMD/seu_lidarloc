@@ -297,26 +297,37 @@ public:
     }//end fucntion ExtractFeatures
 
     void DoWork(){
+
         while(1){
            // EZLOG(INFO)<<"featureext_DoWork while "<<std::endl;
-            int isempty = false;
-             
+//            int isempty = false;
+//
+//            CloudInfo cur_cloud;
+//            cloud_mutex.lock();
+//            if(deque_cloud.size()==0){
+//                isempty = true;
+//            }
+//            else{
+////                EZLOG(INFO)<<"featureext_DoWork  "<<endl;
+//                isempty = false;
+//                cur_cloud = deque_cloud.front();
+////                EZLOG(INFO)<<"cur_cloud =  "<<endl;
+//                deque_cloud.pop_front();
+//            }
+//            cloud_mutex.unlock();
             CloudInfo cur_cloud;
-            cloud_mutex.lock();
-            if(deque_cloud.size()==0){
-                isempty = true;
-            }
-            else{
-//                EZLOG(INFO)<<"featureext_DoWork  "<<endl;
-                isempty = false;
+            {
+                std::lock_guard<std::mutex> lock(cloud_mutex);
+                if(deque_cloud.empty()){
+                    sleep(0.01);
+                    continue;
+                }
                 cur_cloud = deque_cloud.front();
-//                EZLOG(INFO)<<"cur_cloud =  "<<endl;
                 deque_cloud.pop_front();
             }
-            cloud_mutex.unlock();
 
         
-            if(!isempty){
+            {
               //  EZLOG(INFO)<<"featureext_DoWork  "<<std::endl;
                 // CloudInfo cur_cloud;
                 // cloud_mutex.lock();
@@ -490,10 +501,10 @@ public:
 //                EZLOG(INFO)<<"send feature extraction to next = "<<timer1.toc()<<std::endl;
 
             }
-
-            else{
-                sleep(0.01);
-            }
+//
+//            else{
+//                sleep(0.01);
+//            }
         }
     }
 

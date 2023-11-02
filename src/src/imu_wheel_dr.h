@@ -250,8 +250,8 @@ public:
 
             lidar_preditct_pose_Rwb_ = DR2lidar *  DR2lidar * state.Rwb_ ;//TODO 1029 ??????? no reason
             lidar_preditct_pose_p_wb_ = DR2lidar * state.p_wb_; // 地面存在高程误差——外参？ 建图？
-            EZLOG(INFO)<<" lidar_preditct_pose_p_wb_"<<lidar_preditct_pose_p_wb_.transpose()<<endl;
-            EZLOG(INFO)<<"lidar_preditct_pose_Rwb_"<<lidar_preditct_pose_Rwb_<<endl;
+//            EZLOG(INFO)<<" lidar_preditct_pose_p_wb_"<<lidar_preditct_pose_p_wb_.transpose()<<endl;
+//            EZLOG(INFO)<<"lidar_preditct_pose_Rwb_"<<lidar_preditct_pose_Rwb_<<endl;
 
             PoseT lidar_preditct_pose(lidar_preditct_pose_p_wb_,lidar_preditct_pose_Rwb_);
             Odometry_imuPredict_pub.pose = lidar_preditct_pose;

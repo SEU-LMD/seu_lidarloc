@@ -35,6 +35,7 @@ int main(int argc, char **argv) {
     pubsub->initPubSub(argc, argv, "dr_calib");
 
     //3.初始化配置参数
+    Load_Sensor_YAML("./config/sensor.yaml");
 
     //4.启动多个线程
     DRCalibManager dr_calib_manager;
@@ -42,10 +43,10 @@ int main(int argc, char **argv) {
 
     //5.设置mapping manager的回调函数
     auto gnssins_callback = std::bind(&DRCalibManager::GNSSINSCallback, &dr_calib_manager,std::placeholders::_1);
-    auto dr_callback = std::bind(&DRCalibManager::DrCallback, &dr_calib_manager,std::placeholders::_1);
+//    auto dr_callback = std::bind(&DRCalibManager::DrCallback, &dr_calib_manager,std::placeholders::_1);
 
     pubsub->addSubscriber(SensorConfig::gpsTopic, DataType::GNSS_INS, gnssins_callback);
-    pubsub->addSubscriber(SensorConfig::gpsTopic, DataType::WHEEL, dr_callback);//TODO
+//    pubsub->addSubscriber(SensorConfig::gpsTopic, DataType::WHEEL, dr_callback);//TODO
     
     //开始运行程序
     pubsub->run();
