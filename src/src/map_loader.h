@@ -2,8 +2,8 @@
 // Created by fyy on 23-10-12.
 //
 
-#ifndef SEU_LIDARLOC_MAPMANAGER_H
-#define SEU_LIDARLOC_MAPMANAGER_H
+#ifndef SEU_LIDARLOC_MAP_LOADER_H
+#define SEU_LIDARLOC_MAP_LOADER_H
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
 #include "utils/timer.h"
@@ -44,13 +44,13 @@ public:
     std::mutex mutex_data;
     std::mutex mutex_DR_data;
     std::mutex mtxGraph;
+    std::mutex mutex_priorMap;
 
     std::string topic_priorMap_corner_mapManger = "/Prior_map_corner_MM";
     std::string topic_priorMap_surf_mapManger = "/Prior_map_surf_MM";
     std::deque<std::shared_ptr<OdometryType>> data_deque;
 
     //是否更新标志位
-    bool top_cache_update=false;
     //是否是第一帧标志位
     bool is_initailed= false;
 
@@ -65,8 +65,9 @@ public:
 //建立的地图数据种类
     std::vector<std::string>   pcd_feature;
 //有多少个小grid就有多少个指针
-    pcl::PointCloud<PointType>::Ptr laser_cloud_corner_array[112];
-    pcl::PointCloud<PointType>::Ptr laser_cloud_surf_array[112];
+// TODO 为何？112？
+    pcl::PointCloud<PointType>::Ptr laser_cloud_corner_array[1000];
+    pcl::PointCloud<PointType>::Ptr laser_cloud_surf_array[1000];
 //需要建图的索引 3*3  jianshu
     int laser_cloud_valid_ind[9];
 //需要加载的地图的索引  5*5 jiazai
@@ -82,8 +83,8 @@ public:
     pcl::PointCloud<PointType>::Ptr laser_cloud_surf_from_map;
 //build tree
 //shu chu
-    pcl::KdTreeFLANN<PointType>::Ptr kdtree_surf_from_map;
-    pcl::KdTreeFLANN<PointType>::Ptr kdtree_corner_from_map;
+//    pcl::KdTreeFLANN<PointType>::Ptr kdtree_surf_from_map;
+//    pcl::KdTreeFLANN<PointType>::Ptr kdtree_corner_from_map;
 //remeber empty
     std::vector<std::string>  corner_empty;
     std::vector<std::string>  surf_empty;
@@ -97,12 +98,17 @@ public:
     int last_laser_cloud_load_ind[25];
 
     std::vector<int> lasercloud_loaded_map;
-    std::function<void(const PriorMap&)> Function_AddPriorMapToLoc;
-
 
 //获得初始变量，对标志位赋值
     Gnsspostion now_position;
 
+    //TODO finish this Function
+    void GetCurMapCloud(pcl::PointCloud<PointType>::Ptr &corner_map,
+                       pcl::PointCloud<PointType>::Ptr &surf_map){
+        corner_map = laser_cloud_corner_from_map;
+        surf_map  = laser_cloud_surf_from_map;
+        EZLOG(INFO)<<"6 map_loader to Loc, corner map size is: "<<corner_map->points.size()<<" surf_map size is: "<<surf_map->points.size();
+    }
 
     void MapmanagerInitialized(const std::string& map_read_path){
         std::ifstream file(map_read_path+"index.txt",std::ios_base::in);
@@ -149,9 +155,12 @@ public:
 
         I=i/SerializeConfig::up2down_num;
         J=j/SerializeConfig::up2down_num;
-
+//        EZLOG(INFO)<<"int2up_grid_index: i: "<<i;
+//        EZLOG(INFO)<<"int2up_grid_index: j: "<<j;
         std::string down_grid_string=std::to_string(i)+"_"+std::to_string(j);
         std::string up_grid_string=std::to_string(I)+"_"+std::to_string(J);
+//        EZLOG(INFO)<<"down_grid_string: i: "<<down_grid_string;
+//        EZLOG(INFO)<<"up_grid_string: j: "<<up_grid_string;
         return up_grid_string;
     }
 
@@ -205,13 +214,18 @@ public:
             outpoint.y=point.y;
             outpoint.z=point.z;
             outpoint.intensity=point.intensity;
-            if (feature=="corner")
+            if (feature=="corner") {
                 laser_cloud_corner_array[point.down_grid_index]->push_back(outpoint);
+//                EZLOG(INFO)<<" laser_cloud_corner_array size"<<laser_cloud_corner_array[point.down_grid_index]->size();
+            }
+
             else if(feature=="surf")
                 laser_cloud_surf_array[point.down_grid_index]->push_back(outpoint);
         }
         EZLOG(INFO)<<"end_loop"<<std::endl;
     }
+
+
     void LoadMap(const int& center_cubeI,const int& center_cubeJ){
 
         int begin_load_cubeI;
@@ -255,6 +269,7 @@ public:
                 if(!is_in_memeroy){
                     bool isconer_empty= false;
                     bool issurf_empty= false;
+                    EZLOG(INFO)<<"laser_cloud_load_ind[k]: "<<laser_cloud_load_ind[k];
                     std::string laod_up_grid_string=int2up_grid_index(laser_cloud_load_ind[k]);
                     EZLOG(INFO)<<"laod_up_grid_string"<<laod_up_grid_string<<std::endl;
                     for(const auto& pair : corner_empty){
@@ -302,42 +317,15 @@ public:
             }
         }
 
+        //TODO 1029
+         laser_cloud_corner_from_map->clear();
+         laser_cloud_surf_from_map->clear();
         for(int i=0; i<9; ++i){
             if(laser_cloud_corner_array[laser_cloud_valid_ind[i]]!= nullptr)
                 *laser_cloud_corner_from_map+=*laser_cloud_corner_array[laser_cloud_valid_ind[i]];
             if(laser_cloud_surf_array[laser_cloud_valid_ind[i]]!= nullptr)
                 *laser_cloud_surf_from_map+=*laser_cloud_surf_array[laser_cloud_valid_ind[i]];
         }
-
-
-        EZLOG(INFO)<<laser_cloud_corner_from_map->size()<<std::endl;
-
-        kdtree_corner_from_map->setInputCloud(laser_cloud_corner_from_map);
-        kdtree_surf_from_map->setInputCloud(laser_cloud_surf_from_map);
-        { // for debug
-            CloudTypeXYZI PriorMap_surf_pub;
-            PriorMap_surf_pub.frame = "map";
-            PriorMap_surf_pub.timestamp = cur_time;
-            PriorMap_surf_pub.cloud = *laser_cloud_surf_from_map;
-            pubsub->PublishCloud(topic_priorMap_surf_mapManger, PriorMap_surf_pub);
-            std::cout << "Pub Surf Map to loc!" << std::endl;
-
-            CloudTypeXYZI PriorMap_corner_pub;
-            PriorMap_corner_pub.frame = "map";
-            PriorMap_corner_pub.timestamp = cur_time;
-            PriorMap_corner_pub.cloud = *laser_cloud_corner_from_map;
-            pubsub->PublishCloud(topic_priorMap_corner_mapManger, PriorMap_corner_pub);
-            std::cout << "Pub Corner Map to loc!" << std::endl;
-        }
-        // pub to Loc
-        PriorMap priormap;
-        priormap.PriorSurfMapKDTree = kdtree_surf_from_map;
-        priormap.PriorCornerMapKDTree = kdtree_corner_from_map;
-        priormap.PriorSurfMap = laser_cloud_surf_from_map;
-        priormap.PriorCornerMap = laser_cloud_corner_from_map;
-        priormap.timestamp = cur_time;
-        Function_AddPriorMapToLoc(priormap);
-
     }
 
     void ErasElement(){
@@ -351,6 +339,8 @@ public:
             }
             if(!is_equl){
                 laser_cloud_surf_array[last_laser_cloud_load_ind[i]]->clear();
+                laser_cloud_corner_array[last_laser_cloud_load_ind[i]]->clear();
+
                 // 遍历map并删除包含目标值的vector<int>
                 for (auto it = lasercloud_loaded_map.begin(); it != lasercloud_loaded_map.end();) {
                     if (*it == last_laser_cloud_load_ind[i]) {
@@ -366,6 +356,7 @@ public:
 
     void process(const Gnsspostion& gnsspostion){
 
+        bool top_cache_update=false;
 
         int center_cubeI=static_cast<int>(std::floor(gnsspostion.x-x_min_t)/(SerializeConfig::up_grid_size/SerializeConfig::up2down_num));
         int center_cubeJ=static_cast<int>(std::floor(gnsspostion.y-y_min_t)/(SerializeConfig::up_grid_size/SerializeConfig::up2down_num));
@@ -380,8 +371,11 @@ public:
             for(int i=0;i<25;i++){
                 last_laser_cloud_load_ind[i]=laser_cloud_load_ind[i];
             }
-            laser_cloud_corner_from_map->clear();
-            laser_cloud_surf_from_map->clear();
+
+            //TODO 1029
+//            laser_cloud_corner_from_map->clear();
+//            laser_cloud_surf_from_map->clear();
+
             is_initailed= true;
             return;
         }
@@ -398,12 +392,15 @@ public:
             top_cache_update = false;
             return;
         }
+
         //需要加载就加载
         if(top_cache_update) {
             LoadMap(center_cubeI, center_cubeJ);
         }
+
         //建树
         BuildTree(center_cubeI,center_cubeJ);
+
         //清除多于的部分
         ErasElement();
 
@@ -413,8 +410,10 @@ public:
         for(int i=0;i<25;i++){
             last_laser_cloud_load_ind[i]=laser_cloud_load_ind[i];
         }
-        laser_cloud_corner_from_map->clear();
-        laser_cloud_surf_from_map->clear();
+
+        //TODO 1029
+        // laser_cloud_corner_from_map->clear();
+        // laser_cloud_surf_from_map->clear();
     }
 
     //this fucntion needs to be binded by lidar loc node
@@ -430,10 +429,17 @@ public:
         MapmanagerInitialized(SerializeConfig::map_out_path);
         laser_cloud_corner_from_map.reset(new pcl::PointCloud<PointType>());
         laser_cloud_surf_from_map.reset(new pcl::PointCloud<PointType>());
-        kdtree_surf_from_map.reset(new pcl::KdTreeFLANN<PointType>());
-        kdtree_corner_from_map.reset(new pcl::KdTreeFLANN<PointType>());
+//        kdtree_surf_from_map.reset(new pcl::KdTreeFLANN<PointType>());
+//        kdtree_corner_from_map.reset(new pcl::KdTreeFLANN<PointType>());
 
         EZLOG(INFO)<<" MapManager Init Successful!";
+    }
+
+    void SafeLockCloud(){
+        mutex_priorMap.lock();
+    }
+    void SafeUnlockCloud(){
+        mutex_priorMap.unlock();
     }
 
     void Init(PubSubInterface* pubsub_){
@@ -448,7 +454,12 @@ public:
 
     void DoWork(){
         while(1){
-            if(data_deque.size()!=0){
+            bool isEmpty = false;
+            {
+                std::lock_guard<std::mutex> lock(mutex_data);
+                isEmpty = data_deque.empty();
+            }
+            if(!isEmpty){
                 OdometryTypePtr current_loc_res;
 
                 mutex_data.lock();
@@ -457,8 +468,9 @@ public:
 
                 now_position.x = current_loc_res->pose.GetXYZ().x();
                 now_position.y = current_loc_res->pose.GetXYZ().y();
-                now_position.z = current_loc_res->pose.GetXYZ().z();
+//                now_position.z = current_loc_res->pose.GetXYZ().z();
                 cur_time = current_loc_res->timestamp;
+                EZLOG(INFO)<<"map_loader: revice data: position: "<< now_position.x<<" ,"<<now_position.y;
                 process(now_position);
 
                 mutex_data.lock();
@@ -471,7 +483,6 @@ public:
             }
         }
     }//end fucntion do work
-
 
 };
 #endif //SEU_LIDARLOC_MAPMANAGER_H

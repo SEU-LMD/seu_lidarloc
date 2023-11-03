@@ -71,8 +71,8 @@ MESSAGE(STATUS "PCL_LIBRARIES:------------${PCL_LIBRARY_DIRS}------------------"
 ###########
 ## Build ##
 ############
-add_executable(mapping app_mapping/mapping.cpp)
-target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+#add_executable(mapping app_mapping/mapping.cpp)
+#target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
 
-#add_executable(loc app_loc/loc.cpp)
-#target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+add_executable(loc app_loc/loc.cpp)
+target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES

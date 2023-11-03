@@ -10,9 +10,9 @@
 #include <deque>
 
 #include "pubsub/pubusb.h"
-#include "imageProjection.h"
+#include "data_preprocess.h"
 #include "featureExtraction.h"
-#include "IMU_DR.h"
+#include "imu_wheel_dr.h"
 #include "opt_mapping.h"
 #include "utils/config_helper.h"
 //#include "dead_reckoning.h"

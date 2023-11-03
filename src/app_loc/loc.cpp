@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
     //3.初始化配置参数
     Load_Sensor_YAML("./config/sensor.yaml");
     Load_Mapping_YAML("./config/mapping.yaml");
+    Load_offline_YAML("./config/offline_mapping.yaml");
 
     //3.5 udp
     const char* cleint_ip = "192.168.1.116";//

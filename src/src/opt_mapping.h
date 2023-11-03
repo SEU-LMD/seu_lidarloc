@@ -25,7 +25,7 @@
 
 #include <std_srvs/Empty.h>
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
-#include "IMU_DR.h"
+#include "imu_wheel_dr.h"
 //#include "GeoGraphicLibInclude/Geocentric.hpp"
 //#include "GeoGraphicLibInclude/LocalCartesian.hpp"
 //#include "GeoGraphicLibInclude/Geoid.hpp"
@@ -51,7 +51,7 @@ public:
     TicToc timer_cloud;
     MapSaver map_saver;
 
-    //    IMU_DR* imu_pre_ptr;
+    //    imu_wheel_dr* imu_pre_ptr;
     std::function<void(const OdometryType&)> Function_AddOdometryTypeToIMUPreintegration;
 
 

@@ -163,6 +163,32 @@ public:
             }
         }
     }
+    void RollBack(const OdometryType _current_pose,
+                  std::deque<std::shared_ptr<GNSSOdometryType>> _Gnss_data_deque,
+                  OdometryType &_current_pose_align){
+        while(!_Gnss_data_deque.empty()){
+            if(_current_pose.timestamp <_Gnss_data_deque.front()->timestamp){ // -------lidar | DR DR DR ------>>>>
+                gtsam::Pose3 poseFrom(gtsam::Rot3(_Gnss_data_deque.front()->pose.GetR()),
+                                      gtsam::Point3(_Gnss_data_deque.front()->pose.GetXYZ()));
+                gtsam::Pose3 poseTo(gtsam::Rot3(_Gnss_data_deque.back()->pose.GetR()),
+                                    gtsam::Point3(_Gnss_data_deque.back()->pose.GetXYZ()));
+
+                _current_pose_align.frame = "map";
+                _current_pose_align.timestamp = _Gnss_data_deque.back()->timestamp;
+                _current_pose_align.pose = PoseT(_current_pose.pose.pose * poseFrom.between(poseTo).matrix());
+
+                pubsub->PublishOdometry(topic_testforRollBack_pose, _current_pose_align);
+                _Gnss_data_deque.clear();
+                if_roll_back = 1;
+                last_pose = _current_pose_align.pose;
+
+                break;
+            }
+            else{
+                _Gnss_data_deque.pop_front();
+            }
+        }
+    }
     void Udp_OdomPub(const PoseT& odom_in){
         Vis_Odometry odom_out;
         std::string fu_str;
@@ -266,6 +292,16 @@ public:
                         RollBack(current_lidar_world, DR_data_deque, loc_result);
                         mutex_DR_data.unlock();
 
+//                        static int lidar_frame_cnt = 0;
+//                        if(lidar_frame_cnt > 15){
+//                            Gnssmtx.lock();
+//                            EZLOG(INFO)<<" GNSS factor in fuse!";
+//                            RollBack(current_lidar_world, Gnss_data_deque, loc_result);
+//                            Gnssmtx.unlock();
+//                            lidar_frame_cnt = 0;
+//                        }
+//                        lidar_frame_cnt++;
+
 //                        factor
                         last_lidar_pose = current_lidar_pose;
                         lidar_keyFrame_cnt++;
@@ -275,6 +311,12 @@ public:
 
                     case DataType::GNSS:
                     {
+                        GNSSOdometryTypePtr cur_Gnss_odom;
+                        static PoseT last_DR_pose = PoseT(Eigen::Matrix4d::Identity());
+                        cur_Gnss_odom = std::static_pointer_cast<GNSSOdometryType>(std::move(front_data));
+                        Gnssmtx.lock();
+                        Gnss_data_deque.push_back(cur_Gnss_odom);
+                        Gnssmtx.unlock();
 
                         break;
                     }
@@ -309,7 +351,11 @@ public:
 
                         // 4.iteration settings and pub the high frequency loc result
                         pubsub->PublishOdometry(topic_highHz_pose, loc_result);
-//                        Function_AddLidarOdometryTypeToMapManager(loc_result);
+
+                        Function_AddLidarOdometryTypeToMapManager(loc_result);
+                        EZLOG(INFO) << "5 Fuse to map_loder, and the loc_result pose begin:";
+                        EZLOG(INFO)<<loc_result.pose.pose;
+                        EZLOG(INFO) << "the loc_result pose end";
                         if(MappingConfig::use_DR_or_fuse_in_loc == 0){
                             Function_AddLidarOdometryTypeToImageProjection(loc_result);
                         }
