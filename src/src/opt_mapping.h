@@ -1795,29 +1795,51 @@ public:
     }
 
     void DoWork(){
-
+        CloudFeature cur_ft;
         while(1){
-            bool isEmpty = false;
-            CloudFeature cur_ft;
-            cloud_mutex.lock();
-            if(deque_cloud.size()==0){
-                isEmpty = true;
-            }
-            else{
-                isEmpty = false;
+//            bool isEmpty = false;
+//            CloudFeature cur_ft;
+//            cloud_mutex.lock();
+//            if(deque_cloud.size()==0){
+//                isEmpty = true;
+//            }
+//            else{
+//                isEmpty = false;
+//                cur_ft = deque_cloud.front();
+//                deque_cloud.pop_front();
+//            }
+//            cloud_mutex.unlock();
+//
+////            // GNSSOdometryType  cur_gnss_odom;
+//            {
+//
+//                std::lock_guard<std::mutex> lock(gnssins_mutex);
+//                cur_gnss_odom = GnssQueue.front();
+//                deque_cloud.pop_front();
+//            }
+
+
+            {
+                std::lock_guard<std::mutex> lock(cloud_mutex);
+                if(deque_cloud.empty()){
+                    sleep(0.01);
+                    continue;
+                }
+
                 cur_ft = deque_cloud.front();
                 deque_cloud.pop_front();
             }
-            cloud_mutex.unlock();
 
-            // GNSSOdometryType  cur_gnss_odom;
+//            if(!isEmpty)
+
             {
-                std::lock_guard<std::mutex> lock(gnssins_mutex);
-                cur_gnss_odom = GnssQueue.front();
-                deque_cloud.pop_front();
-            }
 
-            if(!isEmpty){
+                // GNSSOdometryType  cur_gnss_odom;
+//                {
+//                    std::lock_guard<std::mutex> lock(gnssins_mutex);
+//                    cur_gnss_odom = GnssQueue.front();
+//                    deque_cloud.pop_front();
+//                }
 
                 //TODO !!!!!!!!
 //                t_w_cur = cur_ft.pose.GetXYZ();
@@ -1873,9 +1895,9 @@ public:
                 }
 
             }
-            else{
-                sleep(0.01);
-            }
+//            else{
+//                sleep(0.01);
+//            }
         }
     }
 
@@ -1887,6 +1909,7 @@ public:
 
 
     void AddGNSSToOpt(const GNSSOdometryType &gnss_odom){
+        EZLOG(INFO)<<"AddGNSSToOpt "<<endl;
         gnssins_mutex.lock();
         GnssQueue.push_back(gnss_odom);
         gnssins_mutex.unlock();
@@ -1905,6 +1928,9 @@ public:
        // loop_thread =new std::thread(&OPTMapping::loopClosureThread, this);
         //save_Map_thread = new std::thread(&MapSaver::do_work, &(OPTMapping::map_saver));
         //save_path_thread = new std::thread (&OPTMapping::savePathThread, this);
+
+        EZLOG(INFO)<<"opt_mapping init success!"<<std::endl;
+
 
     }
 };

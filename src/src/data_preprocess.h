@@ -763,6 +763,9 @@ public:
         T_w_l_gnss.frame = "map";
         T_w_l_gnss.timestamp = data.timestamp;
         T_w_l_gnss.pose = T_w_l;
+
+        EZLOG(INFO)<<"T_w_l_gnss.pose.pose = "<<T_w_l_gnss.pose.pose<<endl;
+
 //        T_w_l_gnss.pose = T_w_b;
          if (slam_mode_switch ==1){
              Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);

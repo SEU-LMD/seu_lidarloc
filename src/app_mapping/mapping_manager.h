@@ -37,7 +37,7 @@ public:
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         data_pre.AddGNSSINSSData(gnssins_data);
      //   opt_mapping.AddGNSSINSData(gnssins_data);
-//        imu_pre.AddGNSSINSData(gnssins_data);
+        imu_pre.AddGNSSINSData(gnssins_data);
 //        EZLOG(INFO)<<"GNSSINSCallback cost time(ms)"<<timer.toc()<<std::endl;
     }
 
@@ -47,13 +47,13 @@ public:
 
         //然后开启各个线程
         data_pre.Init(pubsub,0);
-        EZLOG(INFO)<< "img_proj success!!"<<endl;
+//        EZLOG(INFO)<< "img_proj success!!"<<endl;
         ft_extr.Init(pubsub,0);
-        EZLOG(INFO)<< "ft_extr success!!"<<endl;
+//        EZLOG(INFO)<< "ft_extr success!!"<<endl;
         opt_mapping.Init(pubsub,1);
-        EZLOG(INFO)<< "opt_mapping success!!"<<endl;
+//        EZLOG(INFO)<< "opt_mapping success!!"<<endl;
         imu_pre.Init(pubsub,0);
-        EZLOG(INFO)<< "imu_pre success!!"<<endl;
+//        EZLOG(INFO)<< "imu_pre success!!"<<endl;
 
         //构建数据流关系
         auto add_CloudInfo_from_imgproj_to_ftextr =
@@ -72,7 +72,9 @@ public:
 
         ft_extr.Function_AddCloudFeatureToOPTMapping = add_CloudFeature_from_ftextr_to_optmapping;
         data_pre.Function_AddGNSSOdometryTypeToOPTMapping = add_GNSSOdometryType_from_imgproj_to_optmapping;
-        imu_pre.Function_AddDROdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
+//        imu_pre.Function_AddDROdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
+        imu_pre.Function_AddDROdometryTypeToDataPreprocess = add_OdometryType_from_imupre_to_imgproj;
+
         EZLOG(INFO) << "Init finish!!! " << std::endl;
     }
 };

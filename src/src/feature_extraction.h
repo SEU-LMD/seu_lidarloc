@@ -474,6 +474,9 @@ public:
                 cloud_feature.cornerCloud = cornerCloud;
                 cloud_feature.surfaceCloud = surfaceCloud;
 
+                EZLOG(INFO)<<"cloud_feature.cornerCloud->size() = "<<cloud_feature.cornerCloud->size()<<std::endl;
+                EZLOG(INFO)<<"cloud_feature.surfaceCloud->size() = "<<cloud_feature.surfaceCloud->size()<<std::endl;
+
 //                switch it when you test your code
 //                opt_mapping_ptr->AddCloudData(cloud_feature);
 //                loc_mapping_ptr->AddCloudData(cloud_feature);
@@ -535,6 +538,7 @@ public:
             //save_Map_thread = new std::thread(&MapSaver::do_work, &(FeatureExtraction::map_saver));
         }
 
+        EZLOG(INFO)<<"Ft_Extra init success!"<<std::endl;
 
     }
 
