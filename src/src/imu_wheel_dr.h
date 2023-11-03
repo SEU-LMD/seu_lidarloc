@@ -243,7 +243,7 @@ public:
                 0,                 1,               0 ,
                 -sin(roll_X),      0,         cos(roll_X);
 
-        R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb
+        R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb, 右前上，zyx前左上
 
 //        static int imu_cnt = 0;
 //          for debug
