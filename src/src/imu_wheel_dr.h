@@ -46,6 +46,7 @@ public:
     std::deque<GNSSINSType> deque_gnssins;
 
     std::string topic_imu_raw_odom = "/imu_odom_raw";
+    std::string topic_imu_raw_odom_uncorrected = "imu_raw_odom_uncorrected";
 
     bool systemInitialized = false;
     // 噪声协方差
@@ -239,23 +240,29 @@ public:
         }
 
         OdometryType Odometry_imuPredict_pub;
+        OdometryType Odometry_raw_imu;
         DROdometryType DR_pose;
         if(SensorConfig::if_use_Wheel_DR == 1){
             Eigen::Matrix3d DR2lidar;
+//            Eigen::Matrix3d DR2lidar2;
+//            DR2lidar2 << -1, 0 , 0 , 0 , -1, 0, 0, 0, 1;
             Eigen::Vector3d lidar_preditct_pose_p_wb_;
             Eigen::Matrix3d lidar_preditct_pose_Rwb_;
             DR2lidar = SensorConfig::T_L_DR.block<3,3>(0,0);//
             PoseT T_w_b(state.p_wb_,state.Rwb_);
             PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
-
-            lidar_preditct_pose_Rwb_ = DR2lidar *  DR2lidar * state.Rwb_ ;//TODO 1029 ??????? no reason
+           // lidar_preditct_pose_Rwb_  = T_w_l.GetR();
+           // lidar_preditct_pose_p_wb_ = T_w_l.GetXYZ();
+            lidar_preditct_pose_Rwb_ = DR2lidar * state.Rwb_ ;//TODO 1029 ??????? no reason
             lidar_preditct_pose_p_wb_ = DR2lidar * state.p_wb_; // 地面存在高程误差——外参？ 建图？
-//            EZLOG(INFO)<<" lidar_preditct_pose_p_wb_"<<lidar_preditct_pose_p_wb_.transpose()<<endl;
-//            EZLOG(INFO)<<"lidar_preditct_pose_Rwb_"<<lidar_preditct_pose_Rwb_<<endl;
+            EZLOG(INFO)<<" lidar_preditct_pose_p_wb_"<<lidar_preditct_pose_p_wb_.transpose()<<endl;
+          //  EZLOG(INFO)<<"lidar_preditct_pose_Rwb_"<<lidar_preditct_pose_Rwb_<<endl;
 
             PoseT lidar_preditct_pose(lidar_preditct_pose_p_wb_,lidar_preditct_pose_Rwb_);
             Odometry_imuPredict_pub.pose = lidar_preditct_pose;
             DR_pose.pose = lidar_preditct_pose;
+            Odometry_raw_imu.pose = T_w_b;
+
         }
         else{
             gtsam::Pose3 imuPose = gtsam::Pose3(currentState.quaternion(), currentState.position());
@@ -270,6 +277,8 @@ public:
         Odometry_imuPredict_pub.timestamp = currentTime;
         Odometry_imuPredict_pub.frame = "map";
 
+        Odometry_raw_imu.timestamp = currentTime;
+        Odometry_raw_imu.frame = "map";
 
         //for debug use
         DR_pose.timestamp = currentTime;
@@ -279,6 +288,7 @@ public:
             Function_AddDROdometryTypeToFuse(DR_pose);
         }
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
+        pubsub->PublishOdometry(topic_imu_raw_odom_uncorrected, Odometry_raw_imu);
         Function_AddDROdometryTypeToDataPreprocess(Odometry_imuPredict_pub);
 
     }
@@ -380,6 +390,7 @@ public:
         pubsub = pubsub_;
         slam_mode_switch = _slam_mode_switch;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
+        pubsub->addPublisher(topic_imu_raw_odom_uncorrected, DataType::ODOMETRY, 10);
 //        do_lidar_thread = new std::thread(&IMU_DR::DoPredict, this);//TODO delete-----Done
     }
 };

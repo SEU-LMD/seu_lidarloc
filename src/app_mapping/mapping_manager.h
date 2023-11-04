@@ -62,8 +62,8 @@ public:
                 std::bind(&OPTMapping::AddCloudData, &opt_mapping,std::placeholders::_1);
        // auto add_OdometryType_from_optmapping_to_imupre =
          //       std::bind(&IMU_DR::AddOdomData, &imu_pre,std::placeholders::_1);
-        auto add_GNSSOdometryType_from_imgproj_to_optmapping =
-                std::bind(&OPTMapping::AddGNSSToOpt, &opt_mapping,std::placeholders::_1);
+//        auto add_GNSSOdometryType_from_imgproj_to_optmapping =
+//                std::bind(&OPTMapping::AddGNSSToOpt, &opt_mapping,std::placeholders::_1);
         auto add_OdometryType_from_imupre_to_imgproj =
                 std::bind(&DataPreprocess::AddDrOdomData, &data_pre,std::placeholders::_1);
 
@@ -71,7 +71,7 @@ public:
         data_pre.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_imgproj_to_ftextr;
 
         ft_extr.Function_AddCloudFeatureToOPTMapping = add_CloudFeature_from_ftextr_to_optmapping;
-        data_pre.Function_AddGNSSOdometryTypeToOPTMapping = add_GNSSOdometryType_from_imgproj_to_optmapping;
+       // data_pre.Function_AddGNSSOdometryTypeToOPTMapping = add_GNSSOdometryType_from_imgproj_to_optmapping;
 //        imu_pre.Function_AddDROdometryTypeToImageProjection = add_OdometryType_from_imupre_to_imgproj;
         imu_pre.Function_AddDROdometryTypeToDataPreprocess = add_OdometryType_from_imupre_to_imgproj;
 
