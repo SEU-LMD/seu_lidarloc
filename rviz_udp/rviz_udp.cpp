@@ -40,6 +40,8 @@ int main(int argc, char** argv){
         udp_client.recvProcess();
         std::cout<<udp_client.rcv_msg<<std::endl;
         PubilshOdometry(udp_client);
+        ros::spinOnce(); // 处理订阅和发布的消息
+        rate.sleep();
     }
 
 }

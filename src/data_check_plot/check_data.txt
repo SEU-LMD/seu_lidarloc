@@ -1,0 +1,11 @@
+lidar:
+fre:9.95378
+lidar_wrong_count:0
+std_deviation:0.00927878
+over3std_P:0.331785%
+count is not normal:0
+gnss:
+fre:180.067
+gnss_wrong_count:0
+std_deviation:0.00888838
+over3std_P:2.64119%
