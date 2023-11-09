@@ -42,7 +42,7 @@ public:
         out_struct.q.z()=static_cast<double>(value[5]);
         out_struct.q.w()=static_cast<double>(value[6]);
 
-        out_struct.q.normalize();
+//        out_struct.q.normalize();
 
     }
 };
