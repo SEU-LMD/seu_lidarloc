@@ -146,7 +146,7 @@ public:
         lastImuT_imu = imuTime;
 //        state_.timestamp = curr_imu->timestamp;
 //        const Eigen::Vector3d gyr_unbias =  curr_imu->imu_angular_v - prior_gyro_bias;  // gyro not unbias for now
-        const Eigen::Vector3d gyr_unbias =  curr_imu->imu_angular_v;  // no bias
+        const Eigen::Vector3d gyr_unbias =  curr_imu->imu_angular_v_body;  // no bias
         const auto &dR = deltaRotMat(gyr_unbias * dt);
         Eigen::Vector3d state_v_b = Eigen::Vector3d (0, curr_imu->velocity,0);
 //        state.v_wb_ = SensorConfig::T  state_v_b
@@ -156,6 +156,7 @@ public:
             state.p_wb_[0] = _t_w_b[0];
             state.p_wb_[1] = _t_w_b[1];
             state.p_wb_[2] = _t_w_b[2];
+            EZLOG(INFO)<<"dr ORIGIN POINT"<<state.p_wb_[0]<<" "<<state.p_wb_[1]<<" "<<state.p_wb_[2]<<endl;
             last_state = state;
             flag_firstGnss = true;
 
@@ -195,11 +196,11 @@ public:
         double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
         //        double dt = (lastImuQT < 0) ? (1.0 / imuFrequence) : (imuTime
         //        - lastImuQT);
-        _imu_raw->imu_angular_v *= SensorConfig::imu_angular_v_gain;
+        _imu_raw->imu_angular_v_body *= SensorConfig::imu_angular_v_gain;
 //                        EZLOG(INFO)<<"dt: "<<dt; dt: 0.0199661 dt: 0.00914884
         imuIntegratorImu_->integrateMeasurement(
-                gtsam::Vector3(_imu_raw->imu_linear_acc),
-                gtsam::Vector3(_imu_raw->imu_angular_v),
+                gtsam::Vector3(_imu_raw->imu_linear_acc_body),
+                gtsam::Vector3(_imu_raw->imu_angular_v_body),
                 dt);
         lastImuT_imu = imuTime;
 
@@ -275,16 +276,16 @@ public:
 
         if(SensorConfig::if_use_Wheel_DR == 1){
             IMURawWheelDataPtr imuWheel_raw (new IMURawWheelData);
-            imuWheel_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
-            imuWheel_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
+            imuWheel_raw->imu_angular_v_body = gnss_ins_data.imu_angular_v_body * 3.1415926535 / 180.0; //转弧度值
+            imuWheel_raw->imu_linear_acc_body = gnss_ins_data.imu_linear_acc_body;
             imuWheel_raw->timestamp = gnss_ins_data.timestamp;
             imuWheel_raw->velocity = gnss_ins_data.velocity;
             IMUWheel_predict(imuWheel_raw,R_w_b,t_enu);
         }
         else{
             IMURawDataPtr imu_raw (new IMURawData);
-            imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
-            imu_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
+            imu_raw->imu_angular_v_body = gnss_ins_data.imu_angular_v_body * 3.1415926535 / 180.0; //转弧度值
+            imu_raw->imu_linear_acc_body = gnss_ins_data.imu_linear_acc_body;
             imu_raw->timestamp = gnss_ins_data.timestamp;
             gnssins_mutex.lock();
             imuQueImu.push_back(imu_raw);

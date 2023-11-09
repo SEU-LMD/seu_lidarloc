@@ -10,6 +10,7 @@
 
 #include "pubsub/pubusb.h"
 #include "./ivsensorgps.h"
+#include "./ivsensorgps_new.h"
 
 #include <std_msgs/Header.h>
 #include <sensor_msgs/Imu.h>
@@ -17,6 +18,9 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
+
+Eigen::Vector3d imu_angular_bias;
+Eigen::Vector3d imu_linear_acc_bias;
 
 class ROSPubSub:public PubSubInterface{
 public:
@@ -27,7 +31,7 @@ public:
     std::map<std::string, CallBackT> cloud_callbacks;
     std::map<std::string, CallBackT> imu_callbacks;
     std::map<std::string, CallBackT> gnss_ins_callbacks;
-    std::map<std::string, CallBackT> wheel_callbacks;
+//    std::map<std::string, CallBackT> wheel_callbacks;
 
 
     void initPubSub(int argc, char** argv, const std::string& node_name){
@@ -113,32 +117,189 @@ public:
         (this->cloud_callbacks[topic_name])(data_out);
     }
 
+    bool init_estimate_bias = false;
+    int estimate_bias_n = 500;
+
     //组合导航设备转换函数
-    void convertROSGNSSINSMsgToGNSSINS(const gps_imu::ivsensorgpsConstPtr& gnss_ins_in, GNSSINSType& gnss_ins_out ){
-        gnss_ins_out.lla[0] = gnss_ins_in->lat;
-        gnss_ins_out.lla[1] = gnss_ins_in->lon;
-        gnss_ins_out.lla[2] = gnss_ins_in->height;
+    void convertROSGNSSINSMsgToGNSSINS(const gen_h::ivsensorgpsConstPtr& gnss_ins_in, GNSSINSType& gnss_ins_out ){
 
-        gnss_ins_out.pitch= gnss_ins_in->pitch;
-        gnss_ins_out.roll = gnss_ins_in->roll;
-        gnss_ins_out.yaw = gnss_ins_in->heading;
+//EZLOG(INFO)<<"get in convertROSGNSSINSMsgToGNSSINS "<<endl;
+//            if(!init_estimate_bias){
+//
+//            if(estimate_bias_n){
+//                imu_angular_bias[0] += gnss_ins_in->angx;
+//                imu_angular_bias[1] += gnss_ins_in->angy;
+//                imu_angular_bias[2] += gnss_ins_in->yaw;
+//                imu_linear_acc_bias[0] += gnss_ins_in->accx;
+//                imu_linear_acc_bias[1] += gnss_ins_in->accy;
+//                imu_linear_acc_bias[2] += gnss_ins_in->accz;
+//                --estimate_bias_n;
+//                return;
+//            }
+//                imu_angular_bias = imu_angular_bias / 500;
+//                imu_linear_acc_bias = imu_linear_acc_bias /500;
+//            init_estimate_bias = true;
+//        }
 
-        gnss_ins_out.imu_angular_v[0] = gnss_ins_in->angx;
-        gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy;
-        gnss_ins_out.imu_angular_v[2] = gnss_ins_in->yaw;
 
-        gnss_ins_out.imu_linear_acc[0] = gnss_ins_in->accx;
-        gnss_ins_out.imu_linear_acc[1] = gnss_ins_in->accy;
-        gnss_ins_out.imu_linear_acc[2] = gnss_ins_in->accz;
+
+//        gnss_ins_out.imu_angular_v[0] = gnss_ins_in->angx - imu_angular_bias[0];
+//        gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy - imu_angular_bias[1];
+//        gnss_ins_out.imu_angular_v[2] = gnss_ins_in->yaw - imu_angular_bias[2];
+//
+//        gnss_ins_out.imu_linear_acc[0] = gnss_ins_in->accx - imu_linear_acc_bias[0];
+//        gnss_ins_out.imu_linear_acc[1] = gnss_ins_in->accy - imu_linear_acc_bias[1];
+//        gnss_ins_out.imu_linear_acc[2] = gnss_ins_in->accz - imu_linear_acc_bias[2];
+
+///before
+
+        gnss_ins_out.lla[0] = gnss_ins_in->position.x;
+        gnss_ins_out.lla[1] = gnss_ins_in->position.y;
+        gnss_ins_out.lla[2] = gnss_ins_in->position.z;
+
+        gnss_ins_out.lla_sigma[0] = gnss_ins_in->positionSigma.x;
+        gnss_ins_out.lla_sigma[1] = gnss_ins_in->positionSigma.y;
+        gnss_ins_out.lla_sigma[2] = gnss_ins_in->positionSigma.z;
+
+        gnss_ins_out.pitch= gnss_ins_in->pose.y;
+        gnss_ins_out.roll = gnss_ins_in->pose.x;
+        gnss_ins_out.yaw = gnss_ins_in->pose.z;
+
+        gnss_ins_out.rpy_sigma[0] = gnss_ins_in->poseSigma.x;
+        gnss_ins_out.rpy_sigma[1] = gnss_ins_in->poseSigma.y;
+        gnss_ins_out.rpy_sigma[2] = gnss_ins_in->poseSigma.z;
+
+        gnss_ins_out.imu_angular_v_raw[0] = gnss_ins_in->imuAngular.x;
+        gnss_ins_out.imu_angular_v_raw[1] = gnss_ins_in->imuAngular.y;
+        gnss_ins_out.imu_angular_v_raw[2] = gnss_ins_in->imuAngular.z;
+
+        gnss_ins_out.imu_angular_v_body[0] = gnss_ins_in->angular.x;
+        gnss_ins_out.imu_angular_v_body[1] = gnss_ins_in->angular.y;
+        gnss_ins_out.imu_angular_v_body[2] = gnss_ins_in->angular.z;
+
+        gnss_ins_out.imu_linear_acc_raw[0] = gnss_ins_in->imuAccel.x;
+        gnss_ins_out.imu_linear_acc_raw[1] = gnss_ins_in->imuAccel.y;
+        gnss_ins_out.imu_linear_acc_raw[2] = gnss_ins_in->imuAccel.z;
+
+        gnss_ins_out.imu_linear_acc_body[0] = gnss_ins_in->accel.x;
+        gnss_ins_out.imu_linear_acc_body[1] = gnss_ins_in->accel.y;
+        gnss_ins_out.imu_linear_acc_body[2] = gnss_ins_in->accel.z;
+
+        gnss_ins_out.velocity = gnss_ins_in->velocity;
+
+        gnss_ins_out.velocity_sigma = gnss_ins_in->velocitySigma;
 
         gnss_ins_out.timestamp = gnss_ins_in->header.stamp.toSec();
         gnss_ins_out.frame = gnss_ins_in->header.frame_id;
 
-        gnss_ins_out.gps_status = gnss_ins_in->status;
+        gnss_ins_out.wheel_speed[0] = gnss_ins_in->whlspd.ESCWhlRRSpd;
+        gnss_ins_out.wheel_speed[1] = gnss_ins_in->whlspd.ESCWhlRLSpd;
+        gnss_ins_out.wheel_speed[2] = gnss_ins_in->whlspd.ESCWhlFRSpd;
+        gnss_ins_out.wheel_speed[3] = gnss_ins_in->whlspd.ESCWhlFLSpd;
+
+        gnss_ins_out.gps_status = gnss_ins_in->locationState;
+        if(gnss_ins_in->locationState == 11 && gnss_ins_in->locationState >20 &&
+           (gnss_ins_in->position.y > 117 && gnss_ins_in->position.y < 118) &&
+           (gnss_ins_in->position.x > 31 && gnss_ins_in->position.x < 32))
+        {
+            gnss_ins_out.gps_status = true;
+        }
+
         gnss_ins_out.velocity = gnss_ins_in->velocity;
+        ///use for test new bag
+//        EZLOG(INFO)<<"gnss_ins_in->position"<<gnss_ins_in->position<<endl;
+//        EZLOG(INFO)<<"gnss_ins_in->positionSigma"<<gnss_ins_in->positionSigma<<endl;
+//        EZLOG(INFO)<<"gnss_ins_in->whlspd"<<gnss_ins_in->whlspd<<endl;
+//        EZLOG(INFO)<<"gnss_ins_in->imuAngular"<<gnss_ins_in->imuAngular<<endl;
+
+//gnss_ins_in->imuAngular;
+//gnss_ins_in->position;
+//gnss_ins_in->positionSigma;
+//gnss_ins_in->whlspd;
 
     }
-    void GNSSINSROSCallback(const gps_imu::ivsensorgpsConstPtr& data, const std::string& topic_name){
+
+    ///组合导航设备转换函数 gps_imu
+//    void convertROSGNSSINSMsgToGNSSINS(const gps_imu::ivsensorgpsConstPtr& gnss_ins_in, GNSSINSType& gnss_ins_out ){
+//
+//
+////            if(!init_estimate_bias){
+////
+////            if(estimate_bias_n){
+////                imu_angular_bias[0] += gnss_ins_in->angx;
+////                imu_angular_bias[1] += gnss_ins_in->angy;
+////                imu_angular_bias[2] += gnss_ins_in->yaw;
+////                imu_linear_acc_bias[0] += gnss_ins_in->accx;
+////                imu_linear_acc_bias[1] += gnss_ins_in->accy;
+////                imu_linear_acc_bias[2] += gnss_ins_in->accz;
+////                --estimate_bias_n;
+////                return;
+////            }
+////                imu_angular_bias = imu_angular_bias / 500;
+////                imu_linear_acc_bias = imu_linear_acc_bias /500;
+////            init_estimate_bias = true;
+////        }
+//
+//
+//
+////        gnss_ins_out.imu_angular_v[0] = gnss_ins_in->angx - imu_angular_bias[0];
+////        gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy - imu_angular_bias[1];
+////        gnss_ins_out.imu_angular_v[2] = gnss_ins_in->yaw - imu_angular_bias[2];
+////
+////        gnss_ins_out.imu_linear_acc[0] = gnss_ins_in->accx - imu_linear_acc_bias[0];
+////        gnss_ins_out.imu_linear_acc[1] = gnss_ins_in->accy - imu_linear_acc_bias[1];
+////        gnss_ins_out.imu_linear_acc[2] = gnss_ins_in->accz - imu_linear_acc_bias[2];
+//
+/////before
+//
+//        gnss_ins_out.lla[0] = gnss_ins_in->lat;
+//        gnss_ins_out.lla[1] = gnss_ins_in->lon;
+//        gnss_ins_out.lla[2] = gnss_ins_in->height;
+//
+//        gnss_ins_out.pitch= gnss_ins_in->pitch;
+//        gnss_ins_out.roll = gnss_ins_in->roll;
+//        gnss_ins_out.yaw = gnss_ins_in->heading;
+//
+//        gnss_ins_out.imu_angular_v[0] = gnss_ins_in->angx;
+//        gnss_ins_out.imu_angular_v[1] = gnss_ins_in->angy;
+//        gnss_ins_out.imu_angular_v[2] = gnss_ins_in->yaw;
+//
+//        gnss_ins_out.imu_linear_acc[0] = gnss_ins_in->accx;
+//        gnss_ins_out.imu_linear_acc[1] = gnss_ins_in->accy;
+//        gnss_ins_out.imu_linear_acc[2] = gnss_ins_in->accz;
+//
+//        gnss_ins_out.timestamp = gnss_ins_in->header.stamp.toSec();
+//        gnss_ins_out.frame = gnss_ins_in->header.frame_id;
+//
+//        gnss_ins_out.gps_status = gnss_ins_in->status;
+//        if(gnss_ins_in->status == "42" && gnss_ins_in->satenum >20 &&
+//           (gnss_ins_in->lon > 117 && gnss_ins_in->lon < 118) &&
+//           (gnss_ins_in->lat > 31 && gnss_ins_in->lat < 32))
+//        {
+//            gnss_ins_out.gps_status = true;
+//        }
+//
+//        gnss_ins_out.velocity = gnss_ins_in->velocity;
+//        ///use for test new bag
+////        EZLOG(INFO)<<"gnss_ins_in->position"<<gnss_ins_in->position<<endl;
+////        EZLOG(INFO)<<"gnss_ins_in->positionSigma"<<gnss_ins_in->positionSigma<<endl;
+////        EZLOG(INFO)<<"gnss_ins_in->whlspd"<<gnss_ins_in->whlspd<<endl;
+////        EZLOG(INFO)<<"gnss_ins_in->imuAngular"<<gnss_ins_in->imuAngular<<endl;
+//
+////gnss_ins_in->imuAngular;
+////gnss_ins_in->position;
+////gnss_ins_in->positionSigma;
+////gnss_ins_in->whlspd;
+//
+//    }
+
+//    void GNSSINSROSCallback(const gps_imu::ivsensorgpsConstPtr& data, const std::string& topic_name){
+//        GNSSINSType data_out;
+//        convertROSGNSSINSMsgToGNSSINS(data, data_out);
+//        (this->gnss_ins_callbacks[topic_name])(data_out);
+//    }
+
+    void GNSSINSROSCallback(const gen_h::ivsensorgpsConstPtr& data, const std::string& topic_name){
         GNSSINSType data_out;
         convertROSGNSSINSMsgToGNSSINS(data, data_out);
         (this->gnss_ins_callbacks[topic_name])(data_out);
@@ -151,13 +312,13 @@ public:
             this->cloud_callbacks[topic_name] = callBack;
         }
         else if(type==DataType::GNSS_INS){
-            this->subscribers.push_back(this->pNH->subscribe< gps_imu::ivsensorgps>(topic_name,10,boost::bind(&ROSPubSub::GNSSINSROSCallback,this,_1,topic_name)));
+            this->subscribers.push_back(this->pNH->subscribe< gen_h::ivsensorgps>(topic_name,10,boost::bind(&ROSPubSub::GNSSINSROSCallback,this,_1,topic_name)));
             this->gnss_ins_callbacks[topic_name] = callBack;
         }
 //        else if(type==DataType::IMU){
 //
 //        }
-//        else if(type==DataType::WHEEL){
+//        else if(type==DataType::WHEEL){ //TODO::add data
 //
 //        }
     }//end function addSubscriber

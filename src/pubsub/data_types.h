@@ -126,12 +126,20 @@ typedef std::shared_ptr<IMUOdometryType> IMUOdometryTypePtr;
 class GNSSINSType:public BaseType{
     public:
         Eigen::Vector3d lla;
+        Eigen::Vector3d lla_sigma;
         double roll,pitch,yaw;
+        Eigen::Vector3d rpy_sigma;
         Eigen::Vector3d imu_angular_v;
         Eigen::Vector3d imu_linear_acc;
+        Eigen::Vector3d imu_angular_v_raw;
+        Eigen::Vector3d imu_linear_acc_raw;
+        Eigen::Vector3d imu_angular_v_body;
+        Eigen::Vector3d imu_linear_acc_body;
         Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
         double velocity;
-        string gps_status;
+        double velocity_sigma;
+        Eigen::Vector4d wheel_speed;//RR RL FR FL
+        int gps_status;
         DataType getType(){
              return DataType::GNSS_INS;
         }
@@ -149,8 +157,10 @@ class PathType:public BaseType{
 class IMURawData{
 public:
     double timestamp;
-    Eigen::Vector3d imu_angular_v;
-    Eigen::Vector3d imu_linear_acc;
+    //Eigen::Vector3d imu_angular_v;
+   // Eigen::Vector3d imu_linear_acc;
+    Eigen::Vector3d imu_angular_v_body;
+    Eigen::Vector3d imu_linear_acc_body;
     Eigen::Quaterniond orientation;
 };
 typedef std::shared_ptr<IMURawData> IMURawDataPtr;
@@ -158,8 +168,10 @@ typedef std::shared_ptr<IMURawData> IMURawDataPtr;
 class IMURawWheelData{
 public:
     double timestamp;
-    Eigen::Vector3d imu_angular_v;
-    Eigen::Vector3d imu_linear_acc;
+   // Eigen::Vector3d imu_angular_v;
+   // Eigen::Vector3d imu_linear_acc;
+    Eigen::Vector3d imu_angular_v_body;
+    Eigen::Vector3d imu_linear_acc_body;
     Eigen::Vector3d position;
     double velocity;
 };
@@ -178,6 +190,7 @@ typedef std::shared_ptr<StateData> StateDataPtr;
 
 //used to commnicate with other thread
 class CloudInfo{
+
 public:
     int frame_id;
     double timestamp;
@@ -189,20 +202,82 @@ public:
     std::vector<int> endRingIndex;
 
     pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ptr;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground_down;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_unground;
+
+    CloudInfo()
+    {
+        cloud_ptr = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_ground = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_ground_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_unground = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+    }
+
+    CloudInfo& operator=(const CloudInfo& temp);
 };
 typedef std::shared_ptr<CloudInfo> CloudInfoPtr;
+CloudInfo& CloudInfo::operator=(const CloudInfo& d){
+    frame_id = d.frame_id;
+    timestamp = d.timestamp;
+    pose = d.pose;
+    DRPose = d.DRPose;
 
+//    std::vector<int> label;
+    startRingIndex = d.startRingIndex;
+    endRingIndex = d.endRingIndex;
+
+    *cloud_ptr = *d.cloud_ptr;
+    cloud_ground = d.cloud_ground;
+    cloud_ground_down = d.cloud_ground_down;
+    cloud_unground = d.cloud_unground;
+    return *this;
+}
 class CloudFeature{
 public:
     int frame_id;
     double timestamp;
-    PoseT pose;
-    PoseT DRPose;
+    PoseT pose;//
+    PoseT DRPose;//
     pcl::PointCloud<PointType>::Ptr cornerCloud;
     pcl::PointCloud<PointType>::Ptr surfaceCloud;
+
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof;
+
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar_down;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam_down;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade_down;
+    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof_down;
+
+    CloudFeature()
+    {
+        cloud_pillar = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_beam = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_facade = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_roof = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+
+        cloud_pillar_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_beam_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_facade_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+        cloud_roof_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+    }
+
 };
 typedef std::shared_ptr<CloudFeature> CloudFeaturePtr;
 
+class WheelType:public BaseType{
+public:
+    float ESCWhlRRSpd;
+    float ESCWhlRLSpd;
+    float ESCWhlFRSpd;
+    float ESCWhlFLSpd;
+    DataType getType(){
+        return DataType::WHEEL;
+    }
+};
 class PriorMap:public BaseType{
 public:
     pcl::KdTreeFLANN<PointType>::Ptr PriorSurfMapKDTree;

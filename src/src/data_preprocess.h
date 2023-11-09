@@ -1,12 +1,15 @@
 
 // Use the Velodyne point format as a common representation
-#ifndef SEU_LIDARLOC_IMGPROJECTION_H
-#define SEU_LIDARLOC_IMGPROJECTION_H
+#ifndef SEU_LIDARLOC_DATAPREPROCESS_H
+#define SEU_LIDARLOC_DATAPREPROCESS_H
+
+#define DBL_MAX		__DBL_MAX__
+
 #include <mutex>
 #include <thread>
 
 #include "pubsub/pubusb.h"
-//#include "featureExtraction.h"
+#include "feature_extraction.h"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
@@ -595,6 +598,7 @@ public:
 
     void AddGNSSINSSData(const GNSSINSType& data){
 
+//        deque_gnssins.push_back(data);
         if(!init)
         {
             double x,y,z;
@@ -619,6 +623,7 @@ public:
         double t_enu[3];
         geoConverter.Forward(data.lla[0], data.lla[1], data.lla[2],
                              t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
+        EZLOG(INFO)<<"GNSS ORIGIN POINT "<<t_enu[0]<<" "<<t_enu[1]<<" "<<t_enu[2];
 
         Eigen::Matrix3d z_matrix;//calculate Quaternion
         Eigen::Matrix3d x_matrix;
@@ -690,13 +695,9 @@ public:
              EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose end!";
 
          }
-//         else{  //mapping
-//             Function_AddGNSSOdometryTypeToOPTMapping(T_w_l_gnss);
-//         }
 
             // TODO T_w_l_pub->>>>>>> is Gnss result need UDP
-           // Udp_OdomPub(T_w_l);
-//        }
+
     }
 
 
