@@ -417,9 +417,9 @@ public:
         cloud_mutex.unlock();
     }
 
-    void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
+    void Init(PubSubInterface* pubsub_){
         AllocateMemeory();
-        slam_mode_switch = _slam_mode_switch;
+       // slam_mode_switch = _slam_mode_switch;
         EZLOG(INFO)<<"feature Extraction init! slam_mode_switch:"<<slam_mode_switch;
         downSizeFilter.setLeafSize(MappingConfig::odometrySurfLeafSize, MappingConfig::odometrySurfLeafSize,
                                    MappingConfig::odometrySurfLeafSize);

@@ -36,7 +36,7 @@ public:
 
 class DataPreprocess {
 public:
-    int slam_mode_switch = 1;
+   // int slam_mode_switch = 1;
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     std::mutex work_mutex;
@@ -761,6 +761,7 @@ public:
         geoConverter.Forward(data.lla[0], data.lla[1], data.lla[2],
                              t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
 
+        EZLOG(INFO)<<"GNSS ORIGIN POINT"<<  t_enu[0]<<" "<<t_enu[1]<<" "<<t_enu[2]<<endl;
         Eigen::Matrix3d z_matrix;//calculate Quaternion
         Eigen::Matrix3d x_matrix;
         Eigen::Matrix3d y_matrix;
@@ -845,9 +846,8 @@ public:
     }
 
     // not UDP
-    void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
+    void Init(PubSubInterface* pubsub_){
         AllocateMemory();
-        slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
@@ -870,29 +870,29 @@ public:
 
 
     // UDP
-    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
-        AllocateMemory();
-        slam_mode_switch = _slam_mode_switch;
-        pubsub = pubsub_;
-        udp_thread = udp_thread_;
-        pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
-        pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
-        pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
-        pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
-        pubsub->addPublisher(topic_gnss_odom_world_origin, DataType::ODOMETRY,2000);
-        pubsub->addPublisher(topic_imuodom_curlidartime_world, DataType::ODOMETRY,2000);
-
-        pubsub->addPublisher(topic_ground_world,DataType::LIDAR,1);
-        pubsub->addPublisher(topic_unground_world,DataType::LIDAR,1);
-
-        pubsub->addPublisher(topic_cloud_pillar_world,DataType::LIDAR,1);
-        pubsub->addPublisher(topic_cloud_beam_world,DataType::LIDAR,1);
-        pubsub->addPublisher(topic_cloud_facade_world,DataType::LIDAR,1);
-        pubsub->addPublisher(topic_cloud_roof_world,DataType::LIDAR,1);
-
-        do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
-        EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
-    }
+//    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
+//        AllocateMemory();
+//        slam_mode_switch = _slam_mode_switch;
+//        pubsub = pubsub_;
+//        udp_thread = udp_thread_;
+//        pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
+//        pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
+//        pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
+//        pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
+//        pubsub->addPublisher(topic_gnss_odom_world_origin, DataType::ODOMETRY,2000);
+//        pubsub->addPublisher(topic_imuodom_curlidartime_world, DataType::ODOMETRY,2000);
+//
+//        pubsub->addPublisher(topic_ground_world,DataType::LIDAR,1);
+//        pubsub->addPublisher(topic_unground_world,DataType::LIDAR,1);
+//
+//        pubsub->addPublisher(topic_cloud_pillar_world,DataType::LIDAR,1);
+//        pubsub->addPublisher(topic_cloud_beam_world,DataType::LIDAR,1);
+//        pubsub->addPublisher(topic_cloud_facade_world,DataType::LIDAR,1);
+//        pubsub->addPublisher(topic_cloud_roof_world,DataType::LIDAR,1);
+//
+//        do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
+//        EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
+//    }
 
     struct eigenvalue_t // Eigen Value ,lamada1 > lamada2 > lamada3;
     {

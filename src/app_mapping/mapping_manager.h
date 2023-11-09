@@ -49,11 +49,11 @@ public:
         //然后开启各个线程
         img_proj.Init(pubsub);
         EZLOG(INFO)<< "img_proj success!!"<<endl;
-        ft_extr.Init(pubsub,0);
+        ft_extr.Init(pubsub);
         EZLOG(INFO)<< "ft_extr success!!"<<endl;
         opt_mapping.Init(pubsub);
         EZLOG(INFO)<< "opt_mapping success!!"<<endl;
-        imu_pre.Init(pubsub,0);
+        imu_pre.Init(pubsub);
         EZLOG(INFO)<< "imu_pre success!!"<<endl;
       //  mapManager.Init(pubsub);
 

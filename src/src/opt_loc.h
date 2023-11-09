@@ -414,8 +414,8 @@ public:
                 break;
         }
 
-        EZLOG(INFO) << "_current_corner_ds->size(): "<<_current_corner_ds->size()
-                    << " _current_surf_ds->size(): " <<_current_surf_ds->size();
+//        EZLOG(INFO) << "_current_corner_ds->size(): "<<_current_corner_ds->size()
+//                    << " _current_surf_ds->size(): " <<_current_surf_ds->size();
 
         CloudTypeXYZI currentlidar_surf_pub;
         currentlidar_surf_pub.frame = "map";
