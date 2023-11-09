@@ -1,17 +1,17 @@
 # 0 for opt mapping->wxy, 1 for loc mapping->sy.
-  slam_mode_switch: 1
+  slam_mode_switch: 0
 #  1 for use fuse, 0 is not use
   if_use_fuseNode: 1
 # 1 for debug (pub to rviz),0 for not debug
-  if_debug: 1
+  if_debug: 0
 #
 #  if_use_
 
 
   # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!
-#  save_map_path: "/home/wxy/seu/reborn/seu_lidarloc/src/result/"
-  save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/map/"
+  save_map_path: "/home/wxy/seu/reborn/11.1/seu_lidarloc/src/test/"
+  #save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/map/"
   #save_map_path: "/home/lsy/map/"
   if_need_first_position: 0
 # 1 use DR , 0 use fuse
@@ -84,3 +84,6 @@
 
   # mapping
   globalMapLeafSize: 0.5                        # saved map voxgrid size
+
+  #LM opt
+  maxIters: 20

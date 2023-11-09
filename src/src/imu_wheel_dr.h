@@ -24,8 +24,9 @@
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
 
-#include "udp_seralize.h"
+//#include "udp_seralize.h"
 #include "utils/udp_thread.h"
+#include "GeoGraphicLibInclude/LocalCartesian.hpp"
 
 using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p,y)
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
@@ -39,6 +40,7 @@ public:
     std::mutex lidarodom_mutex;
     std::function<void(const OdometryType&)> Function_AddDROdometryTypeToImageProjection;
     std::function<void(const DROdometryType&)> Function_AddDROdometryTypeToFuse;
+    GeographicLib::LocalCartesian geoConverter;
     std::ofstream outfile;
 
     std::thread* do_lidar_thread;
@@ -136,7 +138,9 @@ public:
     }
 
 
-    void IMUWheel_predict(IMURawWheelDataPtr curr_imu, const Eigen::Matrix3d &_R_w_b){
+    void IMUWheel_predict(IMURawWheelDataPtr curr_imu,
+                          const Eigen::Matrix3d &_R_w_b,
+                          double* _t_w_b){
         double imuTime = curr_imu->timestamp;
         double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
         lastImuT_imu = imuTime;
@@ -146,6 +150,16 @@ public:
         const auto &dR = deltaRotMat(gyr_unbias * dt);
         Eigen::Vector3d state_v_b = Eigen::Vector3d (0, curr_imu->velocity,0);
 //        state.v_wb_ = SensorConfig::T  state_v_b
+        static bool flag_firstGnss = false;
+        if(flag_firstGnss == false){
+            state.Rwb_ = _R_w_b;
+            state.p_wb_[0] = _t_w_b[0];
+            state.p_wb_[1] = _t_w_b[1];
+            state.p_wb_[2] = _t_w_b[2];
+            last_state = state;
+            flag_firstGnss = true;
+
+        }
         if(SensorConfig::if_DR_use_Euler == 1){
             state.Rwb_ = _R_w_b;
             state.Rwb_ = rotationUpdate(state.Rwb_ , dR);
@@ -155,8 +169,8 @@ public:
         }
         else{
             //pure DR
-            state.Rwb_ = last_state.Rwb_;
-            state.Rwb_ = rotationUpdate(state.Rwb_ , dR);
+            //state.Rwb_ = last_state.Rwb_;
+            state.Rwb_ = rotationUpdate(last_state.Rwb_ , dR);
             Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
             state.v_w_ = state_v_w;
             state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
@@ -201,24 +215,24 @@ public:
     }
 
 
-    void Udp_OdomPub(const PoseT& data){
-        Vis_Odometry odom_out;
-        std::string fu_str;
-        odom_out.type = "dr";
-        odom_out.t[0]= data.GetXYZ().x();
-        odom_out.t[1]= data.GetXYZ().y();
-        odom_out.t[2]= data.GetXYZ().z();
-
-
-
-        odom_out.q.x() = data.GetQ().x();
-        odom_out.q.y() = data.GetQ().y();
-        odom_out.q.z() = data.GetQ().z();
-        odom_out.q.w() = data.GetQ().w();
-
-        fu_str = odom_out.ToString();
-        udp_thread -> SendUdpMSg(fu_str);
-    }
+//    void Udp_OdomPub(const PoseT& data){
+//        Vis_Odometry odom_out;
+//        std::string fu_str;
+//        odom_out.type = "dr";
+//        odom_out.t[0]= data.GetXYZ().x();
+//        odom_out.t[1]= data.GetXYZ().y();
+//        odom_out.t[2]= data.GetXYZ().z();
+//
+//
+//
+//        odom_out.q.x() = data.GetQ().x();
+//        odom_out.q.y() = data.GetQ().y();
+//        odom_out.q.z() = data.GetQ().z();
+//        odom_out.q.w() = data.GetQ().w();
+//
+//        fu_str = odom_out.ToString();
+//        udp_thread -> SendUdpMSg(fu_str);
+//    }
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
 
@@ -243,8 +257,12 @@ public:
                 0,                 1,               0 ,
                 -sin(roll_X),      0,         cos(roll_X);
 
-        R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb, 右前上，zyx前左上
+        R_w_b =  (z_matrix * x_matrix * y_matrix);   // Pw = Twb * Pb, 右前上，zyx前左上
 
+        double t_enu[3];
+        geoConverter.Reset(gnss_ins_data.lla[0], gnss_ins_data.lla[1], gnss_ins_data.lla[2]);
+        geoConverter.Forward(gnss_ins_data.lla[0], gnss_ins_data.lla[1], gnss_ins_data.lla[2],
+                             t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
 //        static int imu_cnt = 0;
 //          for debug
 //        outfile.precision(6);
@@ -261,7 +279,7 @@ public:
             imuWheel_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
             imuWheel_raw->timestamp = gnss_ins_data.timestamp;
             imuWheel_raw->velocity = gnss_ins_data.velocity;
-            IMUWheel_predict(imuWheel_raw,R_w_b);
+            IMUWheel_predict(imuWheel_raw,R_w_b,t_enu);
         }
         else{
             IMURawDataPtr imu_raw (new IMURawData);
@@ -277,15 +295,17 @@ public:
         OdometryType Odometry_imuPredict_pub;
         DROdometryType DR_pose;
         if(SensorConfig::if_use_Wheel_DR == 1){
-            Eigen::Matrix3d DR2lidar;
+            Eigen::Matrix3d R_b_l;
             Eigen::Vector3d lidar_preditct_pose_p_wb_;
-            Eigen::Matrix3d lidar_preditct_pose_Rwb_;
-            DR2lidar = SensorConfig::T_L_DR.block<3,3>(0,0);
-            lidar_preditct_pose_Rwb_ = DR2lidar * DR2lidar * state.Rwb_;
-            lidar_preditct_pose_p_wb_ = DR2lidar * state.p_wb_; // 地面存在高程误差——外参？ 建图？
-            lidar_preditct_pose_p_wb_ =  lidar_preditct_pose_p_wb_ + SensorConfig::T_L_DR.block<3,1>(0,3);
+            Eigen::Matrix3d lidar_preditct_pose_Rwl_;
+            R_b_l = SensorConfig::T_L_DR.block<3,3>(0, 0);
+            lidar_preditct_pose_Rwl_ = state.Rwb_ * R_b_l;// Rwl = Rwb * Rbl
+            //lidar_preditct_pose_p_wb_ = R_b_l.inverse() * state.p_wb_; // 地面存在高程误差——外参？ 建图？
+            lidar_preditct_pose_p_wb_ =  state.Rwb_ * (SensorConfig::T_L_B.inverse().block<3,1>(0,3)) + state.p_wb_; // 地面存在高程误差——外参？ 建图？
+            //lidar_preditct_pose_p_wb_ =  lidar_preditct_pose_p_wb_ + SensorConfig::T_L_DR.block<3,1>(0,3);
 
-            PoseT lidar_preditct_pose(lidar_preditct_pose_p_wb_,lidar_preditct_pose_Rwb_);
+            PoseT lidar_preditct_pose(lidar_preditct_pose_p_wb_, lidar_preditct_pose_Rwl_);
+            //PoseT lidar_predict_world_pose = PoseT(lidar_preditct_pose.pose * SensorConfig::T_L_B);
             Odometry_imuPredict_pub.pose = lidar_preditct_pose;
             DR_pose.pose = lidar_preditct_pose;
         }
@@ -318,7 +338,7 @@ public:
             EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose end!";
         }
 
-        Udp_OdomPub(Odometry_imuPredict_pub.pose);
+        //Udp_OdomPub(Odometry_imuPredict_pub.pose);
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
 
    //     EZLOG(INFO)<<" time in ms: "<<time1.toc();
@@ -431,21 +451,21 @@ public:
         graphValues = NewGraphValues;
     }
 
-    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
-
-        //设置imu的参数
-        SetIMUPreParamter();
-        //debug
-//        outfile.open("imu_gyro.txt",std::ios::app);
-//        if (!outfile.is_open()) {
-//            std::cerr << "无法打开输出文件 " << std::endl;
-//        }
-//        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
-
-        pubsub = pubsub_;
-        udp_thread = udp_thread_;
-        pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
-    }
+//    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
+//
+//        //设置imu的参数
+//        SetIMUPreParamter();
+//        //debug
+////        outfile.open("imu_gyro.txt",std::ios::app);
+////        if (!outfile.is_open()) {
+////            std::cerr << "无法打开输出文件 " << std::endl;
+////        }
+////        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
+//
+//        pubsub = pubsub_;
+//        udp_thread = udp_thread_;
+//        pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
+//    }
     void Init(PubSubInterface* pubsub_){
 
         //设置imu的参数

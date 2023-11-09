@@ -21,11 +21,13 @@ class MappingManager{
 public:
     PubSubInterface* pubsub;
 
-    ImageProjection img_proj;
+    DataPreprocess img_proj;
     FeatureExtraction ft_extr;
-    IMU_DR imu_pre;
+    imu_wheel_dr imu_pre;
     OPTMapping opt_mapping;
+   // MapManager mapManager;
 
+    std::shared_ptr<UDP_THREAD> udp_thread;
 
     void CloudCallback(const BaseType& msg){
         const CloudTypeXYZIRT& cloud_data = *((CloudTypeXYZIRT*)&msg);
@@ -36,7 +38,6 @@ public:
 //        TicToc timer;
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         img_proj.AddGNSSINSSData(gnssins_data);
-     //   opt_mapping.AddGNSSINSData(gnssins_data);
         imu_pre.AddGNSSINSData(gnssins_data);
 //        EZLOG(INFO)<<"GNSSINSCallback cost time(ms)"<<timer.toc()<<std::endl;
     }
@@ -44,7 +45,7 @@ public:
 
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
-
+       // udp_thread =udp_thread_;
         //然后开启各个线程
         img_proj.Init(pubsub);
         EZLOG(INFO)<< "img_proj success!!"<<endl;
@@ -54,24 +55,24 @@ public:
         EZLOG(INFO)<< "opt_mapping success!!"<<endl;
         imu_pre.Init(pubsub);
         EZLOG(INFO)<< "imu_pre success!!"<<endl;
+      //  mapManager.Init(pubsub);
 
         //构建数据流关系
         auto add_CloudInfo_from_imgproj_to_ftextr =
                 std::bind(&FeatureExtraction::AddCloudData, &ft_extr,std::placeholders::_1);
         auto add_CloudFeature_from_ftextr_to_optmapping =
                 std::bind(&OPTMapping::AddCloudData, &opt_mapping,std::placeholders::_1);
-       // auto add_OdometryType_from_optmapping_to_imupre =
-         //       std::bind(&IMU_DR::AddOdomData, &imu_pre,std::placeholders::_1);
-        auto add_GNSSOdometryType_from_imgproj_to_optmapping =
-                std::bind(&OPTMapping::AddGNSSToOpt, &opt_mapping,std::placeholders::_1);
-        auto add_DROdometryType_from_imupre_to_imgproj =
-                std::bind(&ImageProjection::AddIMUOdomData, &img_proj,std::placeholders::_1);
 
-       // img_proj.Function_AddOdometryTypeToOPTMapping = add_OdometryType_from_imgproj_to_optmapping;
+      //  auto add_GNSSOdometryType_from_imgproj_to_optmapping =
+       //         std::bind(&OPTMapping::AddGNSSToOpt, &opt_mapping,std::placeholders::_1);
+        auto add_DROdometryType_from_imupre_to_imgproj =
+                std::bind(&DataPreprocess::AddDrOdomData, &img_proj,std::placeholders::_1);
+
+
         img_proj.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_imgproj_to_ftextr;
 
         ft_extr.Function_AddCloudFeatureToOPTMapping = add_CloudFeature_from_ftextr_to_optmapping;
-        img_proj.Function_AddGNSSOdometryTypeToOPTMapping = add_GNSSOdometryType_from_imgproj_to_optmapping;
+        //img_proj.Function_AddGNSSOdometryTypeToOPTMapping = add_GNSSOdometryType_from_imgproj_to_optmapping;
         imu_pre.Function_AddDROdometryTypeToImageProjection = add_DROdometryType_from_imupre_to_imgproj;
         EZLOG(INFO) << "Init finish!!! " << std::endl;
     }
