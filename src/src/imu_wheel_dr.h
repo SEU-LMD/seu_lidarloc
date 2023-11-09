@@ -23,6 +23,7 @@ using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
 
 class imu_wheel_dr  {
 public:
+    int slam_mode_switch = 1;
     PubSubInterface* pubsub;
     std::mutex odom_mutex;
     std::mutex gnssins_mutex;
@@ -166,7 +167,7 @@ public:
         if(!init)
         {
             double x,y,z;
-            if(MappingConfig::slam_mode_switch){
+            if(slam_mode_switch){
                 std::ifstream downfile(MappingConfig::save_map_path+"Origin.txt");  //打开文件
                 std::string line; //字符串
                 std::getline(downfile, line);//
@@ -270,7 +271,7 @@ public:
         //for debug use
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";
-        if(MappingConfig::slam_mode_switch == 1){
+        if(slam_mode_switch == 1){
             Function_AddDROdometryTypeToFuse(DR_pose);
             EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose begin: ";
             EZLOG(INFO)<<DR_pose.pose.pose;
@@ -301,20 +302,23 @@ public:
         last_state = state;
     }
 
-    void Init(PubSubInterface* pubsub_,DataPreprocess* _data_prep_ptr,std::shared_ptr<UDP_THREAD> udp_thread_){
+    void Init(PubSubInterface* pubsub_,DataPreprocess* _data_prep_ptr,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
 
         //设置imu的参数
         SetIMUPreParamter();
+        slam_mode_switch = _slam_mode_switch;
+        EZLOG(INFO)<<"imu wheel dr init : slam_mode_switch: "<<slam_mode_switch;
         data_prep_ptr = _data_prep_ptr;
         pubsub = pubsub_;
         udp_thread = udp_thread_;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
         pubsub->addPublisher(topic_imu_raw_odom_origin, DataType::ODOMETRY, 10);
     }
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
 
         //设置imu的参数
         SetIMUPreParamter();
+        slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
         pubsub->addPublisher(topic_imu_raw_odom_origin, DataType::ODOMETRY, 10);

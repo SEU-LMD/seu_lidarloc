@@ -33,6 +33,7 @@ public:
 
 class DataPreprocess {
 public:
+    int slam_mode_switch = 1;
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     std::mutex work_mutex;
@@ -909,8 +910,9 @@ public:
     }
 
     // not UDP
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
         AllocateMemory();
+        slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
@@ -933,8 +935,9 @@ public:
 
 
     // UDP
-    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
+    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
         AllocateMemory();
+        slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         udp_thread = udp_thread_;
         pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
