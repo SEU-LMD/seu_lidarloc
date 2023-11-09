@@ -38,6 +38,8 @@ public:
     std::mutex work_mutex;
     std::mutex gnssins_mutex;
     std::mutex imuodom_mutex;
+    bool flag_first_gnss = 0;
+    PoseT First_gnss_pose;
 
     std::thread* do_work_thread;
 
@@ -63,6 +65,7 @@ public:
     std::string topic_origin_cloud_world = "/origin_cloud_world";
     std::string topic_deskew_cloud_world = "/deskew_cloud_world";
     std::string topic_gnss_odom_world = "/gnss_odom_world";
+    std::string topic_gnss_odom_world_origin = "/gnss_odom_world_origin";
     std::string topic_deskw_cloud_to_ft_world = "/deskw_cloud_to_ft_world";
     std::string topic_imuodom_curlidartime_world = "/imuodom_curlidartime_world";
 
@@ -80,9 +83,21 @@ public:
     double cloud_min_ros_timestamp;
     double cloud_max_ros_timestamp;
 
-
     std::shared_ptr<UDP_THREAD> udp_thread;//udp
 
+    bool GetFirstGnssPose(PoseT &_First_gnss_pose){
+        if(flag_first_gnss == true){
+            EZLOG(INFO)<<" First Gnss Pose get!";
+            _First_gnss_pose = First_gnss_pose;
+            EZLOG(INFO)<< "First_gnss_pose: ";
+            EZLOG(INFO)<< First_gnss_pose.pose;
+            return true;
+        }
+        else{
+            EZLOG(INFO)<<"Wait for GNSS First Pose!!!";
+            return false;
+        }
+    }
 
     void  AllocateMemory() {
         deskewCloud_body.reset(new pcl::PointCloud<PointType>());
@@ -786,9 +801,10 @@ public:
             }
             else{
                 geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
+                MapSaver::SaveOriginLLA(data.lla);
+                EZLOG(INFO)<<"save first GNSS points: "<<data.lla[0]<<", "<<data.lla[1]<<", "<<data.lla[2];
             }
             init = true;
-            MapSaver::SaveOriginLLA(data.lla);
             return;
         }
 
@@ -822,29 +838,23 @@ public:
                 0,                 1,               0 ,
                 -sin(roll_X),      0,         cos(roll_X);
 
-        Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb
+        Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb zxy右前上，zyx前左上
         Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
         Eigen::Quaterniond q_w_b(R_w_b);//获得局部坐标系的四元数
         PoseT T_w_b(t_w_b, R_w_b);
-//        world is GNSS ,base is car, T_w_l =
+
+        OdometryType T_w_b_pub_origin;
+        T_w_b_pub_origin.frame = "map";
+        T_w_b_pub_origin.timestamp = data.timestamp;
+        T_w_b_pub_origin.pose = T_w_b;
+
+        pubsub->PublishOdometry(topic_gnss_odom_world_origin, T_w_b_pub_origin);
+
         PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
-//        T_w_l:
-//        -0.973379  -0.229171 0.00382091   -128.353
-//        0.2292  -0.973157  0.0207947 0.00482607
-//        -0.0010472  0.0211169   0.999776  0.0740949
-//        0          0          0          1
-//        T_w_b:
-//        0.229171   -0.973379  0.00382091    -128.355
-//        0.973157      0.2292   0.0207947 -0.00585202
-//        -0.0211169  -0.0010472    0.999776    -0.43929
-//        0           0           0           1
-
-        OdometryType T_w_b_pub;
-        T_w_b_pub.frame = "map";
-        T_w_b_pub.timestamp = data.timestamp;
-        T_w_b_pub.pose = T_w_b;
-
-       // pubsub->PublishOdometry(topic_gnss_raw_body, T_w_b_pub);
+//        if(flag_first_gnss == false){
+//            First_gnss_pose = T_w_l;
+//            flag_first_gnss = true;
+//        }
 
         OdometryType T_w_l_pub;
         T_w_l_pub.frame = "map";
@@ -898,6 +908,7 @@ public:
         imuodom_mutex.unlock();
     }
 
+    // not UDP
     void Init(PubSubInterface* pubsub_){
         AllocateMemory();
         pubsub = pubsub_;
@@ -905,6 +916,7 @@ public:
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
+        pubsub->addPublisher(topic_gnss_odom_world_origin, DataType::ODOMETRY,2000);
         pubsub->addPublisher(topic_imuodom_curlidartime_world, DataType::ODOMETRY,2000);
 
         pubsub->addPublisher(topic_ground_world,DataType::LIDAR,1);
@@ -919,6 +931,8 @@ public:
         EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
     }
 
+
+    // UDP
     void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
         AllocateMemory();
         pubsub = pubsub_;
@@ -927,6 +941,7 @@ public:
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
+        pubsub->addPublisher(topic_gnss_odom_world_origin, DataType::ODOMETRY,2000);
         pubsub->addPublisher(topic_imuodom_curlidartime_world, DataType::ODOMETRY,2000);
 
         pubsub->addPublisher(topic_ground_world,DataType::LIDAR,1);

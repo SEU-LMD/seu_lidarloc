@@ -69,6 +69,7 @@ public:
     std::deque<CloudFeature> deque_cloud;
     std::string topic_priorMap_surf= "/priorMap_surf";
     std::string topic_priorMap_corner = "/priorMap_corner";
+    std::string topic_current_lidarPcl= "/lidar_current_pcl";
     std::string topic_lidar_origin_odometry = "/lidar_origin_odometry";
 
     pcl::PointCloud<PointType>::Ptr Keyframe_Poses3D;  //历史关键帧 位置
@@ -102,6 +103,8 @@ public:
     Eigen::Affine3f transPointAssociateToMap;
     Eigen::Affine3f T_wl;
 
+    Eigen::Matrix4d T_wb_pub;
+
     float current_T_m_l[6]; // roll pitch yaw x y z
     double timeLaserInfoCur;
 
@@ -109,6 +112,7 @@ public:
     cv::Mat matP;
 
     int lidarScan_cnt = 0;
+
 
     void AddCloudData(const CloudFeature& cloud_ft){
         if(lidarScan_cnt > SensorConfig::lidarScanDownSample){
@@ -302,8 +306,8 @@ public:
     //cur_ft = fuse res TODO 1030
     void updateInitialGuess(CloudFeature &cur_ft,PointType &_init_point) {
 
-        Eigen::Vector3d t_w_cur,t_w_cur_DR;
-        Eigen::Quaterniond q_w_cur,q_w_cur_DR;
+        Eigen::Vector3d t_w_cur;
+        Eigen::Quaterniond q_w_cur;
         Eigen::Matrix3d q_w_cur_matrix;
         double q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
 
@@ -312,6 +316,8 @@ public:
         q_w_cur = cur_ft.DRPose.GetR();
         q_w_cur.normalize();
         q_w_cur_matrix = q_w_cur.toRotationMatrix();
+        T_wb_pub.block<3,3>(0, 0) = q_w_cur_matrix;
+        T_wb_pub.block<3,1>(0, 3) = t_w_cur;
 
         // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
         q_w_cur_pitch = asin(-q_w_cur_matrix(2, 0)); // 计算pitch
@@ -323,9 +329,6 @@ public:
             q_w_cur_yaw = atan2(-q_w_cur_matrix(0, 1), q_w_cur_matrix(1, 1)); // 计算yaw
         }
 
-        EZLOG(INFO)<<"t_w_cur_DR: "<<t_w_cur_DR.transpose();
-        EZLOG(INFO)<<"q_w_cur_DR: ";
-        EZLOG(INFO)<<q_w_cur_DR;
         // initialization the  frame
 
         //TODO GNSS init
@@ -375,6 +378,7 @@ public:
         T_matrix_L_B(0,3) = 0.0;
         T_matrix_L_B(1,3) = 0.0;
         T_matrix_L_B(2,3) = 0.0;
+        //TODO ?
         pcl::transformPointCloud(*_localMap_surf_ds, *_localMap_surf_ds, T_matrix_L_B.inverse());
         pcl::transformPointCloud(*_localMap_corner_ds, *_localMap_corner_ds, T_matrix_L_B.inverse());
 
@@ -412,6 +416,13 @@ public:
 
         EZLOG(INFO) << "_current_corner_ds->size(): "<<_current_corner_ds->size()
                     << " _current_surf_ds->size(): " <<_current_surf_ds->size();
+
+        CloudTypeXYZI currentlidar_surf_pub;
+        currentlidar_surf_pub.frame = "map";
+        currentlidar_surf_pub.timestamp = timeLaserInfoCur;
+        pcl::transformPointCloud(*_current_corner_ds, currentlidar_surf_pub.cloud, (T_wb_pub).cast<float>());
+        pubsub->PublishCloud(topic_current_lidarPcl, currentlidar_surf_pub);
+
 
     }
 
@@ -882,14 +893,14 @@ public:
                               pcl::PointCloud<PointType>::Ptr &_localMap_corner_ds,
                               pcl::PointCloud<PointType>::Ptr &_localMap_surf_ds) {
         if (Keyframe_Poses3D->points.empty()) { return; }
-
+        const int maxIters = SensorConfig::LMOpt_Cnt;
         if (_current_corner_ds->size() > MappingConfig::edgeFeatureMinValidNum &&
             _current_surf_ds->size() > MappingConfig::surfFeatureMinValidNum) {
 //            add by prior map
             kdtree_localMap_corner->setInputCloud(_localMap_corner_ds);
             kdtree_localMap_surf->setInputCloud(_localMap_surf_ds);
             TicToc optimize_time;
-            for (int iterCount = 0; iterCount < 30; iterCount++) {
+            for (int iterCount = 0; iterCount < maxIters; iterCount++) {
                 laserCloudOri->clear();
                 coeffSel->clear();
 
@@ -898,15 +909,14 @@ public:
 
                 combineOptimizationCoeffs(_current_corner_ds->size(),_current_surf_ds->size());
 
-                //LMOpt_Cnt = 30
-                if(iterCount > SensorConfig::LMOpt_Cnt){
-                    EZLOG(INFO)<<"LMOptimization FAILED!!";
+                if (LMOptimization(iterCount) == true) {
+                    EZLOG(INFO)<<"LMOptimization Success!!"<<endl;
+                    EZLOG(INFO)<<"iterCount: " << iterCount<<std::endl;
+                    EZLOG(INFO)<< "optimize_time in ms: "<<optimize_time.toc() <<std::endl;
                     break;
                 }
-
-                if (LMOptimization(iterCount) == true) {
-                    std::cout <<"iterCount: " << iterCount<<std::endl;
-                    std::cout << "optimize_time in ms: "<<optimize_time.toc() <<std::endl;
+                if(iterCount == SensorConfig::LMOpt_Cnt - 1){
+                    EZLOG(INFO)<<"LMOptimization FAILED!!"<<endl;
                     break;
                 }
             }
@@ -1079,6 +1089,7 @@ public:
         allocateMemory();
         pubsub->addPublisher(topic_priorMap_corner, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_priorMap_surf, DataType::LIDAR, 10);
+        pubsub->addPublisher(topic_current_lidarPcl, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_lidar_origin_odometry, DataType::ODOMETRY, 10);
         do_work_thread = new std::thread(&LOCMapping::DoWork, this);
     }

@@ -14,7 +14,7 @@
 #include "imu_wheel_dr.h"
 #include "utils/config_helper.h"
 #include "opt_loc.h"
-#include "fuse.h"
+#include "fuse_info.h"
 #include "map_loader.h"
 
 #include "utils/udp_thread.h"  //add udp
@@ -48,10 +48,11 @@ public:
         pubsub = pubsub_;
         udp_thread =udp_thread_;
         //然后开启各个线程
+        // 将data_prep to map_manager
         data_prep.Init(pubsub, udp_thread);
         ft_extr.Init(pubsub);
         loc_mapping.Init(pubsub,&mapManager,udp_thread);
-        imu_pre.Init(pubsub,udp_thread);
+        imu_pre.Init(pubsub,&data_prep,udp_thread);
         fuse.Init(pubsub,udp_thread);
         mapManager.Init(pubsub);
 
