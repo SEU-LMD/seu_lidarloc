@@ -25,6 +25,7 @@ struct by_value {
 
 class FeatureExtraction  {
 public:
+    int slam_mode_switch = 0;
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     std::mutex work_mutex;
@@ -376,7 +377,7 @@ public:
 //                switch it when you test your code
 //                opt_mapping_ptr->AddCloudData(cloud_feature);
 //                loc_mapping_ptr->AddCloudData(cloud_feature);
-                if(MappingConfig::slam_mode_switch == 0 ){
+                if(slam_mode_switch == 0 ){
                     Function_AddCloudFeatureToOPTMapping(cloud_feature);
                     EZLOG(INFO)<<"3 feature_extraction send to Mapping!And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
                 }
@@ -416,8 +417,10 @@ public:
         cloud_mutex.unlock();
     }
 
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
         AllocateMemeory();
+        slam_mode_switch = _slam_mode_switch;
+        EZLOG(INFO)<<"feature Extraction init! slam_mode_switch:"<<slam_mode_switch;
         downSizeFilter.setLeafSize(MappingConfig::odometrySurfLeafSize, MappingConfig::odometrySurfLeafSize,
                                    MappingConfig::odometrySurfLeafSize);
 
@@ -425,10 +428,6 @@ public:
         pubsub->addPublisher(topic_corner_world, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_surf_world, DataType::LIDAR, 10);
         do_work_thread = new std::thread(&FeatureExtraction::DoWork, this);
-        if(MappingConfig::slam_mode_switch == 0){
-            //save_Map_thread = new std::thread(&MapSaver::do_work, &(FeatureExtraction::map_saver));
-        }
-
 
     }
 

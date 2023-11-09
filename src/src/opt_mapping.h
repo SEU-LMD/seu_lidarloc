@@ -747,6 +747,8 @@ public:
                         make_pair(laserCloudCornerTemp, laserCloudSurfTemp);
             }
         }
+       // EZLOG(INFO)<<" (int) cloudToExtract->size(): "<<t1.toc();
+      //  TicToc t2;
         // Downsample the surrounding corner key frames (or map)
 //        downSizeFilterCorner.;
         downSizeFilterCorner.setInputCloud(laserCloudCornerFromMap);
@@ -933,8 +935,8 @@ public:
                     a012_z = (y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1);
                     float a012 =
                             sqrt(a012_x * a012_x +
-                                    a012_y * a012_y +
-                                    a012_z * a012_z);
+                                 a012_y * a012_y +
+                                 a012_z * a012_z);
 
                     float l12 = sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) +
                                      (z1 - z2) * (z1 - z2));
@@ -944,7 +946,7 @@ public:
                              (z1 - z2) * ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1))) /
                             a012 / l12;
                     // float la = matv1_f[0];
-                  // EZLOG(INFO)<<"la"<<la<<endl;
+                    // EZLOG(INFO)<<"la"<<la<<endl;
                     float lb =
                             -((x1 - x2) * ((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) -
                               (z1 - z2) * ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1))) /
@@ -1349,6 +1351,7 @@ public:
             sqrt(x * x + y * y + z * z) < MappingConfig::surroundingkeyframeAddingDistThreshold)
             return false;
 
+        // std::cout << "distance gap: " << sqrt(x * x + y * y) << std::endl;
         keyframeDistances.push_back(sqrt(x * x + y * y));
         //EZLOG(INFO)<<"get out saveFrame "<<endl;
         return true;
@@ -1359,6 +1362,7 @@ public:
         //对于第一帧关键帧，则将置信度设置差一点。尤其是平移和yaw角
         //将Lidar转到世界坐标系
 
+        //EZLOG(INFO)<<"get in addOdomFactor "<<endl;
         if (cloudKeyPoses3D->points.empty()) {
             gtsam::noiseModel::Diagonal::shared_ptr priorNoise =
                     gtsam::noiseModel::Diagonal::Variances(
@@ -1374,6 +1378,7 @@ public:
             gtsam::noiseModel::Diagonal::shared_ptr odometryNoise =
                     gtsam::noiseModel::Diagonal::Variances(
                             (gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
+
 
             gtsam::Pose3 poseFrom =
                     pclPointTogtsamPose3(cloudKeyPoses6D->points.back());
@@ -1410,6 +1415,13 @@ public:
             if (pointDistance(cloudKeyPoses3D->front(), cloudKeyPoses3D->back()) < 5.0)
                 return;
         }
+        EZLOG(INFO)<<"2"<<endl;
+        // last gps position
+//        std::deque<GNSSOdometryType> gnssodom_copy;
+//        gnssins_mutex.lock();
+//        gnssodom_copy = GnssQueue;
+//        EZLOG(INFO)<<gnssodom_copy.size()<<endl;
+//        gnssins_mutex.unlock();
 
         static PointType lastGPSPoint;
 
@@ -1620,6 +1632,7 @@ public:
                 map_saver.SavePoses(opt_poses);
                 //lastGnsskeyFrame = numPoses;
                 //更新path
+               // updatePath(cloudKeyPoses6D->points[i]);
             }
 
             isAddloopFrame = false;
@@ -1627,7 +1640,7 @@ public:
             isAddOdomKeyFrame == false;
 
         }
-      //  EZLOG(INFO)<<"get out correctPoses "<<endl;
+        EZLOG(INFO)<<"get out correctPoses "<<endl;
     }
 
     //发布优化后的里程计

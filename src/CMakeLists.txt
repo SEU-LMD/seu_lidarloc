@@ -67,6 +67,12 @@ MESSAGE(STATUS "------------${EIGEN3_INCLUDE_DIR}------------------")
 MESSAGE(STATUS "------------${GTSAM_INCLUDE_DIR}------------------")
 MESSAGE(STATUS "------------${PCL_INCLUDE_DIRS}------------------")
 MESSAGE(STATUS "PCL_LIBRARIES:------------${PCL_LIBRARY_DIRS}------------------")
+FILE(WRITE cur_pwd.txt ${CMAKE_SOURCE_DIR}) # add by sy
+
+set(ABS_CURRENT_SOURCE_PATH ${CMAKE_SOURCE_DIR})
+
+CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/config/abs_current_path.h.ini
+        ${CMAKE_SOURCE_DIR}/config/abs_current_path.h)
 
 ###########
 ## Build ##

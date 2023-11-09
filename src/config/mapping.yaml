@@ -36,9 +36,9 @@
   mappingSurfLeafSize: 0.4                      # default: 0.4 - outdoor, 0.2 - indoor
   surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses
 # 1:
-  odometrySurfRadiusSize_US: 0.3                     # default: 0.4 - outdoor, 0.2 - indoor
-  mappingCornerRadiusSize_US: 0.2                    # default: 0.2 - outdoor, 0.1 - indoor
-  mappingSurfRadiusSize_US: 0.3                      # default: 0.4 - outdoor, 0.2 - indoor
+  odometrySurfRadiusSize_US: 0.2                     # default: 0.4 - outdoor, 0.2 - indoor
+  mappingCornerRadiusSize_US: 0.1                    # default: 0.2 - outdoor, 0.1 - indoor
+  mappingSurfRadiusSize_US: 0.2                      # default: 0.4 - outdoor, 0.2 - indoor
   surroundingKeyframeDensity_US: 1.0               # meters, downsample surrounding keyframe poses
 
   # robot motion constraint (in case you are using a 2D robot)

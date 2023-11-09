@@ -14,7 +14,7 @@
 #include "imu_wheel_dr.h"
 #include "utils/config_helper.h"
 #include "opt_loc.h"
-#include "fuse.h"
+#include "fuse_info.h"
 #include "map_loader.h"
 
 #include "utils/udp_thread.h"  //add udp
@@ -26,7 +26,7 @@ public:
     DataPreprocess data_prep;
     FeatureExtraction ft_extr;
     LOCMapping loc_mapping;
-    imu_wheel_dr imu_pre;
+    imu_wheel_dr imu_wheeldr;
     Fuse fuse;
     MapManager mapManager;
 
@@ -41,17 +41,18 @@ public:
     void GNSSINSCallback(const BaseType& msg){
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         data_prep.AddGNSSINSSData(gnssins_data);
-        imu_pre.AddGNSSINSData(gnssins_data);
+        imu_wheeldr.AddGNSSINSData(gnssins_data);
     }
 
     void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
         pubsub = pubsub_;
         udp_thread =udp_thread_;
         //然后开启各个线程
-        data_prep.Init(pubsub, udp_thread);
-        ft_extr.Init(pubsub);
+        // 将data_prep to map_manager
+        data_prep.Init(pubsub, udp_thread,1);
+        ft_extr.Init(pubsub,1);
         loc_mapping.Init(pubsub,&mapManager,udp_thread);
-        imu_pre.Init(pubsub,udp_thread);
+        imu_wheeldr.Init(pubsub, &data_prep, udp_thread, 1);
         fuse.Init(pubsub,udp_thread);
         mapManager.Init(pubsub);
 
@@ -74,7 +75,7 @@ public:
             EZLOG(INFO)<<" use DR to imageProj";
             auto add_OdometryType_from_DR_to_imageProj =
                     std::bind(&DataPreprocess::AddDrOdomData, &data_prep, std::placeholders::_1);
-            imu_pre.Function_AddDROdometryTypeToImageProjection = add_OdometryType_from_DR_to_imageProj;
+            imu_wheeldr.Function_AddDROdometryTypeToImageProjection = add_OdometryType_from_DR_to_imageProj;
         }
 
 //       to fuse
@@ -97,11 +98,11 @@ public:
 //        Loc 2 fuse
         loc_mapping.Function_AddLidarOdometryTypeToFuse = add_LidarOdometryType_from_locmapping_to_fuse;
 //        DR 2 fuse
-        imu_pre.Function_AddDROdometryTypeToFuse = add_DROdometryType_from_DR_to_fuse;
+        imu_wheeldr.Function_AddDROdometryTypeToFuse = add_DROdometryType_from_DR_to_fuse;
         // fuse 2 MapManager
         fuse.Function_AddLidarOdometryTypeToMapManager = add_OdometryType_from_fuse_to_mapManager;
 //      img 2 DR load once
-//        auto add_firstGNSSPoint2DR = std::bind(&imu_wheel_dr::AddFirstGNSSPoint, &imu_pre,std::placeholders::_1);
+//        auto add_firstGNSSPoint2DR = std::bind(&imu_wheel_dr::AddFirstGNSSPoint, &imu_wheeldr,std::placeholders::_1);
 //        data_prep.Function_AddFirstGNSSPoint2DR = add_firstGNSSPoint2DR;
 
     }

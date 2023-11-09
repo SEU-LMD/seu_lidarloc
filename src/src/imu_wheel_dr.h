@@ -5,19 +5,6 @@
 #include <mutex>
 #include <thread>
 #include <iostream>
-#include "gtsam/geometry/Pose3.h"
-#include <gtsam/geometry/Rot3.h>
-#include <gtsam/inference/Symbol.h>
-#include <gtsam/navigation/CombinedImuFactor.h>
-#include <gtsam/navigation/GPSFactor.h>
-#include <gtsam/navigation/ImuFactor.h>
-#include <gtsam/nonlinear/ISAM2.h>
-#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
-#include <gtsam/nonlinear/Marginals.h>
-#include <gtsam/nonlinear/NonlinearFactorGraph.h>
-#include <gtsam/nonlinear/Values.h>
-#include <gtsam/slam/BetweenFactor.h>
-#include <gtsam/slam/PriorFactor.h>
 
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
@@ -28,12 +15,16 @@
 #include "utils/udp_thread.h"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 
+#include "GeoGraphicLibInclude/LocalCartesian.hpp"
+
+
 using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p,y)
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
 
 class imu_wheel_dr  {
 public:
+    int slam_mode_switch = 1;
     PubSubInterface* pubsub;
     std::mutex odom_mutex;
     std::mutex gnssins_mutex;
@@ -44,10 +35,12 @@ public:
     std::ofstream outfile;
 
     std::thread* do_lidar_thread;
-
+    DataPreprocess* data_prep_ptr;
+    GeographicLib::LocalCartesian geoConverter;
     std::deque<GNSSINSType> deque_gnssins;
 
     std::string topic_imu_raw_odom = "/imu_odom_raw";
+    std::string topic_imu_raw_odom_origin = "/imu_odom_raw_origin";
 
     bool systemInitialized = false;
     // 噪声协方差
@@ -76,7 +69,6 @@ public:
     double lastImuT_imu = -1;
 
     gtsam::ISAM2 optimizer;
-    gtsam::NonlinearFactorGraph graphFactors;
     gtsam::Values graphValues;
 
     int key = 1;
@@ -94,15 +86,10 @@ public:
     Eigen::Matrix3d R_w_b;
     double current_V;
     IMURawDataPtr cur_imu;
-    gtsam::NonlinearFactorGraph* graph;
 
     std::shared_ptr<UDP_THREAD> udp_thread;
     bool flag_firstGNSSPoint = 0;
-
-
-    Eigen::Matrix3d rotVecToMat(const Eigen::Vector3d &rvec){
-        return Eigen::AngleAxisd(rvec.norm(),rvec.normalized()).toRotationMatrix();
-    }
+    PoseT First_Gnss_poseT;
 
     Eigen::Matrix3d deltaRotMat(const Eigen::Vector3d &delta_rot_vec) {
         Eigen::Matrix3d delta_R = Eigen::Matrix3d::Identity();
@@ -177,20 +164,8 @@ public:
             state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
         }
 
-//        EZLOG(INFO)<<"gyr_unbias : "<<gyr_unbias.transpose();
-//        EZLOG(INFO)<<"dR :"<<dR;
-//        EZLOG(INFO)<<"state Rwb_: ";
-//        std::cout<<state.Rwb_<< std::endl;
-//        EZLOG(INFO)<<"state p_wb_: "<<state.p_wb_.transpose();
-//        EZLOG(INFO)<<"state v_wb_: "<<state.v_w_.transpose();
-//        EZLOG(INFO)<<"last_state Rwb_: ";
-//        std::cout<<last_state.Rwb_<< std::endl;
-//        EZLOG(INFO)<<"last_state p_wb_: "<<last_state.p_wb_.transpose();
-//        EZLOG(INFO)<<"last_state v_wb_: "<<last_state.v_w_.transpose();
-        last_state = state;
-
-
-    }
+       // last_state = state;
+   // }
     gtsam::NavState IMU_predict(IMURawDataPtr _imu_raw){
         double imuTime = _imu_raw->timestamp;
         double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
@@ -214,6 +189,7 @@ public:
 
         return _currentState;
     }
+
 
 
 //    void Udp_OdomPub(const PoseT& data){
@@ -294,6 +270,7 @@ public:
         }
 
         OdometryType Odometry_imuPredict_pub;
+        OdometryType Odometry_imuPredict_pub_origin;
         DROdometryType DR_pose;
         if(SensorConfig::if_use_Wheel_DR == 1){
             Eigen::Matrix3d R_b_l;
@@ -332,7 +309,7 @@ public:
         //for debug use
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";
-        if(MappingConfig::slam_mode_switch == 1){
+        if(slam_mode_switch == 1){
             Function_AddDROdometryTypeToFuse(DR_pose);
             EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose begin: ";
             EZLOG(INFO)<<DR_pose.pose.pose;
@@ -436,50 +413,26 @@ public:
 
         }
 
-    }
-
-    void ClearFactorGraph() {
-        gtsam::ISAM2Params optParameters;
-        optParameters.relinearizeThreshold = 0.1;
-        optParameters.factorization = gtsam::ISAM2Params::CHOLESKY;
-        optParameters.relinearizeSkip = 10;
-        optimizer = gtsam::ISAM2(optParameters);
-
-        gtsam::NonlinearFactorGraph newGraphFactors;
-        graphFactors = newGraphFactors;
-
-        gtsam::Values NewGraphValues;
-        graphValues = NewGraphValues;
-    }
-
-//    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
+//    void Init(PubSubInterface* pubsub_,DataPreprocess* _data_prep_ptr,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
 //
 //        //设置imu的参数
 //        SetIMUPreParamter();
-//        //debug
-////        outfile.open("imu_gyro.txt",std::ios::app);
-////        if (!outfile.is_open()) {
-////            std::cerr << "无法打开输出文件 " << std::endl;
-////        }
-////        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
-//
+//        slam_mode_switch = _slam_mode_switch;
+//        EZLOG(INFO)<<"imu wheel dr init : slam_mode_switch: "<<slam_mode_switch;
+//        data_prep_ptr = _data_prep_ptr;
 //        pubsub = pubsub_;
 //        udp_thread = udp_thread_;
 //        pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
+//        pubsub->addPublisher(topic_imu_raw_odom_origin, DataType::ODOMETRY, 10);
 //    }
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
 
         //设置imu的参数
         SetIMUPreParamter();
-        //debug
-//        outfile.open("imu_gyro.txt",std::ios::app);
-//        if (!outfile.is_open()) {
-//            std::cerr << "无法打开输出文件 " << std::endl;
-//        }
-//        outfile << "gyro.x "<<"gyro.y "<<"gyro.z"<<std::endl;
-
+        slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
+        pubsub->addPublisher(topic_imu_raw_odom_origin, DataType::ODOMETRY, 10);
     }
 };
 

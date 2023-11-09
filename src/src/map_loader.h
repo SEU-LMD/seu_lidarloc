@@ -41,6 +41,8 @@ public:
     PubSubInterface* pubsub;
     std::thread* mapManager_thread;
 
+
+
     std::mutex mutex_data;
     std::mutex mutex_DR_data;
     std::mutex mtxGraph;
