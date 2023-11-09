@@ -137,8 +137,9 @@ class GNSSINSType:public BaseType{
         Eigen::Vector3d imu_linear_acc_body;
         Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
         double velocity;
+        double velocity_sigma;
         Eigen::Vector4d wheel_speed;//RR RL FR FL
-        string gps_status;
+        int gps_status;
         DataType getType(){
              return DataType::GNSS_INS;
         }

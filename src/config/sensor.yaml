@@ -62,6 +62,7 @@
   imu_type: 0   # 0: 6axis, 1:9 axis
   #T_L_B
   extrinsicTrans: [ 0.0, 0.0, -0.5135 ] # -0.5135
+  #body to Lidar
   extrinsicRot: [ 0, 1, 0,
                   -1, 0, 0,
                   0, 0, 1 ]

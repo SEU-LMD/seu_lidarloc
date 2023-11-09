@@ -480,12 +480,13 @@ public:
 //                switch it when you test your code
 //                opt_mapping_ptr->AddCloudData(cloud_feature);
 //                loc_mapping_ptr->AddCloudData(cloud_feature);
-                if(slam_mode_switch == 0 ){
-                    Function_AddCloudFeatureToOPTMapping(cloud_feature);
-                }
-                else{
-                    Function_AddCloudFeatureToLOCMapping(cloud_feature);
-                }
+
+//                if(slam_mode_switch == 0 ){
+//                    Function_AddCloudFeatureToOPTMapping(cloud_feature);
+//                }
+//                else{
+//                    Function_AddCloudFeatureToLOCMapping(cloud_feature);
+//                }
 
 
                 //for debug use

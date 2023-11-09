@@ -67,17 +67,24 @@ MESSAGE(STATUS "------------${GTSAM_INCLUDE_DIR}------------------")
 MESSAGE(STATUS "------------${PCL_INCLUDE_DIRS}------------------")
 MESSAGE(STATUS "PCL_LIBRARIES:------------${PCL_LIBRARY_DIRS}------------------")
 
+FILE(WRITE cur_pwd.txt ${CMAKE_SOURCE_DIR}) # add by sy
+
+set(ABS_CURRENT_SOURCE_PATH ${CMAKE_SOURCE_DIR})
+
+CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/config/abs_current_path.h.ini
+        ${CMAKE_SOURCE_DIR}/config/abs_current_path.h)
+
 ###########
 ## Build ##
 ############
-add_executable(mapping app_mapping/mapping.cpp)
-target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
-
+#add_executable(mapping app_mapping/mapping.cpp)
+#target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+#
 add_executable(loc app_loc/loc.cpp)
 target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
 
 #add_executable(dr_calib app_dr_calib/dr_calib.cpp)
 #target_link_libraries(dr_calib ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
 
-add_executable(data_check app_datacheck/datacheck.cpp)
-target_link_libraries(data_check ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+#add_executable(data_check app_datacheck/datacheck.cpp)
+#target_link_libraries(data_check ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES

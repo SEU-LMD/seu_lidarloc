@@ -219,24 +219,24 @@ public:
 
         R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb
 
-        if(SensorConfig::if_use_Wheel_DR == 1){
-            IMURawWheelDataPtr imuWheel_raw (new IMURawWheelData);
-            imuWheel_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
-            imuWheel_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
-            imuWheel_raw->timestamp = gnss_ins_data.timestamp;
-            imuWheel_raw->velocity = gnss_ins_data.velocity;
-            IMUWheel_predict(imuWheel_raw,R_w_b);//very important function!!!!!
-        }
-        else{
-            IMURawDataPtr imu_raw (new IMURawData);
-            imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
-            imu_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
-            imu_raw->timestamp = gnss_ins_data.timestamp;
-            gnssins_mutex.lock();
-            imuQueImu.push_back(imu_raw);
-            gnssins_mutex.unlock();
-            currentState = IMU_predict(imu_raw);//very important function!!!!!
-        }
+//        if(SensorConfig::if_use_Wheel_DR == 1){
+//            IMURawWheelDataPtr imuWheel_raw (new IMURawWheelData);
+//            imuWheel_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
+//            imuWheel_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
+//            imuWheel_raw->timestamp = gnss_ins_data.timestamp;
+//            imuWheel_raw->velocity = gnss_ins_data.velocity;
+//            IMUWheel_predict(imuWheel_raw,R_w_b);//very important function!!!!!
+//        }
+//        else{
+//            IMURawDataPtr imu_raw (new IMURawData);
+//            imu_raw->imu_angular_v = gnss_ins_data.imu_angular_v * 3.1415926535 / 180.0; //转弧度值
+//            imu_raw->imu_linear_acc = gnss_ins_data.imu_linear_acc;
+//            imu_raw->timestamp = gnss_ins_data.timestamp;
+//            gnssins_mutex.lock();
+//            imuQueImu.push_back(imu_raw);
+//            gnssins_mutex.unlock();
+//            currentState = IMU_predict(imu_raw);//very important function!!!!!
+//        }
 
         OdometryType Odometry_imuPredict_pub;
         DROdometryType DR_pose;
@@ -271,14 +271,14 @@ public:
         Odometry_imuPredict_pub.frame = "map";
 
 
-        //for debug use
+//        //for debug use
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";
-        //just for map and loc node requirements
-        if(slam_mode_switch == 1){
-            Function_AddDROdometryTypeToFuse(DR_pose);
-        }
-        pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
+//        //just for map and loc node requirements
+//        if(slam_mode_switch == 1){
+//            Function_AddDROdometryTypeToFuse(DR_pose);
+//        }
+//        pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
         Function_AddDROdometryTypeToDataPreprocess(Odometry_imuPredict_pub);
 
     }

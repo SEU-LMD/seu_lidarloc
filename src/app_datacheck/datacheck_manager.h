@@ -29,8 +29,13 @@ public:
         data_check.AddCloudData(cloud_data);
     }
 
+//    void GNSSINSCallback(const BaseType& msg){
+//        const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
+//        data_check.AddGNSSINSData(gnssins_data);
+//    }
+
     void GNSSINSCallback(const BaseType& msg){
-        const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
+         GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         data_check.AddGNSSINSData(gnssins_data);
     }
 

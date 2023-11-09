@@ -148,6 +148,7 @@ public:
                     cur_scan_cloud_w.frame = "map";
                     pcl::transformPointCloud(cloudinfo.cloud_ptr->cloud, cur_scan_cloud_w.cloud, (T_w_l_lidar_start).pose.cast<float>());
                     pubsub->PublishCloud(topic_origin_cloud_world, cur_scan_cloud_w);
+                    EZLOG(INFO)<<"pub topic_origin_cloud_world"<<endl;
                 }
                 break;
             }
@@ -341,6 +342,7 @@ public:
             pcl::transformPointCloud(deskewCloud_body_offset, cloud_pub.cloud, (T_w_b_lidar_start).pose.cast<float>());
 
             pubsub->PublishCloud(topic_deskew_cloud_world, cloud_pub);
+            EZLOG(INFO)<<"pub topic_deskew_cloud_world"<<endl;
             //        EZLOG(INFO)<<"deskewCloud_body size = "<<deskewCloud_body->points.size()<<std::endl;
 //        EZLOG(INFO)<<"deskewCloud_body_offset size = "<<deskewCloud_body_offset.points.size()<<std::endl;
 //        EZLOG(INFO)<<"deskewCloud_w size = "<<deskewCloud_w.points.size()<<std::endl;
@@ -421,20 +423,32 @@ public:
                 }
             }
             {
-                //EZLOG(INFO)<<deque_cloud.size()<<endl;
+//                EZLOG(INFO)<<"deque_cloud.size() = "<<deque_cloud.size()<<endl;
                 ///0.do something
                 std::deque<OdometryType> drodom_pose_copy;
                 {
                     std::lock_guard<std::mutex> lock(drodom_mutex);
-                    if (DrOdomQueue.empty()) continue;
-                    drodom_pose_copy = DrOdomQueue;
+//                    EZLOG(INFO)<<"DrOdomQueue.size() = "<<DrOdomQueue.size()<<endl;
+                    if (DrOdomQueue.empty()){
+                        continue;
+                    }
+                    else{
+                        drodom_pose_copy = DrOdomQueue;
+//                        EZLOG(INFO)<<"drodom_pose_copy.size() = "<<drodom_pose_copy.size()<<endl;
+                    }
                 }
+
+//                EZLOG(INFO)<<"deque_cloud.size() = "<<deque_cloud.size()<<endl;
+
                 TicToc t_imgProj;
                 double drodom_min_ros_time =  drodom_pose_copy.front().timestamp;
                 double drodom_max_ros_time =  drodom_pose_copy.back().timestamp;
+                EZLOG(INFO)<<"drodom_min_ros_time = "<<drodom_min_ros_time<<endl;
+                EZLOG(INFO)<<"drodom_max_ros_time = "<<drodom_max_ros_time<<endl;
 
                 OdometryType current_imu_data;
                 double cur_lidar_time = deque_cloud.front()->timestamp;//TODO
+                EZLOG(INFO)<<"cur_lidar_time = "<<cur_lidar_time<<endl;
 
                 /// for align GNSS pose with lidar
                 gnss_mutex.lock();
@@ -451,7 +465,7 @@ public:
                     break;
                 }
                 gnss_mutex.unlock();
-
+                EZLOG(INFO)<<"1.get cloud max and min time stamp to "<<endl;
                 ///1.get cloud max and min time stamp to
                 CloudTypeXYZIRTPtr cur_scan;
                 cloud_mutex.lock();
@@ -659,8 +673,8 @@ public:
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
-        if((lidarScan_cnt > SensorConfig::lidarScanDownSample && slam_mode_switch == 1)
-            ||slam_mode_switch == 0){
+//        if((lidarScan_cnt > SensorConfig::lidarScanDownSample && slam_mode_switch == 1)
+//            ||slam_mode_switch == 0){
             //        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
             CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
 
@@ -668,11 +682,11 @@ public:
             cloud_mutex.lock();
             deque_cloud.push_back(cloud_ptr);
             cloud_mutex.unlock();
-            lidarScan_cnt =0;
-        }
-        else{
-            lidarScan_cnt++;
-        }
+//            lidarScan_cnt =0;
+//        }
+//        else{
+//            lidarScan_cnt++;
+//        }
 
     }
 
@@ -683,16 +697,17 @@ public:
         if(!init)
         {
             double x,y,z;
-            if(slam_mode_switch == 1){
-                std::ifstream downfile(MappingConfig::save_map_path+"Origin.txt");  //打开文件
-                std::string line; //字符串
-                std::getline(downfile, line);//
-                std::istringstream iss(line);
-                iss >> x >> y >> z;
-                downfile.close(); // 关闭文件
-                geoConverter.Reset(x, y, z);
-            }
-            else{
+//            if(slam_mode_switch == 1){
+//                std::ifstream downfile(MappingConfig::save_map_path+"Origin.txt");  //打开文件
+//                std::string line; //字符串
+//                std::getline(downfile, line);//
+//                std::istringstream iss(line);
+//                iss >> x >> y >> z;
+//                downfile.close(); // 关闭文件
+//                geoConverter.Reset(x, y, z);
+//            }
+//            else
+            {
                 geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
             }
             init = true;
@@ -710,9 +725,9 @@ public:
         Eigen::Matrix3d z_matrix;//calculate Quaternion
         Eigen::Matrix3d x_matrix;
         Eigen::Matrix3d y_matrix;
-        double heading_Z = -data.yaw * 3.1415926535 / 180.0;
-        double pitch_Y = data.pitch * 3.1415926535 / 180.0;
-        double roll_X = data.roll * 3.1415926535 / 180.0;
+        double heading_Z = -data.yaw * 3.1415926535 * 0.00555556;
+        double pitch_Y = data.pitch * 3.1415926535 * 0.00555556;
+        double roll_X = data.roll * 3.1415926535 * 0.00555556;
         z_matrix << cos(heading_Z), -sin(heading_Z), 0,
                 sin(heading_Z), cos(heading_Z),  0,
                 0,                 0,            1;
@@ -764,20 +779,20 @@ public:
         T_w_l_gnss.timestamp = data.timestamp;
         T_w_l_gnss.pose = T_w_l;
 
-        EZLOG(INFO)<<"T_w_l_gnss.pose.pose = "<<T_w_l_gnss.pose.pose<<endl;
+//        EZLOG(INFO)<<"T_w_l_gnss.pose.pose = "<<T_w_l_gnss.pose.pose<<endl;
 
-//        T_w_l_gnss.pose = T_w_b;
-         if (slam_mode_switch ==1){
-             Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
-         }
-         else{  //mapping
-             Function_AddGNSSOdometryTypeToOPTMapping(T_w_l_gnss);
-         }
-       // Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
-        //pub gnss odometry in rviz
-        if(MappingConfig::if_debug){
-            pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
-        }
+////        T_w_l_gnss.pose = T_w_b;
+//         if (slam_mode_switch ==1){
+//             Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
+//         }
+//         else{  //mapping
+//             Function_AddGNSSOdometryTypeToOPTMapping(T_w_l_gnss);
+//         }
+//       // Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
+//        //pub gnss odometry in rviz
+//        if(MappingConfig::if_debug){
+//            pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
+//        }
     }
 
 
