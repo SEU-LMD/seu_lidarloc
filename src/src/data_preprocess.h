@@ -825,7 +825,7 @@ public:
         T_w_l_gnss.timestamp = data.timestamp;
         T_w_l_gnss.pose = T_w_l;
 
-         if (MappingConfig::slam_mode_switch ==1){
+         if (slam_mode_switch ==1){
              Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
              EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose is :";
              EZLOG(INFO)<<T_w_l_gnss.pose.pose;

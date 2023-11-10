@@ -1662,12 +1662,12 @@ public:
                 //更新path
             }
 
-            for(int i = start_idx; i < numPoses; ++i){
-                PoseT gloabal_corrected_pose;
-                gloabal_corrected_pose = isamCurrentEstimate.at<gtsam::Pose3>(i).matrix();
-                opt_poses.push_back(gloabal_corrected_pose);
-                map_saver.SavePoses(opt_poses);
-            }
+//            for(int i = start_idx; i < numPoses; ++i){
+//                PoseT gloabal_corrected_pose;
+//                gloabal_corrected_pose = isamCurrentEstimate.at<gtsam::Pose3>(i).matrix();
+//                opt_poses.push_back(gloabal_corrected_pose);
+//                map_saver.SavePoses(opt_poses);
+//            }
 
             isAddloopFrame = false;
             isAddGnssKeyFrame == false;
@@ -1678,7 +1678,6 @@ public:
 //                gloabal_corrected_pose = isamCurrentEstimate.at<gtsam::Pose3>(i).matrix();
 //                opt_poses.push_back(gloabal_corrected_pose);
 //                map_saver.SavePoses(opt_poses);
-
 
     }
 

@@ -6,6 +6,7 @@
 #include "easylogging++.h"
 #include "./mapping_manager.h"
 #include "utils/filesys.h"
+#include "utils/udp_thread.h"
 //选择中间件
 //#ifdef X86
 #include "pubsub/ros/ros_pubsub.h"
