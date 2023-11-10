@@ -56,7 +56,7 @@ LoadTxt(const std::string& map_in_path,const int& frame_sum)
     isss>>origin[0]>>origin[1]>>origin[2];
     originfile.close();
 
-    std::ifstream downfile(map_in_path+"Opt_Poses.txt");
+    std::ifstream downfile(map_in_path+"opt_poses.txt");
     Tum tum;
     for(int j=0;j<frame_sum;j++){
         std::string line;

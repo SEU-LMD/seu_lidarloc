@@ -1,7 +1,7 @@
 
 // Use the Velodyne point format as a common representation
-#ifndef SEU_LIDARLOC_DATAPREPROCESS_H
-#define SEU_LIDARLOC_DATAPREPROCESS_H
+#ifndef SEU_LIDARLOC_IMGPROJECTION_H
+#define SEU_LIDARLOC_IMGPROJECTION_H
 
 #define DBL_MAX		__DBL_MAX__
 
@@ -36,7 +36,7 @@ public:
 
 class DataPreprocess {
 public:
-   // int slam_mode_switch = 1;
+    int slam_mode_switch = 1;
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     std::mutex work_mutex;
@@ -708,26 +708,33 @@ public:
 
     }
 
-//    void Udp_OdomPub(const PoseT& data){
-//        Vis_Odometry odom_out;
-//        std::string fu_str;
-//        odom_out.type = "gn";
-//        odom_out.t[0]= data.GetXYZ().x();
-//        odom_out.t[1]= data.GetXYZ().y();
-//        odom_out.t[2]= data.GetXYZ().z();
-//
-//        odom_out.q.x() = data.GetQ().x();
-//        odom_out.q.y() = data.GetQ().y();
-//        odom_out.q.z() = data.GetQ().z();
-//        odom_out.q.w() = data.GetQ().w();
-//
-//        fu_str = odom_out.ToString();
-//        udp_thread -> SendUdpMSg(fu_str);
-//    }
+
+
+    void Udp_OdomPub(const PoseT& data){
+        Vis_Odometry odom_out;
+        std::string fu_str;
+        odom_out.type = "gn";
+        odom_out.t[0]= data.GetXYZ().x();
+        odom_out.t[1]= data.GetXYZ().y();
+        odom_out.t[2]= data.GetXYZ().z();
+
+
+        odom_out.q.x() = data.GetQ().x();
+        odom_out.q.y() = data.GetQ().y();
+        odom_out.q.z() = data.GetQ().z();
+        odom_out.q.w() = data.GetQ().w();
+
+        fu_str = odom_out.ToString();
+        udp_thread -> SendUdpMSg(fu_str);
+    }
 
     void AddGNSSINSSData(const GNSSINSType& data){
 
 //        deque_gnssins.push_back(data);
+        if(data.lla[0]<0 || data.lla[1]<0 || data.lla[2]<0){
+            EZLOG(INFO)<<"Bad GNSS in DataPre,drop!";
+            return;
+        }
         if(!init)
         {
             double x,y,z;
@@ -761,7 +768,7 @@ public:
         geoConverter.Forward(data.lla[0], data.lla[1], data.lla[2],
                              t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
 
-        EZLOG(INFO)<<"GNSS ORIGIN POINT"<<  t_enu[0]<<" "<<t_enu[1]<<" "<<t_enu[2]<<endl;
+        EZLOG(INFO)<<"GNSS ORIGIN POINT: "<<  t_enu[0]<<" "<<t_enu[1]<<" "<<t_enu[2]<<endl;
         Eigen::Matrix3d z_matrix;//calculate Quaternion
         Eigen::Matrix3d x_matrix;
         Eigen::Matrix3d y_matrix;
@@ -832,7 +839,7 @@ public:
          }
 
             // TODO T_w_l_pub->>>>>>> is Gnss result need UDP
-            //Udp_OdomPub(T_w_l);
+            Udp_OdomPub(T_w_l);
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
 //        }
     }
@@ -846,8 +853,9 @@ public:
     }
 
     // not UDP
-    void Init(PubSubInterface* pubsub_){
+    void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
         AllocateMemory();
+        slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
@@ -870,29 +878,29 @@ public:
 
 
     // UDP
-//    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
-//        AllocateMemory();
-//        slam_mode_switch = _slam_mode_switch;
-//        pubsub = pubsub_;
-//        udp_thread = udp_thread_;
-//        pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
-//        pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
-//        pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
-//        pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
-//        pubsub->addPublisher(topic_gnss_odom_world_origin, DataType::ODOMETRY,2000);
-//        pubsub->addPublisher(topic_imuodom_curlidartime_world, DataType::ODOMETRY,2000);
-//
-//        pubsub->addPublisher(topic_ground_world,DataType::LIDAR,1);
-//        pubsub->addPublisher(topic_unground_world,DataType::LIDAR,1);
-//
-//        pubsub->addPublisher(topic_cloud_pillar_world,DataType::LIDAR,1);
-//        pubsub->addPublisher(topic_cloud_beam_world,DataType::LIDAR,1);
-//        pubsub->addPublisher(topic_cloud_facade_world,DataType::LIDAR,1);
-//        pubsub->addPublisher(topic_cloud_roof_world,DataType::LIDAR,1);
-//
-//        do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
-//        EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
-//    }
+    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
+        AllocateMemory();
+        slam_mode_switch = _slam_mode_switch;
+        pubsub = pubsub_;
+        udp_thread = udp_thread_;
+        pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
+        pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
+        pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
+        pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
+        pubsub->addPublisher(topic_gnss_odom_world_origin, DataType::ODOMETRY,2000);
+        pubsub->addPublisher(topic_imuodom_curlidartime_world, DataType::ODOMETRY,2000);
+
+        pubsub->addPublisher(topic_ground_world,DataType::LIDAR,1);
+        pubsub->addPublisher(topic_unground_world,DataType::LIDAR,1);
+
+        pubsub->addPublisher(topic_cloud_pillar_world,DataType::LIDAR,1);
+        pubsub->addPublisher(topic_cloud_beam_world,DataType::LIDAR,1);
+        pubsub->addPublisher(topic_cloud_facade_world,DataType::LIDAR,1);
+        pubsub->addPublisher(topic_cloud_roof_world,DataType::LIDAR,1);
+
+        do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
+        EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
+    }
 
     struct eigenvalue_t // Eigen Value ,lamada1 > lamada2 > lamada3;
     {

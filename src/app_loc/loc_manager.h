@@ -52,10 +52,9 @@ public:
         data_prep.Init(pubsub, udp_thread,1);
         ft_extr.Init(pubsub,1);
         loc_mapping.Init(pubsub,&mapManager,udp_thread);
-        imu_wheeldr.Init(pubsub, &data_prep, udp_thread, 1);
+        imu_wheeldr.Init(pubsub, udp_thread, 1);
         fuse.Init(pubsub,udp_thread);
         mapManager.Init(pubsub);
-
 
         //构建数据流关系
 //        auto add_imuodo_to_imgproj = std::bind(&DataPreprocess::AddIMUOdomData, &data_prep,std::placeholders::_1);
