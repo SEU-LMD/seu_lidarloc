@@ -10,9 +10,8 @@
 #include "pubsub/data_types.h"
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
-#include "data_preprocess.h"
 
-//#include "udp_seralize.h"
+#include "udp_seralize.h"
 #include "utils/udp_thread.h"
 
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
@@ -34,7 +33,6 @@ public:
     std::ofstream outfile;
 
     std::thread* do_lidar_thread;
-    //DataPreprocess* data_prep_ptr;
     GeographicLib::LocalCartesian geoConverter;
     std::deque<GNSSINSType> deque_gnssins;
 
@@ -66,21 +64,8 @@ public:
     Eigen::Vector3d prior_gyro_bias;
 
     double lastImuT_imu = -1;
-
-    gtsam::ISAM2 optimizer;
-    gtsam::Values graphValues;
-
     int key = 1;
-
-    gtsam::Pose3 imu2Lidar =
-            gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0),
-                         gtsam::Point3(-SensorConfig::extrinsicTrans.x(), -SensorConfig::extrinsicTrans.y(), -SensorConfig::extrinsicTrans.z()));
-    gtsam::Pose3 lidar2Imu =
-            gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0),
-                         gtsam::Point3(SensorConfig::extrinsicTrans.x(), SensorConfig::extrinsicTrans.y(), SensorConfig::extrinsicTrans.z()));
     OdometryType first_lidar_odom;
-    gtsam::NavState firstLidarPose;
-    gtsam::NavState currentState,lastState;
     StateData state,last_state;
     Eigen::Matrix3d R_w_b;
     double current_V;
@@ -126,64 +111,53 @@ public:
         Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
         state.v_w_ = state_v_w;
         state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
-      //  EZLOG(INFO)<<state.p_wb_.x()<< " "<< state.p_wb_.y() <<" "<<state.p_wb_.z()<<endl;
+        EZLOG(INFO)<<state.p_wb_.x()<< " "<< state.p_wb_.y() <<" "<<state.p_wb_.z()<<endl;
 
         last_state = state;
     }
 
-//    void Udp_OdomPub(const PoseT& data){
-//        Vis_Odometry odom_out;
-//        std::string fu_str;
-//        odom_out.type = "dr";
-//        odom_out.t[0]= data.GetXYZ().x();
-//        odom_out.t[1]= data.GetXYZ().y();
-//        odom_out.t[2]= data.GetXYZ().z();
-//
-//        odom_out.q.x() = data.GetQ().x();
-//        odom_out.q.y() = data.GetQ().y();
-//        odom_out.q.z() = data.GetQ().z();
-//        odom_out.q.w() = data.GetQ().w();
-//
-//        fu_str = odom_out.ToString();
-//        udp_thread -> SendUdpMSg(fu_str);
-//    }
+    void Udp_OdomPub(const PoseT& data){
+        Vis_Odometry odom_out;
+        std::string fu_str;
+        odom_out.type = "dr";
+        odom_out.t[0]= data.GetXYZ().x();
+        odom_out.t[1]= data.GetXYZ().y();
+        odom_out.t[2]= data.GetXYZ().z();
+
+        odom_out.q.x() = data.GetQ().x();
+        odom_out.q.y() = data.GetQ().y();
+        odom_out.q.z() = data.GetQ().z();
+        odom_out.q.w() = data.GetQ().w();
+
+        fu_str = odom_out.ToString();
+        udp_thread -> SendUdpMSg(fu_str);
+    }
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
 
         TicToc time1;
         double currentTime = gnss_ins_data.timestamp;
-//        if(data_prep_ptr->GetFirstGnssPose(First_Gnss_poseT) == true){
-//            state.p_wb_ = First_Gnss_poseT.GetXYZ();
-//            last_state = state;
-//            EZLOG(INFO)<<"Get GNSS First Pose: ";
-//            EZLOG(INFO)<<state.p_wb_;
-//        }
-//        else{
-//            EZLOG(INFO)<<"Waiting for First GNSS pose";
-//            return ;
-//        }
         static bool init = false;
         static bool load_first_gnss_point = false;
-       // EZLOG(INFO)<<"lla:"<<gnss_ins_data.lla[0]<<","<<gnss_ins_data.lla[1]<<","<<gnss_ins_data.lla[2]<<endl;
-        if(!init && (gnss_ins_data.gps_status == 42 || gnss_ins_data.gps_status == 52))
+
+        if(!init)
         {
             double x,y,z;
-            if(slam_mode_switch == 1){
+            if(slam_mode_switch){
                 std::ifstream downfile(MappingConfig::save_map_path+"Origin.txt");  //打开文件
                 std::string line; //字符串
                 std::getline(downfile, line);//
                 std::istringstream iss(line);
                 iss >> x >> y >> z;
-               // EZLOG(INFO)<<"First GNSS position: "<<x<<", "<<y<<", "<<z;
+                EZLOG(INFO)<<"First GNSS position: "<<x<<", "<<y<<", "<<z;
                 downfile.close(); // 关闭文件
                 geoConverter.Reset(x, y, z);
-               // EZLOG(INFO)<<"origin point"<<x<<","<<y<<","<<z;
 
             }
             else{
                 geoConverter.Reset(gnss_ins_data.lla[0], gnss_ins_data.lla[1], gnss_ins_data.lla[2]);
             }
-            init = true;
+            init = 1;
             return;
         }
 
@@ -191,7 +165,11 @@ public:
         static int gnss_cnt = 0;
         // first init, or gnss_cnt>500,but gnss must 42 or 52
         if(load_first_gnss_point == false || gnss_cnt > 500){
-           // if(gnss_ins_data.gps_status == 42 || gnss_ins_data.gps_status == 52){
+            if(gnss_ins_data.lla[0]<0 || gnss_ins_data.lla[1]<0 || gnss_ins_data.lla[2]<0){
+                EZLOG(INFO)<<"Bad GNSS in DR,drop!";
+                return;
+            }
+            if(gnss_ins_data.gps_status == 42 || gnss_ins_data.gps_status == 52){
                 Eigen::Matrix3d z_matrix;
                 Eigen::Matrix3d x_matrix;
                 Eigen::Matrix3d y_matrix;
@@ -210,11 +188,8 @@ public:
                         0,                 1,               0 ,
                         -sin(roll_X),      0,         cos(roll_X);
                 double t_enu[3];
-                //geoConverter.Reset(gnss_ins_data.lla[0],gnss_ins_data.lla[1],gnss_ins_data.lla[2]);
                 geoConverter.Forward(gnss_ins_data.lla[0], gnss_ins_data.lla[1], gnss_ins_data.lla[2],
                                      t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
-                                    // EZLOG(INFO)<<"DR ORIGIN POINT "<<t_enu[0]<<","<<t_enu[1]<<","<<t_enu[2]<<endl;
-
                 Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb zxy右前上，zyx前左上
                 Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
 
@@ -227,8 +202,8 @@ public:
 
                 load_first_gnss_point = true;
                 gnss_cnt = 0;
-                //EZLOG(INFO)<<"RESET DR with GNSS: t_w_b"<<t_w_b.transpose()<<",R_w_b"<<R_w_b;
-          //  }
+                EZLOG(INFO)<<"RESET DR with GNSS: t_w_b"<<t_w_b.transpose()<<",R_w_b"<<R_w_b;
+            }
         }
         gnss_cnt++;
         // DR----->>>>>>TO ENU
@@ -252,7 +227,7 @@ public:
         lidar_preditct_pose_Rwl_ = state.Rwb_ * R_b_l;
         lidar_preditct_pose_p_wl_ = state.Rwb_ * (SensorConfig::T_L_B.inverse().block<3,1>(0, 3)) + state.p_wb_; // 地面存在高程误差——外参？ 建图？
 //        lidar_preditct_pose_p_wl_ =  lidar_preditct_pose_p_wl_ + SensorConfig::T_L_DR.block<3,1>(0,3);
-       // EZLOG(INFO) << lidar_preditct_pose_p_wl_.x() << " " << lidar_preditct_pose_p_wl_.y() << " " << lidar_preditct_pose_p_wl_.z() << endl;
+        EZLOG(INFO) << lidar_preditct_pose_p_wl_.x() << " " << lidar_preditct_pose_p_wl_.y() << " " << lidar_preditct_pose_p_wl_.z() << endl;
 
         PoseT lidar_preditct_pose(lidar_preditct_pose_p_wl_, lidar_preditct_pose_Rwl_);
         Odometry_imuPredict_pub.pose = lidar_preditct_pose;
@@ -268,9 +243,9 @@ public:
         Odometry_imuPredict_pub.frame = "map";
         if(MappingConfig::use_DR_or_fuse_in_loc == 1){
             Function_AddDROdometryTypeToImageProjection(Odometry_imuPredict_pub);
-          //  EZLOG(INFO)<<"1 of 2, DR send to data_preprocess. And Send Pose begin: ";
-        //    EZLOG(INFO)<<Odometry_imuPredict_pub.pose.pose;
-        //    EZLOG(INFO)<<"1 of 2, DR send to data_preprocess. And Send Pose end!";
+            EZLOG(INFO)<<"1 of 2, DR send to data_preprocess. And Send Pose begin: ";
+            EZLOG(INFO)<<Odometry_imuPredict_pub.pose.pose;
+            EZLOG(INFO)<<"1 of 2, DR send to data_preprocess. And Send Pose end!";
         }
 
         //for debug use
@@ -278,25 +253,18 @@ public:
         DR_pose.frame = "map";
         if(slam_mode_switch == 1){
             Function_AddDROdometryTypeToFuse(DR_pose);
-          //  EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose begin: ";
-          //  EZLOG(INFO)<<DR_pose.pose.pose;
-          //  EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose end!";
+            EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose begin: ";
+            EZLOG(INFO)<<DR_pose.pose.pose;
+            EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose end!";
         }
-        //Udp_OdomPub(Odometry_imuPredict_pub.pose);
+        Udp_OdomPub(Odometry_imuPredict_pub.pose);
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
     }
 
     void SetIMUPreParamter(){
 
         lastImuT_imu = -1;
-        gtsam::Pose3 firstLidarPose_pose3 =
-                gtsam::Pose3(gtsam::Rot3(  1,0,0,
-                                                 0,1,0,
-                                                 0,0,1),
-                             gtsam::Point3(0, 0, 0));
-        gtsam::Vector3 firstLidarVel =
-                gtsam::Vector3(0,0,0);
-        firstLidarPose = gtsam::NavState(firstLidarPose_pose3,firstLidarVel);
+
         state.Rwb_ <<1,0,0,
                     0,1,0,
                     0,0,1;
@@ -306,18 +274,17 @@ public:
         last_state = state;
     }
 
-//    void Init(PubSubInterface* pubsub_,DataPreprocess* _data_prep_ptr,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
-//
-//        //设置imu的参数
-//        SetIMUPreParamter();
-//        slam_mode_switch = _slam_mode_switch;
-//        EZLOG(INFO)<<"imu wheel dr init : slam_mode_switch: "<<slam_mode_switch;
-//        data_prep_ptr = _data_prep_ptr;
-//        pubsub = pubsub_;
-//        udp_thread = udp_thread_;
-//        pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
-//        pubsub->addPublisher(topic_imu_raw_odom_origin, DataType::ODOMETRY, 10);
-//    }
+    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
+
+        //设置imu的参数
+        SetIMUPreParamter();
+        slam_mode_switch = _slam_mode_switch;
+        EZLOG(INFO)<<"imu wheel dr init : slam_mode_switch: "<<slam_mode_switch;
+        pubsub = pubsub_;
+        udp_thread = udp_thread_;
+        pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
+        pubsub->addPublisher(topic_imu_raw_odom_origin, DataType::ODOMETRY, 10);
+    }
     void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
 
         //设置imu的参数

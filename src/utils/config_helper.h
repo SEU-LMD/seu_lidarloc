@@ -174,9 +174,6 @@ class SerializeConfig{
       static double lidar_range;
       static int frame_sum;
 
-      static std::string current_lidar_path;
-      static std::string prior_map_path;
-      static std::string prior_pose_path;
       static double Tepsilion;
       static double step_size;
       static float size_resolution;
@@ -343,9 +340,6 @@ int SerializeConfig::lasercloud_width=0;
 int SerializeConfig::lasercloud_height=0;
 int SerializeConfig::lasercloud_num=0;
 //PriorMap localization
-std::string SerializeConfig::current_lidar_path = "";
-std::string SerializeConfig::prior_map_path = "";
-std::string SerializeConfig::prior_pose_path = "";
 
 double SerializeConfig::Tepsilion = 0.01;
 double SerializeConfig::step_size = 1.0;
@@ -605,33 +599,6 @@ void Load_offline_YAML(std::string offlinepath)
         SerializeConfig::lidar_range = offlineconfig["lidar_range"].as<double>();
         SerializeConfig::frame_sum = offlineconfig["frame_sum"].as<int>();
 
-        //Prior Map localization
-        SerializeConfig::current_lidar_path = offlineconfig["CURRENT_LIDAR_PATH"].as<std::string>();
-        SerializeConfig::prior_map_path = offlineconfig["PRIOR_MAP_PATH"].as<std::string>();
-        SerializeConfig::prior_pose_path = offlineconfig["PRIOR_POSE_PATH"].as<std::string>();
-
-        std::cout<<"CURRENT_LIDAR_PATH: "<<SerializeConfig::current_lidar_path<<std::endl;
-        std::cout<<"PRIOR_MAP_PATH: "<<SerializeConfig::prior_map_path<<std::endl;
-        std::cout<<"PRIOR_POSE_PATH: "<<SerializeConfig::prior_pose_path<<std::endl;
-
-//    ndt param
-        SerializeConfig::Tepsilion = offlineconfig["T_EPSILION"].as<double>();
-        SerializeConfig::step_size = offlineconfig["STEP_SIZE"].as<double>();
-        SerializeConfig::size_resolution = offlineconfig["SIZE_RESOLUTION"].as<float>();
-        SerializeConfig::max_inter_num = offlineconfig["MAXMUN_INTERNUM"].as<double>();
-        SerializeConfig::setLeafSize = offlineconfig["DOWNSIZE_LEAF"].as<double>();
-        SerializeConfig::sequence_num = offlineconfig["CURRENT_LIDAR_NUM"].as<double>();
-
-        std::cout<<"T_EPSILION: "<<SerializeConfig::Tepsilion<<std::endl;
-        std::cout<<"STEP_SIZE: "<<SerializeConfig::step_size<<std::endl;
-        std::cout<<"SIZE_RESOLUTION: "<<SerializeConfig::size_resolution<<std::endl;
-        std::cout<<"DOWNSIZE_LEAF: "<<SerializeConfig::setLeafSize<<std::endl;
-        std::cout<<"MAXMUN_INTERNUM: "<<SerializeConfig::max_inter_num<<std::endl;
-        std::cout<<"CURRENT_LIDAR_NUM: "<<SerializeConfig::sequence_num<<std::endl;
-        SerializeConfig::map_out_path =offlineconfig["map_out_path"].as<std::string>();
-        SerializeConfig::up2down_num = offlineconfig["up2down_num"].as<int>();
-        SerializeConfig::lidar_range = offlineconfig["lidar_range"].as<double>();
-        SerializeConfig::frame_sum = offlineconfig["frame_sum"].as<int>();
         SerializeConfig::up_grid_size= offlineconfig["up_grid_size"].as<int>();
         SerializeConfig::lasercloud_width= offlineconfig["lasercloud_width"].as<int>();
         SerializeConfig::lasercloud_height= offlineconfig["lasercloud_height"].as<int>();

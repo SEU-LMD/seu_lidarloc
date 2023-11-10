@@ -379,11 +379,11 @@ public:
 //                loc_mapping_ptr->AddCloudData(cloud_feature);
                 if(slam_mode_switch == 0 ){
                     Function_AddCloudFeatureToOPTMapping(cloud_feature);
-                  //  EZLOG(INFO)<<"3 feature_extraction send to Mapping!And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
+                    EZLOG(INFO)<<"3 feature_extraction send to Mapping!And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
                 }
                 else{
                     Function_AddCloudFeatureToLOCMapping(cloud_feature);
-                  //  EZLOG(INFO)<<"3 feature_extraction send to Loc! And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
+                    EZLOG(INFO)<<"3 feature_extraction send to Loc! And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
                 }
 
 
@@ -420,7 +420,7 @@ public:
     void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
         AllocateMemeory();
         slam_mode_switch = _slam_mode_switch;
-       // EZLOG(INFO)<<"feature Extraction init! slam_mode_switch:"<<slam_mode_switch;
+        EZLOG(INFO)<<"feature Extraction init! slam_mode_switch:"<<slam_mode_switch;
         downSizeFilter.setLeafSize(MappingConfig::odometrySurfLeafSize, MappingConfig::odometrySurfLeafSize,
                                    MappingConfig::odometrySurfLeafSize);
 

@@ -10,8 +10,8 @@
 
   # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!
-  save_map_path: "/home/wxy/seu/reborn/11.1/seu_lidarloc/src/newbag/"
-  #save_map_path: "/home/sy/SEU_WS/seu_lidarloc_new/map/"
+#  save_map_path: "/home/wxy/seu/reborn/11.1/seu_lidarloc/src/newbag/"
+  save_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/calib_20_out/"
   #save_map_path: "/home/lsy/map/"
   if_need_first_position: 0
 # 1 use DR , 0 use fuse
@@ -36,9 +36,9 @@
   mappingSurfLeafSize: 0.4                      # default: 0.4 - outdoor, 0.2 - indoor
   surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses
 # 1:
-  odometrySurfRadiusSize_US: 0.3                     # default: 0.4 - outdoor, 0.2 - indoor
-  mappingCornerRadiusSize_US: 0.2                    # default: 0.2 - outdoor, 0.1 - indoor
-  mappingSurfRadiusSize_US: 0.3                      # default: 0.4 - outdoor, 0.2 - indoor
+  odometrySurfRadiusSize_US: 0.2                     # default: 0.4 - outdoor, 0.2 - indoor
+  mappingCornerRadiusSize_US: 0.1                    # default: 0.2 - outdoor, 0.1 - indoor
+  mappingSurfRadiusSize_US: 0.2                      # default: 0.4 - outdoor, 0.2 - indoor
   surroundingKeyframeDensity_US: 1.0               # meters, downsample surrounding keyframe poses
 
   # robot motion constraint (in case you are using a 2D robot)
