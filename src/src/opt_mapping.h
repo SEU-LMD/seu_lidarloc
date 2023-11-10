@@ -1599,22 +1599,23 @@ public:
         //保存关键帧的点云
         cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
         surfCloudKeyFrames.push_back(thisSurfKeyFrame);
-
-        CloudTypeXYZI corner_pub,surf_pub;
-        corner_pub.frame = "map";
-        corner_pub.timestamp = timeLaserInfoCur;
-        corner_pub.cloud = *thisCornerKeyFrame;
-        surf_pub.frame = "map";
-        surf_pub.timestamp = timeLaserInfoCur;
-        surf_pub.cloud = *thisSurfKeyFrame;
-        pubsub->PublishCloud(topic_corner_cur_world, corner_pub);
-        pubsub->PublishCloud(topic_surf_cur_world,surf_pub);
+//
+//        CloudTypeXYZI corner_pub,surf_pub;
+//        corner_pub.frame = "map";
+//        corner_pub.timestamp = timeLaserInfoCur;
+//        corner_pub.cloud = *thisCornerKeyFrame;
+//        surf_pub.frame = "map";
+//        surf_pub.timestamp = timeLaserInfoCur;
+//        surf_pub.cloud = *thisSurfKeyFrame;
+//        pubsub->PublishCloud(topic_corner_cur_world, corner_pub);
+//        pubsub->PublishCloud(topic_surf_cur_world,surf_pub);
 
         CloudInfoFt cloud_info;
         cloud_info.frame_id = ++frame_id;
         cloud_info.corner_cloud = thisCornerKeyFrame;
         cloud_info.surf_cloud = thisSurfKeyFrame;
         map_saver.AddCloudToSave(cloud_info);
+        EZLOG(INFO)<<"MAP SAVER SUCCESS!!!"<<endl;
 
     }
 
@@ -1622,20 +1623,25 @@ public:
        // TicToc timer;
         if (cloudKeyPoses3D->points.empty()) return;
         //只有回环以及gps信息这些会触发全局调整信息才会触发
+        int numPoses = isamCurrentEstimate.size();
+        PoseT gloabal_corrected_pose;
+        gloabal_corrected_pose = isamCurrentEstimate.at<gtsam::Pose3>(numPoses - 1).matrix();
+        opt_poses.push_back(gloabal_corrected_pose);
+        map_saver.SavePoses(opt_poses);
         ////TODO
         if (isAddloopFrame == true || isAddGnssKeyFrame == true ) {
             // clear map cache
             //存放关键帧的位姿和点云的容器清空
             laserCloudMapContainer.clear();
-            int numPoses = isamCurrentEstimate.size();
+//            int numPoses = isamCurrentEstimate.size();
             int lastGnsskeyFrame = 0;
             int start_idx = 0;
-           // if(isAddloopFrame ==true|| isAddGnssKeyFrame == true ){
-                //idea1
-              //  start_idx = min(0,numPoses - 30);
-                //idea2
+            if(isAddloopFrame ==true|| isAddGnssKeyFrame == true ){
+               // idea1
+                start_idx = min(0,numPoses - 30);
+               // idea2
                // lastGnsskeyFrame = numPoses;
-          //  }
+            }
 
             // update key poses
             for (int i = start_idx; i < numPoses; ++i)  {
@@ -1662,22 +1668,18 @@ public:
                 //更新path
             }
 
-//            for(int i = start_idx; i < numPoses; ++i){
-//                PoseT gloabal_corrected_pose;
-//                gloabal_corrected_pose = isamCurrentEstimate.at<gtsam::Pose3>(i).matrix();
-//                opt_poses.push_back(gloabal_corrected_pose);
-//                map_saver.SavePoses(opt_poses);
-//            }
+            for(int i = start_idx; i < numPoses - 1; ++i){
+                PoseT gloabal_corrected_pose;
+                gloabal_corrected_pose = isamCurrentEstimate.at<gtsam::Pose3>(i).matrix();
+                opt_poses[i] = gloabal_corrected_pose;
+            }
+                map_saver.SavePoses(opt_poses);
 
             isAddloopFrame = false;
             isAddGnssKeyFrame == false;
             isAddOdomKeyFrame == false;
 
         }
-//                PoseT gloabal_corrected_pose;
-//                gloabal_corrected_pose = isamCurrentEstimate.at<gtsam::Pose3>(i).matrix();
-//                opt_poses.push_back(gloabal_corrected_pose);
-//                map_saver.SavePoses(opt_poses);
 
     }
 
@@ -1685,7 +1687,7 @@ public:
     void publishOdometry() {
         // Publish odometry for ROS (global)
         //发布优化后的里程计
-       // EZLOG(INFO)<<"get in publishOdometry "<<endl;
+        EZLOG(INFO)<<"get in publishOdometry "<<endl;
 
         OdometryType current_lidar_pose_world;
         Eigen::Affine3f Lidarodom_2_map = trans2Affine3f(current_T_m_l);
@@ -1732,29 +1734,27 @@ public:
                     timeLastProcessing = timeLaserInfoCur;
                     TicToc t0;
                     updateInitialGuess(cur_ft);//TODO
-                   // EZLOG(INFO)<<" updateInitialGuess COST TIME"<<t0.toc()<<endl;
+                    EZLOG(INFO)<<" updateInitialGuess COST TIME"<<t0.toc()<<endl;
                     if (systemInitialized) {
                         TicToc t1;
                         extractSurroundingKeyFrames();
-                       // EZLOG(INFO)<<" extractSurroundingKeyFrames COST TIME"<<t1.toc()<<endl;
-                       // TicToc t2;
+                        EZLOG(INFO)<<" extractSurroundingKeyFrames COST TIME"<<t1.toc()<<endl;
+                        TicToc t2;
                         downsampleCurrentScan();
-                       // EZLOG(INFO)<<" downsampleCurrentScan COST TIME"<<t2.toc()<<endl;
+                        EZLOG(INFO)<<" downsampleCurrentScan COST TIME"<<t2.toc()<<endl;
                         TicToc t3;
                         scan2MapOptimization();
-                        //EZLOG(INFO)<<" scan2MapOptimization COST TIME"<<t3.toc()<<endl;
+                        EZLOG(INFO)<<" scan2MapOptimization COST TIME"<<t3.toc()<<endl;
                         TicToc t4;
                         FactorOptandSavecloud();
-                       // EZLOG(INFO)<<" saveKeyFramesAndFactor COST TIME"<<t4.toc()<<endl;
+                        EZLOG(INFO)<<" saveKeyFramesAndFactor COST TIME"<<t4.toc()<<endl;
                         TicToc t5;
                         correctPoses();
-                       // EZLOG(INFO)<<" correctPoses COST TIME"<<t5.toc()<<endl;
+                        EZLOG(INFO)<<" correctPoses COST TIME"<<t5.toc()<<endl;
                         publishOdometry();
 
                     }
-
                 }
-
             }
             else{
                 sleep(0.01);

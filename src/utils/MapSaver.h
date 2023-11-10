@@ -21,9 +21,6 @@
 struct CloudInfoFt{
     pcl::PointCloud<PointType>::Ptr corner_cloud;
     pcl::PointCloud<PointType>::Ptr surf_cloud;
-  //  pcl::PointCloud<PointType>::Ptr raw_Cloud;
-   // pcl::PointCloud<PointXYZICOLRANGE>::Ptr raw_cloud;
-//    CloudInfo raw_cloud;
     int frame_id;
 };
 

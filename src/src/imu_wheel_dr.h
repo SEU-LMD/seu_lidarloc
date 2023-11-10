@@ -256,8 +256,9 @@ public:
             EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose begin: ";
             EZLOG(INFO)<<DR_pose.pose.pose;
             EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose end!";
+            Udp_OdomPub(Odometry_imuPredict_pub.pose);
         }
-        Udp_OdomPub(Odometry_imuPredict_pub.pose);
+       // Udp_OdomPub(Odometry_imuPredict_pub.pose);
         pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
     }
 
