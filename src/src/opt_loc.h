@@ -860,16 +860,18 @@ public:
 
                 combineOptimizationCoeffs(_current_corner_ds->size(),_current_surf_ds->size());
 
+                if(iterCount == SensorConfig::LMOpt_Cnt){
+                    EZLOG(INFO)<<"LMOptimization FAILED!!"<<endl;
+                    break;
+                }
+
                 if (LMOptimization(iterCount) == true) {
                     EZLOG(INFO)<<"LMOptimization Success!!"<<endl;
                     EZLOG(INFO)<<"iterCount: " << iterCount<<std::endl;
                     EZLOG(INFO)<< "optimize_time in ms: "<<optimize_time.toc() <<std::endl;
                     break;
                 }
-                if(iterCount == SensorConfig::LMOpt_Cnt - 1){
-                    EZLOG(INFO)<<"LMOptimization FAILED!!"<<endl;
-                    break;
-                }
+
             }
 
             transformUpdate();
