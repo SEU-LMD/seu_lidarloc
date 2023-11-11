@@ -445,13 +445,13 @@ public:
                 pclPointToAffine3f(copy_cloudKeyPoses6D->points[loopKeyCur]);
         // transform from world origin to corrected pose
        pcl::getTranslationAndEulerAngles(tWrong, x, y, z, roll, pitch, yaw);
-     //  EZLOG(INFO)<<"Before loop current pose"<< x <<" "<<y<<" "<<z<<" "<<endl;
+       EZLOG(INFO)<<"Before loop current pose"<< x <<" "<<y<<" "<<z<<" "<<endl;
 
        Eigen::Affine3f tPreCur =
                pclPointToAffine3f(copy_cloudKeyPoses6D->points[loopKeyPre]);
 
        pcl::getTranslationAndEulerAngles(tPreCur, x, y, z, roll, pitch, yaw);
-      //  EZLOG(INFO)<<"Loop Candidate pose"<< x <<" "<<y<<" "<<z<<" "<<endl;
+        EZLOG(INFO)<<"Loop Candidate pose"<< x <<" "<<y<<" "<<z<<" "<<endl;
 
         //闭环优化后当前帧的位姿
         Eigen::Affine3f tCorrect =
@@ -460,7 +460,7 @@ public:
 
         pcl::getTranslationAndEulerAngles(tCorrect, x, y, z, roll, pitch, yaw);
         //当前帧的位姿
-      //  EZLOG(INFO)<<"after loop current pose"<< x <<" "<<y<<" "<<z<<" "<<endl;
+        EZLOG(INFO)<<"after loop current pose"<< x <<" "<<y<<" "<<z<<" "<<endl;
 
      //  EZLOG(INFO)<<"get IN gtsam "<<endl;
         gtsam::Pose3 poseFrom =
@@ -870,14 +870,14 @@ public:
             EZLOG(INFO)<<pointOri.x<<","<<pointOri.y<<","<<pointOri.z<<endl;
 
             pointAssociateToMap(&pointOri, &pointSel);
-            EZLOG(INFO)<<"get in kdtreeCornerFromMap "<<endl;
+           // EZLOG(INFO)<<"get in kdtreeCornerFromMap "<<endl;
           //  EZLOG(INFO)<<"POINTSel"<<pointOri.x<<" "<<pointOri.y<<" "<<pointOri.z;
             EZLOG(INFO)<<pointSel.x<<","<<pointSel.y<<","<<pointSel.z<<endl;
             kdtreeCornerFromMap->nearestKSearch(pointSel, 5, pointSearchInd,
                                                 pointSearchSqDis);
 
            // EZLOG(INFO)<<pointSel.x<<","<<pointSel.y<<","<<pointSel.z<<endl;
-            EZLOG(INFO)<<"get out of corner opt kdtreeCornerFromMap  "<<endl;
+           // EZLOG(INFO)<<"get out of corner opt kdtreeCornerFromMap  "<<endl;
             cv::Mat matA1(3, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matD1(1, 3, CV_32F, cv::Scalar::all(0));
             cv::Mat matV1(3, 3, CV_32F, cv::Scalar::all(0));
@@ -963,13 +963,13 @@ public:
                              (z1 - z2) * ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1))) /
                             a012 / l12;
                     // float la = matv1_f[0];
-                     EZLOG(INFO)<<"la"<<la<<endl;
+                    // EZLOG(INFO)<<"la"<<la<<endl;
                     float lb =
                             -((x1 - x2) * ((x0 - x1) * (y0 - y2) - (x0 - x2) * (y0 - y1)) -
                               (z1 - z2) * ((y0 - y1) * (z0 - z2) - (y0 - y2) * (z0 - z1))) /
                             a012 / l12;
                    // float lb = matv1_f[1];
-                    EZLOG(INFO)<<"lb"<<lb<<endl;
+                   // EZLOG(INFO)<<"lb"<<lb<<endl;
 
                     float lc =
                             -((x1 - x2) * ((x0 - x1) * (z0 - z2) - (x0 - x2) * (z0 - z1)) +
@@ -977,7 +977,7 @@ public:
                             a012 / l12;
 
                   //  float lc = matv1_f[2];
-                    EZLOG(INFO)<<"lc"<<lc<<endl;
+                   // EZLOG(INFO)<<"lc"<<lc<<endl;
                     float ld2 = a012 / l12;
 
                     float s = 1 - 0.9 * fabs(ld2);
@@ -996,7 +996,7 @@ public:
 
             }
         }
-        EZLOG(INFO)<<"get out cornerOptimization "<<endl;
+       // EZLOG(INFO)<<"get out cornerOptimization "<<endl;
     }
 
     void surfOptimization() {
@@ -1307,10 +1307,10 @@ public:
                 coeffSel->clear();
                  TicToc t1;
                 cornerOptimization();
-               // EZLOG(INFO)<<"cornerOptimization cost time" << t1.toc()<<endl;
+                EZLOG(INFO)<<"cornerOptimization cost time" << t1.toc()<<endl;
                  TicToc t2;
                 surfOptimization();
-              //  EZLOG(INFO)<<"surfOptimization cost time " << t2.toc()<<endl;
+                EZLOG(INFO)<<"surfOptimization cost time " << t2.toc()<<endl;
 
                 combineOptimizationCoeffs();
 
@@ -1318,14 +1318,14 @@ public:
                 if (LMOptimization(iterCount) == true)
                 {
                     ++LMsuccess;
-              //  EZLOG(INFO)<<"LMOptimization success and inter count is"<<iterCount<<endl;
-             //   EZLOG(INFO)<<"LMsuccess count is"<<LMsuccess<<endl;
+                EZLOG(INFO)<<"LMOptimization success and inter count is"<<iterCount<<endl;
+                EZLOG(INFO)<<"LMsuccess count is"<<LMsuccess<<endl;
                     break;
                 }
 
                 if (iterCount == maxIters - 1){
                     ++LMfail;
-              //      EZLOG(INFO)<<"LMfail count is"<<LMfail<<endl;
+                    EZLOG(INFO)<<"LMfail count is"<<LMfail<<endl;
                 }
                 //把转换后加入到container
             }
