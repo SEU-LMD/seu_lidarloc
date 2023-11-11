@@ -17,11 +17,12 @@
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #define average_kmh2Ms 0.1389
 
-
+//TODO remove
 using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p,y)
 using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
 
+//TODO change name to IMUWHEELDR
 class imu_wheel_dr  {
 public:
     int slam_mode_switch = 1;
@@ -97,7 +98,7 @@ public:
 
     void Wheel_predict(IMURawWheelDataPtr curr_imu){
         double imuTime = curr_imu->timestamp;
-        double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);
+        double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);//TODO???? 1111
         lastImuT_imu = imuTime;
 //        state_.timestamp = curr_imu->timestamp;
 //        const Eigen::Vector3d gyr_unbias =  curr_imu->imu_angular_v - prior_gyro_bias;  // gyro not unbias for now
@@ -153,12 +154,12 @@ public:
                 EZLOG(INFO)<<"First GNSS position: "<<x<<", "<<y<<", "<<z;
                 downfile.close(); // 关闭文件
                 geoConverter.Reset(x, y, z);
-
             }
             else{
                 geoConverter.Reset(gnss_ins_data.lla[0], gnss_ins_data.lla[1], gnss_ins_data.lla[2]);
             }
             init = 1;
+            //TODO 1111 move below gnss code to here
             return;
         }
 
@@ -277,6 +278,7 @@ public:
         last_state = state;
     }
 
+    //TODO adjust seq to satisify default udp_thread intput!!!!!!
     void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
 
         //设置imu的参数
@@ -288,6 +290,7 @@ public:
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
         pubsub->addPublisher(topic_imu_raw_odom_origin, DataType::ODOMETRY, 10);
     }
+
     void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
 
         //设置imu的参数

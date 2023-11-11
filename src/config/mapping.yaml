@@ -1,4 +1,6 @@
 # 0 for opt mapping->wxy, 1 for loc mapping->sy.
+# TODO change yaml name
+#TODO remove not used parmater!!!!
   slam_mode_switch: 0
 #  1 for use fuse, 0 is not use
   if_use_fuseNode: 1

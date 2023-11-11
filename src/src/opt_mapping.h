@@ -597,6 +597,8 @@ public:
     //    EZLOG(INFO)<<"get  out of find nearkeyframes"<<endl;
     }
 
+
+
     void updateInitialGuess(CloudFeature& cur_ft) {
 
 
@@ -605,8 +607,8 @@ public:
         Eigen::Matrix3d q_lidar_cur_matrix;
         float q_lidar_roll, q_lidar_pitch, q_lidar_yaw;
         t_gnss_cur = cur_ft.pose.GetXYZ();
-        t_lidar_cur = cur_ft.DRPose.GetXYZ();
 
+        t_lidar_cur = cur_ft.DRPose.GetXYZ();
         q_lidar_cur = cur_ft.DRPose.GetQ();
         q_lidar_cur.normalize();
         q_lidar_cur_matrix = q_lidar_cur.toRotationMatrix();
@@ -624,7 +626,7 @@ public:
         incrementalOdometryAffineFront = trans2Affine3f(current_T_m_l);//TODO delete!!
         if (cloudKeyPoses3D->points.empty()) {
             systemInitialized = false;
-
+            //TODO 1111 add gnss quality check!!!!
             if (SensorConfig::useGPS) {
 
                 /** add the first factor, we need this origin GPS point for prior map based localization,
@@ -694,7 +696,7 @@ public:
            EZLOG(INFO)<<"sysyem need to be initialized"<<endl;
             return;
         }
-
+        //TODO!!!!! logic
         static bool lastDRAvailable = false;
         static Eigen::Affine3f lastDRPose;
         Eigen::Affine3f CurrentDRPose = pcl::getTransformation(
@@ -1475,7 +1477,7 @@ public:
             Vector3 << noise_x, noise_y, noise_z;
             //Vector3 << max(noise_x, 1.0), max(noise_y, 1.0), max(noise_z, 1.0);
             gtsam::noiseModel::Diagonal::shared_ptr gps_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
-            gtsam::GPSFactor gps_factor(cloudKeyPoses3D->size(), gtsam::Point3(gps_x, gps_y, gps_z), gps_noise);
+            gtsam::GPSFactor gps_factor(cloudKeyPoses3D->size(), gtsam::Point3(gps_x, gps_y, gps_z), gps_noise);//TODO replace gps factor with priorfactor
             gtSAMgraph.add(gps_factor);
            // EZLOG(INFO) << "ADD GPS successful and gps factor is" << curGPSPoint.x << curGPSPoint.y << curGPSPoint.z
           //              << endl;
@@ -1504,6 +1506,7 @@ public:
         isAddloopFrame = true;
        // EZLOG(INFO)<<"get out of addLoop factor"<<endl;
     }
+
     //TODO: FactorOpt and Save cloud
     void FactorOptandSavecloud() {
         gtsam::ISAM2Params parameters = gtsam::ISAM2Params();
@@ -1729,7 +1732,7 @@ public:
                 laserCloudSurfLast = cur_ft.surfaceCloud;
 
                 static double timeLastProcessing = -1;
-                if (timeLaserInfoCur - timeLastProcessing >= MappingConfig::mappingProcessInterval) {
+                if (timeLaserInfoCur - timeLastProcessing >= MappingConfig::mappingProcessInterval) {//TODO keyframe starategy
                     //std::lock_guard<std::mutex> lock(cloud_mutex);
                     timeLastProcessing = timeLaserInfoCur;
                     TicToc t0;

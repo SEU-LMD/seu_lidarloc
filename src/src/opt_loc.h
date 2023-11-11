@@ -1004,7 +1004,7 @@ public:
                     pub_CornerAndSurfFromMap(priorMap_corner,priorMap_surf); // debug use
                 }
 
-                //4.downSample current scan
+                //4.downSample current scan TODO1111
                 TicToc t_3;
                 downsampleCurrentScan(current_corner,current_surf,current_corner_ds,current_surf_ds);
                 EZLOG(INFO)<<"downsampleCurrentScan() time : "<<t_3.toc();
