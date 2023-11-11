@@ -27,6 +27,7 @@ public:
     OPTMapping opt_mapping;
    // MapManager mapManager;
 
+
     void CloudCallback(const BaseType& msg){
         const CloudTypeXYZIRT& cloud_data = *((CloudTypeXYZIRT*)&msg);
         img_proj.AddCloudData(cloud_data);
@@ -36,13 +37,16 @@ public:
 //        TicToc timer;
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
         img_proj.AddGNSSINSSData(gnssins_data);
+     //   opt_mapping.AddGNSSINSData(gnssins_data);
         imu_pre.AddGNSSINSData(gnssins_data);
+        opt_mapping.AddGNSSINSData(gnssins_data);
 //        EZLOG(INFO)<<"GNSSINSCallback cost time(ms)"<<timer.toc()<<std::endl;
     }
 
 
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
+       // udp_thread =udp_thread_;
         //然后开启各个线程
         img_proj.Init(pubsub,0);
         EZLOG(INFO)<< "img_proj success!!"<<endl;

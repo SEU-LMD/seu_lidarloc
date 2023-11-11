@@ -1,7 +1,7 @@
 
 // Use the Velodyne point format as a common representation
-#ifndef SEU_LIDARLOC_IMGPROJECTION_H
-#define SEU_LIDARLOC_IMGPROJECTION_H
+#ifndef SEU_LIDARLOC_DATAPREPROCESS_H
+#define SEU_LIDARLOC_DATAPREPROCESS_H
 
 #define DBL_MAX		__DBL_MAX__
 
@@ -18,7 +18,7 @@
 //#include <opencv/cv.h>
 #include "pcl/features/normal_3d_omp.h"
 #include "pcl/segmentation/sac_segmentation.h"
-#include "pcl/common/pca.h"
+
 #include <fstream>
 
 #include "utils/udp_thread.h"
@@ -40,16 +40,16 @@ public:
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     std::mutex work_mutex;
-    std::mutex gnssins_mutex;
-    std::mutex imuodom_mutex;
+    std::mutex drodom_mutex;
+    std::mutex gnss_mutex;
     bool flag_first_gnss = 0;
     PoseT First_gnss_pose;
 
     std::thread* do_work_thread;
 
     std::deque<CloudTypeXYZIRTPtr> deque_cloud;
-    std::deque<OdometryType> poseQueue;
-    std::deque<OdometryType> IMUOdomQueue;
+    std::deque<OdometryType> GNSSQueue;
+    std::deque<OdometryType> DrOdomQueue;
 
 //    FeatureExtraction* ft_extr_ptr;
 //    OPTMapping* opt_mapping_ptr;
@@ -72,7 +72,6 @@ public:
     std::string topic_gnss_odom_world_origin = "/gnss_odom_world_origin";
     std::string topic_deskw_cloud_to_ft_world = "/deskw_cloud_to_ft_world";
     std::string topic_imuodom_curlidartime_world = "/imuodom_curlidartime_world";
-  //  std::string topic_lidar_align_gnss = "/lidar_align_gnss";
 
     std::string topic_ground_world = "/ground_world";
     std::string topic_unground_world = "/unground_world";
@@ -87,7 +86,6 @@ public:
     int lidarScan_cnt =0;
     double cloud_min_ros_timestamp;
     double cloud_max_ros_timestamp;
-
 
     std::shared_ptr<UDP_THREAD> udp_thread;//udp
 
@@ -334,7 +332,7 @@ public:
                 continue;
             }
             //very important function@!!!!!!!!!
-            if (SensorConfig::use_gnss_deskew){
+            if (SensorConfig::use_drodom_deskew){
                 if(cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp < 0){
                     EZLOG(INFO)<<"wrong! latency!";
                     continue;
@@ -452,9 +450,9 @@ public:
                 ///0.do something
 
                 std::deque<OdometryType> imuodom_copy;
-                imuodom_mutex.lock();
-                imuodom_copy = IMUOdomQueue;
-                imuodom_mutex.unlock();
+                drodom_mutex.lock();
+                imuodom_copy = DrOdomQueue;
+                drodom_mutex.unlock();
                 double imuodo_min_ros_time = imuodom_copy.front().timestamp;
                 double imuodo_max_ros_time = imuodom_copy.back().timestamp;
                 // EZLOG(INFO)<<"imuodo_min_ros_time"<<imuodo_max_ros_time - imuodo_min_ros_time<<endl;
@@ -465,33 +463,34 @@ public:
                 cloud_mutex.lock();
                 cur_scan = deque_cloud.front();
 
+
                 CloudWithTime cloud_with_time;
                 GetCloudTime(cur_scan, cloud_with_time);
                 double cloud_min_ros_timestamp = cloud_with_time.min_ros_timestamp;
                 double cloud_max_ros_timestamp = cloud_with_time.max_ros_timestamp;
 
                 //              gnss lidar gnss---->>>>
-                gnssins_mutex.lock();
-                while (!poseQueue.empty()) {
-                    if (poseQueue.front().timestamp > cur_scan->timestamp) {
-                        cloudinfo.pose = poseQueue.front().pose;
-                        poseQueue.clear();
+                gnss_mutex.lock();
+                while (!GNSSQueue.empty()) {
+                    if (GNSSQueue.front().timestamp > cur_scan->timestamp) {
+                        cloudinfo.pose = GNSSQueue.front().pose;
+                        GNSSQueue.clear();
                         break;
                     }
                     else{
-                        poseQueue.pop_front();
+                        GNSSQueue.pop_front();
                     }
                 }
-                gnssins_mutex.unlock();
+                gnss_mutex.unlock();
                 ///2.
 //                if(odo_min_ros_time>cloud_min_ros_timestamp){
 //                    EZLOG(INFO)<<"odo is larger than lidar" <<endl;
 //                    exit(1);
 //                }
-                if (!IMUOdomQueue.empty() && imuodo_min_ros_time >= cloud_min_ros_timestamp) {
-                    auto temp = IMUOdomQueue.front();
+                if (!DrOdomQueue.empty() && imuodo_min_ros_time >= cloud_min_ros_timestamp) {
+                    auto temp = DrOdomQueue.front();
                     temp.timestamp = cloud_min_ros_timestamp - 0.01f;
-                    IMUOdomQueue.push_front(temp);
+                    DrOdomQueue.push_front(temp);
                 }
                // double cur_lidar_time = deque_cloud.front()->timestamp;
                // EZLOG(INFO)<<"TIMESTAMP"<<cur_lidar_time-cloud_min_ros_timestamp<<endl;
@@ -664,15 +663,15 @@ public:
                             << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
                             << cloudinfo.cloud_ptr->points.size();
                     ///5.pop used odom
-                    imuodom_mutex.lock();
+                    drodom_mutex.lock();
 //                        while(poseQueue.front().timestamp < cloud_max_ros_timestamp - 0.1f){
 //                            poseQueue.pop_front();
 //                        }
                     double thresh = cloud_max_ros_timestamp - 0.05f;
-                    while(IMUOdomQueue.front().timestamp < thresh){
-                        IMUOdomQueue.pop_front();
+                    while(DrOdomQueue.front().timestamp < thresh){
+                        DrOdomQueue.pop_front();
                     }
-                    imuodom_mutex.unlock();
+                    drodom_mutex.unlock();
 
                     ResetParameters();
                 }//end function if
@@ -691,8 +690,8 @@ public:
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
-        if((lidarScan_cnt > SensorConfig::lidarScanDownSample && MappingConfig::slam_mode_switch == 1)
-            ||MappingConfig::slam_mode_switch == 0){
+//        if((lidarScan_cnt > SensorConfig::lidarScanDownSample && MappingConfig::slam_mode_switch == 1)
+//            ||MappingConfig::slam_mode_switch == 0){
             //        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
             CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
 
@@ -701,10 +700,10 @@ public:
             deque_cloud.push_back(cloud_ptr);
             cloud_mutex.unlock();
             lidarScan_cnt =0;
-        }
-        else{
-            lidarScan_cnt++;
-        }
+      //  }
+     //   else{
+    //        lidarScan_cnt++;
+    //    }
 
     }
 
@@ -738,7 +737,7 @@ public:
         if(!init)
         {
             double x,y,z;
-            if(MappingConfig::slam_mode_switch){
+            if(slam_mode_switch){
                 std::ifstream downfile(MappingConfig::save_map_path+"Origin.txt");  //打开文件
                 std::string line; //字符串
                 std::getline(downfile, line);//
@@ -810,22 +809,23 @@ public:
         T_w_l_pub.pose = T_w_l;
         pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
 
-        GNSSINSType T_w_l_to_mapopt;
-        T_w_l_to_mapopt.lla[0] = T_w_l.GetXYZ()[0];
-        T_w_l_to_mapopt.lla[1] = T_w_l.GetXYZ()[1];
-        T_w_l_to_mapopt.lla[2] = T_w_l.GetXYZ()[2];
+        //TODO 1029
+        // GNSSINSType T_w_l_to_mapopt;
+        // T_w_l_to_mapopt.lla[0] = T_w_l.GetXYZ()[0];
+        // T_w_l_to_mapopt.lla[1] = T_w_l.GetXYZ()[1];
+        // T_w_l_to_mapopt.lla[2] = T_w_l.GetXYZ()[2];
 //        opt_mapping_ptr->AddGNSSINSData(T_w_l_to_mapopt);
 
-        gnssins_mutex.lock();
-        poseQueue.push_back(T_w_l_pub);
-        gnssins_mutex.unlock();
+        gnss_mutex.lock();
+        GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
+        gnss_mutex.unlock();
 
         GNSSOdometryType T_w_l_gnss;
         T_w_l_gnss.frame = "map";
         T_w_l_gnss.timestamp = data.timestamp;
         T_w_l_gnss.pose = T_w_l;
 
-         if (MappingConfig::slam_mode_switch ==1){
+         if (slam_mode_switch ==1){
              Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
              EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose is :";
              EZLOG(INFO)<<T_w_l_gnss.pose.pose;
@@ -835,10 +835,11 @@ public:
 //                 Function_AddFirstGNSSPoint2DR(T_w_l_gnss);
 //                 flag_load_once = 1;
 //             }
+             Udp_OdomPub(T_w_l);
          }
 
             // TODO T_w_l_pub->>>>>>> is Gnss result need UDP
-            Udp_OdomPub(T_w_l);
+            //Udp_OdomPub(T_w_l);
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
 //        }
     }
@@ -846,9 +847,9 @@ public:
 
 
     void AddDrOdomData(const OdometryType& data){
-        imuodom_mutex.lock();
-        IMUOdomQueue.push_back(data);
-        imuodom_mutex.unlock();
+        drodom_mutex.lock();
+        DrOdomQueue.push_back(data);
+        drodom_mutex.unlock();
     }
 
     // not UDP
@@ -897,6 +898,8 @@ public:
         pubsub->addPublisher(topic_cloud_facade_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_cloud_roof_world,DataType::LIDAR,1);
 
+
+
         do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
         EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
     }
@@ -934,7 +937,7 @@ public:
         std::vector<bool> close_to_query_point;
     };
 
-    bool classify_nground_pts(const pcl::PointCloud<PointXYZICOLRANGE>::Ptr &cloud_in,//input 非地面点
+    bool classify_nground_pts(pcl::PointCloud<PointXYZICOLRANGE>::Ptr &cloud_in,//input 非地面点
                               pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar,
                               pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam,
                               pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade,
@@ -943,17 +946,18 @@ public:
                               pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam_down,
                               pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade_down,
                               pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof_down,
-                              pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_vertex,
-                              float neighbor_searching_radius, int neighbor_k, int neigh_k_min, int pca_down_rate, // one in ${pca_down_rate} unground points would be select as the query points for calculating pca, the else would only be used as neighborhood points
-                              float edge_thre, float planar_thre, float edge_thre_down, float planar_thre_down,
-                              int extract_vertex_points_method, float curvature_thre, float vertex_curvature_non_max_radius,
-                              float linear_vertical_sin_high_thre, float linear_vertical_sin_low_thre,
-                              float planar_vertical_sin_high_thre, float planar_vertical_sin_low_thre,
-                              bool fixed_num_downsampling = false, int pillar_down_fixed_num = 200, int facade_down_fixed_num = 800, int beam_down_fixed_num = 200,
-                              int roof_down_fixed_num = 100, int unground_down_fixed_num = 20000,
-                              float beam_height_max = FLT_MAX, float roof_height_min = -FLT_MAX,
-                              float feature_pts_ratio_guess = 0.3, bool sharpen_with_nms = true,
-                              bool use_distance_adaptive_pca = false)
+//                              pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_vertex,
+//                              float neighbor_searching_radius, int neighbor_k, int neigh_k_min, int pca_down_rate, // one in ${pca_down_rate} unground points would be select as the query points for calculating pca, the else would only be used as neighborhood points
+//                              float edge_thre, float planar_thre, float edge_thre_down, float planar_thre_down,
+//                              int extract_vertex_points_method, float curvature_thre, float vertex_curvature_non_max_radius,
+//                              float linear_vertical_sin_high_thre, float linear_vertical_sin_low_thre,
+//                              float planar_vertical_sin_high_thre, float planar_vertical_sin_low_thre,
+//                              bool fixed_num_downsampling = false, int pillar_down_fixed_num = 200, int facade_down_fixed_num = 800, int beam_down_fixed_num = 200,
+//                              int roof_down_fixed_num = 100, int unground_down_fixed_num = 20000,
+                              float beam_height_max = FLT_MAX, float roof_height_min = -FLT_MAX
+//                              float feature_pts_ratio_guess = 0.3, bool sharpen_with_nms = true,
+//                              bool use_distance_adaptive_pca = false
+                                      )
     {
 
 //        if (fixed_num_downsampling) //false
@@ -969,7 +973,7 @@ public:
         float unit_distance = 30.0;
         ///1.计算每个非地面点的pca参数
         //output  param = cloud_features
-        get_pc_pca_feature(cloud_in, cloud_features, tree, neighbor_searching_radius, neighbor_k, 1, pca_down_rate, use_distance_adaptive_pca, unit_distance);
+        get_pc_pca_feature(cloud_in, cloud_features, tree, FrontEndConfig::neighbor_searching_radius, FrontEndConfig::neighbor_k, 1, FrontEndConfig::pca_down_rate, FrontEndConfig::use_distance_adaptive_pca, unit_distance);
         //LOG(WARNING)<< "PCA done";
 
         std::chrono::steady_clock::time_point toc_pca = std::chrono::steady_clock::now();
@@ -979,18 +983,18 @@ public:
         std::vector<int> index_with_feature(cloud_in->points.size(), 0); // 0 - not special points, 1 - pillar, 2 - beam, 3 - facade, 4 - roof
         for (int i = 0; i < cloud_in->points.size(); i++)
         {
-            if (cloud_features[i].pt_num > neigh_k_min)//后面所有的代码都在这个if下，离群点不对他归类
+            if (cloud_features[i].pt_num > FrontEndConfig::neigh_k_min)//后面所有的代码都在这个if下，离群点不对他归类
             {
 
-                if (cloud_features[i].linear_2 > edge_thre)
+                if (cloud_features[i].linear_2 > FrontEndConfig::edge_thre)
                 {
-                    if (std::abs(cloud_features[i].vectors.principalDirection.z()) > linear_vertical_sin_high_thre)
+                    if (std::abs(cloud_features[i].vectors.principalDirection.z()) > FrontEndConfig::linear_vertical_sin_high_thre)
                     {
                         assign_normal(cloud_in->points[i], cloud_features[i], false);
                         cloud_pillar->points.push_back(cloud_in->points[i]);
                         index_with_feature[i] = 1;
                     }
-                    else if (std::abs(cloud_features[i].vectors.principalDirection.z()) < linear_vertical_sin_low_thre &&
+                    else if (std::abs(cloud_features[i].vectors.principalDirection.z()) < FrontEndConfig::linear_vertical_sin_low_thre &&
                              cloud_in->points[i].z < beam_height_max)
                     {
                         assign_normal(cloud_in->points[i], cloud_features[i], false);
@@ -1002,11 +1006,11 @@ public:
                         ;
                     }
 
-                    if (!sharpen_with_nms && cloud_features[i].linear_2 > edge_thre_down)
+                    if (!FrontEndConfig::sharpen_with_nms && cloud_features[i].linear_2 > FrontEndConfig::edge_thre_down)
                     {
-                        if (std::abs(cloud_features[i].vectors.principalDirection.z()) > linear_vertical_sin_high_thre)
+                        if (std::abs(cloud_features[i].vectors.principalDirection.z()) > FrontEndConfig::linear_vertical_sin_high_thre)
                             cloud_pillar_down->points.push_back(cloud_in->points[i]);
-                        else if (std::abs(cloud_features[i].vectors.principalDirection.z()) < linear_vertical_sin_low_thre && cloud_in->points[i].z < beam_height_max)
+                        else if (std::abs(cloud_features[i].vectors.principalDirection.z()) < FrontEndConfig::linear_vertical_sin_low_thre && cloud_in->points[i].z < beam_height_max)
                             cloud_beam_down->points.push_back(cloud_in->points[i]);
                         else
                         {
@@ -1015,15 +1019,15 @@ public:
                     }
                 }//end if (cloud_features[i].linear_2 > edge_thre)
 
-                else if (cloud_features[i].planar_2 > planar_thre)
+                else if (cloud_features[i].planar_2 > FrontEndConfig::planar_thre)
                 {
-                    if (std::abs(cloud_features[i].vectors.normalDirection.z()) > planar_vertical_sin_high_thre && cloud_in->points[i].z > roof_height_min)
+                    if (std::abs(cloud_features[i].vectors.normalDirection.z()) > FrontEndConfig::planar_vertical_sin_high_thre && cloud_in->points[i].z > roof_height_min)
                     {
                         assign_normal(cloud_in->points[i], cloud_features[i], true);
                         cloud_roof->points.push_back(cloud_in->points[i]);
                         index_with_feature[i] = 4;
                     }
-                    else if (std::abs(cloud_features[i].vectors.normalDirection.z()) < planar_vertical_sin_low_thre)
+                    else if (std::abs(cloud_features[i].vectors.normalDirection.z()) < FrontEndConfig::planar_vertical_sin_low_thre)
                     {
                         assign_normal(cloud_in->points[i], cloud_features[i], true);
                         cloud_facade->points.push_back(cloud_in->points[i]);
@@ -1033,11 +1037,11 @@ public:
                     {
                         ;
                     }
-                    if (!sharpen_with_nms && cloud_features[i].planar_2 > planar_thre_down)
+                    if (!FrontEndConfig::sharpen_with_nms && cloud_features[i].planar_2 > FrontEndConfig::planar_thre_down)
                     {
-                        if (std::abs(cloud_features[i].vectors.normalDirection.z()) > planar_vertical_sin_high_thre && cloud_in->points[i].z > roof_height_min)
+                        if (std::abs(cloud_features[i].vectors.normalDirection.z()) > FrontEndConfig::planar_vertical_sin_high_thre && cloud_in->points[i].z > roof_height_min)
                             cloud_roof_down->points.push_back(cloud_in->points[i]);
-                        else if (std::abs(cloud_features[i].vectors.normalDirection.z()) < planar_vertical_sin_low_thre)
+                        else if (std::abs(cloud_features[i].vectors.normalDirection.z()) < FrontEndConfig::planar_vertical_sin_low_thre)
                             cloud_facade_down->points.push_back(cloud_in->points[i]);
                         else
                         {
@@ -1049,22 +1053,22 @@ public:
         } // end for (int i = 0; i < cloud_in->points.size(); i++)
 
         //According to the parameter 'extract_vertex_points_method' (0,1,2...)
-        if (curvature_thre < 1e-8) // set stablilty_thre as 0 to disable the vertex extraction
-            extract_vertex_points_method = 0;
+        if (FrontEndConfig::curvature_thre < 1e-8) // set stablilty_thre as 0 to disable the vertex extraction
+            FrontEndConfig::extract_vertex_points_method = 0;
 
         //Find Edge points by picking high curvature points among the neighborhood of unground geometric feature points (2)
         //1.3.从非特殊点中再根据这个点的周围点的信息，将其归类为beam或者pillar点
-        if (extract_vertex_points_method == 2)
+        if (FrontEndConfig::extract_vertex_points_method == 2)
         {
-            float vertex_feature_ratio_thre = feature_pts_ratio_guess / pca_down_rate;
+            float vertex_feature_ratio_thre = FrontEndConfig::feature_pts_ratio_guess / FrontEndConfig::pca_down_rate;
             for (int i = 0; i < cloud_in->points.size(); i++)
             {
                 // if (index_with_feature[i] == 0)
                 // 	cloud_vertex->points.push_back(cloud_in->points[i]);
                 //这个点是非特殊点，且这个点周围有足够多的点，且这个点的曲率非常大
                 if (index_with_feature[i] == 0 &&
-                    cloud_features[i].pt_num > neigh_k_min &&
-                    cloud_features[i].curvature > curvature_thre) //curvature_thre means curvature_thre here
+                    cloud_features[i].pt_num > FrontEndConfig::neigh_k_min &&
+                    cloud_features[i].curvature > FrontEndConfig::curvature_thre) //curvature_thre means curvature_thre here
                 {
                     int geo_feature_point_count = 0;
                     for (int j = 0; j < cloud_features[i].neighbor_indices.size(); j++)
@@ -1080,13 +1084,13 @@ public:
 
                         assign_normal(cloud_in->points[i], cloud_features[i], false);
                         cloud_in->points[i].normal[3] = 5.0 * cloud_features[i].curvature; //save in the un-used normal[3]  (PointNormal4D)
-                        if (std::abs(cloud_features[i].vectors.principalDirection.z()) > linear_vertical_sin_high_thre)
+                        if (std::abs(cloud_features[i].vectors.principalDirection.z()) > FrontEndConfig::linear_vertical_sin_high_thre)
                         {
                             cloud_pillar->points.push_back(cloud_in->points[i]);
                             //cloud_pillar_down->points.push_back(cloud_in->points[i]);
                             index_with_feature[i] = 1;
                         }
-                        else if (std::abs(cloud_features[i].vectors.principalDirection.z()) < linear_vertical_sin_low_thre && cloud_in->points[i].z < beam_height_max)
+                        else if (std::abs(cloud_features[i].vectors.principalDirection.z()) < FrontEndConfig::linear_vertical_sin_low_thre && cloud_in->points[i].z < beam_height_max)
                         {
                             cloud_beam->points.push_back(cloud_in->points[i]);
                             //cloud_beam_down->points.push_back(cloud_in->points[i]);
@@ -1103,7 +1107,7 @@ public:
         //Find Vertex (Edge) points by picking points with maximum local curvature (1)
         //if (extract_vertex_points_method == 1) //Deprecated
         //detect_key_pts(cloud_in, cloud_features, index_with_feature,cloud_vertex, 4.0 * curvature_thre, vertex_curvature_non_max_radius, 0.5 * curvature_thre);
-        int min_neighbor_feature_pts = (int)(feature_pts_ratio_guess / pca_down_rate * neighbor_k) - 1;
+        int min_neighbor_feature_pts = (int)(FrontEndConfig::feature_pts_ratio_guess / FrontEndConfig::pca_down_rate * FrontEndConfig::neighbor_k) - 1;
 
         //get the vertex keypoints and encode its neighborhood in a simple descriptor
         ///2.为某个点生成描述子
@@ -1162,37 +1166,17 @@ public:
         return 1;
     } //end classify_nground_pts
 
-    //is_palne_feature (true: assign point normal as pca normal vector, false: assign point normal as pca primary direction vector)
-    bool assign_normal(PointXYZICOLRANGE &pt, pca_feature_t &pca_feature, bool is_plane_feature = true)
-    {
-        if (is_plane_feature)
-        {
-            pt.normal_x = pca_feature.vectors.normalDirection.x();
-            pt.normal_y = pca_feature.vectors.normalDirection.y();
-            pt.normal_z = pca_feature.vectors.normalDirection.z();
-            pt.normal[3] = pca_feature.planar_2; //planrity
-        }
-        else
-        {
-            pt.normal_x = pca_feature.vectors.principalDirection.x();
-            pt.normal_y = pca_feature.vectors.principalDirection.y();
-            pt.normal_z = pca_feature.vectors.principalDirection.z();
-            pt.normal[3] = pca_feature.linear_2; //linarity
-        }
-        return true;
-    }
-
     // R - K neighborhood (with already built-kd tree)
     //within the radius, we would select the nearest K points for calculating PCA
-    bool get_pc_pca_feature(typename pcl::PointCloud<PointXYZICOLRANGE>::Ptr in_cloud,
+    bool get_pc_pca_feature(pcl::PointCloud<PointXYZICOLRANGE>::Ptr in_cloud,
                             std::vector<pca_feature_t> &features,
-                            typename pcl::KdTreeFLANN<PointXYZICOLRANGE>::Ptr &tree,
+                            pcl::KdTreeFLANN<PointXYZICOLRANGE>::Ptr &tree,
                             float radius, int nearest_k, int min_k = 1, int pca_down_rate = 1,
                             bool distance_adaptive_on = false, float unit_dist = 35.0)
     {
         //LOG(INFO) << "[" << in_cloud->points.size() << "] points used for PCA, pca down rate is [" << pca_down_rate << "]";
         features.resize(in_cloud->points.size());
-
+//        EZLOG(INFO) << "start get pca feature "<< std::endl;
         for (int i = 0; i < in_cloud->points.size(); i += pca_down_rate) //faster way
         {
             // if (i % pca_down_rate == 0) {//this way is much slower
@@ -1232,15 +1216,20 @@ public:
                 else
                     features[i].close_to_query_point[j] = false;
             }
-
+//            EZLOG(INFO) << "get current point feature"<< std::endl;
             get_pca_feature(in_cloud, search_indices, features[i]);
-
+//            EZLOG(INFO) << "after current point feature, start assign normal"<< std::endl;
             if (features[i].pt_num > min_k)
                 assign_normal(in_cloud->points[i], features[i]);
+//            EZLOG(INFO) << "after assign normal" << std::endl;
             std::vector<int>().swap(search_indices);
+//            EZLOG(INFO) << "after swap 1" << std::endl;
             std::vector<int>().swap(search_indices_used);
+//            EZLOG(INFO) << "after swap 2" << std::endl;
             std::vector<float>().swap(squared_distances);
+//            EZLOG(INFO) << "after swap 3" << std::endl;
         }
+//        EZLOG(INFO) << "pca over! "<< std::endl;
         //}
         return true;
     }
@@ -1262,9 +1251,11 @@ public:
             return false;
 
         pcl::PointCloud<PointXYZICOLRANGE>::Ptr selected_cloud(new pcl::PointCloud<PointXYZICOLRANGE>());
+        const int maxIdx = in_cloud->points.size();
+//        EZLOG(INFO)<< "select points" << std::endl;
         for (int i = 0; i < pt_num; ++i)
             selected_cloud->points.push_back(in_cloud->points[search_indices[i]]);
-
+//        EZLOG(INFO)<< "select points finish" << std::endl;
         pcl::PCA<PointXYZICOLRANGE> pca_operator;
         pca_operator.setInputCloud(selected_cloud);
 
@@ -1298,18 +1289,45 @@ public:
         return true;
     }
 
+    //is_palne_feature (true: assign point normal as pca normal vector, false: assign point normal as pca primary direction vector)
+    bool assign_normal(PointXYZICOLRANGE &pt, pca_feature_t &pca_feature, bool is_plane_feature = true)
+    {
+        if (is_plane_feature)
+        {
+//            EZLOG(INFO)<< "select points step 1" << std::endl;
+            pt.normal_x = pca_feature.vectors.normalDirection.x();
+//            EZLOG(INFO)<< "select points step 2" << std::endl;
+            pt.normal_y = pca_feature.vectors.normalDirection.y();
+//            EZLOG(INFO)<< "select points step 3" << std::endl;
+            pt.normal_z = pca_feature.vectors.normalDirection.z();
+//            EZLOG(INFO)<< "select points step 4" << std::endl;
+            pt.normal[3] = pca_feature.planar_2; //planrity
+        }
+        else
+        {
+            pt.normal_x = pca_feature.vectors.principalDirection.x();
+            pt.normal_y = pca_feature.vectors.principalDirection.y();
+            pt.normal_z = pca_feature.vectors.principalDirection.z();
+            pt.normal[3] = pca_feature.linear_2; //linarity
+        }
+        return true;
+    }
+
+
     void fast_ground_filter(
                             const pcl::PointCloud<PointXYZICOLRANGE>::Ptr &cloud_in,
                             pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground,//地面点
                             pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground_down,//降才采样之后的地面点
                             pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_unground,//非地面点
-                            pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_curb,//废弃了不再使用
-                            int min_grid_pt_num, float max_ground_height,float grid_resolution,
-                            int distance_weight_downsampling_method,float standard_distance,int nonground_random_down_rate,float intensity_thre = FLT_MAX,
-                            bool apply_grid_wise_outlier_filter = false,float outlier_std_scale = 3.0,
-                            int reliable_neighbor_grid_num_thre = 0, int ground_random_down_rate = 1,float neighbor_height_diff = 25,
-                             float max_height_difference = 0.3,int estimate_ground_normal_method = 3,
-                            float normal_estimation_radius = 2.0, bool fixed_num_downsampling = false,int ground_random_down_down_rate = 2
+//                            int min_grid_pt_num,
+                            float max_ground_height = FLT_MAX,
+//                            float grid_resolution,
+//                            int distance_weight_downsampling_method,float standard_distance,int nonground_random_down_rate,
+                            float intensity_thre = FLT_MAX
+//                            bool apply_grid_wise_outlier_filter = false,float outlier_std_scale = 3.0,
+//                            int reliable_neighbor_grid_num_thre = 0, int ground_random_down_rate = 1,float neighbor_height_diff = 25,
+//                             float max_height_difference = 0.3,int estimate_ground_normal_method = 3,
+//                            float normal_estimation_radius = 2.0, bool fixed_num_downsampling = false,int ground_random_down_down_rate = 2
 
 //                            ,  //estimate_ground_normal_method, 0: directly use (0,0,1), 1: estimate normal in fix radius neighborhood , 2: estimate normal in k nearest neighborhood, 3: use ransac to estimate plane coeffs in a grid
 //                               //standard distance: the distance where the distance_weight is 1
@@ -1321,7 +1339,7 @@ public:
         //地面最小高度、地下噪声点阈值等,并获取点云范围信息。这些都是构建grid和提取地面点需要的重要参数
         //For some points,  calculating the approximate mean height
 
-        int reliable_grid_pts_count_thre = min_grid_pt_num - 1;
+        int reliable_grid_pts_count_thre = FrontEndConfig::min_grid_pt_num - 1;
         int count_checkpoint = 0;
         float sum_height = 0.001;
         float appro_mean_height;//当前帧的平均高度
@@ -1331,6 +1349,7 @@ public:
         float distance_weight;
         // int ground_random_down_rate_temp = ground_random_down_rate;
         // int nonground_random_down_rate_temp = nonground_random_down_rate;
+        EZLOG(INFO)<<"cloud_in->size() = "<<cloud_in->size()<<endl;
 
         for (int j = 0; j < cloud_in->size(); j++)
         {
@@ -1352,8 +1371,8 @@ public:
 
         //1.构建grid map
         int row, col, num_grid;
-        row = ceil((bounds.max_y - bounds.min_y) / grid_resolution);//grid_resolution 默认参数 = 3.0
-        col = ceil((bounds.max_x - bounds.min_x) / grid_resolution);
+        row = ceil((bounds.max_y - bounds.min_y) / FrontEndConfig::grid_resolution);//grid_resolution 默认参数 = 3.0
+        col = ceil((bounds.max_x - bounds.min_x) / FrontEndConfig::grid_resolution);
         num_grid = row * col;
         EZLOG(INFO)<<"num_grid "<<num_grid;
 
@@ -1370,14 +1389,14 @@ public:
         for (int j = 0; j < cloud_in->points.size(); j++)
         {
             int temp_row, temp_col, temp_id;
-            temp_col = floor((cloud_in->points[j].x - bounds.min_x) / grid_resolution);
-            temp_row = floor((cloud_in->points[j].y - bounds.min_y) / grid_resolution);
+            temp_col = floor((cloud_in->points[j].x - bounds.min_x) / FrontEndConfig::grid_resolution);
+            temp_row = floor((cloud_in->points[j].y - bounds.min_y) / FrontEndConfig::grid_resolution);
             temp_id = temp_row * col + temp_col;
             if (temp_id >= 0 && temp_id < num_grid)
             {
                 ///if use distance_weight_downsampling and the point is the first point in grid
                 ///calculate distance from grid to origin
-                if (distance_weight_downsampling_method > 0 && !grid[temp_id].pts_count)
+                if (FrontEndConfig::distance_weight_downsampling_method > 0 && !grid[temp_id].pts_count)
                 {
                     grid[temp_id].dist2station = std::sqrt(cloud_in->points[j].x * cloud_in->points[j].x + cloud_in->points[j].y * cloud_in->points[j].y + cloud_in->points[j].z * cloud_in->points[j].z);
                 }
@@ -1386,12 +1405,12 @@ public:
                 {
                     //standard_distance 默认参数 = 15.0
                     //要注意这里作者对非地面点做了一个随机下采样
-                    distance_weight = 1.0 * standard_distance / (grid[temp_id].dist2station + 0.0001); //avoiding Floating point exception
-                    int nonground_random_down_rate_temp = nonground_random_down_rate;
-                    if (distance_weight_downsampling_method == 1) //linear weight
-                        nonground_random_down_rate_temp = (int)(distance_weight * nonground_random_down_rate + 1);
-                    else if (distance_weight_downsampling_method == 2) //quadratic weight
-                        nonground_random_down_rate_temp = (int)(distance_weight * distance_weight * nonground_random_down_rate + 1);
+                    distance_weight = 1.0 * FrontEndConfig::standard_distance / (grid[temp_id].dist2station + 0.0001); //avoiding Floating point exception
+                    int nonground_random_down_rate_temp = FrontEndConfig::nonground_random_down_rate;
+                    if (FrontEndConfig::distance_weight_downsampling_method == 1) //linear weight
+                        nonground_random_down_rate_temp = (int)(distance_weight * FrontEndConfig::nonground_random_down_rate + 1);
+                    else if (FrontEndConfig::distance_weight_downsampling_method == 2) //quadratic weight
+                        nonground_random_down_rate_temp = (int)(distance_weight * distance_weight * FrontEndConfig::nonground_random_down_rate + 1);
 
                     ///对点进行随机下采样,满足下采样率要求或者强度高的点会被保留,save in cloud_unground.
                     if (j % nonground_random_down_rate_temp == 0 || cloud_in->points[j].intensity > intensity_thre)//intensity_thre = double最大值
@@ -1419,12 +1438,12 @@ public:
 //
 //        TicToc time_3;
 
-        if (apply_grid_wise_outlier_filter)
+        if (FrontEndConfig::apply_grid_wise_outlier_filter)
         {
             //Each grid: Check outlier //calculate mean and standard deviation of z in one grid, then set mean-2*std as the threshold for outliers
             for (int i = 0; i < num_grid; i++)
             {
-                if (grid[i].pts_count >= min_grid_pt_num)///判断该grid中的点数量是否满足最小阈值min_grid_pt_num
+                if (grid[i].pts_count >= FrontEndConfig::min_grid_pt_num)///判断该grid中的点数量是否满足最小阈值min_grid_pt_num
                 {
                     double sum_z = 0, sum_z2 = 0, std_z = 0, mean_z = 0;
                     for (int j = 0; j < grid[i].point_id.size(); j++)
@@ -1433,7 +1452,7 @@ public:
                     for (int j = 0; j < grid[i].point_id.size(); j++)
                         sum_z2 += (cloud_in->points[grid[i].point_id[j]].z - mean_z) * (cloud_in->points[grid[i].point_id[j]].z - mean_z);
                     std_z = std::sqrt(sum_z2 / grid[i].pts_count);
-                    grid[i].min_z_outlier_thre = mean_z - outlier_std_scale * std_z;///calculate outlier threshold
+                    grid[i].min_z_outlier_thre = mean_z - FrontEndConfig::outlier_std_scale * std_z;///calculate outlier threshold
                     grid[i].min_z = max_(grid[i].min_z, grid[i].min_z_outlier_thre);///更新grid最小高度grid[i].min_z,取原始最小高度和离群点阈值中的最大值
                     grid[i].neighbor_min_z = grid[i].min_z;///将更新后的最小高度同步到相邻grid中
                 }
@@ -1516,23 +1535,23 @@ public:
             //min_grid_pt_num = 8,reliable_neighbor_grid_num_thre = 0
 //            EZLOG(INFO)<<"grid[i].pts_count = "<<grid[i].pts_count<<endl;
 //            EZLOG(INFO)<<"grid[i].reliable_neighbor_grid_num = "<<grid[i].reliable_neighbor_grid_num<<endl;
-            if (grid[i].pts_count >= min_grid_pt_num && grid[i].reliable_neighbor_grid_num >= reliable_neighbor_grid_num_thre)
+            if (grid[i].pts_count >= FrontEndConfig::min_grid_pt_num && grid[i].reliable_neighbor_grid_num >= FrontEndConfig::reliable_neighbor_grid_num_thre)
             {
 //                ++use_grid_num;
 
                 ///计算距离权重,用于地面点和非地面点的下采样率
-                int ground_random_down_rate_temp = ground_random_down_rate;
-                int nonground_random_down_rate_temp = nonground_random_down_rate;
-                distance_weight = 1.0 * standard_distance / (grid[i].dist2station + 0.0001);
-                if (distance_weight_downsampling_method == 1) //linear weight
+                int ground_random_down_rate_temp = FrontEndConfig::ground_random_down_rate;
+                int nonground_random_down_rate_temp = FrontEndConfig::nonground_random_down_rate;
+                distance_weight = 1.0 * FrontEndConfig::standard_distance / (grid[i].dist2station + 0.0001);
+                if (FrontEndConfig::distance_weight_downsampling_method == 1) //linear weight
                 {
-                    ground_random_down_rate_temp = (int)(distance_weight * ground_random_down_rate + 1);
-                    nonground_random_down_rate_temp = (int)(distance_weight * nonground_random_down_rate + 1);
+                    ground_random_down_rate_temp = (int)(distance_weight * FrontEndConfig::ground_random_down_rate + 1);
+                    nonground_random_down_rate_temp = (int)(distance_weight * FrontEndConfig::nonground_random_down_rate + 1);
                 }
-                else if (distance_weight_downsampling_method == 2) //quadratic weight
+                else if (FrontEndConfig::distance_weight_downsampling_method == 2) //quadratic weight
                 {
-                    ground_random_down_rate_temp = (int)(distance_weight * distance_weight * ground_random_down_rate + 1);
-                    nonground_random_down_rate_temp = (int)(distance_weight * distance_weight * nonground_random_down_rate + 1);
+                    ground_random_down_rate_temp = (int)(distance_weight * distance_weight * FrontEndConfig::ground_random_down_rate + 1);
+                    nonground_random_down_rate_temp = (int)(distance_weight * distance_weight * FrontEndConfig::nonground_random_down_rate + 1);
                 }
 
                 bool last_point_is_ground = false;
@@ -1541,7 +1560,7 @@ public:
 //                EZLOG(INFO)<<"grid[i].min_z  = "<<grid[i].min_z<<endl;
 //                EZLOG(INFO)<<"grid[i].neighbor_min_z  = "<<grid[i].neighbor_min_z<<endl;
 //                EZLOG(INFO)<<"grid[i].min_z - grid[i].neighbor_min_z = "<<grid[i].min_z - grid[i].neighbor_min_z<<endl;
-                if (grid[i].min_z - grid[i].neighbor_min_z < neighbor_height_diff)
+                if (grid[i].min_z - grid[i].neighbor_min_z < FrontEndConfig::neighbor_height_diff)
                 {
 //                    TicToc time_7;
 
@@ -1558,11 +1577,11 @@ public:
                         else if (cloud_in->points[grid[i].point_id[j]].z > grid[i].min_z_outlier_thre)
                         {
                             ///继续判断是否满足地面点条件(点与grid最小高度之差小于阈值max_height_difference)
-                            if (cloud_in->points[grid[i].point_id[j]].z - grid[i].min_z < max_height_difference)
+                            if (cloud_in->points[grid[i].point_id[j]].z - grid[i].min_z < FrontEndConfig::max_height_difference)
                             {
                                 /// groud point
                                 //cloud_ground_full->points.push_back(cloud_in->points[grid[i].point_id[j]]);
-                                if (estimate_ground_normal_method == 3)///默认使用这种方法 use ransac to estimate plane coeffs in a grid
+                                if (FrontEndConfig::estimate_ground_normal_method == 3)///默认使用这种方法 use ransac to estimate plane coeffs in a grid
                                 {
                                     grid_ground->points.push_back(cloud_in->points[grid[i].point_id[j]]);
                                     last_point_is_ground = true;
@@ -1573,7 +1592,7 @@ public:
                                     ///否则进行随机下采样,按下采样率将地面点加入grid_ground_pcs
                                     if (j % ground_random_down_rate_temp == 0) // for example 10
                                     {
-                                        if (estimate_ground_normal_method == 0)///directly use (0,0,1)
+                                        if (FrontEndConfig::estimate_ground_normal_method == 0)///directly use (0,0,1)
                                         {
                                             cloud_in->points[grid[i].point_id[j]].normal_x = 0.0;
                                             cloud_in->points[grid[i].point_id[j]].normal_y = 0.0;

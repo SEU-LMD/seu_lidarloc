@@ -3,6 +3,8 @@
 #ifndef SEU_CONFIG_HELPER
 #define SEU_CONFIG_HELPER
 
+#define FLT_MAX		__FLT_MAX__
+#define DBL_MAX		__DBL_MAX__
 
 #include <iostream>
 #include <fstream>
@@ -34,10 +36,10 @@ class SensorConfig{
 
     //GPS Setting
     static bool  useGPS;
-    static bool   updateOrigin;//没有使用
+    static bool  updateOrigin;//没有使用
     static int  gpsFrequence;//notuse
     static bool  useImuHeadingInitialization;
-    static bool useGpsElevation;
+    static bool  useGpsElevation;
     static float  gpsCovThreshold;
     static float   poseCovThreshold;
     static float  gpsDistance;//not use
@@ -72,6 +74,7 @@ class SensorConfig{
     static int if_use_Wheel_DR;
     static int if_DR_use_Euler;
 
+
     //Extrinsics (lidar -> IMU)
     static int imu_type;//meiyong buyiyang********
     static Eigen::Vector3d  extrinsicTrans;//
@@ -85,15 +88,15 @@ class SensorConfig{
     static Eigen::Vector3d t_body_sensor;
     static Eigen::Quaterniond q_body_sensor;
 
-    static bool use_gnss_deskew;
+    static bool use_drodom_deskew;
     static int gtsamGNSSBetweenFactorDistance;
     static int lidarScanDownSample;
 };
 
 class MappingConfig{
     public:
-        static int slam_mode_switch;
         static int if_debug;
+        static int if_use_fuseNode;
         static Eigen::Vector3d origin_gnss;
         static bool use_deskew;
         // save map
@@ -163,7 +166,28 @@ class MappingConfig{
         static float globalMapLeafSize;//meiyong
         static int scan_2_scan_num_corner;
         static int scan_2_scan_num_surf;
-    };
+
+//        //ground filter
+//        static int min_grid_pt_num;
+//        static float max_ground_height;
+//        static float grid_resolution;
+//        static int distance_weight_downsampling_method;
+//        static float standard_distance;
+//        static int nonground_random_down_rate;
+//        static float intensity_thre;
+//        static bool apply_grid_wise_outlier_filter;
+//        static float outlier_std_scale;
+//        static int reliable_neighbor_grid_num_thre;
+//        static int ground_random_down_rate;
+//        static float neighbor_height_diff;
+//        static float max_height_difference;
+//        static int estimate_ground_normal_method;
+//        static float normal_estimation_radius;
+//        static bool fixed_num_downsampling;
+//        static int ground_random_down_down_rate;
+
+
+};
 
 
 class SerializeConfig{
@@ -174,6 +198,9 @@ class SerializeConfig{
       static double lidar_range;
       static int frame_sum;
 
+      static std::string current_lidar_path;
+      static std::string prior_map_path;
+      static std::string prior_pose_path;
       static double Tepsilion;
       static double step_size;
       static float size_resolution;
@@ -187,6 +214,56 @@ class SerializeConfig{
       static int lasercloud_num;
 
    };
+
+class FrontEndConfig{
+    public:
+    static bool use_ground_filter;
+    static int min_grid_pt_num;
+    static float max_ground_height;
+    static float grid_resolution;
+    static int distance_weight_downsampling_method;
+    static float standard_distance;
+    static int nonground_random_down_rate;
+    static float intensity_thre ;
+    static bool apply_grid_wise_outlier_filter ;
+    static float outlier_std_scale;
+    static int reliable_neighbor_grid_num_thre;
+    static int ground_random_down_rate ;
+    static float neighbor_height_diff;
+    static float max_height_difference;
+    static int estimate_ground_normal_method;
+    static float normal_estimation_radius;
+    static bool fixed_num_downsampling;
+    static int ground_random_down_down_rate;
+
+    static bool use_unground_pts_classify;
+    static float neighbor_searching_radius;
+    static int neighbor_k;
+    static int neigh_k_min;
+    static int pca_down_rate;
+    static float edge_thre;
+    static float planar_thre;
+    static float edge_thre_down;
+    static float planar_thre_down;
+    static int extract_vertex_points_method;
+    static float curvature_thre;
+    static float vertex_curvature_non_max_radius;
+    static float linear_vertical_sin_high_thre;
+    static float linear_vertical_sin_low_thre;
+    static float planar_vertical_sin_high_thre;
+    static float planar_vertical_sin_low_thre;
+    static int pillar_down_fixed_num;
+    static int facade_down_fixed_num;
+    static int beam_down_fixed_num;
+    static int roof_down_fixed_num;
+    static int unground_down_fixed_num;
+    static float beam_height_max;
+    static float roof_height_min;
+    static  float feature_pts_ratio_guess;
+    static bool sharpen_with_nms;
+    static bool use_distance_adaptive_pca;
+
+}; // end FrontEndConfig
 
 std::string SensorConfig::pointCloudTopic = "";
 std::string SensorConfig::imuTopic = "";
@@ -241,8 +318,8 @@ double SensorConfig::imuConstBias_gyro=-1;
 int  SensorConfig::imuHZ = -1;
 int SensorConfig::imuGTSAMReset = 25;
 int SensorConfig::imu_angular_v_gain = 10;
-int SensorConfig::if_use_Wheel_DR = 0;
-int SensorConfig::if_DR_use_Euler = 0;
+int SensorConfig::if_use_Wheel_DR = -1;
+int SensorConfig::if_DR_use_Euler = -1;
 
 
 int SensorConfig::imu_type=-1;
@@ -256,11 +333,11 @@ Eigen::Vector3d SensorConfig::t_body_sensor;
 Eigen::Quaterniond SensorConfig::q_body_sensor;
 int SensorConfig::gtsamGNSSBetweenFactorDistance = 10;
 
-bool SensorConfig::use_gnss_deskew=false;
+bool SensorConfig::use_drodom_deskew =false;
 int SensorConfig::lidarScanDownSample = 2;
 
-int MappingConfig::slam_mode_switch = 1;
-int MappingConfig::if_debug = 1;
+int MappingConfig::if_debug = -1;
+int MappingConfig::if_use_fuseNode =-1;
 std::string MappingConfig::save_map_path = "";
 int MappingConfig::if_need_first_position = 1;
 
@@ -328,6 +405,8 @@ int  MappingConfig::scan_2_scan_num_surf = 1;
 int  MappingConfig::scan_2_scan_num_corner = 1;
 int MappingConfig::use_DR_or_fuse_in_loc = 1;
 
+
+
 // offline mapping
 std::string SerializeConfig::map_in_path = "";
 std::string SerializeConfig::map_out_path = "";
@@ -340,6 +419,9 @@ int SerializeConfig::lasercloud_width=0;
 int SerializeConfig::lasercloud_height=0;
 int SerializeConfig::lasercloud_num=0;
 //PriorMap localization
+std::string SerializeConfig::current_lidar_path = "";
+std::string SerializeConfig::prior_map_path = "";
+std::string SerializeConfig::prior_pose_path = "";
 
 double SerializeConfig::Tepsilion = 0.01;
 double SerializeConfig::step_size = 1.0;
@@ -348,7 +430,53 @@ double SerializeConfig::max_inter_num = 35;
 double SerializeConfig::setLeafSize = 0.6;
 double SerializeConfig::sequence_num = 271;
 
+// ground filter
+bool FrontEndConfig::use_ground_filter = true;
+int FrontEndConfig::min_grid_pt_num = 8;
+//float FrontEndConfig::max_ground_height = 50.0;
+float FrontEndConfig::grid_resolution = 1.5;
+int FrontEndConfig::distance_weight_downsampling_method =0;
+float FrontEndConfig::standard_distance =15.0;
+int FrontEndConfig::nonground_random_down_rate =1;
+float FrontEndConfig::intensity_thre = -1;
+bool FrontEndConfig::apply_grid_wise_outlier_filter =false;
+float FrontEndConfig::outlier_std_scale =3.0;
+int FrontEndConfig::reliable_neighbor_grid_num_thre =0;
+int FrontEndConfig::ground_random_down_rate =1;
+float FrontEndConfig::neighbor_height_diff =25.0;
+float FrontEndConfig::max_height_difference =0.3;
+int FrontEndConfig::estimate_ground_normal_method =3;
+float FrontEndConfig::normal_estimation_radius =2.0;
+bool FrontEndConfig::fixed_num_downsampling =false;
+int FrontEndConfig::ground_random_down_down_rate =2;
 
+//unground pts classify
+bool FrontEndConfig::use_unground_pts_classify = true;
+float FrontEndConfig::neighbor_searching_radius = 1.0;
+int FrontEndConfig::neighbor_k = 30;
+int FrontEndConfig::neigh_k_min= 8;
+int FrontEndConfig::pca_down_rate=1;
+float FrontEndConfig::edge_thre=0.65;
+float FrontEndConfig::planar_thre=0.65;
+float FrontEndConfig::edge_thre_down=0.75;
+float FrontEndConfig::planar_thre_down=0.75;
+int FrontEndConfig::extract_vertex_points_method=2;
+float FrontEndConfig::curvature_thre =0.12;
+float FrontEndConfig::vertex_curvature_non_max_radius = 1.5;
+float FrontEndConfig::linear_vertical_sin_high_thre =0.94;
+float FrontEndConfig::linear_vertical_sin_low_thre=0.17;
+float FrontEndConfig::planar_vertical_sin_high_thre =0.98;
+float FrontEndConfig::planar_vertical_sin_low_thre=0.34;
+int FrontEndConfig::pillar_down_fixed_num = 200;
+int FrontEndConfig::facade_down_fixed_num = 800 ;
+int FrontEndConfig::beam_down_fixed_num = 200;
+int FrontEndConfig::roof_down_fixed_num = 100;
+int FrontEndConfig::unground_down_fixed_num = 20000;
+//float FrontEndConfig::beam_height_max = 500.0;
+//float FrontEndConfig::roof_height_min = 500.0;
+float FrontEndConfig::feature_pts_ratio_guess = 0.3 ;
+bool FrontEndConfig::sharpen_with_nms = true;
+bool FrontEndConfig::use_distance_adaptive_pca = false;
 
 void Load_Sensor_YAML(std::string sensorpath)
 {
@@ -402,14 +530,14 @@ void Load_Sensor_YAML(std::string sensorpath)
 
 
     //IMU Settings
-    SensorConfig:: imuAccNoise=sensorconfig["imuAccNoise"].as<double >();
-    SensorConfig:: imuGyrNoise=sensorconfig["imuGyrNoise"].as<double >();
-    SensorConfig::  imuAccBiasN=sensorconfig["imuAccBiasN"].as<double >();
-    SensorConfig::  imuGyrBiasN=sensorconfig["imuGyrBiasN"].as<double >();
-    SensorConfig::  imuGravity=sensorconfig["imuGravity"].as<double >();
-    SensorConfig::  imuRPYWeight=sensorconfig["imuRPYWeight"].as<double >();
-    SensorConfig::imuHZ = sensorconfig["imuHZ"].as<int >();
-    SensorConfig::use_gnss_deskew=sensorconfig["use_gnss_deskew"].as<bool >();
+    SensorConfig:: imuAccNoise=sensorconfig["imuAccNoise"].as<double>();
+    SensorConfig:: imuGyrNoise=sensorconfig["imuGyrNoise"].as<double>();
+    SensorConfig::  imuAccBiasN=sensorconfig["imuAccBiasN"].as<double>();
+    SensorConfig::  imuGyrBiasN=sensorconfig["imuGyrBiasN"].as<double>();
+    SensorConfig::  imuGravity=sensorconfig["imuGravity"].as<double>();
+    SensorConfig::  imuRPYWeight=sensorconfig["imuRPYWeight"].as<double>();
+    SensorConfig::imuHZ = sensorconfig["imuHZ"].as<int>();
+    SensorConfig::use_drodom_deskew=sensorconfig["use_drodom_deskew"].as<bool>();
     SensorConfig::imuGTSAMReset=sensorconfig["imuGTSAMReset"].as<int>();
     SensorConfig::imuConstBias_acc=sensorconfig["imuConstBias_acc"].as<double>();
     SensorConfig::imuConstBias_gyro=sensorconfig["imuConstBias_gyro"].as<double>();
@@ -466,7 +594,7 @@ void Load_Sensor_YAML(std::string sensorpath)
     std::cout<<"SensorConfig::lidarScanDownSample: "<<SensorConfig::lidarScanDownSample<<std::endl;
     std::cout<<"SensorConfig::lidarMaxRing: "<<SensorConfig::lidarMaxRing<<std::endl;
     std::cout<<"SensorConfig::lidarMinRing: "<<SensorConfig::lidarMinRing<<std::endl;
-    std::cout<<"SensorConfig::use_gnss_deskew: "<<SensorConfig::use_gnss_deskew<<std::endl;
+    std::cout<<"SensorConfig::use_gnss_deskew: "<<SensorConfig::use_drodom_deskew<<std::endl;
     std::cout<<"SensorConfig::imuConstBias_acc: "<<SensorConfig::imuConstBias_acc<<std::endl;
     std::cout<<"SensorConfig::imuConstBias_gyro: "<<SensorConfig::imuConstBias_gyro<<std::endl;
     std::cout<<"SensorConfig::imu_angular_v_gain: "<<SensorConfig::imu_angular_v_gain<<std::endl;
@@ -488,8 +616,8 @@ void Load_Mapping_YAML(std::string mappingpath)
             exit(1);
         }
 
-        MappingConfig::slam_mode_switch = mappingconfig["slam_mode_switch"].as<int>();
         MappingConfig::if_debug = mappingconfig["if_debug"].as<int>();
+        MappingConfig::if_use_fuseNode = mappingconfig["if_use_fuseNode"].as<int>();
         MappingConfig::use_deskew=mappingconfig["use_deskew"].as<bool >();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();
@@ -599,6 +727,33 @@ void Load_offline_YAML(std::string offlinepath)
         SerializeConfig::lidar_range = offlineconfig["lidar_range"].as<double>();
         SerializeConfig::frame_sum = offlineconfig["frame_sum"].as<int>();
 
+        //Prior Map localization
+        SerializeConfig::current_lidar_path = offlineconfig["CURRENT_LIDAR_PATH"].as<std::string>();
+        SerializeConfig::prior_map_path = offlineconfig["PRIOR_MAP_PATH"].as<std::string>();
+        SerializeConfig::prior_pose_path = offlineconfig["PRIOR_POSE_PATH"].as<std::string>();
+
+        std::cout<<"CURRENT_LIDAR_PATH: "<<SerializeConfig::current_lidar_path<<std::endl;
+        std::cout<<"PRIOR_MAP_PATH: "<<SerializeConfig::prior_map_path<<std::endl;
+        std::cout<<"PRIOR_POSE_PATH: "<<SerializeConfig::prior_pose_path<<std::endl;
+
+//    ndt param
+        SerializeConfig::Tepsilion = offlineconfig["T_EPSILION"].as<double>();
+        SerializeConfig::step_size = offlineconfig["STEP_SIZE"].as<double>();
+        SerializeConfig::size_resolution = offlineconfig["SIZE_RESOLUTION"].as<float>();
+        SerializeConfig::max_inter_num = offlineconfig["MAXMUN_INTERNUM"].as<double>();
+        SerializeConfig::setLeafSize = offlineconfig["DOWNSIZE_LEAF"].as<double>();
+        SerializeConfig::sequence_num = offlineconfig["CURRENT_LIDAR_NUM"].as<double>();
+
+        std::cout<<"T_EPSILION: "<<SerializeConfig::Tepsilion<<std::endl;
+        std::cout<<"STEP_SIZE: "<<SerializeConfig::step_size<<std::endl;
+        std::cout<<"SIZE_RESOLUTION: "<<SerializeConfig::size_resolution<<std::endl;
+        std::cout<<"DOWNSIZE_LEAF: "<<SerializeConfig::setLeafSize<<std::endl;
+        std::cout<<"MAXMUN_INTERNUM: "<<SerializeConfig::max_inter_num<<std::endl;
+        std::cout<<"CURRENT_LIDAR_NUM: "<<SerializeConfig::sequence_num<<std::endl;
+        SerializeConfig::map_out_path =offlineconfig["map_out_path"].as<std::string>();
+        SerializeConfig::up2down_num = offlineconfig["up2down_num"].as<int>();
+        SerializeConfig::lidar_range = offlineconfig["lidar_range"].as<double>();
+        SerializeConfig::frame_sum = offlineconfig["frame_sum"].as<int>();
         SerializeConfig::up_grid_size= offlineconfig["up_grid_size"].as<int>();
         SerializeConfig::lasercloud_width= offlineconfig["lasercloud_width"].as<int>();
         SerializeConfig::lasercloud_height= offlineconfig["lasercloud_height"].as<int>();
@@ -607,5 +762,72 @@ void Load_offline_YAML(std::string offlinepath)
         std::cout<<"offline yaml success load"<<std::endl;
 
     }
+
+void Load_FrontEnd_YAML(std::string frontendpath)
+{
+    YAML::Node frontendconfig;
+    try{
+        frontendconfig = YAML::LoadFile(frontendpath);
+    } catch(YAML::BadFile &e) {
+        std::cout<<"front_end yaml read error!"<<frontendpath<<std::endl;
+        exit(1);
+    }
+
+    std::cout<<"CURRENT_LIDAR_PATH: "<<SerializeConfig::current_lidar_path<<std::endl;
+    std::cout<<"PRIOR_MAP_PATH: "<<SerializeConfig::prior_map_path<<std::endl;
+    std::cout<<"PRIOR_POSE_PATH: "<<SerializeConfig::prior_pose_path<<std::endl;
+
+// ground filter
+    FrontEndConfig::use_ground_filter = frontendconfig["use_ground_filter"].as<bool>();
+    FrontEndConfig::min_grid_pt_num = frontendconfig["min_grid_pt_num"].as<int>();
+//    FrontEndConfig::max_ground_height = frontendconfig["max_ground_height"].as<float>();
+    FrontEndConfig::grid_resolution  = frontendconfig["grid_resolution"].as<float>();
+    FrontEndConfig::distance_weight_downsampling_method  = frontendconfig["distance_weight_downsampling_method"].as<int>();
+    FrontEndConfig::standard_distance = frontendconfig["standard_distance"].as<float>();
+    FrontEndConfig::nonground_random_down_rate = frontendconfig["nonground_random_down_rate"].as<int>();
+    FrontEndConfig::intensity_thre = frontendconfig["intensity_thre"].as<float>();
+    FrontEndConfig::apply_grid_wise_outlier_filter = frontendconfig["apply_grid_wise_outlier_filter"].as<bool>();
+    FrontEndConfig::outlier_std_scale = frontendconfig["outlier_std_scale"].as<float>();
+    FrontEndConfig::reliable_neighbor_grid_num_thre  = frontendconfig["reliable_neighbor_grid_num_thre"].as<int>();
+    FrontEndConfig::ground_random_down_rate  = frontendconfig["ground_random_down_rate"].as<int>();
+    FrontEndConfig::neighbor_height_diff  = frontendconfig["neighbor_height_diff"].as<float>();
+    FrontEndConfig::max_height_difference  = frontendconfig["max_height_difference"].as<float>();
+    FrontEndConfig::estimate_ground_normal_method  = frontendconfig["estimate_ground_normal_method"].as<int>();
+    FrontEndConfig::normal_estimation_radius  = frontendconfig["normal_estimation_radius"].as<float>();
+    FrontEndConfig::fixed_num_downsampling  = frontendconfig["fixed_num_downsampling"].as<bool>();
+    FrontEndConfig::ground_random_down_down_rate = frontendconfig["ground_random_down_down_rate"].as<int>();
+
+//unground pts classify
+    FrontEndConfig::use_unground_pts_classify = frontendconfig["use_unground_pts_classify"].as<bool>();
+    FrontEndConfig::neighbor_searching_radius = frontendconfig["neighbor_searching_radius"].as<float>();
+    FrontEndConfig::neighbor_k = frontendconfig["neighbor_k"].as<int>();
+    FrontEndConfig::neigh_k_min= frontendconfig["neigh_k_min"].as<int>();
+    FrontEndConfig::pca_down_rate= frontendconfig["pca_down_rate"].as<int>();
+    FrontEndConfig::edge_thre= frontendconfig["edge_thre"].as<float>();
+    FrontEndConfig::planar_thre= frontendconfig["planar_thre"].as<float>();
+    FrontEndConfig::edge_thre_down= frontendconfig["edge_thre_down"].as<float>();
+    FrontEndConfig::planar_thre_down= frontendconfig["planar_thre_down"].as<float>();
+    FrontEndConfig::extract_vertex_points_method= frontendconfig["extract_vertex_points_method"].as<int>();
+    FrontEndConfig::curvature_thre = frontendconfig["curvature_thre"].as<float>();
+    FrontEndConfig::vertex_curvature_non_max_radius = frontendconfig["vertex_curvature_non_max_radius"].as<float>();
+    FrontEndConfig::linear_vertical_sin_high_thre = frontendconfig["linear_vertical_sin_high_thre"].as<float>();
+    FrontEndConfig::linear_vertical_sin_low_thre= frontendconfig["linear_vertical_sin_low_thre"].as<float>();
+    FrontEndConfig::planar_vertical_sin_high_thre = frontendconfig["planar_vertical_sin_high_thre"].as<float>();
+    FrontEndConfig::planar_vertical_sin_low_thre= frontendconfig["planar_vertical_sin_low_thre"].as<float>();
+    FrontEndConfig::pillar_down_fixed_num = frontendconfig["pillar_down_fixed_num"].as<int>();
+    FrontEndConfig::facade_down_fixed_num = frontendconfig["facade_down_fixed_num"].as<int>();
+    FrontEndConfig::beam_down_fixed_num = frontendconfig["beam_down_fixed_num"].as<int>();
+    FrontEndConfig::roof_down_fixed_num = frontendconfig["roof_down_fixed_num"].as<int>();
+    FrontEndConfig::unground_down_fixed_num = frontendconfig["unground_down_fixed_num"].as<int>();
+//    FrontEndConfig::beam_height_max = frontendconfig["beam_height_max"].as<float>();
+//    FrontEndConfig::roof_height_min = frontendconfig["roof_height_min"].as<float>();
+    FrontEndConfig::feature_pts_ratio_guess = frontendconfig["feature_pts_ratio_guess"].as<float>();
+    FrontEndConfig::sharpen_with_nms = frontendconfig["sharpen_with_nms"].as<bool>();
+    FrontEndConfig::use_distance_adaptive_pca = frontendconfig["use_distance_adaptive_pca"].as<bool>();
+
+    std::cout<<"offline yaml success load"<<std::endl;
+
+} // end Load_FrontEnd_YAML
+
 
 #endif
