@@ -215,38 +215,6 @@ public:
         std::cout << "Pub Corner Map!"<<std::endl;
 
     }
-    void pointAssociateToMap(PointType const *const pi, PointType *const po) {
-        if(MappingConfig::scan_2_prior_map == 1){
-            po->x = T_wl(0, 0) * pi->x +
-                    T_wl(0, 1) * pi->y +
-                    T_wl(0, 2) * pi->z +
-                    T_wl(0, 3);
-            po->y = T_wl(1, 0) * pi->x +
-                    T_wl(1, 1) * pi->y +
-                    T_wl(1, 2) * pi->z +
-                    T_wl(1, 3);
-            po->z = T_wl(2, 0) * pi->x +
-                    T_wl(2, 1) * pi->y +
-                    T_wl(2, 2) * pi->z +
-                    T_wl(2, 3);
-            po->intensity = pi->intensity;
-        }
-        else{
-            po->x = transPointAssociateToMap(0, 0) * pi->x +
-                    transPointAssociateToMap(0, 1) * pi->y +
-                    transPointAssociateToMap(0, 2) * pi->z +
-                    transPointAssociateToMap(0, 3);
-            po->y = transPointAssociateToMap(1, 0) * pi->x +
-                    transPointAssociateToMap(1, 1) * pi->y +
-                    transPointAssociateToMap(1, 2) * pi->z +
-                    transPointAssociateToMap(1, 3);
-            po->z = transPointAssociateToMap(2, 0) * pi->x +
-                    transPointAssociateToMap(2, 1) * pi->y +
-                    transPointAssociateToMap(2, 2) * pi->z +
-                    transPointAssociateToMap(2, 3);
-            po->intensity = pi->intensity;
-        }
-    }
 
     pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::Ptr cloudIn,
                                                         PointTypePose *transformIn) {
@@ -275,20 +243,6 @@ public:
             cloudOut->points[i].intensity = pointFrom.intensity;
         }
         return cloudOut;
-    }
-
-    gtsam::Pose3 pclPointTogtsamPose3(PointTypePose thisPoint) {
-        return gtsam::Pose3(
-                gtsam::Rot3::RzRyRx(double(thisPoint.roll), double(thisPoint.pitch),
-                                    double(thisPoint.yaw)),
-                gtsam::Point3(double(thisPoint.x), double(thisPoint.y),
-                              double(thisPoint.z)));
-    }
-
-    gtsam::Pose3 trans2gtsamPose(float transformIn[]) {
-        return gtsam::Pose3(
-                gtsam::Rot3::RzRyRx(transformIn[0], transformIn[1], transformIn[2]),
-                gtsam::Point3(transformIn[3], transformIn[4], transformIn[5]));
     }
 
     Eigen::Affine3f pclPointToAffine3f(PointTypePose thisPoint) {
@@ -413,9 +367,6 @@ public:
                 downSizeFilterSurf_US.filter(*_current_surf_ds);
                 break;
         }
-
-//        EZLOG(INFO) << "_current_corner_ds->size(): "<<_current_corner_ds->size()
-//                    << " _current_surf_ds->size(): " <<_current_surf_ds->size();
 
         CloudTypeXYZI currentlidar_surf_pub;
         currentlidar_surf_pub.frame = "map";

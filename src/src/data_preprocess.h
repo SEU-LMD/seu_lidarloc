@@ -768,13 +768,12 @@ public:
         geoConverter.Forward(data.lla[0], data.lla[1], data.lla[2],
                              t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
 
-        EZLOG(INFO)<<"GNSS ORIGIN POINT: "<<  t_enu[0]<<" "<<t_enu[1]<<" "<<t_enu[2]<<endl;
         Eigen::Matrix3d z_matrix;//calculate Quaternion
         Eigen::Matrix3d x_matrix;
         Eigen::Matrix3d y_matrix;
-        double heading_Z = -data.yaw * 3.1415926535 / 180.0;
-        double pitch_Y = data.pitch * 3.1415926535 / 180.0;
-        double roll_X = data.roll * 3.1415926535 / 180.0;
+        double heading_Z = -data.yaw * 0.017453293;
+        double pitch_Y = data.pitch * 0.017453293;
+        double roll_X = data.roll * 0.017453293;
         z_matrix << cos(heading_Z), -sin(heading_Z), 0,
                 sin(heading_Z), cos(heading_Z),  0,
                 0,                 0,            1;
