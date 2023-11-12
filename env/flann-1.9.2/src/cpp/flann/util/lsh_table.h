@@ -40,8 +40,8 @@
 #include <iomanip>
 #include <limits.h>
 #include <random>
-// TODO as soon as we use C++0x, use the code in USE_UNORDERED_MAP
-#if USE_UNORDERED_MAP
+// TODO as soon as we use C++0x, use the code in FLANN_USE_UNORDERED_MAP
+#if FLANN_USE_UNORDERED_MAP
 #include <unordered_map>
 #else
 #include <map>
@@ -128,7 +128,7 @@ class LshTable
 public:
     /** A container of all the feature indices. Optimized for space
      */
-#if USE_UNORDERED_MAP
+#if FLANN_USE_UNORDERED_MAP
     typedef std::unordered_map<BucketKey, Bucket> BucketsSpace;
 #else
     typedef std::map<BucketKey, Bucket> BucketsSpace;
@@ -188,7 +188,7 @@ public:
      */
     void add(const std::vector< std::pair<size_t, ElementType*> >& features)
     {
-#if USE_UNORDERED_MAP
+#if FLANN_USE_UNORDERED_MAP
         buckets_space_.rehash((buckets_space_.size() + features.size()) * 1.2);
 #endif
         // Add the features to the table

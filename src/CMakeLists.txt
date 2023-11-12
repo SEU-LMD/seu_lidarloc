@@ -12,13 +12,13 @@ find_package(Boost REQUIRED COMPONENTS timer)
 
 #according to different platform to choose communication tool , ros or mdc
 set(COMPILE_MODE "X86" CACHE STRING "choose the platform")# X86 or MDC
+#set(COMPILE_MODE "MDC" CACHE STRING "choose the platform")# X86 or MDC
 if( ${COMPILE_MODE} STREQUAL "X86")
     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/X86.cmake)
 elseif( ${COMPILE_MODE} STREQUAL "MDC")
     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/MDC.cmake)
 endif()
 message("Compile mode: ${COMPILE_MODE}")
-
 
 set(Eigen3_DIR ${CMAKE_SOURCE_DIR}/../env/eigen-3.4.0-install-x86/share/eigen3/cmake)
 find_package(Eigen3 REQUIRED)
@@ -30,17 +30,28 @@ find_package(GTSAM REQUIRED)
 set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/../env/opencv-3.4.16-install/share/OpenCV)
 find_package(OpenCV REQUIRED)
 
-#set(PCL_DIR ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/share/pcl-1.10)
-#find_package(PCL REQUIRED)
-
-set(PCL_DIR "/usr/lib/x86_64-linux-gnu/cmake/pcl") # if noted, then sy will crush
-#set(PCL_DIR ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/share/pcl-1.10)
+set(PCL_DIR ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/share/pcl-1.10)
 find_package(PCL REQUIRED)
 MESSAGE("-----------PCL_ROOT:${PCL_ROOT}-----------")
 
 set(YAML_CPP_DIR "${CMAKE_SOURCE_DIR}/../env/yaml-cpp-install/lib/cmake/yaml-cpp")
 find_package(YAML_CPP REQUIRED) 
 set(YAML_LIB "${CMAKE_SOURCE_DIR}/../env/yaml-cpp-install/lib/libyaml-cpp.a")
+
+set(FLANN_DIR ${CMAKE_SOURCE_DIR}/../env/flann-1.9.2-install/lib/cmake/flann)
+find_package(FLANN REQUIRED)
+set(FLANN_DIRS ${CMAKE_SOURCE_DIR}/../env/flann-1.9.2-install/include)
+
+
+
+set(PCL_LIBRARIES
+        ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/lib/libpcl_common.so.1.10
+        ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/lib/libpcl_io.so.1.10
+        ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/lib/libpcl_io_ply.so.1.10)
+
+
+
+
 
 #use for easylog marco
 add_definitions(-DELPP_THREAD_SAFE)
@@ -60,6 +71,7 @@ include_directories(
         ./ThirdParty/GeographicLib/
         ./ThirdParty/easylog-9.89/src/
         ${YAML_CPP_INCLUDE_DIR}
+        ${FLANN_DIRS}
         ./udp_helper.h
 )
 
@@ -72,13 +84,13 @@ FILE(WRITE cur_pwd.txt ${CMAKE_SOURCE_DIR}) # add by sy
 set(ABS_CURRENT_SOURCE_PATH ${CMAKE_SOURCE_DIR})
 
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/config/abs_current_path.h.ini
-                ${CMAKE_SOURCE_DIR}/config/abs_current_path.h)
+        ${CMAKE_SOURCE_DIR}/config/abs_current_path.h)
 
 ###########
 ## Build ##
 ############
-#add_executable(mapping app_mapping/mapping.cpp)
-#target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+add_executable(mapping app_mapping/mapping.cpp)
+target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
 
-add_executable(loc app_loc/loc.cpp)
-target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+#add_executable(loc app_loc/loc.cpp)
+#target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES

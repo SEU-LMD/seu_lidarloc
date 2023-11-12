@@ -9,9 +9,10 @@
 #include "utils/udp_thread.h"
 
 //选择中间件
-//#ifdef X86
+#define X86
+#ifdef X86
 #include "pubsub/ros/ros_pubsub.h"
-//#endif
+#endif
 
 INITIALIZE_EASYLOGGINGPP
 
