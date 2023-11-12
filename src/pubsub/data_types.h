@@ -89,6 +89,7 @@ typedef std::shared_ptr<CloudTypeXYZICOLRANGE> CloudTypeXYZICOLRANGEPtr;
 class OdometryType:public BaseType{
     public:
         PoseT pose;
+//        bool pose_reliable;
         DataType getType(){
             return DataType::ODOMETRY;
         }
@@ -195,6 +196,7 @@ public:
     int frame_id;
     double timestamp;
     PoseT pose;
+    bool pose_reliable;
     PoseT DRPose;
 
 //    std::vector<int> label;

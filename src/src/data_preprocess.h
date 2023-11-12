@@ -89,20 +89,20 @@ public:
 
     std::shared_ptr<UDP_THREAD> udp_thread;//udp
 
-    //TODO remove 1111
-    bool GetFirstGnssPose(PoseT &_First_gnss_pose){
-        if(flag_first_gnss == true){
-            EZLOG(INFO)<<" First Gnss Pose get!";
-            _First_gnss_pose = First_gnss_pose;
-            EZLOG(INFO)<< "First_gnss_pose: ";
-            EZLOG(INFO)<< First_gnss_pose.pose;
-            return true;
-        }
-        else{
-            EZLOG(INFO)<<"Wait for GNSS First Pose!!!";
-            return false;
-        }
-    }
+    //TODO remove 1111 ----------Done
+//    bool GetFirstGnssPose(PoseT &_First_gnss_pose){
+//        if(flag_first_gnss == true){
+//            EZLOG(INFO)<<" First Gnss Pose get!";
+//            _First_gnss_pose = First_gnss_pose;
+//            EZLOG(INFO)<< "First_gnss_pose: ";
+//            EZLOG(INFO)<< First_gnss_pose.pose;
+//            return true;
+//        }
+//        else{
+//            EZLOG(INFO)<<"Wait for GNSS First Pose!!!";
+//            return false;
+//        }
+//    }
 
     void  AllocateMemory() {
         deskewCloud_body.reset(new pcl::PointCloud<PointType>());
@@ -146,12 +146,12 @@ public:
         return cost_time;
     }
 
-    //find closest Lidar pose  TODO 1111
-    double  FindIMUOdomPose(const CloudWithTime& cloudinfo, const std::deque<OdometryType>& pose_deque ,
-                               PoseT& T_w_l_lidar_start) {
+    //find closest Lidar pose  TODO 1111 ----------Done
+    double  FindLidarPoseinDROdom(const CloudWithTime& cloudinfo, const std::deque<OdometryType>& pose_deque ,
+                                  PoseT& T_w_l_lidar_start) {
         TicToc timer;
 
-        pcl::PointCloud<PointType> originCloud_w;//not used any more  TODO 1111
+//        pcl::PointCloud<PointType> originCloud_w;//not used any more  TODO 1111 -----------Done
 
         for (int i = 0; i < (int) pose_deque.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
 
@@ -185,40 +185,40 @@ public:
             continue;
         }
         return timer.toc();
-    }//end FindLidarFirstPose
+    }//end FindLidarPoseinDROdom
 
-    //TODO 1111 merge two functions!!!!
-    double FindLidarFirstPose(const CloudWithTime& cloudinfo,const std::deque<OdometryType>& odom_deque,
-                           PoseT& imuodom_curlidartime){
-
-        for (int i = 0; i < (int) odom_deque.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
-
-            if (odom_deque[i].timestamp > cloudinfo.min_ros_timestamp){
-                double ktime = (cloudinfo.min_ros_timestamp - odom_deque[i - 1].timestamp) / (odom_deque[i].timestamp - odom_deque[i - 1].timestamp);
-                //平移插值
-                Eigen::Vector3d t_imuodom;
-                t_imuodom = odom_deque[i - 1].pose.GetXYZ() +
-                                    ktime * (odom_deque[i].pose.GetXYZ() - odom_deque[i - 1].pose.GetXYZ());
-
-                //旋转插值
-                Eigen::Quaterniond q_imuodom;//旋转
-                q_imuodom = odom_deque[i-1].pose.GetQ().slerp(ktime,odom_deque[i].pose.GetQ());
-
-                //插值位姿态矩阵
-                imuodom_curlidartime  = PoseT (t_imuodom , q_imuodom);
-
-                break;
-            }
-            continue;
-        }
-    }
+    //TODO 1111 merge two functions!!!!---------Done
+//    double FindLidarFirstPose(const CloudWithTime& cloudinfo,const std::deque<OdometryType>& odom_deque,
+//                           PoseT& imuodom_curlidartime){
+//
+//        for (int i = 0; i < (int) odom_deque.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
+//
+//            if (odom_deque[i].timestamp > cloudinfo.min_ros_timestamp){
+//                double ktime = (cloudinfo.min_ros_timestamp - odom_deque[i - 1].timestamp) / (odom_deque[i].timestamp - odom_deque[i - 1].timestamp);
+//                //平移插值
+//                Eigen::Vector3d t_imuodom;
+//                t_imuodom = odom_deque[i - 1].pose.GetXYZ() +
+//                                    ktime * (odom_deque[i].pose.GetXYZ() - odom_deque[i - 1].pose.GetXYZ());
+//
+//                //旋转插值
+//                Eigen::Quaterniond q_imuodom;//旋转
+//                q_imuodom = odom_deque[i-1].pose.GetQ().slerp(ktime,odom_deque[i].pose.GetQ());
+//
+//                //插值位姿态矩阵
+//                imuodom_curlidartime  = PoseT (t_imuodom , q_imuodom);
+//
+//                break;
+//            }
+//            continue;
+//        }
+//    }
 
     //find x y z in lidar coordinate,Q in gnss coordinate at the pointtime and calculate translation matrix
-    //find lidar point pose TODO 1111 change function name to FindLidarPointPose
-    void FindRotation(const double pointTime,//lidar point time
+    //find lidar point pose TODO 1111 change function name to FindLidarPointPose -----------Done
+    void FindLidarPointPose(const double pointTime,//lidar point time
                       const CloudWithTime& cloudinfo,
-                      const std::deque<OdometryType>& pose_deque,
-                      PoseT& T_w_b_lidar_now) {//IMU数据中找到与当前点对应时刻的变换矩阵
+                            const std::deque<OdometryType>& pose_deque,
+                            PoseT& T_w_b_lidar_now) {//IMU数据中找到与当前点对应时刻的变换矩阵
 
         for(std::deque<OdometryType>::const_iterator it = pose_deque.begin();it!=pose_deque.end();it++){
             if (it->timestamp > pointTime)
@@ -265,8 +265,8 @@ public:
         double pointTime = cloudinfo.min_ros_timestamp + relTime;//scan时间加相对时间，获得点的时间
 
         PoseT T_w_b_lidar_now;
-        FindRotation(pointTime, cloudinfo, pose_deque,
-                     T_w_b_lidar_now);
+        FindLidarPointPose(pointTime, cloudinfo, pose_deque,
+                           T_w_b_lidar_now);
 
         Eigen::Vector3d origin_pt;
         origin_pt << point->x,point->y,point->z;
@@ -356,10 +356,12 @@ public:
             deskewCloud_body->points[index] = thisPoint;
 
             //just for show
-            //TODO 1111 delete!!!!! if(debug)
-            auto thisPoint_offset = thisPoint;
-            thisPoint_offset.z = thisPoint_offset.z + 20.0;
-            deskewCloud_body_offset.points.push_back(thisPoint_offset);
+            //TODO 1111 delete!!!!! if(debug)----------Done
+            if(MappingConfig::if_debug) {
+                auto thisPoint_offset = thisPoint;
+                thisPoint_offset.z = thisPoint_offset.z + 20.0;
+                deskewCloud_body_offset.points.push_back(thisPoint_offset);
+            }
             valid_num++;
         }//end for
 
@@ -387,8 +389,8 @@ public:
         return timer.toc();
     }
 
-    //TODO 1111 remove T_w_l
-    double CloudExtraction(const PoseT& T_w_l, CloudInfo& cloudInfo) {
+    //TODO 1111 remove T_w_l----------Done
+    double CloudExtraction(CloudInfo& cloudInfo) {
 
         TicToc timer;
         pcl::PointCloud<PointXYZICOLRANGE>::Ptr   extractedCloud(new pcl::PointCloud<PointXYZICOLRANGE>());
@@ -424,15 +426,6 @@ public:
         }
         cloudInfo.cloud_ptr = extractedCloud;
 
-////        //for debug use
-//        if(MappingConfig::if_debug)
-//        {
-//            CloudTypeXYZICOLRANGE cloud_pub;
-//            cloud_pub.timestamp = cloudInfo.timestamp;
-//            cloud_pub.frame = "map";
-//            pcl::transformPointCloud(*extractedCloud, cloud_pub.cloud, T_w_l.pose.cast<float>());
-//            pubsub->PublishCloud(topic_deskw_cloud_to_ft_world, cloud_pub);
-//        }
         return timer.toc();
     }
 
@@ -456,13 +449,13 @@ public:
 //                EZLOG(INFO)<<"DoWork"<<endl;
                 ///0.do something
 
-                std::deque<OdometryType> imuodom_copy;//TODO 1111
+                std::deque<OdometryType> drqueue_copy;//TODO 1111
                 drodom_mutex.lock();
-                imuodom_copy = DrOdomQueue;
+                drqueue_copy = DrOdomQueue;
                 drodom_mutex.unlock();
 
-                double imuodo_min_ros_time = imuodom_copy.front().timestamp;
-                double imuodo_max_ros_time = imuodom_copy.back().timestamp;
+                double imuodo_min_ros_time = drqueue_copy.front().timestamp;
+                double imuodo_max_ros_time = drqueue_copy.back().timestamp;
                 // EZLOG(INFO)<<"imuodo_min_ros_time"<<imuodo_max_ros_time - imuodo_min_ros_time<<endl;
 
 
@@ -485,8 +478,11 @@ public:
                 //TODO add vaid symbol to next node
                 while (!GNSSQueue.empty()) {
                     //TODO 1111 use delta absoulte time to align gnss and lidacloud!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-                    if (GNSSQueue.front().timestamp > cur_scan->timestamp) {
+                    if ( GNSSQueue.front().timestamp > cur_scan->timestamp  ) {
                         cloudinfo.pose = GNSSQueue.front().pose;
+                        if(GNSSQueue.front().timestamp - cur_scan->timestamp > 5.0f ){
+                            cloudinfo.pose_reliable = false;
+                        }
                         GNSSQueue.clear();
                         break;
                     }
@@ -516,7 +512,7 @@ public:
 //                            temp.timestamp = cloud_min_ros_timestamp - 0.01f;
 //                            poseQueue.push_front(temp);
 //                        }
-                        cloud_mutex.lock();//TODO 1111
+                        cloud_mutex.lock();//TODO 1111 if necessery?
                         deque_cloud.pop_front();//TODO 1111
                         cloud_mutex.unlock();//TODO 11111
 
@@ -525,8 +521,8 @@ public:
 
                     /// 1.FindLidarFirstPose
                     PoseT T_w_l_lidar_first_pose;
-                    double cost_time_findpose = FindIMUOdomPose(cloud_with_time, imuodom_copy,//in
-                                                                   T_w_l_lidar_first_pose);//out
+                    double cost_time_findpose = FindLidarPoseinDROdom(cloud_with_time, drqueue_copy,//in
+                                                                      T_w_l_lidar_first_pose);//out
 
                     cloudinfo.DRPose = T_w_l_lidar_first_pose;
                     Eigen::Vector3d t_w_cur;
@@ -547,12 +543,22 @@ public:
 
                     ///2.imgprojection
                     ///update rangemat and deskewCloud_body
-                    double cost_time_projpc = ProjectPointCloud(cloud_with_time, imuodom_copy, T_w_l_lidar_first_pose);
+                    double cost_time_projpc = ProjectPointCloud(cloud_with_time, drqueue_copy, T_w_l_lidar_first_pose);
                   //  EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
 
                     ///3.cloudExtraction
-                    double cost_time_cloudextraction = CloudExtraction(T_w_l_lidar_first_pose, cloudinfo);
+                    double cost_time_cloudextraction = CloudExtraction(cloudinfo);
                   //  EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
+
+                    //        //for debug use
+                    if(MappingConfig::if_debug)
+                    {
+                        CloudTypeXYZICOLRANGE cloud_pub;
+                        cloud_pub.timestamp = cloudinfo.timestamp;
+                        cloud_pub.frame = "map";
+                        pcl::transformPointCloud(*cloudinfo.cloud_ptr, cloud_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                        pubsub->PublishCloud(topic_deskw_cloud_to_ft_world, cloud_pub);
+                    }
 
 //                    ///ground filter
 //                  int gf_grid_pt_num_thre = 8;float gf_grid_resolution = 1.5;float gf_max_grid_height_diff; float gf_neighbor_height_diff = 1.5;
@@ -695,7 +701,7 @@ public:
                     cloud_mutex.unlock();
                 }
 
-                ResetParameters();//TODO 1111
+//                ResetParameters();//TODO 1111---------Done
                 //  }//end if(deque_cloud.size()!=0){
                 // else{
                 //      sleep(0.01);//线程休息10ms
@@ -826,7 +832,7 @@ public:
         T_w_l_pub.pose = T_w_l;
         pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
 
-        //TODO 1029
+        //TODO 1029-----Done
         // GNSSINSType T_w_l_to_mapopt;
         // T_w_l_to_mapopt.lla[0] = T_w_l.GetXYZ()[0];
         // T_w_l_to_mapopt.lla[1] = T_w_l.GetXYZ()[1];
