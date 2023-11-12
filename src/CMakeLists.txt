@@ -17,7 +17,6 @@ if( ${COMPILE_MODE} STREQUAL "X86")
     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/X86.cmake)
 elseif( ${COMPILE_MODE} STREQUAL "MDC")
     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/MDC.cmake)
-    message("----------compile mdc-----------")
 endif()
 message("Compile mode: ${COMPILE_MODE}")
 
@@ -90,8 +89,8 @@ CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/config/abs_current_path.h.ini
 ###########
 ## Build ##
 ############
-#add_executable(mapping app_mapping/mapping.cpp)
-#target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB} FLANN::FLANN)#YAML_CPP_LIBRARIES
+add_executable(mapping app_mapping/mapping.cpp)
+target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
 
-add_executable(loc app_loc/loc.cpp)
-target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB} FLANN::FLANN)#YAML_CPP_LIBRARIES
+#add_executable(loc app_loc/loc.cpp)
+#target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES

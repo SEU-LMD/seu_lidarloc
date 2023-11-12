@@ -1,12 +1,14 @@
-
+#TODO 1111 check not used config parameters!!!!! 1111
 # Topics
   pointCloudTopic: "/middle"               # Point cloud data
   imuTopic: "/gps_imu"                         # IMU data
 # odomTopic: "odometry/imu"
+#TODO 1111 remove not used topics
   odomTopic: "/lidar_odometry"                   # IMU pre-preintegration odometry, same frequency as IMU /lidar_odometry
   gpsTopic: "/gps_imu"                   # GPS odometry topic from navsat, see module_navsat.launch file
 
 # Frames
+#TODO 1111 remove not used frames
   lidarFrame: "base_link"
   baselinkFrame: "base_link"
   odometryFrame: "odom"
@@ -23,12 +25,14 @@
   gpsDistance: 0.5                           # the distance between two gps point used for optimization
 
   # debug setting
+  #TODO remove
   debugLidarTimestamp: false
   debugImu: false
   debugGps: true
 
   # lidar Settings
 #  for RS-Ruby-80
+  #
   sensor: velodyne                            # lidar sensor type, 'velodyne' or 'ouster' or 'livox' or 'hesai'
   N_SCAN: 80                                  # number of lidar channel (i.e., Velodyne/Ouster: 16, 32, 64, 128, Livox Horizon: 6)
   Horizon_SCAN: 1800                          # lidar horizontal resolution (Velodyne:1800, Ouster:512,1024,2048, Livox Horizon: 4000)
@@ -39,7 +43,7 @@
   lidarMaxRing: 75
   gtsamGNSSBetweenFactorDistance: 5
   lidarScanDownSample: -1                      #every lidarScanDownSample times cal 1, if -1 drop
-  LMOpt_Cnt: 30
+  LMOpt_Cnt: 10
 
   # IMU Settings
   imuAccNoise: 0.035 #VRW,加速度计随机游走。0.035m/s/√h 0.000583333
@@ -76,3 +80,5 @@
                   0, 0, 1 ]
 
   use_drodom_deskew: true
+  use_gnss_deskew: false
+  use_unground_classify: false

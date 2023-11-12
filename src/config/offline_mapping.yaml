@@ -1,12 +1,13 @@
 #offline_mapping Setting
-map_in_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/calib_20/"
-map_out_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/calib_20_out/"
+#change name to map_manger.yaml
+map_in_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/park_loop1/"
+map_out_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/park_loop1_out/"
 up2down_num: 2    #up_grid_size/down_grid_size，该数值必须为整数倍
 lidar_range: 200 #big grid, small grid = big grid / 2
-frame_sum: 189    # frame
+frame_sum: 1640    # frame
 up_grid_size: 120
-lasercloud_width: 10 # 2 x
-lasercloud_height: 10 # 2 Y
+lasercloud_width: 24 # 2 x
+lasercloud_height: 22 # 2 Y
 lasercloud_num: 112
 
 T_EPSILION: 0.01 #0.01 #终止条件

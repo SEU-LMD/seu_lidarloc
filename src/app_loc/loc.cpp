@@ -18,7 +18,7 @@ INITIALIZE_EASYLOGGINGPP
 
 int main(int argc, char **argv) {
 
-    CreateDirWithDelete("./log");
+    CreateDirWithDelete("./log");//TODO 1111 change to absolute path
 
     //1.初始化 log
     el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Format, "%level %file %line : %msg");
@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
 
     //3.初始化配置参数
     Load_Sensor_YAML("./config/sensor.yaml");
-    Load_Mapping_YAML("./config/mapping.yaml");
+    Load_Mapping_YAML("./config/mapping.yaml");//TODO 1111 loc.yaml
     Load_offline_YAML("./config/offline_mapping.yaml");
 
     //3.5 udp

@@ -1,6 +1,6 @@
 
 # ground filter
-use_ground_filter: true
+use_ground_filter: false
 min_grid_pt_num: 8
 #max_ground_height: DBL_MAX #1111111111111
 grid_resolution: 1.5

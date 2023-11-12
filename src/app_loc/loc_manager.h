@@ -49,7 +49,7 @@ public:
         udp_thread =udp_thread_;
         //然后开启各个线程
         // 将data_prep to map_manager
-        data_prep.Init(pubsub, udp_thread,1);
+        data_prep.Init(pubsub, udp_thread,1);//remove magic number!!!!! TODO 1111
         ft_extr.Init(pubsub,1);
         loc_mapping.Init(pubsub,&mapManager,udp_thread);
         imu_wheeldr.Init(pubsub, udp_thread, 1);

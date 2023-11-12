@@ -38,7 +38,9 @@ int main(int argc, char **argv) {
     Load_Sensor_YAML("./config/sensor.yaml");
     Load_Mapping_YAML("./config/mapping.yaml");
 
-    const char* cleint_ip = "192.168.1.116";//
+
+    //TODO 1111 remove !!!!
+    const char* cleint_ip = "192.168.1.116";//move to yaml!!!!! magic number
     int clinet_port=8000;
     int server_port=7000;
     std::shared_ptr<UDP_THREAD> udp_thread = make_shared<UDP_THREAD>();
