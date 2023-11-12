@@ -89,6 +89,7 @@ public:
 
     std::shared_ptr<UDP_THREAD> udp_thread;//udp
 
+    //TODO remove 1111
     bool GetFirstGnssPose(PoseT &_First_gnss_pose){
         if(flag_first_gnss == true){
           //  EZLOG(INFO)<<" First Gnss Pose get!";
@@ -145,11 +146,12 @@ public:
         return cost_time;
     }
 
+    //find closest Lidar pose  TODO 1111
     double  FindIMUOdomPose(const CloudWithTime& cloudinfo, const std::deque<OdometryType>& pose_deque ,
                                PoseT& T_w_l_lidar_start) {
         TicToc timer;
 
-        pcl::PointCloud<PointType> originCloud_w;
+        pcl::PointCloud<PointType> originCloud_w;//not used any more  TODO 1111
 
         for (int i = 0; i < (int) pose_deque.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
 
@@ -185,6 +187,7 @@ public:
         return timer.toc();
     }//end FindLidarFirstPose
 
+    //TODO 1111 merge two functions!!!!
     double FindLidarFirstPose(const CloudWithTime& cloudinfo,const std::deque<OdometryType>& odom_deque,
                            PoseT& imuodom_curlidartime){
 
@@ -211,7 +214,10 @@ public:
     }
 
     //find x y z in lidar coordinate,Q in gnss coordinate at the pointtime and calculate translation matrix
-    void FindRotation(const double pointTime, const CloudWithTime& cloudinfo, const std::deque<OdometryType>& pose_deque,
+    //find lidar point pose TODO 1111 change function name to FindLidarPointPose
+    void FindRotation(const double pointTime,//lidar point time
+                      const CloudWithTime& cloudinfo,
+                      const std::deque<OdometryType>& pose_deque,
                       PoseT& T_w_b_lidar_now) {//IMU数据中找到与当前点对应时刻的变换矩阵
 
         for(std::deque<OdometryType>::const_iterator it = pose_deque.begin();it!=pose_deque.end();it++){
@@ -350,6 +356,7 @@ public:
             deskewCloud_body->points[index] = thisPoint;
 
             //just for show
+            //TODO 1111 delete!!!!! if(debug)
             auto thisPoint_offset = thisPoint;
             thisPoint_offset.z = thisPoint_offset.z + 20.0;
             deskewCloud_body_offset.points.push_back(thisPoint_offset);
@@ -380,7 +387,7 @@ public:
         return timer.toc();
     }
 
-
+    //TODO 1111 remove T_w_l
     double CloudExtraction(const PoseT& T_w_l, CloudInfo& cloudInfo) {
 
         TicToc timer;
@@ -449,10 +456,11 @@ public:
 //                EZLOG(INFO)<<"DoWork"<<endl;
                 ///0.do something
 
-                std::deque<OdometryType> imuodom_copy;
+                std::deque<OdometryType> imuodom_copy;//TODO 1111
                 drodom_mutex.lock();
                 imuodom_copy = DrOdomQueue;
                 drodom_mutex.unlock();
+
                 double imuodo_min_ros_time = imuodom_copy.front().timestamp;
                 double imuodo_max_ros_time = imuodom_copy.back().timestamp;
                 // EZLOG(INFO)<<"imuodo_min_ros_time"<<imuodo_max_ros_time - imuodo_min_ros_time<<endl;
@@ -462,6 +470,9 @@ public:
                 CloudTypeXYZIRTPtr cur_scan;
                 cloud_mutex.lock();
                 cur_scan = deque_cloud.front();
+//                deque_cloud.pop_front();//TODO 1111
+                cloud_mutex.unlock();//unlock TODO 1111
+
 
 
                 CloudWithTime cloud_with_time;
@@ -471,7 +482,9 @@ public:
 
                 //              gnss lidar gnss---->>>>
                 gnss_mutex.lock();
+                //TODO add vaid symbol to next node
                 while (!GNSSQueue.empty()) {
+                    //TODO 1111 use delta absoulte time to align gnss and lidacloud!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
                     if (GNSSQueue.front().timestamp > cur_scan->timestamp) {
                         cloudinfo.pose = GNSSQueue.front().pose;
                         GNSSQueue.clear();
@@ -481,12 +494,13 @@ public:
                         GNSSQueue.pop_front();
                     }
                 }
-                gnss_mutex.unlock();
+                gnss_mutex.unlock();//TODO 1111
                 ///2.
 //                if(odo_min_ros_time>cloud_min_ros_timestamp){
 //                    EZLOG(INFO)<<"odo is larger than lidar" <<endl;
 //                    exit(1);
 //                }
+                //use absolutue
                 if (!DrOdomQueue.empty() && imuodo_min_ros_time >= cloud_min_ros_timestamp) {
                     auto temp = DrOdomQueue.front();
                     temp.timestamp = cloud_min_ros_timestamp - 0.01f;
@@ -495,15 +509,17 @@ public:
 
                // double cur_lidar_time = deque_cloud.front()->timestamp;
                // EZLOG(INFO)<<"TIMESTAMP"<<cur_lidar_time-cloud_min_ros_timestamp<<endl;
-                if(imuodo_min_ros_time<cloud_min_ros_timestamp&&imuodo_max_ros_time>cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
+                if(imuodo_min_ros_time<cloud_min_ros_timestamp &&
+                    imuodo_max_ros_time>cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
                    // EZLOG(INFO)<<"get in odo_min_ros_time"<<endl;
 //                        if(odo_min_ros_time >= cloud_min_ros_timestamp){
 //                            auto temp = poseQueue.front();
 //                            temp.timestamp = cloud_min_ros_timestamp - 0.01f;
 //                            poseQueue.push_front(temp);
 //                        }
-                    deque_cloud.pop_front();
-                    cloud_mutex.unlock();
+                        cloud_mutex.lock();//TODO 1111
+                        deque_cloud.pop_front();//TODO 1111
+                        cloud_mutex.unlock();//TODO 11111
 
                     cloudinfo.frame_id = frame_id++;
                     cloudinfo.timestamp = cur_scan->timestamp;
@@ -680,14 +696,14 @@ public:
                     cloud_mutex.unlock();
                 }
 
-                ResetParameters();
+                ResetParameters();//TODO 1111
                 //  }//end if(deque_cloud.size()!=0){
                 // else{
                 //      sleep(0.01);//线程休息10ms
                 //  }
             }
 
-        }
+        }//end function while(1)
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
@@ -728,6 +744,7 @@ public:
         udp_thread -> SendUdpMSg(fu_str);
     }
 
+    //
     void AddGNSSINSSData(const GNSSINSType& data){
 
 //        deque_gnssins.push_back(data);
@@ -768,13 +785,12 @@ public:
         geoConverter.Forward(data.lla[0], data.lla[1], data.lla[2],
                              t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
 
-       // EZLOG(INFO)<<"GNSS ORIGIN POINT: "<<  t_enu[0]<<" "<<t_enu[1]<<" "<<t_enu[2]<<endl;
         Eigen::Matrix3d z_matrix;//calculate Quaternion
         Eigen::Matrix3d x_matrix;
         Eigen::Matrix3d y_matrix;
-        double heading_Z = -data.yaw * 3.1415926535 / 180.0;
-        double pitch_Y = data.pitch * 3.1415926535 / 180.0;
-        double roll_X = data.roll * 3.1415926535 / 180.0;
+        double heading_Z = -data.yaw * 0.017453293;
+        double pitch_Y = data.pitch * 0.017453293;
+        double roll_X = data.roll * 0.017453293;
         z_matrix << cos(heading_Z), -sin(heading_Z), 0,
                 sin(heading_Z), cos(heading_Z),  0,
                 0,                 0,            1;
@@ -859,6 +875,7 @@ public:
         AllocateMemory();
         slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
+        //TODO MDC????? add #ifdefine X86 ROS
         pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
@@ -885,6 +902,8 @@ public:
         slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         udp_thread = udp_thread_;
+
+        //TODO add MDC compile #ifdefine
         pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);

@@ -72,13 +72,13 @@ FILE(WRITE cur_pwd.txt ${CMAKE_SOURCE_DIR}) # add by sy
 set(ABS_CURRENT_SOURCE_PATH ${CMAKE_SOURCE_DIR})
 
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/config/abs_current_path.h.ini
-        ${CMAKE_SOURCE_DIR}/config/abs_current_path.h)
+                ${CMAKE_SOURCE_DIR}/config/abs_current_path.h)
 
 ###########
 ## Build ##
 ############
-add_executable(mapping app_mapping/mapping.cpp)
-target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+#add_executable(mapping app_mapping/mapping.cpp)
+#target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
 
-#add_executable(loc app_loc/loc.cpp)
-#target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+add_executable(loc app_loc/loc.cpp)
+target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES

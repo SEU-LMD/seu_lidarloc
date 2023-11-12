@@ -30,7 +30,7 @@ public:
     int slam_mode_switch = 0;
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
-    // std::mutex work_mutex;//TODO 1029 delete this mutex
+    std::mutex work_mutex;
     std::deque<CloudInfo> deque_cloud;
     std::thread* do_work_thread;
     std::thread* save_Map_thread;
@@ -43,11 +43,6 @@ public:
 
     std::string topic_corner_world= "/cloud_corner";
     std::string topic_surf_world = "/cloud_surface";
-
-//    std::string topic_cloud_pillar_world = "/cloud_pillar_world";
-//    std::string topic_cloud_beam_world = "/cloud_beam_world";
-//    std::string topic_cloud_facade_world = "/cloud_facade_world";
-//    std::string topic_cloud_roof_world = "/cloud_roof_world";
 
     std::vector<float> cloudCurvature;
     std::vector<int> cloudNeighborPicked;// 1:after process; 0:before process
@@ -518,7 +513,7 @@ public:
         cloud_mutex.unlock();
     }
 
-    void Init(PubSubInterface* pubsub_, int _slam_mode_switch){
+    void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
         AllocateMemeory();
         slam_mode_switch = _slam_mode_switch;
      //   EZLOG(INFO)<<"feature Extraction init! slam_mode_switch:"<<slam_mode_switch;

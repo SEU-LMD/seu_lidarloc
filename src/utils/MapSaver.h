@@ -17,7 +17,7 @@
 
 #include "./utility.h"
 #include "timer.h"
-
+//TODO11111 chang name to map_saver
 struct CloudInfoFt{
     pcl::PointCloud<PointType>::Ptr corner_cloud;
     pcl::PointCloud<PointType>::Ptr surf_cloud;
@@ -38,7 +38,7 @@ public:
 
     }
 
-    static void SaveOriginLLA(const Eigen::Vector3d gps_point){
+    static void SaveOriginLLA(const Eigen::Vector3d& gps_point){
         std::fstream originStream( MappingConfig::save_map_path +"Origin.txt", std::fstream::out);
         EZLOG(INFO)<<"save GNSS init point!"<<std::endl;
         originStream.precision(9);
@@ -67,6 +67,7 @@ public:
                 auto cloud_info = pts_deque.front();
                 pts_deque.pop_front();
                 data_mutex.unlock();
+
                 SaveCloud(cloud_info);
                 EZLOG(INFO)<<"SaveCloud !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<std::endl;
             }

@@ -80,7 +80,7 @@ class Plot{
     int lidar_time_run_count;
 
 
-    const int point_num = 144000;
+    const int point_num = 144000;//TODO 11111 magi number!!!
     int count_iseuql;
 
 
@@ -88,6 +88,7 @@ class Plot{
         sav_path=sav_path_;
     }
 
+    //ReadGNSS()
     void readGNss(){
         std::ifstream gnss_file(sav_path+"/gnss_data.txt");
         std::string line;
@@ -156,7 +157,7 @@ class Plot{
          check_lidar.close();
     }
 
-
+    //public
     void checkGnss(){
         std::ofstream check_gnss(sav_path+"/check_data.txt",std::ios::app);
         checkGnssTimestamp();
@@ -168,6 +169,7 @@ class Plot{
         check_gnss.close();
     }
 
+    //private TODO 1111
     void checkLidarTimestamp(){
         double diff;
         lidar_time_run_count=0;

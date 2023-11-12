@@ -22,7 +22,7 @@
 #include <pcl/filters/uniform_sampling.h>
 #include "easylogging++.h"
 INITIALIZE_EASYLOGGINGPP
-
+//Rremo this file!!!!!!
 
 struct Tum{
     double timestamp; // 时间戳

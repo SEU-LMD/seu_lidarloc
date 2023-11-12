@@ -13,7 +13,7 @@
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/navigation/GPSFactor.h>
-#include <gtsam/navigation/ImuFactor.h>
+#include "gtsam/navigation/ImuFactor.h"
 #include <gtsam/nonlinear/ISAM2.h>
 #include "gtsam/nonlinear/ISAM2Params.h"
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
@@ -21,7 +21,7 @@
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/slam/BetweenFactor.h>
-#include <gtsam/slam/PriorFactor.h>
+#include <gtsam/slam/PriorFactor.h>//TODO 1111
 #include <gtsam/slam/dataset.h>  // gtsam
 
 #include "udp_seralize.h"
@@ -34,13 +34,13 @@ public:
     std::thread* HighFrequencyLoc_thread;
     int data_deque_max_size = 200;
     int front_index = 0;
-    std::deque<std::shared_ptr<BaseType>> data_deque;
+    std::deque<std::shared_ptr<BaseType>> data_deque;//TODO 1111 what is the meaning of
     std::deque<std::shared_ptr<DROdometryType>> DR_data_deque;
     std::deque<std::shared_ptr<GNSSOdometryType>> Gnss_data_deque;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToDR;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToMapManager;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToImageProjection;
-    std::mutex mutex_data;
+    std::mutex mutex_data;//TODO 1111 what is the meaning of data
     std::mutex mutex_DR_data;
     std::mutex Gnssmtx;
     std::mutex mtxGraph;
@@ -137,7 +137,7 @@ public:
                 _current_pose_align.pose = PoseT(_current_pose.pose.pose * poseFrom.between(poseTo).matrix());
 
                 pubsub->PublishOdometry(topic_testforRollBack_pose, _current_pose_align);
-                _DR_data_deque.clear();
+                _DR_data_deque.clear();//TODO 1111
                 if_roll_back = 1;
                 last_pose = _current_pose_align.pose;
 
@@ -148,6 +148,8 @@ public:
             }
         }
     }
+
+    //TODO 1111
     void RollBack(const OdometryType _current_pose,
                   std::deque<std::shared_ptr<GNSSOdometryType>> _Gnss_data_deque,
                   OdometryType &_current_pose_align){
@@ -174,6 +176,8 @@ public:
             }
         }
     }
+
+
     void Udp_OdomPub(const PoseT& odom_in){
         Vis_Odometry odom_out;
         std::string fu_str;
@@ -197,6 +201,7 @@ public:
         udp_thread = udp_thread_;
         fuseInitialized();
 
+        //TODO 1111 MDC???
         pubsub->addPublisher(topic_highHz_pose, DataType::ODOMETRY, 10);
         pubsub->addPublisher(topic_current_lidar_pose, DataType::ODOMETRY, 10);
         pubsub->addPublisher(topic_testforRollBack_pose, DataType::ODOMETRY, 10);
@@ -221,6 +226,7 @@ public:
                 double current_timeStamp = front_data->timestamp;
 //                std::vector<GNSS_INSType> re_predict_imu_data;
                 switch (front_data->getType()) {
+                    //from lidar
                     case DataType::ODOMETRY:
                     {
                         OdometryTypePtr cur_lidar_odom;
@@ -294,8 +300,11 @@ public:
                         break;
                     }
 
+                    //
                     case DataType::GNSS:
                     {
+                        //TODO judge gnss
+                        //receive TODO 1111 shengyi data
                         GNSSOdometryTypePtr cur_Gnss_odom;
                         static PoseT last_DR_pose = PoseT(Eigen::Matrix4d::Identity());
                         cur_Gnss_odom = std::static_pointer_cast<GNSSOdometryType>(std::move(front_data));
@@ -367,6 +376,7 @@ public:
 
                                 gtsam::Vector Vector3(3);
                                 Vector3 << noise_x,noise_y,noise_z;
+                                //TODO 1111 priror factor
                                 //Vector3 << max(noise_x, 1.0), max(noise_y, 1.0), max(noise_z, 1.0);
                                 gtsam::noiseModel::Diagonal::shared_ptr gps_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
                                 gtsam::GPSFactor gps_factor(lidar_keyFrame_cnt, gtsam::Point3(gps_x, gps_y, gps_z), gps_noise);
@@ -384,6 +394,8 @@ public:
                         break;
                     }
 
+                    //TODO change name
+                    //TODO 1111 add beteween factor when lidar and gnss arrives!!!!!!!!
                     case DataType::WHEEL:
                     {
                         TicToc t1;
@@ -415,7 +427,7 @@ public:
                         // 4.iteration settings and pub the high frequency loc result
                         pubsub->PublishOdometry(topic_highHz_pose, loc_result);
 
-                        Function_AddLidarOdometryTypeToMapManager(loc_result);
+                        Function_AddLidarOdometryTypeToMapManager(loc_result);//TODO 1111 not used anymore
                         EZLOG(INFO) << "5 Fuse to map_loder, and the loc_result pose begin:";
                         EZLOG(INFO)<<loc_result.pose.pose;
                         EZLOG(INFO) << "the loc_result pose end";
