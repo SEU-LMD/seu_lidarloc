@@ -473,8 +473,8 @@ public:
                 cloud_feature.cornerCloud = cornerCloud;
                 cloud_feature.surfaceCloud = surfaceCloud;
 
-                EZLOG(INFO)<<"cloud_feature.cornerCloud->size() = "<<cloud_feature.cornerCloud->size()<<std::endl;
-                EZLOG(INFO)<<"cloud_feature.surfaceCloud->size() = "<<cloud_feature.surfaceCloud->size()<<std::endl;
+              //  EZLOG(INFO)<<"cloud_feature.cornerCloud->size() = "<<cloud_feature.cornerCloud->size()<<std::endl;
+             //   EZLOG(INFO)<<"cloud_feature.surfaceCloud->size() = "<<cloud_feature.surfaceCloud->size()<<std::endl;
 
 //                switch it when you test your code
 //                opt_mapping_ptr->AddCloudData(cloud_feature);
@@ -521,7 +521,7 @@ public:
     void Init(PubSubInterface* pubsub_, int _slam_mode_switch){
         AllocateMemeory();
         slam_mode_switch = _slam_mode_switch;
-        EZLOG(INFO)<<"feature Extraction init! slam_mode_switch:"<<slam_mode_switch;
+     //   EZLOG(INFO)<<"feature Extraction init! slam_mode_switch:"<<slam_mode_switch;
         downSizeFilter.setLeafSize(MappingConfig::odometrySurfLeafSize, MappingConfig::odometrySurfLeafSize,
                                    MappingConfig::odometrySurfLeafSize);
 

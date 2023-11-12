@@ -91,10 +91,10 @@ public:
 
     bool GetFirstGnssPose(PoseT &_First_gnss_pose){
         if(flag_first_gnss == true){
-            EZLOG(INFO)<<" First Gnss Pose get!";
+          //  EZLOG(INFO)<<" First Gnss Pose get!";
             _First_gnss_pose = First_gnss_pose;
-            EZLOG(INFO)<< "First_gnss_pose: ";
-            EZLOG(INFO)<< First_gnss_pose.pose;
+         //   EZLOG(INFO)<< "First_gnss_pose: ";
+         //   EZLOG(INFO)<< First_gnss_pose.pose;
             return true;
         }
         else{
@@ -334,7 +334,7 @@ public:
             //very important function@!!!!!!!!!
             if (SensorConfig::use_drodom_deskew){
                 if(cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp < 0){
-                    EZLOG(INFO)<<"wrong! latency!";
+                 //   EZLOG(INFO)<<"wrong! latency!";
                     continue;
                 }
                 thisPoint = DeskewPoint(&thisPoint,
@@ -492,6 +492,7 @@ public:
                     temp.timestamp = cloud_min_ros_timestamp - 0.01f;
                     DrOdomQueue.push_front(temp);
                 }
+
                // double cur_lidar_time = deque_cloud.front()->timestamp;
                // EZLOG(INFO)<<"TIMESTAMP"<<cur_lidar_time-cloud_min_ros_timestamp<<endl;
                 if(imuodo_min_ros_time<cloud_min_ros_timestamp&&imuodo_max_ros_time>cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
@@ -659,9 +660,9 @@ public:
                     ///4. send data to feature extraction node
 //                        ft_extr_ptr->AddCloudData(cloudinfo);
                     Function_AddCloudInfoToFeatureExtraction(cloudinfo);
-                    EZLOG(INFO)
-                            << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
-                            << cloudinfo.cloud_ptr->points.size();
+                   // EZLOG(INFO)
+                    //        << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
+                    //        << cloudinfo.cloud_ptr->points.size();
                     ///5.pop used odom
                     drodom_mutex.lock();
 //                        while(poseQueue.front().timestamp < cloud_max_ros_timestamp - 0.1f){
@@ -749,7 +750,7 @@ public:
             else{
                 geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
                 MapSaver::SaveOriginLLA(data.lla);
-                EZLOG(INFO)<<"save first GNSS points: "<<data.lla[0]<<", "<<data.lla[1]<<", "<<data.lla[2];
+             //   EZLOG(INFO)<<"save first GNSS points: "<<data.lla[0]<<", "<<data.lla[1]<<", "<<data.lla[2];
             }
             init = true;
             return;
@@ -767,7 +768,7 @@ public:
         geoConverter.Forward(data.lla[0], data.lla[1], data.lla[2],
                              t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
 
-        EZLOG(INFO)<<"GNSS ORIGIN POINT: "<<  t_enu[0]<<" "<<t_enu[1]<<" "<<t_enu[2]<<endl;
+       // EZLOG(INFO)<<"GNSS ORIGIN POINT: "<<  t_enu[0]<<" "<<t_enu[1]<<" "<<t_enu[2]<<endl;
         Eigen::Matrix3d z_matrix;//calculate Quaternion
         Eigen::Matrix3d x_matrix;
         Eigen::Matrix3d y_matrix;
@@ -828,9 +829,9 @@ public:
 
          if (slam_mode_switch ==1){
              Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
-             EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose is :";
-             EZLOG(INFO)<<T_w_l_gnss.pose.pose;
-             EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose end!";
+          //   EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose is :";
+          //   EZLOG(INFO)<<T_w_l_gnss.pose.pose;
+         //    EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose end!";
 //             static int flag_load_once = 0;
 //             if(flag_load_once ==0){
 //                 Function_AddFirstGNSSPoint2DR(T_w_l_gnss);
@@ -874,7 +875,7 @@ public:
         pubsub->addPublisher(topic_cloud_roof_world,DataType::LIDAR,1);
 
         do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
-        EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
+      //  EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
     }
 
 
@@ -902,7 +903,7 @@ public:
 
 
         do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
-        EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
+      //  EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
     }
 
     struct eigenvalue_t // Eigen Value ,lamada1 > lamada2 > lamada3;
@@ -1350,7 +1351,7 @@ public:
         float distance_weight;
         // int ground_random_down_rate_temp = ground_random_down_rate;
         // int nonground_random_down_rate_temp = nonground_random_down_rate;
-        EZLOG(INFO)<<"cloud_in->size() = "<<cloud_in->size()<<endl;
+       // EZLOG(INFO)<<"cloud_in->size() = "<<cloud_in->size()<<endl;
 
         for (int j = 0; j < cloud_in->size(); j++)
         {
@@ -1363,8 +1364,8 @@ public:
 
         appro_mean_height = sum_height / count_checkpoint; //calculate around height
         non_ground_height_thre = appro_mean_height + max_ground_height;//max_ground_height  = 1.5
-        EZLOG(INFO)<<"appro_mean_height "<<appro_mean_height;
-        EZLOG(INFO)<<"non_ground_height_thre "<<non_ground_height_thre;
+       // EZLOG(INFO)<<"appro_mean_height "<<appro_mean_height;
+       // EZLOG(INFO)<<"non_ground_height_thre "<<non_ground_height_thre;
 
         bounds_t bounds;
         centerpoint_t center_pt;
@@ -1375,7 +1376,7 @@ public:
         row = ceil((bounds.max_y - bounds.min_y) / FrontEndConfig::grid_resolution);//grid_resolution 默认参数 = 3.0
         col = ceil((bounds.max_x - bounds.min_x) / FrontEndConfig::grid_resolution);
         num_grid = row * col;
-        EZLOG(INFO)<<"num_grid "<<num_grid;
+      //  EZLOG(INFO)<<"num_grid "<<num_grid;
 
         grid_t *grid = new grid_t[num_grid];
 

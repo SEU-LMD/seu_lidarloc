@@ -540,6 +540,8 @@ public:
                 break;
             }
         }
+//        if (pointDistance(curGPSPoint, lastGPSPoint) < 4.0)
+//            break;
 
         if (loopKeyPre == -1 || loopKeyCur == loopKeyPre) return false;
 
@@ -856,7 +858,7 @@ public:
     }
 
     void cornerOptimization() {
-        EZLOG(INFO)<<"get in cornerOptimization "<<endl;
+      //  EZLOG(INFO)<<"get in cornerOptimization "<<endl;
 
         updatePointAssociateToMap();
 
@@ -867,12 +869,12 @@ public:
             std::vector<float> pointSearchSqDis;
 
             pointOri = laserCloudCornerLastDS->points[i];
-            EZLOG(INFO)<<pointOri.x<<","<<pointOri.y<<","<<pointOri.z<<endl;
+           // EZLOG(INFO)<<pointOri.x<<","<<pointOri.y<<","<<pointOri.z<<endl;
 
             pointAssociateToMap(&pointOri, &pointSel);
            // EZLOG(INFO)<<"get in kdtreeCornerFromMap "<<endl;
           //  EZLOG(INFO)<<"POINTSel"<<pointOri.x<<" "<<pointOri.y<<" "<<pointOri.z;
-            EZLOG(INFO)<<pointSel.x<<","<<pointSel.y<<","<<pointSel.z<<endl;
+           // EZLOG(INFO)<<pointSel.x<<","<<pointSel.y<<","<<pointSel.z<<endl;
             kdtreeCornerFromMap->nearestKSearch(pointSel, 5, pointSearchInd,
                                                 pointSearchSqDis);
 
@@ -1293,8 +1295,8 @@ public:
        // TicToc timer;
        // EZLOG(INFO)<<"get in scan2MapOptimization "<<endl;
         if (cloudKeyPoses3D->points.empty()) return;
-           EZLOG(INFO)<<"laserCloudCornerLastDSNum number"<<laserCloudCornerLastDSNum<<endl;
-           EZLOG(INFO)<<"laserCloudSurfLastDSNum number"<<laserCloudCornerLastDSNum<<endl;
+          // EZLOG(INFO)<<"laserCloudCornerLastDSNum number"<<laserCloudCornerLastDSNum<<endl;
+         //  EZLOG(INFO)<<"laserCloudSurfLastDSNum number"<<laserCloudCornerLastDSNum<<endl;
         if (laserCloudCornerLastDSNum > MappingConfig::edgeFeatureMinValidNum &&
             laserCloudSurfLastDSNum > MappingConfig::surfFeatureMinValidNum) {
 
@@ -1615,7 +1617,7 @@ public:
         cloud_info.corner_cloud = thisCornerKeyFrame;
         cloud_info.surf_cloud = thisSurfKeyFrame;
         map_saver.AddCloudToSave(cloud_info);
-        EZLOG(INFO)<<"MAP SAVER SUCCESS!!!"<<endl;
+       // EZLOG(INFO)<<"MAP SAVER SUCCESS!!!"<<endl;
 
     }
 
@@ -1687,7 +1689,7 @@ public:
     void publishOdometry() {
         // Publish odometry for ROS (global)
         //发布优化后的里程计
-        EZLOG(INFO)<<"get in publishOdometry "<<endl;
+      //  EZLOG(INFO)<<"get in publishOdometry "<<endl;
 
         OdometryType current_lidar_pose_world;
         Eigen::Affine3f Lidarodom_2_map = trans2Affine3f(current_T_m_l);
@@ -1697,6 +1699,7 @@ public:
         current_lidar_pose_world.pose.pose = Lidarodom_2_map.matrix().cast<double>();
        // current_lidar_pose_world.pose = PoseT(Lidarodom_2_map.matrix().cast<double>());
         pubsub->PublishOdometry(topic_current_pose, current_lidar_pose_world);
+
        // Function_AddOdometryTypeToIMUPreintegration(current_lidar_pose_world);
 
     }
@@ -1732,16 +1735,16 @@ public:
                 if (timeLaserInfoCur - timeLastProcessing >= MappingConfig::mappingProcessInterval) {
                     //std::lock_guard<std::mutex> lock(cloud_mutex);
                     timeLastProcessing = timeLaserInfoCur;
-                    TicToc t0;
+                   // TicToc t0;
                     updateInitialGuess(cur_ft);//TODO
-                    EZLOG(INFO)<<" updateInitialGuess COST TIME"<<t0.toc()<<endl;
+                   // EZLOG(INFO)<<" updateInitialGuess COST TIME"<<t0.toc()<<endl;
                     if (systemInitialized) {
                         TicToc t1;
                         extractSurroundingKeyFrames();
                         EZLOG(INFO)<<" extractSurroundingKeyFrames COST TIME"<<t1.toc()<<endl;
-                        TicToc t2;
+                       // TicToc t2;
                         downsampleCurrentScan();
-                        EZLOG(INFO)<<" downsampleCurrentScan COST TIME"<<t2.toc()<<endl;
+                      //  EZLOG(INFO)<<" downsampleCurrentScan COST TIME"<<t2.toc()<<endl;
                         TicToc t3;
                         scan2MapOptimization();
                         EZLOG(INFO)<<" scan2MapOptimization COST TIME"<<t3.toc()<<endl;
