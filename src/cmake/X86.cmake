@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
         geometry_msgs
         nav_msgs
         message_generation
-        visualization_msgs
+#        visualization_msgs
         rosbag
         )
 set(Communication_LIBS ${catkin_LIBRARIES})

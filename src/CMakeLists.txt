@@ -49,10 +49,6 @@ set(PCL_LIBRARIES
         ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/lib/libpcl_io.so.1.10
         ${CMAKE_SOURCE_DIR}/../env/pcl-1.10.0-install/lib/libpcl_io_ply.so.1.10)
 
-
-
-
-
 #use for easylog marco
 add_definitions(-DELPP_THREAD_SAFE)
 add_definitions(-DELPP_NO_DEFAULT_LOG_FILE)
@@ -89,8 +85,8 @@ CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/config/abs_current_path.h.ini
 ###########
 ## Build ##
 ############
-add_executable(mapping app_mapping/mapping.cpp)
-target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+#add_executable(mapping app_mapping/mapping.cpp)
+#target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
 
-#add_executable(loc app_loc/loc.cpp)
-#target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+add_executable(loc app_loc/loc.cpp)
+target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES

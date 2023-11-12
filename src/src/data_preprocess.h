@@ -475,9 +475,9 @@ public:
 
                 //              gnss lidar gnss---->>>>
                 gnss_mutex.lock();
-                //TODO add vaid symbol to next node
+                //TODO add vaid symbol to next node---------Done
                 while (!GNSSQueue.empty()) {
-                    //TODO 1111 use delta absoulte time to align gnss and lidacloud!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+                    //TODO 1111 use delta absoulte time to align gnss and lidacloud!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1-----Done add pose_reliable flag
                     if ( GNSSQueue.front().timestamp > cur_scan->timestamp  ) {
                         cloudinfo.pose = GNSSQueue.front().pose;
                         if(GNSSQueue.front().timestamp - cur_scan->timestamp > 5.0f ){
@@ -490,7 +490,7 @@ public:
                         GNSSQueue.pop_front();
                     }
                 }
-                gnss_mutex.unlock();//TODO 1111
+                gnss_mutex.unlock();//TODO 1111----------
                 ///2.
 //                if(odo_min_ros_time>cloud_min_ros_timestamp){
 //                    EZLOG(INFO)<<"odo is larger than lidar" <<endl;
