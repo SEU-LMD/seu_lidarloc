@@ -80,7 +80,7 @@ class Plot{
     int lidar_time_run_count;
 
 
-    const int point_num = 144000;
+    constexpr int point_num = 144000;
     int count_iseuql;
 
 

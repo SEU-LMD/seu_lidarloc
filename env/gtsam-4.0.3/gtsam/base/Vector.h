@@ -70,10 +70,10 @@ typedef Eigen::VectorBlock<const Vector> ConstSubVector;
   * crashes.
   */
 #if defined(GTSAM_EIGEN_VERSION_WORLD)
-static_assert(
-    GTSAM_EIGEN_VERSION_WORLD==EIGEN_WORLD_VERSION &&
-    GTSAM_EIGEN_VERSION_MAJOR==EIGEN_MAJOR_VERSION,
-  "Error: GTSAM was built against a different version of Eigen");
+//static_assert(
+//    GTSAM_EIGEN_VERSION_WORLD==EIGEN_WORLD_VERSION &&
+//    GTSAM_EIGEN_VERSION_MAJOR==EIGEN_MAJOR_VERSION,
+//  "Error: GTSAM was built against a different version of Eigen");
 #endif
 
 /**

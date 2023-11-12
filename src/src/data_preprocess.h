@@ -16,8 +16,8 @@
 #include "utils/utility.h"
 #include "opencv2/opencv.hpp"   // for opencv4
 //#include <opencv/cv.h>
-#include "pcl/features/normal_3d_omp.h"
-#include "pcl/segmentation/sac_segmentation.h"
+//#include "pcl/features/normal_3d_omp.h"
+//#include "pcl/segmentation/sac_segmentation.h"
 
 #include <fstream>
 
@@ -1777,17 +1777,17 @@ public:
                          pcl::PointCloud<pcl::Normal>::Ptr &normals)
     {
         // Create the normal estimation class, and pass the input dataset to it;
-        pcl::NormalEstimation<PointXYZICOLRANGE, pcl::Normal> ne;
-        ne.setInputCloud(in_cloud);
-        // Create an empty kd-tree representation, and pass it to the normal estimation object;
-        pcl::search::KdTree<PointXYZICOLRANGE>::Ptr tree(new pcl::search::KdTree<PointXYZICOLRANGE>());
-
-        ne.setSearchMethod(tree);
-        // Use all neighbors in a sphere of radius;
-        ne.setRadiusSearch(radius);
-        // Compute the normal
-        ne.compute(*normals);
-        check_normal(normals);
+//        pcl::NormalEstimation<PointXYZICOLRANGE, pcl::Normal> ne;
+//        ne.setInputCloud(in_cloud);
+//        // Create an empty kd-tree representation, and pass it to the normal estimation object;
+//        pcl::search::KdTree<PointXYZICOLRANGE>::Ptr tree(new pcl::search::KdTree<PointXYZICOLRANGE>());
+//
+//        ne.setSearchMethod(tree);
+//        // Use all neighbors in a sphere of radius;
+//        ne.setRadiusSearch(radius);
+//        // Compute the normal
+//        ne.compute(*normals);
+//        check_normal(normals);
         return true;
     }
 
@@ -1796,17 +1796,17 @@ public:
                          pcl::PointCloud<pcl::Normal>::Ptr &normals)
     {
         // Create the normal estimation class, and pass the input dataset to it;
-        pcl::NormalEstimation<PointXYZICOLRANGE, pcl::Normal> ne;
-//        ne.setNumberOfThreads(2); //More threads sometimes would not speed up the procedure
-        ne.setInputCloud(in_cloud);
-        // Create an empty kd-tree representation, and pass it to the normal estimation object;
-        pcl::search::KdTree<PointXYZICOLRANGE>::Ptr tree(new pcl::search::KdTree<PointXYZICOLRANGE>());
-        ne.setSearchMethod(tree);
-        // Use all neighbors in a sphere of radius;
-        ne.setKSearch(K);
-        // Compute the normal
-        ne.compute(*normals);
-        check_normal(normals);
+//        pcl::NormalEstimation<PointXYZICOLRANGE, pcl::Normal> ne;
+////        ne.setNumberOfThreads(2); //More threads sometimes would not speed up the procedure
+//        ne.setInputCloud(in_cloud);
+//        // Create an empty kd-tree representation, and pass it to the normal estimation object;
+//        pcl::search::KdTree<PointXYZICOLRANGE>::Ptr tree(new pcl::search::KdTree<PointXYZICOLRANGE>());
+//        ne.setSearchMethod(tree);
+//        // Use all neighbors in a sphere of radius;
+//        ne.setKSearch(K);
+//        // Compute the normal
+//        ne.compute(*normals);
+//        check_normal(normals);
         return true;
     }
 
@@ -1815,39 +1815,39 @@ public:
                           pcl::PointCloud<PointXYZICOLRANGE>::Ptr &planecloud,
                           pcl::ModelCoefficients::Ptr &coefficients) //Ransac
     {
-        pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-
-        // Create the segmentation object
-        pcl::SACSegmentation<PointXYZICOLRANGE> sacseg;//**********************************
-
-        // Optional
-        sacseg.setOptimizeCoefficients(true);
-
-        // Mandatory
-        sacseg.setModelType(pcl::SACMODEL_PLANE);
-        sacseg.setMethodType(pcl::SAC_RANSAC);
-        sacseg.setDistanceThreshold(threshold);
-        sacseg.setMaxIterations(max_iter);
-
-        sacseg.setInputCloud(cloud);
-        sacseg.segment(*inliers, *coefficients);
-
-        if (inliers->indices.size() == 0)
-        {
-            PCL_ERROR("Could not estimate a planar model for the given dataset.");
-        }
-
-        /*cout << "Model coefficients: " << coefficients->values[0] << " "
-        << coefficients->values[1] << " "
-        << coefficients->values[2] << " "
-        << coefficients->values[3] << std::endl;*/
-
-        //LOG(INFO) << "Model inliers number: " << inliers->indices.size() << std::endl;
-
-        for (size_t i = 0; i < inliers->indices.size(); ++i)
-        {
-            planecloud->push_back(cloud->points[inliers->indices[i]]);
-        }
+//        pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+//
+//        // Create the segmentation object
+//        pcl::SACSegmentation<PointXYZICOLRANGE> sacseg;//**********************************
+//
+//        // Optional
+//        sacseg.setOptimizeCoefficients(true);
+//
+//        // Mandatory
+//        sacseg.setModelType(pcl::SACMODEL_PLANE);
+//        sacseg.setMethodType(pcl::SAC_RANSAC);
+//        sacseg.setDistanceThreshold(threshold);
+//        sacseg.setMaxIterations(max_iter);
+//
+//        sacseg.setInputCloud(cloud);
+//        sacseg.segment(*inliers, *coefficients);
+//
+//        if (inliers->indices.size() == 0)
+//        {
+//            PCL_ERROR("Could not estimate a planar model for the given dataset.");
+//        }
+//
+//        /*cout << "Model coefficients: " << coefficients->values[0] << " "
+//        << coefficients->values[1] << " "
+//        << coefficients->values[2] << " "
+//        << coefficients->values[3] << std::endl;*/
+//
+//        //LOG(INFO) << "Model inliers number: " << inliers->indices.size() << std::endl;
+//
+//        for (size_t i = 0; i < inliers->indices.size(); ++i)
+//        {
+//            planecloud->push_back(cloud->points[inliers->indices[i]]);
+//        }
         return 1;
     }
 

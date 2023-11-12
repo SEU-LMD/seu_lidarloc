@@ -10,7 +10,7 @@
 find_package(PkgConfig QUIET)
 pkg_check_modules(PC_EIGEN eigen3)
 set(EIGEN_DEFINITIONS ${PC_EIGEN_CFLAGS_OTHER})
-set(EIGEN_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/../../../eigen-3.4.0-install-x86/include/eigen3/)
+set(EIGEN_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/../../../eigen-3.4.0-install-x86/include/eigen3)
 find_path(EIGEN_INCLUDE_DIR Eigen/Core
     HINTS "${EIGEN_ROOT}" "$ENV{EIGEN_ROOT}" ${PC_EIGEN_INCLUDEDIR} ${PC_EIGEN_INCLUDE_DIRS}
     PATHS "$ENV{PROGRAMFILES}/Eigen" "$ENV{PROGRAMW6432}/Eigen"
