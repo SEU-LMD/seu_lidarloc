@@ -1,0 +1,28 @@
+#if defined(TTypeSupport) && defined(TTopicType) && defined(TData) && defined(TTypeName)
+
+DDS_ReturnCode TTypeSupport::RegisterType(DDS_DomainParticipant *participant, const char *typeName)
+{
+    if (participant == nullptr || typeName == nullptr) {
+        return DDS_RETCODE_BAD_PARAMETER;
+    }
+    return participant->RegisterType(typeName, &TTopicType);
+}
+
+const char *TTypeSupport::GetTypeName()
+{
+    return TTypeName;
+}
+
+TData *TTypeSupport::CreateData()
+{
+    return new TData;
+}
+
+void TTypeSupport::DeleteData(TData *data)
+{
+    if (data != nullptr) {
+        delete data;
+    }
+}
+
+#endif
