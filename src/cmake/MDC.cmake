@@ -4,6 +4,7 @@ set(SHARED_INC_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc/include/shared/includ
 set(GENERATED_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc/include/generated/include)
 set(AP_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc/include/ap/include)
 set(MDC_ACLLIB_SDK  ${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc/include/acllib)
+set(UDP_DIRS $${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc/include/aarch64-linux-gnu)
 
 
 
@@ -58,6 +59,8 @@ set(Communication_DIR
         ${MDC_ACLLIB_SDK}/include/acl/ops
         #5
         ${CMAKE_CURRENT_SOURCE_DIR}/../../include/driver/include
+        #6
+        ${UDP_DIRS}
 )
 
 

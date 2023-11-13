@@ -75,10 +75,11 @@ public:
         std::cout<<"fasong "<<i<<std::endl;
     }
 
-    void init(const char* &ip ,const int &port,const int &servport ){
+    void init(const std::string &ip ,const int &port,const int &servport ){
         serv_sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-        client_ip = ip;
+
+        client_ip = ip.c_str();
         client_port = port;
         server_port=servport;
         memset(&serv_addr, 0, sizeof(serv_addr));  //每个字节都用0填充
