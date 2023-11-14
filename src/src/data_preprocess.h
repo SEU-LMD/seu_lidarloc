@@ -675,13 +675,21 @@ public:
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
+//        if((lidarScan_cnt > SensorConfig::lidarScanDownSample && MappingConfig::slam_mode_switch == 1)
+//            ||MappingConfig::slam_mode_switch == 0){
+            //        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
+            CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
 
-        CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
-        *cloud_ptr = data;//深拷贝
-        cloud_mutex.lock();
-        deque_cloud.push_back(cloud_ptr);
-        cloud_mutex.unlock();
-        lidarScan_cnt =0;
+            *cloud_ptr = data;//深拷贝
+            cloud_mutex.lock();
+            deque_cloud.push_back(cloud_ptr);
+            cloud_mutex.unlock();
+            lidarScan_cnt =0;
+      //  }
+     //   else{
+    //        lidarScan_cnt++;
+    //    }
+
     }
 
     void Udp_OdomPub(const PoseT& data){
