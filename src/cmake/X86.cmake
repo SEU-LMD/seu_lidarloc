@@ -2,7 +2,7 @@ find_package(catkin REQUIRED COMPONENTS
         tf
         roscpp
         rospy
-#        pcl_conversions
+        pcl_conversions
         std_msgs
         sensor_msgs
         geometry_msgs

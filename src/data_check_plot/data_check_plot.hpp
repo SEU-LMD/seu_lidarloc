@@ -80,7 +80,7 @@ class Plot{
     int lidar_time_run_count;
 
 
-    constexpr int point_num = 144000;
+    const int point_num = 144000;
     int count_iseuql;
 
 
@@ -169,7 +169,7 @@ class Plot{
         check_gnss.close();
     }
 
-    //private TODO 1111
+private: //TODO 1111
     void checkLidarTimestamp(){
         double diff;
         lidar_time_run_count=0;

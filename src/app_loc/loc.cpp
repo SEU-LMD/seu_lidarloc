@@ -12,8 +12,11 @@
 #define X86
 #ifdef X86
 #include "pubsub/ros/ros_pubsub.h"
-#include "config/abs_current_path.h"
+#else
+#include "pubsub/mdc/mdc_pubsub.h"
 #endif
+#include "config/abs_current_path.h"
+
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -31,9 +34,11 @@ int main(int argc, char **argv) {
 
     //2.初始化中间件
     PubSubInterface* pubsub;
-    //#ifdef X86
+    #ifdef X86
     pubsub = new ROSPubSub();
-    //#endif
+    #else
+    pubsub = new MDCPubSub();
+    #endif
 
     pubsub->initPubSub(argc, argv, "mapping");
 

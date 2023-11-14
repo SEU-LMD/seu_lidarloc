@@ -64,6 +64,6 @@ class MDCPubSub:public PubSubInterface{
     void PublishCloud(const std::string &topic_name, const CloudTypeXYZI &data){}
     void PublishCloud(const std::string &topic_name, const CloudTypeXYZICOLRANGE &data) {}
     void PublishOdometry(const std::string &topic_name, const OdometryType &data){
-              position_ptr->pubilsh(topic_name,data);
+//              position_ptr->pubilsh(topic_name,data);
      }
 };//end class MDCPubSub 
