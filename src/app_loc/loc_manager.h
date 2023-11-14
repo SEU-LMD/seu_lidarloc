@@ -74,7 +74,7 @@ public:
             EZLOG(INFO)<<" use DR to imageProj";
             auto add_OdometryType_from_DR_to_imageProj =
                     std::bind(&DataPreprocess::AddDrOdomData, &data_prep, std::placeholders::_1);
-            imu_wheeldr.Function_AddDROdometryTypeToImageProjection = add_OdometryType_from_DR_to_imageProj;
+            imu_wheeldr.Function_AddDROdometryTypeToDataPreprocess = add_OdometryType_from_DR_to_imageProj;
         }
 
 //       to fuse

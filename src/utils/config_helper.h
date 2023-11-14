@@ -3,9 +3,6 @@
 #ifndef SEU_CONFIG_HELPER
 #define SEU_CONFIG_HELPER
 
-#define FLT_MAX		__FLT_MAX__
-#define DBL_MAX		__DBL_MAX__
-
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -36,10 +33,10 @@ class SensorConfig{
 
     //GPS Setting
     static bool  useGPS;
-    static bool  updateOrigin;//没有使用
+    static bool   updateOrigin;//没有使用
     static int  gpsFrequence;//notuse
     static bool  useImuHeadingInitialization;
-    static bool  useGpsElevation;
+    static bool useGpsElevation;
     static float  gpsCovThreshold;
     static float   poseCovThreshold;
     static float  gpsDistance;//not use
@@ -74,7 +71,6 @@ class SensorConfig{
     static int if_use_Wheel_DR;
     static int if_DR_use_Euler;
 
-
     //Extrinsics (lidar -> IMU)
     static int imu_type;//meiyong buyiyang********
     static Eigen::Vector3d  extrinsicTrans;//
@@ -97,14 +93,9 @@ class MappingConfig{
     public:
         static int if_debug;
         static Eigen::Vector3d origin_gnss;
-        static bool use_deskew;
         // save map
         static std::string save_map_path;
         static int if_need_first_position;
-
-        //Export settings
-        static bool  savePCD;
-        static std::string savePCDDirectory;
 
         // LOAM feature threshold
         static float  edgeThreshold;
@@ -128,7 +119,6 @@ class MappingConfig{
         static float rotation_tollerance;
 
         //CPU Params
-        static int numberOfCores;
         static float mappingProcessInterval;
 
         //Surrounding map
@@ -136,14 +126,6 @@ class MappingConfig{
         static double  surroundingkeyframeAddingAngleThreshold;
         static double surroundingKeyframeDensity;
         static double surroundingKeyframeSearchRadius;
-        static double localMap_searchRadius;
-        static double localMap_searchRadius_surf;
-        static double localMap_searchRadius_corner;
-        static int LocalMap_updata_perframe;
-        static int scan_2_prior_map;
-        static std::string prior_map_surf;
-        static std::string prior_map_corner;
-        static int if_LoadFromMapManager;
         static int use_DR_or_fuse_in_loc;
 
 
@@ -156,17 +138,7 @@ class MappingConfig{
         static int historyKeyframeSearchNum;
         static float  historyKeyframeFitnessScore;//
 
-        // Visualization
-        static float globalMapVisualizationSearchRadius;
-        static float  globalMapVisualizationPoseDensity;
-        static float globalMapVisualizationLeafSize;
-
-        //mapping
-        static float globalMapLeafSize;//meiyong
-        static int scan_2_scan_num_corner;
-        static int scan_2_scan_num_surf;
     };
-
 
 class SerializeConfig{
    public:
@@ -176,6 +148,9 @@ class SerializeConfig{
       static double lidar_range;
       static int frame_sum;
 
+      static std::string current_lidar_path;
+      static std::string prior_map_path;
+      static std::string prior_pose_path;
       static double Tepsilion;
       static double step_size;
       static float size_resolution;
@@ -316,15 +291,9 @@ std::string MappingConfig::save_map_path = "";
 int MappingConfig::if_need_first_position = 1;
 
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
-bool  MappingConfig::savePCD=false;
-std::string  MappingConfig::savePCDDirectory="";
-std::string MappingConfig::prior_map_surf = " ";
-std::string MappingConfig::prior_map_corner = " ";
-int MappingConfig::if_LoadFromMapManager = 1;
 
 // LOAM feature threshold
 float MappingConfig::edgeThreshold=-1;
-bool MappingConfig::use_deskew = false;
 float MappingConfig::surfThreshold=-1;
 int  MappingConfig::edgeFeatureMinValidNum=-1;
 int  MappingConfig::surfFeatureMinValidNum=-1;
@@ -345,7 +314,6 @@ float MappingConfig::z_tollerance=-1;
 float MappingConfig::rotation_tollerance=-1;
 
 //CPU Params
-int MappingConfig::numberOfCores=-1;
 float MappingConfig::mappingProcessInterval=-1;
 
 //Surrounding map
@@ -353,11 +321,6 @@ double  MappingConfig::surroundingkeyframeAddingDistThreshold=-1;
 double  MappingConfig::surroundingkeyframeAddingAngleThreshold=-1;
 double MappingConfig::surroundingKeyframeDensity=-1;
 double MappingConfig::surroundingKeyframeSearchRadius=-1;
-int MappingConfig::scan_2_prior_map = 1;
-double MappingConfig::localMap_searchRadius=-1;
-double MappingConfig::localMap_searchRadius_surf=-1;
-double MappingConfig::localMap_searchRadius_corner=-1;
-int MappingConfig::LocalMap_updata_perframe=-1;
 
 //Loop closure
 bool  MappingConfig::loopClosureEnableFlag=false;
@@ -368,15 +331,7 @@ float MappingConfig::historyKeyframeSearchTimeDiff=-1;
 int MappingConfig::historyKeyframeSearchNum=-1;
 float MappingConfig::historyKeyframeFitnessScore=-1;
 
-// Visualization
-float MappingConfig::globalMapVisualizationSearchRadius=-1;
-float  MappingConfig::globalMapVisualizationPoseDensity=-1;
-float MappingConfig::globalMapVisualizationLeafSize=-1;
-
 //mapping
-float MappingConfig::globalMapLeafSize=-1;
-int  MappingConfig::scan_2_scan_num_surf = 1;
-int  MappingConfig::scan_2_scan_num_corner = 1;
 int MappingConfig::use_DR_or_fuse_in_loc = 1;
 
 // offline mapping
@@ -540,13 +495,9 @@ void Load_Mapping_YAML(std::string mappingpath)
         }
 
         MappingConfig::if_debug = mappingconfig["if_debug"].as<int>();
-        MappingConfig::use_deskew=mappingconfig["use_deskew"].as<bool >();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();
         MappingConfig::if_need_first_position = mappingconfig["if_need_first_position"].as<int>();
-        // //Export settings
-        MappingConfig::savePCD=mappingconfig["savePCD"].as<bool >();
-        MappingConfig::savePCDDirectory=mappingconfig["savePCDDirectory"].as<std::string >();
 
         // LOAM feature threshold
         MappingConfig::edgeThreshold=mappingconfig["edgeThreshold"].as<float >();
@@ -573,7 +524,6 @@ void Load_Mapping_YAML(std::string mappingpath)
 //        std::cout<<MappingConfig::rotation_tollerance<<std::endl;
 
         //CPU Params
-        MappingConfig::numberOfCores=mappingconfig["numberOfCores"].as<int >();
         MappingConfig::mappingProcessInterval=mappingconfig["mappingProcessInterval"].as<float >();
 //        std::cout<<MappingConfig::mappingProcessInterval<<std::endl;
 
@@ -592,33 +542,9 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::historyKeyframeSearchTimeDiff=mappingconfig["historyKeyframeSearchTimeDiff"].as<float >();
         MappingConfig::historyKeyframeSearchNum=mappingconfig["historyKeyframeSearchNum"].as<int >();
         MappingConfig::historyKeyframeFitnessScore=mappingconfig["historyKeyframeFitnessScore"].as<float >();
-        MappingConfig::localMap_searchRadius_surf = mappingconfig["localMap_searchRadius_surf"].as<double >();
-        MappingConfig::localMap_searchRadius_corner = mappingconfig["localMap_searchRadius_corner"].as<double >();
-        MappingConfig::LocalMap_updata_perframe = mappingconfig["LocalMap_updata_perframe"].as<int>();
-        MappingConfig::scan_2_prior_map = mappingconfig["scan_2_prior_map"].as<int>();
-        MappingConfig::localMap_searchRadius = mappingconfig["localMap_searchRadius"].as<double >();
-        MappingConfig::prior_map_corner = mappingconfig["prior_corner_map_path"].as<std::string>();
-        MappingConfig::prior_map_surf = mappingconfig["prior_surf_map_path"].as<std::string>();
-        MappingConfig::if_LoadFromMapManager = mappingconfig["if_LoadFromMapManager"].as<int>();
         MappingConfig::use_DR_or_fuse_in_loc = mappingconfig["use_DR_or_fuse_in_loc"].as<int>();
 
-        // Visualization
-        MappingConfig::globalMapVisualizationSearchRadius=mappingconfig["globalMapVisualizationSearchRadius"].as<float >();
-        MappingConfig::globalMapVisualizationPoseDensity=mappingconfig["globalMapVisualizationPoseDensity"].as<float >();
-        MappingConfig::globalMapVisualizationLeafSize=mappingconfig["globalMapVisualizationLeafSize"].as<float >();
-//        std::cout<<MappingConfig::globalMapVisualizationLeafSize<<std::endl;
-
-
-        //mapping
-        MappingConfig:: globalMapLeafSize=mappingconfig["globalMapLeafSize"].as<float >();
-//        std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
-        MappingConfig:: scan_2_scan_num_surf=mappingconfig["scan_2_scan_num_surf"].as<float >();
-        MappingConfig:: scan_2_scan_num_corner=mappingconfig["scan_2_scan_num_corner"].as<float >();
-//        std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
-
         std::cout<<"MappingConfig::mappingProcessInterval"<<MappingConfig::mappingProcessInterval<<std::endl;
-        std::cout<<"MappingConfig::prior_corner_map_path: "<<MappingConfig::prior_map_corner<<std::endl;
-        std::cout<<"MappingConfig::prior_surf_map_path: "<<MappingConfig::prior_map_surf<<std::endl;
         std::cout<<"MappingConfig::if_debug: "<<MappingConfig::if_debug<<std::endl;
         std::cout<<"MappingConfig::DownSampleModeSwitch: "<< MappingConfig::DownSampleModeSwitch<<std::endl;
 
@@ -626,7 +552,6 @@ void Load_Mapping_YAML(std::string mappingpath)
         std::cout<<"MappingConfig::mappingCornerRadiusSize_US: "<<MappingConfig::mappingCornerRadiusSize_US<<std::endl;
         std::cout<<"MappingConfig::mappingSurfRadiusSize_US: "<< MappingConfig::mappingSurfRadiusSize_US<<std::endl;
         std::cout<<"MappingConfig::surroundingKeyframeDensity_US: "<< MappingConfig::surroundingKeyframeDensity_US<<std::endl;
-        std::cout<<"MappingConfig::if_LoadFromMapManager: "<<MappingConfig::if_LoadFromMapManager<<std::endl;
         std::cout<<"MappingConfig::if_need_first_position: "<<MappingConfig::if_need_first_position<<std::endl;
         std::cout<<"MappingConfig::use_DR_or_fuse_in_loc: "<<MappingConfig::use_DR_or_fuse_in_loc<<std::endl;
         std::cout<<"mapping yaml success load"<<std::endl;

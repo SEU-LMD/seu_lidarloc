@@ -316,7 +316,6 @@ public:
             }
 
 
-
             int columnIdn = -1;//获取列号
 
             float horizonAngle = atan2(thisPoint.x, thisPoint.y) * 180 / M_PI;//水平角分辨率
@@ -724,8 +723,6 @@ public:
 
     }
 
-
-
     void Udp_OdomPub(const PoseT& data){
         Vis_Odometry odom_out;
         std::string fu_str;
@@ -861,8 +858,6 @@ public:
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
 //        }
     }
-
-
 
     void AddDrOdomData(const OdometryType& data){
         drodom_mutex.lock();
