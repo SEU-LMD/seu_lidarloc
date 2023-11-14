@@ -37,16 +37,14 @@ int main(int argc, char **argv) {
     pubsub->initPubSub(argc, argv, "mapping");
 
     //3.初始化配置参数
+    Load_Udp_YAML("./config/udp.yaml");
     Load_Sensor_YAML("./config/sensor.yaml");
     Load_Mapping_YAML("./config/mapping.yaml");//TODO 1111 loc.yaml
     Load_offline_YAML("./config/offline_mapping.yaml");
 
     //3.5 udp
-    const char* cleint_ip = "192.168.1.116";//
-    int clinet_port=8000;
-    int server_port=7000;
     std::shared_ptr<UDP_THREAD> udp_thread = make_shared<UDP_THREAD>();
-    udp_thread->init(cleint_ip,clinet_port,server_port);
+    udp_thread->init(UdpConfig::cleint_ip,UdpConfig::clinet_port,UdpConfig::server_port);
 
 
     //4.启动多个线程

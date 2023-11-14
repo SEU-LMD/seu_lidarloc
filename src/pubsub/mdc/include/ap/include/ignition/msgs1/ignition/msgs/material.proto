@@ -1,0 +1,57 @@
+/*
+ * Copyright (C) 2017 Open Source Robotics Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+*/
+
+syntax = "proto2";
+package ignition.msgs;
+option java_package = "com.ignition.msgs";
+option java_outer_classname = "MaterialProtos";
+
+/// \ingroup ignition.msgs
+/// \interface Material
+/// \brief Information about a material
+
+import "ignition/msgs/color.proto";
+import "ignition/msgs/header.proto";
+
+message Material
+{
+  enum ShaderType
+  {
+    VERTEX                  = 1;
+    PIXEL                   = 2;
+    NORMAL_MAP_OBJECT_SPACE = 3;
+    NORMAL_MAP_TANGENT_SPACE = 4;
+  }
+
+  message Script
+  {
+    repeated string uri = 1;
+    optional string name = 2;
+  }
+
+  /// \brief Optional header data
+  optional Header header          = 1;
+
+  optional Script script          = 2;
+  optional ShaderType shader_type = 3;
+  optional string normal_map      = 4;
+  optional Color ambient          = 5;
+  optional Color diffuse          = 6;
+  optional Color specular         = 7;
+  optional Color emissive         = 8;
+  optional bool lighting          = 9;
+}

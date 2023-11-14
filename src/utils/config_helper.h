@@ -240,6 +240,13 @@ class FrontEndConfig{
 
 }; // end FrontEndConfig
 
+class UdpConfig{
+    public:
+    static std::string cleint_ip;
+    static int clinet_port;
+    static int server_port;
+};//end UdpConfig
+
 std::string SensorConfig::pointCloudTopic = "";
 std::string SensorConfig::imuTopic = "";
 std::string  SensorConfig::odomTopic = "";
@@ -446,6 +453,11 @@ int FrontEndConfig::unground_down_fixed_num = 20000;
 float FrontEndConfig::feature_pts_ratio_guess = 0.3 ;
 bool FrontEndConfig::sharpen_with_nms = true;
 bool FrontEndConfig::use_distance_adaptive_pca = false;
+
+//udp
+std::string UdpConfig::cleint_ip = " ";
+int UdpConfig::clinet_port = -1;
+int UdpConfig::server_port = -1;
 
 void Load_Sensor_YAML(std::string sensorpath)
 {
@@ -765,5 +777,19 @@ void Load_FrontEnd_YAML(std::string frontendpath)
     std::cout<<"offline yaml success load"<<std::endl;
 
 } // end Load_FrontEnd_YAML
+
+void Load_Udp_YAML(std::string udppath)
+{
+    YAML::Node udpconfig;
+    try{
+        udpconfig = YAML::LoadFile(udppath);
+    } catch(YAML::BadFile &e) {
+        std::cout<<"offline yaml read error!"<<udppath<<std::endl;
+        exit(1);
+    }
+    UdpConfig::cleint_ip = udpconfig["serverIP"].as<std::string>();
+    UdpConfig::clinet_port = udpconfig["clinetPort"].as<int>();
+    UdpConfig::server_port = udpconfig["serverPort"].as<int>();
+}
 
 #endif

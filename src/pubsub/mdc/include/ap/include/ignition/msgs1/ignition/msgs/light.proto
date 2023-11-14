@@ -1,0 +1,58 @@
+/*
+ * Copyright (C) 2017 Open Source Robotics Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+*/
+
+syntax = "proto2";
+package ignition.msgs;
+option java_package = "com.ignition.msgs";
+option java_outer_classname = "LightProtos";
+
+/// \ingroup ignition.msgs
+/// \interface Light 
+/// \brief Message for a light
+
+import "ignition/msgs/header.proto";
+import "ignition/msgs/pose.proto";
+import "ignition/msgs/vector3d.proto";
+import "ignition/msgs/color.proto";
+
+message Light
+{
+  /// \brief Optional header data
+  optional Header header                 = 1;
+
+  optional string name                   = 2;
+  enum LightType
+  {
+    POINT       = 1;
+    SPOT        = 2;
+    DIRECTIONAL = 3;
+  }
+  optional LightType type                = 3;
+
+  optional Pose pose                     = 4;
+  optional Color diffuse                 = 5;
+  optional Color specular                = 6;
+  optional float attenuation_constant    = 7;
+  optional float attenuation_linear      = 8;
+  optional float attenuation_quadratic   = 9;
+  optional Vector3d direction            = 10;
+  optional float range                   = 11;
+  optional bool cast_shadows             = 12;
+  optional float spot_inner_angle        = 13;
+  optional float spot_outer_angle        = 14;
+  optional float spot_falloff            = 15;
+}

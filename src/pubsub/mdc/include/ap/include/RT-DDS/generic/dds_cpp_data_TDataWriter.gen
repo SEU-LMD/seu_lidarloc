@@ -1,0 +1,122 @@
+#if defined(TDataWriter) && defined(TData)
+
+// ---------------------------------------------------------------------
+// Public Methods
+// ---------------------------------------------------------------------
+DDS_ReturnCode TDataWriter::GetPublicationMatchedStatus(DDS_PublicationMatchedStatus& status)
+{
+    return DDS_DataWriter::GetPublicationMatchedStatus(status);
+}
+
+DDS_Topic* TDataWriter::GetTopic()
+{
+    return DDS_DataWriter::GetTopic();
+}
+
+DDS_Publisher* TDataWriter::GetPublisher()
+{
+    return DDS_DataWriter::GetPublisher();
+}
+
+DDS_ReturnCode TDataWriter::SetQos(const DDS_DataWriterQos& qos)
+{
+    return DDS_DataWriter::SetQos(qos);
+}
+
+DDS_ReturnCode TDataWriter::GetQos(DDS_DataWriterQos& qos)
+{
+    return DDS_DataWriter::GetQos(qos);
+}
+
+DDS_ReturnCode TDataWriter::SetListener(DDS_DataWriterListener* l, DDS_StatusMask mask)
+{
+    return DDS_DataWriter::SetListener(l, mask);
+}
+
+DDS_DataWriterListener* TDataWriter::GetListener()
+{
+    return DDS_DataWriter::GetListener();
+}
+
+DDS_StatusCondition* TDataWriter::GetStatusCondition()
+{
+    return DDS_DataWriter::GetStatusCondition();
+}
+
+DDS_StatusMask TDataWriter::GetStatusChanges()
+{
+    return DDS_DataWriter::GetStatusChanges();
+}
+
+DDS_InstanceHandle TDataWriter::GetInstanceHandle() {
+    return DDS_DataWriter::GetInstanceHandle();
+}
+
+DDS_ReturnCode TDataWriter::WriteRawData(Mbuf *mbuf)
+{
+    return DDS_DataWriter::WriteRawData(mbuf);
+}
+
+DDS_ReturnCode TDataWriter::WriteRawData(Mbuf *mbuf, const DDS_WriteParams &writeParams)
+{
+    return DDS_DataWriter::WriteRawData(mbuf, writeParams);
+}
+
+DDS_ReturnCode TDataWriter::Write(const TData& instance_data, const DDS_InstanceHandle& handle)
+{
+    return DDS_DataWriter::WriteUntypedI(&instance_data, handle);
+}
+
+DDS_ReturnCode TDataWriter::AllocateOctets(const TData& data, DDS_InstanceHandle& handleOfAllocated)
+{
+    return DDS_DataWriter::AllocateOctetsUntypedI(&data, handleOfAllocated);
+}
+
+void TDataWriter::DeallocateOctets(const DDS_InstanceHandle& theHandle2Deallocate)
+{
+    return DDS_DataWriter::DeallocateOctetsUntypedI(theHandle2Deallocate);
+}
+
+DDS_ReturnCode TDataWriter::Write(const TData& instance_data, const DDS_WriteParams &writeParams)
+{
+    return DDS_DataWriter::WriteUntypedI(&instance_data, writeParams);
+}
+
+DDS_ReturnCode TDataWriter::Write(const DDS_WriteParams &writeParams)
+{
+    return DDS_DataWriter::WriteUntypedI(writeParams);
+}
+
+DDS_ReturnCode TDataWriter::Write(const DDS_InstanceHandle &handle)
+{
+    return DDS_DataWriter::WriteUntypedI(handle);
+}
+
+DDS_ReturnCode TDataWriter::GetGuid(DDS_Guid &guid) {
+  return DDS_DataWriter::GetGuid(guid);
+}
+
+// ---------------------------------------------------------------------
+// Protected Methods
+// ---------------------------------------------------------------------
+
+// --- Constructors & destructors: -------------------------------------
+TDataWriter::TDataWriter(DDS_DataWriter* impl) : DDS_DataWriter(impl)
+{ }
+
+TDataWriter::~TDataWriter()
+{}
+
+TDataWriter* TDataWriter::CreateI(DDS_DataWriter* dataWriter)
+{
+    TDataWriter* typedDataWriter = new TDataWriter(dataWriter);
+    return typedDataWriter;
+}
+
+DDS_ReturnCode TDataWriter::DestroyI(TDataWriter* writer)
+{
+    delete writer;
+    return DDS_RETCODE_OK;
+}
+
+#endif

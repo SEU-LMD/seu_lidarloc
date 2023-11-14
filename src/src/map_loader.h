@@ -320,6 +320,7 @@ public:
         }
 
         //TODO 1029
+        mutex_priorMap.lock();
          laser_cloud_corner_from_map->clear();
          laser_cloud_surf_from_map->clear();
         for(int i=0; i<9; ++i){
@@ -328,6 +329,7 @@ public:
             if(laser_cloud_surf_array[laser_cloud_valid_ind[i]]!= nullptr)
                 *laser_cloud_surf_from_map+=*laser_cloud_surf_array[laser_cloud_valid_ind[i]];
         }
+        mutex_priorMap.unlock();
     }
 
     void ErasElement(){
@@ -413,9 +415,6 @@ public:
             last_laser_cloud_load_ind[i]=laser_cloud_load_ind[i];
         }
 
-        //TODO 1029
-        // laser_cloud_corner_from_map->clear();
-        // laser_cloud_surf_from_map->clear();
     }
 
     //this fucntion needs to be binded by lidar loc node
