@@ -90,6 +90,7 @@ class OdometryType:public BaseType{
     public:
         PoseT pose;
 //        bool pose_reliable;
+        Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
         DataType getType(){
             return DataType::ODOMETRY;
         }
@@ -198,6 +199,7 @@ public:
     PoseT pose;
     bool pose_reliable;
     PoseT DRPose;
+    Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
 
 //    std::vector<int> label;
     std::vector<int> startRingIndex;
@@ -240,7 +242,9 @@ public:
     int frame_id;
     double timestamp;
     PoseT pose;//
+    bool pose_reliable;
     PoseT DRPose;//
+    Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
     pcl::PointCloud<PointType>::Ptr cornerCloud;
     pcl::PointCloud<PointType>::Ptr surfaceCloud;
 

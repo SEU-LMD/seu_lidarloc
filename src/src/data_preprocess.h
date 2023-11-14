@@ -16,8 +16,9 @@
 #include "utils/utility.h"
 #include "opencv2/opencv.hpp"   // for opencv4
 //#include <opencv/cv.h>
-//#include "pcl/features/normal_3d_omp.h"
+//#include "pcl/features/normal_3d_omp.h" //by wxq
 //#include "pcl/segmentation/sac_segmentation.h"
+#include "utils/filesys.h"
 
 #include <fstream>
 
@@ -480,6 +481,8 @@ public:
                     //TODO 1111 use delta absoulte time to align gnss and lidacloud!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1-----Done add pose_reliable flag
                     if ( GNSSQueue.front().timestamp > cur_scan->timestamp  ) {
                         cloudinfo.pose = GNSSQueue.front().pose;
+                        cloudinfo.pose_reliable = true;
+                        cloudinfo.cov = GNSSQueue.front().cov;
                         if(GNSSQueue.front().timestamp - cur_scan->timestamp > 5.0f ){
                             cloudinfo.pose_reliable = false;
                         }
@@ -512,7 +515,7 @@ public:
 //                            temp.timestamp = cloud_min_ros_timestamp - 0.01f;
 //                            poseQueue.push_front(temp);
 //                        }
-                        cloud_mutex.lock();//TODO 1111 if necessery?
+                        cloud_mutex.lock();//TODO 1111 ---------Done
                         deque_cloud.pop_front();//TODO 1111
                         cloud_mutex.unlock();//TODO 11111
 
@@ -746,14 +749,6 @@ public:
             return;
         }
 
-//        if(!init)
-//        {
-//            geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
-//            init = true;
-//            MapSaver::SaveOriginLLA(data.lla);
-//            return;
-//        }
-
         double t_enu[3];
         geoConverter.Forward(data.lla[0], data.lla[1], data.lla[2],
                              t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
@@ -781,6 +776,7 @@ public:
         Eigen::Quaterniond q_w_b(R_w_b);//获得局部坐标系的四元数
         PoseT T_w_b(t_w_b, R_w_b);
 
+
         OdometryType T_w_b_pub_origin;
         T_w_b_pub_origin.frame = "map";
         T_w_b_pub_origin.timestamp = data.timestamp;
@@ -798,41 +794,41 @@ public:
         T_w_l_pub.frame = "map";
         T_w_l_pub.timestamp = data.timestamp;
         T_w_l_pub.pose = T_w_l;
-        pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
+        T_w_l_pub.cov[0] =  data.lla_sigma[0];
+        T_w_l_pub.cov[1] =  data.lla_sigma[1];
+        T_w_l_pub.cov[2] =  data.lla_sigma[2];
+        T_w_l_pub.cov[3] =  data.rpy_sigma[0];
+        T_w_l_pub.cov[4] =  data.lla_sigma[1];
+        T_w_l_pub.cov[5] =  data.lla_sigma[2];
 
-        //TODO 1029-----Done
-        // GNSSINSType T_w_l_to_mapopt;
-        // T_w_l_to_mapopt.lla[0] = T_w_l.GetXYZ()[0];
-        // T_w_l_to_mapopt.lla[1] = T_w_l.GetXYZ()[1];
-        // T_w_l_to_mapopt.lla[2] = T_w_l.GetXYZ()[2];
-//        opt_mapping_ptr->AddGNSSINSData(T_w_l_to_mapopt);
-
-        gnss_mutex.lock();
-        GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
-        gnss_mutex.unlock();
-
-        GNSSOdometryType T_w_l_gnss;
-        T_w_l_gnss.frame = "map";
-        T_w_l_gnss.timestamp = data.timestamp;
-        T_w_l_gnss.pose = T_w_l;
-
-         if (slam_mode_switch ==1){
-             Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
-             EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose is :";
-             EZLOG(INFO)<<T_w_l_gnss.pose.pose;
-             EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose end!";
-//             static int flag_load_once = 0;
-//             if(flag_load_once ==0){
-//                 Function_AddFirstGNSSPoint2DR(T_w_l_gnss);
-//                 flag_load_once = 1;
-//             }
-             Udp_OdomPub(T_w_l);
-         }
-
-            // TODO T_w_l_pub->>>>>>> is Gnss result need UDP
-            //Udp_OdomPub(T_w_l);
+        if(MappingConfig::if_debug) {
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
-//        }
+        }
+
+        if(IsFileDirExist(MappingConfig::save_map_path)){
+
+            gnss_mutex.lock();
+            GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
+            gnss_mutex.unlock();
+
+            GNSSOdometryType T_w_l_gnss;
+            T_w_l_gnss.frame = "map";
+            T_w_l_gnss.timestamp = data.timestamp;
+            T_w_l_gnss.pose = T_w_l;
+
+            if (slam_mode_switch ==1){
+                Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
+                EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose is :";
+                EZLOG(INFO)<<T_w_l_gnss.pose.pose;
+                EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose end!";
+
+                Udp_OdomPub(T_w_l);
+            }
+
+        }
+
+
+
     }
 
 
