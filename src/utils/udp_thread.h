@@ -65,15 +65,7 @@ public:
         }
     }
 
-    //just for test
-    void sendtest(){  
 
-        char buffer[BUFFUR_SIZE];
-        std::cout<<send_msg_test<<std::endl;
-        std::strcpy(buffer,send_msg_test.c_str());
-        int i=sendto(serv_sock,buffer,std::strlen(buffer),0,(struct sockaddr*)&client_addr,sizeof(client_addr));
-        std::cout<<"fasong "<<i<<std::endl;
-    }
 
     void init(const std::string &ip ,const int &port,const int &servport ){
         serv_sock = socket(AF_INET, SOCK_DGRAM, 0);

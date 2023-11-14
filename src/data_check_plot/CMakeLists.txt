@@ -15,7 +15,7 @@ MESSAGE(STATUS "EIGEN3_INCLUDE_DIR------------${EIGEN3_INCLUDE_DIR}-------------
 
 
 include_directories(
-
+        ../config
         ${EIGEN3_INCLUDE_DIR}
 
 )
