@@ -560,123 +560,91 @@ public:
                         pubsub->PublishCloud(topic_deskw_cloud_to_ft_world, cloud_pub);
                     }
 
-//                    ///ground filter
-//                  int gf_grid_pt_num_thre = 8;float gf_grid_resolution = 1.5;float gf_max_grid_height_diff; float gf_neighbor_height_diff = 1.5;
-//                        float gf_max_ground_height;int gf_down_rate_ground = 15;int gf_down_down_rate_ground = 2;
-//                        int gf_downsample_rate_nonground = 1;int gf_reliable_neighbor_grid_thre = 0;int estimate_ground_normal_method;float normal_estimation_radius = 2.0;
-//                        int distance_inverse_sampling_method = 0;float standard_distance = 15.0;bool fixed_num_downsampling = false;int ground_down_fixed_num = 500;bool extract_curb_or_not = false;
-//                        float intensity_thre = FLT_MAX;bool apply_scanner_filter = false;
-//
-//                    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_unground (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_curb (new pcl::PointCloud<PointXYZICOLRANGE>);
-//
-//                    TicToc time_gf;
-//
-//                    EZLOG(INFO)<<"cloudinfo.cloud_ptr->points.size() = "<<cloudinfo.cloud_ptr->points.size();
-//
-//                    fast_ground_filter(cloudinfo.cloud_ptr,
-//                                       cloud_ground,
-//                                       cloud_ground_down,
-//                                       cloud_unground,
-//                                       cloud_curb,
-//                                       gf_grid_pt_num_thre, gf_max_ground_height,gf_grid_resolution,
-//                                       distance_inverse_sampling_method, standard_distance,gf_downsample_rate_nonground,intensity_thre
-//
-////                                           gf_max_grid_height_diff,
-////						     gf_down_down_rate_ground,
-////						     estimate_ground_normal_method, normal_estimation_radius,
-////						    fixed_num_downsampling, ground_down_fixed_num, extract_curb_or_not,
-////						    apply_scanner_filter
-//                    );
-//                    double time_ground_filter = time_gf.toc();
-//                    EZLOG(INFO)<<"time_ground_filter = "<<time_ground_filter<<endl;
-//
-//                    if(MappingConfig::if_debug)
-//                    {
-//                        CloudTypeXYZICOLRANGE ground_pub,unground_pub;
-//                        ground_pub.timestamp = cloudinfo.timestamp;
-//                        ground_pub.frame = "map";
-//                        pcl::transformPointCloud(*cloud_ground, ground_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-//                        pubsub->PublishCloud(topic_ground_world, ground_pub);
-//                        unground_pub.timestamp = cloudinfo.timestamp;
-//                        unground_pub.frame = "map";
-//                        pcl::transformPointCloud(*cloud_unground, unground_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-//                        pubsub->PublishCloud(topic_unground_world, unground_pub);
-//                    }
-//
-//                    if(0)
-//                    {
-//
-//                        ///classify_nground_pts
-//
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_vertex (new pcl::PointCloud<PointXYZICOLRANGE>);
-//
-//                        float pca_neighbor_radius = 1.0;int pca_neighbor_k = 30 ;int pca_neighbor_k_min = 8;int pca_down_rate = 1;
-//                        float edge_thre = 0.65 ;float planar_thre = 0.65 ; float edge_thre_down = 0.75 ; float planar_thre_down = 0.75;
-//                        int extract_vertex_points_method = 2;float curvature_thre = 0.12;float vertex_curvature_non_max_r = 1.5 * pca_neighbor_radius;
-//                        float linear_vertical_sin_high_thre = 0.94;float linear_vertical_sin_low_thre = 0.17;
-//                        float planar_vertical_sin_high_thre = 0.98; float planar_vertical_sin_low_thre = 0.34;
-//
-//                        EZLOG(INFO)<<"cloud_unground->points.size() =  "<<cloud_unground->points.size()<<endl;
-//
-//                        TicToc time_classify_nground_pts;
-//
-//                        classify_nground_pts(cloud_unground,cloud_pillar,cloud_beam,cloud_facade,cloud_roof,
-//                                             cloud_pillar_down,cloud_beam_down,cloud_facade_down,cloud_roof_down,cloud_vertex,
-//                                             pca_neighbor_radius, pca_neighbor_k, pca_neighbor_k_min, pca_down_rate,
-//                                             edge_thre, planar_thre, edge_thre_down, planar_thre_down,
-//                                             extract_vertex_points_method, curvature_thre, vertex_curvature_non_max_r,
-//                                             linear_vertical_sin_high_thre, linear_vertical_sin_low_thre,
-//                                             planar_vertical_sin_high_thre, planar_vertical_sin_low_thre
-////                                         fixed_num_downsampling, pillar_down_fixed_num, facade_down_fixed_num,
-////                                         beam_down_fixed_num, roof_down_fixed_num, unground_down_fixed_num,
-////                                         beam_height_max, roof_height_min, feature_pts_ratio_guess,
-////                                         sharpen_with_nms_on, use_distance_adaptive_pca
-//                        );
-//                        EZLOG(INFO)<<"time_classify_nground_pts.toc() =  "<<time_classify_nground_pts.toc()<<endl;
-//
-//                        EZLOG(INFO)<<"cloud_pillar->points.size() =  "<<cloud_pillar->points.size()<<endl;
-//                        EZLOG(INFO)<<"cloud_beam->points.size() =  "<<cloud_beam->points.size()<<endl;
-//                        EZLOG(INFO)<<"cloud_facade->points.size() =  "<<cloud_facade->points.size()<<endl;
-//                        EZLOG(INFO)<<"cloud_roof->points.size() =  "<<cloud_roof->points.size()<<endl;
-//
-//                        if(MappingConfig::if_debug)
-//                        {
-//
-//                            CloudTypeXYZICOLRANGE cloud_pillar_pub,cloud_beam_pub,cloud_facade_pub,cloud_roof_pub;
-//                            cloud_pillar_pub.timestamp = cloudinfo.timestamp;
-//                            cloud_beam_pub.timestamp = cloudinfo.timestamp;
-//                            cloud_facade_pub.timestamp = cloudinfo.timestamp;
-//                            cloud_roof_pub.timestamp = cloudinfo.timestamp;
-//                            cloud_pillar_pub.frame = "map";
-//                            cloud_beam_pub.frame = "map";
-//                            cloud_facade_pub.frame = "map";
-//                            cloud_roof_pub.frame = "map";
-//                            pcl::transformPointCloud(*cloud_pillar, cloud_pillar_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-//                            pcl::transformPointCloud(*cloud_beam, cloud_beam_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-//                            pcl::transformPointCloud(*cloud_facade, cloud_facade_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-//                            pcl::transformPointCloud(*cloud_roof, cloud_roof_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-//                            pubsub->PublishCloud(topic_cloud_pillar_world, cloud_pillar_pub);
-//                            pubsub->PublishCloud(topic_cloud_beam_world, cloud_beam_pub);
-//                            pubsub->PublishCloud(topic_cloud_facade_world, cloud_facade_pub);
-//                            pubsub->PublishCloud(topic_cloud_roof_world, cloud_roof_pub);
-//
-//                        }
-//
-//                    }
+                    ///ground filter
+                    if(FrontEndConfig::use_ground_filter){
 
+                        TicToc time_gf;
 
+                        EZLOG(INFO) << "points size: " << cloudinfo.cloud_ptr->size() << std::endl;
+                        fast_ground_filter(cloudinfo.cloud_ptr,
+                                           cloudinfo.cloud_ground,
+                                           cloudinfo.cloud_ground_down,
+                                           cloudinfo.cloud_unground
+                        );
+                        double time_ground_filter = time_gf.toc();
 
+                        EZLOG(INFO)<<"time_ground_filter = "<<time_ground_filter<<endl;
+
+                        if(MappingConfig::if_debug)
+                        {
+                            CloudTypeXYZICOLRANGE ground_pub,unground_pub;
+                            ground_pub.timestamp = cloudinfo.timestamp;
+                            ground_pub.frame = "map";
+                            pcl::transformPointCloud(*cloudinfo.cloud_ground, ground_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                            pubsub->PublishCloud(topic_ground_world, ground_pub);
+                            unground_pub.timestamp = cloudinfo.timestamp;
+                            unground_pub.frame = "map";
+                            pcl::transformPointCloud(*cloudinfo.cloud_unground, unground_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                            pubsub->PublishCloud(topic_unground_world, unground_pub);
+                        }
+                    }
+
+                    if(FrontEndConfig::use_unground_pts_classify){
+
+                        ///classify_nground_pts
+
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar_down (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam_down (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade_down (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof_down (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_vertex (new pcl::PointCloud<PointXYZICOLRANGE>);
+
+                        EZLOG(INFO)<<"cloud_unground->points.size() =  "<<cloudinfo.cloud_unground->points.size()<<endl;
+
+                        TicToc time_classify_nground_pts;
+
+                        classify_nground_pts(cloudinfo.cloud_unground,cloud_pillar,cloud_beam,cloud_facade,cloud_roof,
+                                             cloud_pillar_down,cloud_beam_down,cloud_facade_down,cloud_roof_down
+                        );
+                        EZLOG(INFO)<<"time_classify_nground_pts.toc() =  "<<time_classify_nground_pts.toc()<<endl;
+
+                        EZLOG(INFO)<<"cloud_pillar->points.size() =  "<<cloud_pillar->points.size()<<endl;
+                        EZLOG(INFO)<<"cloud_beam->points.size() =  "<<cloud_beam->points.size()<<endl;
+                        EZLOG(INFO)<<"cloud_facade->points.size() =  "<<cloud_facade->points.size()<<endl;
+                        EZLOG(INFO)<<"cloud_roof->points.size() =  "<<cloud_roof->points.size()<<endl;
+
+                        if(MappingConfig::if_debug)
+                        {
+
+                            CloudTypeXYZICOLRANGE cloud_pillar_pub,cloud_beam_pub,cloud_facade_pub,cloud_roof_pub;
+                            cloud_pillar_pub.timestamp = cur_scan->timestamp;
+                            cloud_beam_pub.timestamp = cur_scan->timestamp;
+                            cloud_facade_pub.timestamp = cur_scan->timestamp;
+                            cloud_roof_pub.timestamp = cur_scan->timestamp;
+                            cloud_pillar_pub.frame = "map";
+                            cloud_beam_pub.frame = "map";
+                            cloud_facade_pub.frame = "map";
+                            cloud_roof_pub.frame = "map";
+//                            cloud_pillar_pub.cloud = *cloud_pillar;
+//                            cloud_beam_pub.cloud = *cloud_beam;
+//                            cloud_facade_pub.cloud = *cloud_facade;
+//                            cloud_roof_pub.cloud = *cloud_roof;
+                            pcl::transformPointCloud(*cloud_pillar, cloud_pillar_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                            pcl::transformPointCloud(*cloud_beam, cloud_beam_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                            pcl::transformPointCloud(*cloud_facade, cloud_facade_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                            pcl::transformPointCloud(*cloud_roof, cloud_roof_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                            pubsub->PublishCloud(topic_cloud_pillar_world, cloud_pillar_pub);
+                            pubsub->PublishCloud(topic_cloud_beam_world, cloud_beam_pub);
+                            pubsub->PublishCloud(topic_cloud_facade_world, cloud_facade_pub);
+                            pubsub->PublishCloud(topic_cloud_roof_world, cloud_roof_pub);
+
+                        }
+
+                    } // end if(FrontEndConfig::use_unground_pts_classify)
 
                     ///4. send data to feature extraction node
 //                        ft_extr_ptr->AddCloudData(cloudinfo);
