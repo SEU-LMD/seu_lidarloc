@@ -313,8 +313,8 @@ public:
         T_matrix_L_B(1,3) = 0.0;
         T_matrix_L_B(2,3) = 0.0;
         //TODO ?
-        pcl::transformPointCloud(*_localMap_surf_ds, *_localMap_surf_ds, T_matrix_L_B.inverse());
-        pcl::transformPointCloud(*_localMap_corner_ds, *_localMap_corner_ds, T_matrix_L_B.inverse());
+//        pcl::transformPointCloud(*_localMap_surf_ds, *_localMap_surf_ds, T_matrix_L_B.inverse());
+//        pcl::transformPointCloud(*_localMap_corner_ds, *_localMap_corner_ds, T_matrix_L_B.inverse());
 
         //TODO 1030
         EZLOG(INFO) << " localMap_surf_ds_num is: "  << localMap_surf_ds_num

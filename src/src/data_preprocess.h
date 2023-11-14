@@ -19,6 +19,7 @@
 //#include "pcl/features/normal_3d_omp.h" //by wxq
 //#include "pcl/segmentation/sac_segmentation.h"
 #include "utils/filesys.h"
+#include "config/abs_current_path.h"
 
 #include <fstream>
 
@@ -647,9 +648,9 @@ public:
                     ///4. send data to feature extraction node
 //                        ft_extr_ptr->AddCloudData(cloudinfo);
                     Function_AddCloudInfoToFeatureExtraction(cloudinfo);
-                    //EZLOG(INFO)
-                           // << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
-                          //  << cloudinfo.cloud_ptr->points.size();
+                    EZLOG(INFO)
+                            << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
+                            << cloudinfo.cloud_ptr->points.size();
                     ///5.pop used odom
                     drodom_mutex.lock();
 //                        while(poseQueue.front().timestamp < cloud_max_ros_timestamp - 0.1f){
@@ -678,21 +679,13 @@ public:
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
-//        if((lidarScan_cnt > SensorConfig::lidarScanDownSample && MappingConfig::slam_mode_switch == 1)
-//            ||MappingConfig::slam_mode_switch == 0){
-            //        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
-            CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
 
-            *cloud_ptr = data;//深拷贝
-            cloud_mutex.lock();
-            deque_cloud.push_back(cloud_ptr);
-            cloud_mutex.unlock();
-            lidarScan_cnt =0;
-      //  }
-     //   else{
-    //        lidarScan_cnt++;
-    //    }
-
+        CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
+        *cloud_ptr = data;//深拷贝
+        cloud_mutex.lock();
+        deque_cloud.push_back(cloud_ptr);
+        cloud_mutex.unlock();
+        lidarScan_cnt =0;
     }
 
 
@@ -738,7 +731,7 @@ public:
             else{//mapping
                 geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
                 MapSaver::SaveOriginLLA(data.lla);
-           //     EZLOG(INFO)<<"save first GNSS points: "<<data.lla[0]<<", "<<data.lla[1]<<", "<<data.lla[2];
+                EZLOG(INFO)<<"save first GNSS points: "<<data.lla[0]<<", "<<data.lla[1]<<", "<<data.lla[2];
             }
             init = true;
             return;
@@ -800,7 +793,7 @@ public:
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
         }
 
-        if(IsFileDirExist(MappingConfig::save_map_path)){
+//        if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
 
             gnss_mutex.lock();
             GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
@@ -820,7 +813,12 @@ public:
                 Udp_OdomPub(T_w_l);
             }
 
-        }
+//        }
+//        else{
+            //TODO
+//            EZLOG(INFO)<<"ABS_CURRENT_SOURCE_PATH+ ../flag_gnss "<<ABS_CURRENT_SOURCE_PATH+"/flag_gnss";
+//            exit(-1);
+//        }
 
 
 
@@ -855,7 +853,7 @@ public:
         pubsub->addPublisher(topic_cloud_roof_world,DataType::LIDAR,1);
 
         do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
-      //  EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
+        EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
     }
 
 
@@ -884,7 +882,7 @@ public:
 
 
         do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
-       // EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
+        EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
     }
 
     struct eigenvalue_t // Eigen Value ,lamada1 > lamada2 > lamada3;
@@ -1332,7 +1330,7 @@ public:
         float distance_weight;
         // int ground_random_down_rate_temp = ground_random_down_rate;
         // int nonground_random_down_rate_temp = nonground_random_down_rate;
-      //  EZLOG(INFO)<<"cloud_in->size() = "<<cloud_in->size()<<endl;
+        EZLOG(INFO)<<"cloud_in->size() = "<<cloud_in->size()<<endl;
 
         for (int j = 0; j < cloud_in->size(); j++)
         {
@@ -1345,8 +1343,8 @@ public:
 
         appro_mean_height = sum_height / count_checkpoint; //calculate around height
         non_ground_height_thre = appro_mean_height + max_ground_height;//max_ground_height  = 1.5
-       // EZLOG(INFO)<<"appro_mean_height "<<appro_mean_height;
-       // EZLOG(INFO)<<"non_ground_height_thre "<<non_ground_height_thre;
+        EZLOG(INFO)<<"appro_mean_height "<<appro_mean_height;
+        EZLOG(INFO)<<"non_ground_height_thre "<<non_ground_height_thre;
 
         bounds_t bounds;
         centerpoint_t center_pt;
@@ -1357,7 +1355,7 @@ public:
         row = ceil((bounds.max_y - bounds.min_y) / FrontEndConfig::grid_resolution);//grid_resolution 默认参数 = 3.0
         col = ceil((bounds.max_x - bounds.min_x) / FrontEndConfig::grid_resolution);
         num_grid = row * col;
-       // EZLOG(INFO)<<"num_grid "<<num_grid;
+        EZLOG(INFO)<<"num_grid "<<num_grid;
 
         grid_t *grid = new grid_t[num_grid];
 
@@ -1698,8 +1696,8 @@ public:
             cloud_ground->points.insert(cloud_ground->points.end(), grid_ground_pcs[i]->points.begin(), grid_ground_pcs[i]->points.end());
             cloud_unground->points.insert(cloud_unground->points.end(), grid_unground_pcs[i]->points.begin(), grid_unground_pcs[i]->points.end());
         }
-       // EZLOG(INFO)<<"cloud_ground->points.size() = "<<cloud_ground->points.size();
-       // EZLOG(INFO)<<"cloud_unground->points.size() = "<<cloud_unground->points.size();
+        EZLOG(INFO)<<"cloud_ground->points.size() = "<<cloud_ground->points.size();
+        EZLOG(INFO)<<"cloud_unground->points.size() = "<<cloud_unground->points.size();
 //
         //free memory
         delete[] grid;

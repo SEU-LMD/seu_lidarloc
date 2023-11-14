@@ -158,6 +158,8 @@ public:
     static float odometrySurfRadiusSize_US;
     static float mappingCornerRadiusSize_US;
     static float mappingSurfRadiusSize_US;
+    static float edgeThreshold;
+    static float surfThreshold;
 
     // robot motion constraint (in case you are using a 2D robot)
     static float z_tollerance;
@@ -328,6 +330,7 @@ Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
 // LOAM feature threshold
 float MappingConfig::edgeThreshold=-1;
 float MappingConfig::surfThreshold=-1;
+
 int  MappingConfig::edgeFeatureMinValidNum=-1;
 int  MappingConfig::surfFeatureMinValidNum=-1;
 
@@ -372,6 +375,8 @@ int LocConfig::slam_mode_on = 0;
 std::string LocConfig::save_map_path = "";
 int  LocConfig::edgeFeatureMinValidNum=-1;
 int  LocConfig::surfFeatureMinValidNum=-1;
+float LocConfig::edgeThreshold = 1.0;
+float LocConfig::surfThreshold = 1.0;
 float LocConfig::odometrySurfRadiusSize_US = 0.6;
 float LocConfig::mappingCornerRadiusSize_US = 0.4;
 float LocConfig::mappingSurfRadiusSize_US = 0.6;
@@ -603,7 +608,6 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::surfThreshold=mappingconfig["surfThreshold"].as<float >();
         MappingConfig::edgeFeatureMinValidNum=mappingconfig["edgeFeatureMinValidNum"].as<int >();
         MappingConfig::surfFeatureMinValidNum=mappingconfig["surfFeatureMinValidNum"].as<int >();
-//        std::cout<<MappingConfig::surfFeatureMinValidNum<<std::endl;
 
         //voxel filter paprams
         MappingConfig::DownSampleModeSwitch = mappingconfig["DownSampleModeSwitch"].as<int>();
@@ -624,7 +628,6 @@ void Load_Mapping_YAML(std::string mappingpath)
 
         //CPU Params
         MappingConfig::mappingProcessInterval=mappingconfig["mappingProcessInterval"].as<float >();
-//        std::cout<<MappingConfig::mappingProcessInterval<<std::endl;
 
         //Surrounding map
         MappingConfig::surroundingkeyframeAddingDistThreshold=mappingconfig["surroundingkeyframeAddingDistThreshold"].as<double >();
@@ -668,6 +671,8 @@ void Load_Loc_YAML(std::string locPath){
     LocConfig::surfFeatureMinValidNum=LocConfig["surfFeatureMinValidNum"].as<int >();
     LocConfig::mappingCornerRadiusSize_US = LocConfig["mappingCornerRadiusSize_US"].as<float >();
     LocConfig::mappingSurfRadiusSize_US = LocConfig["mappingSurfRadiusSize_US"].as<float >();
+    LocConfig::edgeThreshold = LocConfig["edgeThreshold"].as<float>();
+    LocConfig::surfThreshold = LocConfig["surfThreshold"].as<float>();
     LocConfig::z_tollerance=LocConfig["z_tollerance"].as<float >();
     LocConfig::rotation_tollerance=LocConfig["rotation_tollerance"].as<float >();
     LocConfig::mappingProcessInterval=LocConfig["mappingProcessInterval"].as<float >();
