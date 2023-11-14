@@ -3,6 +3,9 @@
 #ifndef SEU_CONFIG_HELPER
 #define SEU_CONFIG_HELPER
 
+#define FLT_MAX		__FLT_MAX__
+#define DBL_MAX		__DBL_MAX__
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -33,10 +36,10 @@ class SensorConfig{
 
     //GPS Setting
     static bool  useGPS;
-    static bool   updateOrigin;//没有使用
+    static bool  updateOrigin;//没有使用
     static int  gpsFrequence;//notuse
     static bool  useImuHeadingInitialization;
-    static bool useGpsElevation;
+    static bool  useGpsElevation;
     static float  gpsCovThreshold;
     static float   poseCovThreshold;
     static float  gpsDistance;//not use
@@ -71,6 +74,7 @@ class SensorConfig{
     static int if_use_Wheel_DR;
     static int if_DR_use_Euler;
 
+
     //Extrinsics (lidar -> IMU)
     static int imu_type;//meiyong buyiyang********
     static Eigen::Vector3d  extrinsicTrans;//
@@ -91,11 +95,12 @@ class SensorConfig{
 
 class MappingConfig{
     public:
+        static int slam_mode_switch;
         static int if_debug;
         static Eigen::Vector3d origin_gnss;
+        static bool use_deskew;
         // save map
         static std::string save_map_path;
-        static int if_need_first_position;
 
         // LOAM feature threshold
         static float  edgeThreshold;
@@ -140,6 +145,31 @@ class MappingConfig{
 
     };
 
+class LocConfig{
+public:
+    static int slam_mode_on;
+    static Eigen::Vector3d origin_gnss;
+    // save map
+    static std::string save_map_path;
+
+    // LOAM feature threshold
+    static int  edgeFeatureMinValidNum;
+    static int  surfFeatureMinValidNum;
+    static float odometrySurfRadiusSize_US;
+    static float mappingCornerRadiusSize_US;
+    static float mappingSurfRadiusSize_US;
+
+    // robot motion constraint (in case you are using a 2D robot)
+    static float z_tollerance;
+    static float rotation_tollerance;
+    //CPU Params
+    static float mappingProcessInterval;
+    static int use_DR_or_fuse_in_loc;
+    static int maxIters;
+    static double surroundingkeyframeAddingDistThreshold;
+    static double surroundingkeyframeAddingAngleThreshold;
+
+};
 class SerializeConfig{
    public:
       static std::string map_in_path;
@@ -148,9 +178,6 @@ class SerializeConfig{
       static double lidar_range;
       static int frame_sum;
 
-      static std::string current_lidar_path;
-      static std::string prior_map_path;
-      static std::string prior_pose_path;
       static double Tepsilion;
       static double step_size;
       static float size_resolution;
@@ -214,6 +241,13 @@ class FrontEndConfig{
     static bool use_distance_adaptive_pca;
 
 }; // end FrontEndConfig
+
+class UdpConfig{
+    public:
+    static std::string cleint_ip;
+    static int clinet_port;
+    static int server_port;
+};//end UdpConfig
 
 std::string SensorConfig::pointCloudTopic = "";
 std::string SensorConfig::imuTopic = "";
@@ -286,12 +320,11 @@ int SensorConfig::gtsamGNSSBetweenFactorDistance = 10;
 bool SensorConfig::use_drodom_deskew =false;
 int SensorConfig::lidarScanDownSample = 2;
 
+int MappingConfig::slam_mode_switch = 0;
 int MappingConfig::if_debug = 1;
 std::string MappingConfig::save_map_path = "";
-int MappingConfig::if_need_first_position = 1;
 
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
-
 // LOAM feature threshold
 float MappingConfig::edgeThreshold=-1;
 float MappingConfig::surfThreshold=-1;
@@ -334,6 +367,21 @@ float MappingConfig::historyKeyframeFitnessScore=-1;
 //mapping
 int MappingConfig::use_DR_or_fuse_in_loc = 1;
 
+int LocConfig::maxIters = 30;
+int LocConfig::slam_mode_on = 0;
+std::string LocConfig::save_map_path = "";
+int  LocConfig::edgeFeatureMinValidNum=-1;
+int  LocConfig::surfFeatureMinValidNum=-1;
+float LocConfig::odometrySurfRadiusSize_US = 0.6;
+float LocConfig::mappingCornerRadiusSize_US = 0.4;
+float LocConfig::mappingSurfRadiusSize_US = 0.6;
+float LocConfig::z_tollerance=-1;
+float LocConfig::rotation_tollerance=-1;
+float LocConfig::mappingProcessInterval=-1;
+double  LocConfig::surroundingkeyframeAddingDistThreshold = 1.0;
+double  LocConfig::surroundingkeyframeAddingAngleThreshold = 3.0;
+int LocConfig::use_DR_or_fuse_in_loc = 1;
+
 // offline mapping
 std::string SerializeConfig::map_in_path = "";
 std::string SerializeConfig::map_out_path = "";
@@ -354,7 +402,58 @@ double SerializeConfig::max_inter_num = 35;
 double SerializeConfig::setLeafSize = 0.6;
 double SerializeConfig::sequence_num = 271;
 
+// ground filter
+bool FrontEndConfig::use_ground_filter = true;
+int FrontEndConfig::min_grid_pt_num = 8;
+//float FrontEndConfig::max_ground_height = 50.0;
+float FrontEndConfig::grid_resolution = 1.5;
+int FrontEndConfig::distance_weight_downsampling_method =0;
+float FrontEndConfig::standard_distance =15.0;
+int FrontEndConfig::nonground_random_down_rate =1;
+float FrontEndConfig::intensity_thre = -1;
+bool FrontEndConfig::apply_grid_wise_outlier_filter =false;
+float FrontEndConfig::outlier_std_scale =3.0;
+int FrontEndConfig::reliable_neighbor_grid_num_thre =0;
+int FrontEndConfig::ground_random_down_rate =1;
+float FrontEndConfig::neighbor_height_diff =25.0;
+float FrontEndConfig::max_height_difference =0.3;
+int FrontEndConfig::estimate_ground_normal_method =3;
+float FrontEndConfig::normal_estimation_radius =2.0;
+bool FrontEndConfig::fixed_num_downsampling =false;
+int FrontEndConfig::ground_random_down_down_rate =2;
 
+//unground pts classify
+bool FrontEndConfig::use_unground_pts_classify = true;
+float FrontEndConfig::neighbor_searching_radius = 1.0;
+int FrontEndConfig::neighbor_k = 30;
+int FrontEndConfig::neigh_k_min= 8;
+int FrontEndConfig::pca_down_rate=1;
+float FrontEndConfig::edge_thre=0.65;
+float FrontEndConfig::planar_thre=0.65;
+float FrontEndConfig::edge_thre_down=0.75;
+float FrontEndConfig::planar_thre_down=0.75;
+int FrontEndConfig::extract_vertex_points_method=2;
+float FrontEndConfig::curvature_thre =0.12;
+float FrontEndConfig::vertex_curvature_non_max_radius = 1.5;
+float FrontEndConfig::linear_vertical_sin_high_thre =0.94;
+float FrontEndConfig::linear_vertical_sin_low_thre=0.17;
+float FrontEndConfig::planar_vertical_sin_high_thre =0.98;
+float FrontEndConfig::planar_vertical_sin_low_thre=0.34;
+int FrontEndConfig::pillar_down_fixed_num = 200;
+int FrontEndConfig::facade_down_fixed_num = 800 ;
+int FrontEndConfig::beam_down_fixed_num = 200;
+int FrontEndConfig::roof_down_fixed_num = 100;
+int FrontEndConfig::unground_down_fixed_num = 20000;
+//float FrontEndConfig::beam_height_max = 500.0;
+//float FrontEndConfig::roof_height_min = 500.0;
+float FrontEndConfig::feature_pts_ratio_guess = 0.3 ;
+bool FrontEndConfig::sharpen_with_nms = true;
+bool FrontEndConfig::use_distance_adaptive_pca = false;
+
+//udp
+std::string UdpConfig::cleint_ip = " ";
+int UdpConfig::clinet_port = -1;
+int UdpConfig::server_port = -1;
 
 void Load_Sensor_YAML(std::string sensorpath)
 {
@@ -494,10 +593,10 @@ void Load_Mapping_YAML(std::string mappingpath)
             exit(1);
         }
 
+        MappingConfig::slam_mode_switch = mappingconfig["slam_mode_switch"].as<int>();
         MappingConfig::if_debug = mappingconfig["if_debug"].as<int>();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();
-        MappingConfig::if_need_first_position = mappingconfig["if_need_first_position"].as<int>();
 
         // LOAM feature threshold
         MappingConfig::edgeThreshold=mappingconfig["edgeThreshold"].as<float >();
@@ -543,7 +642,6 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::historyKeyframeSearchNum=mappingconfig["historyKeyframeSearchNum"].as<int >();
         MappingConfig::historyKeyframeFitnessScore=mappingconfig["historyKeyframeFitnessScore"].as<float >();
         MappingConfig::use_DR_or_fuse_in_loc = mappingconfig["use_DR_or_fuse_in_loc"].as<int>();
-
         std::cout<<"MappingConfig::mappingProcessInterval"<<MappingConfig::mappingProcessInterval<<std::endl;
         std::cout<<"MappingConfig::if_debug: "<<MappingConfig::if_debug<<std::endl;
         std::cout<<"MappingConfig::DownSampleModeSwitch: "<< MappingConfig::DownSampleModeSwitch<<std::endl;
@@ -552,12 +650,42 @@ void Load_Mapping_YAML(std::string mappingpath)
         std::cout<<"MappingConfig::mappingCornerRadiusSize_US: "<<MappingConfig::mappingCornerRadiusSize_US<<std::endl;
         std::cout<<"MappingConfig::mappingSurfRadiusSize_US: "<< MappingConfig::mappingSurfRadiusSize_US<<std::endl;
         std::cout<<"MappingConfig::surroundingKeyframeDensity_US: "<< MappingConfig::surroundingKeyframeDensity_US<<std::endl;
-        std::cout<<"MappingConfig::if_need_first_position: "<<MappingConfig::if_need_first_position<<std::endl;
         std::cout<<"MappingConfig::use_DR_or_fuse_in_loc: "<<MappingConfig::use_DR_or_fuse_in_loc<<std::endl;
         std::cout<<"mapping yaml success load"<<std::endl;
 
 }//end function Load_Mapping_YAML
+void Load_Loc_YAML(std::string locPath){
+    YAML::Node LocConfig;
+    try{
+        LocConfig = YAML::LoadFile(locPath);
+    } catch(YAML::BadFile &e) {
+        std::cout << "loc yaml read error!" << locPath << std::endl;
+        exit(1);
+    }
+    LocConfig::slam_mode_on = LocConfig["slam_mode_on"].as<int>();
+    LocConfig::save_map_path = LocConfig["save_map_path"].as<std::string>();
+    LocConfig::edgeFeatureMinValidNum=LocConfig["edgeFeatureMinValidNum"].as<int >();
+    LocConfig::surfFeatureMinValidNum=LocConfig["surfFeatureMinValidNum"].as<int >();
+    LocConfig::mappingCornerRadiusSize_US = LocConfig["mappingCornerRadiusSize_US"].as<float >();
+    LocConfig::mappingSurfRadiusSize_US = LocConfig["mappingSurfRadiusSize_US"].as<float >();
+    LocConfig::z_tollerance=LocConfig["z_tollerance"].as<float >();
+    LocConfig::rotation_tollerance=LocConfig["rotation_tollerance"].as<float >();
+    LocConfig::mappingProcessInterval=LocConfig["mappingProcessInterval"].as<float >();
+    LocConfig::surroundingkeyframeAddingDistThreshold=LocConfig["surroundingkeyframeAddingDistThreshold"].as<double >();
+    LocConfig::surroundingkeyframeAddingAngleThreshold=LocConfig["surroundingkeyframeAddingAngleThreshold"].as<double >();
+    LocConfig::use_DR_or_fuse_in_loc = LocConfig["use_DR_or_fuse_in_loc"].as<int>();
+    LocConfig::maxIters =  LocConfig["maxIters"].as<int>();
 
+    std::cout<<"LocConfig::mappingProcessInterval"<<LocConfig::mappingProcessInterval<<std::endl;
+    std::cout<<"LocConfig::odometrySurfRadiusSize_US: "<<LocConfig::odometrySurfRadiusSize_US<<std::endl;
+    std::cout<<"LocConfig::mappingCornerRadiusSize_US: "<<LocConfig::mappingCornerRadiusSize_US<<std::endl;
+    std::cout<<"LocConfig::mappingSurfRadiusSize_US: "<< LocConfig::mappingSurfRadiusSize_US<<std::endl;
+    std::cout<<"LocConfig::use_DR_or_fuse_in_loc: "<<LocConfig::use_DR_or_fuse_in_loc<<std::endl;
+    std::cout<<"LocConfig::surroundingkeyframeAddingAngleThreshold: "<<LocConfig::surroundingkeyframeAddingAngleThreshold<<std::endl;
+    std::cout<<"LocConfig::surroundingkeyframeAddingDistThreshold: "<<LocConfig::surroundingkeyframeAddingDistThreshold<<std::endl;
+    std::cout<<"LocConfig::maxIters: "<<LocConfig::maxIters<<std::endl;
+    std::cout<<"Loc yaml success load"<<std::endl;
+}
 void Load_offline_YAML(std::string offlinepath)
     {
         YAML::Node offlineconfig;
@@ -582,5 +710,86 @@ void Load_offline_YAML(std::string offlinepath)
         std::cout<<"offline yaml success load"<<std::endl;
 
     }
+
+void Load_FrontEnd_YAML(std::string frontendpath)
+{
+    YAML::Node frontendconfig;
+    try{
+        frontendconfig = YAML::LoadFile(frontendpath);
+    } catch(YAML::BadFile &e) {
+        std::cout<<"front_end yaml read error!"<<frontendpath<<std::endl;
+        exit(1);
+    }
+
+// ground filter
+    FrontEndConfig::use_ground_filter = frontendconfig["use_ground_filter"].as<bool>();
+    FrontEndConfig::min_grid_pt_num = frontendconfig["min_grid_pt_num"].as<int>();
+//    FrontEndConfig::max_ground_height = frontendconfig["max_ground_height"].as<float>();
+    FrontEndConfig::grid_resolution  = frontendconfig["grid_resolution"].as<float>();
+    FrontEndConfig::distance_weight_downsampling_method  = frontendconfig["distance_weight_downsampling_method"].as<int>();
+    FrontEndConfig::standard_distance = frontendconfig["standard_distance"].as<float>();
+    FrontEndConfig::nonground_random_down_rate = frontendconfig["nonground_random_down_rate"].as<int>();
+    FrontEndConfig::intensity_thre = frontendconfig["intensity_thre"].as<float>();
+    FrontEndConfig::apply_grid_wise_outlier_filter = frontendconfig["apply_grid_wise_outlier_filter"].as<bool>();
+    FrontEndConfig::outlier_std_scale = frontendconfig["outlier_std_scale"].as<float>();
+    FrontEndConfig::reliable_neighbor_grid_num_thre  = frontendconfig["reliable_neighbor_grid_num_thre"].as<int>();
+    FrontEndConfig::ground_random_down_rate  = frontendconfig["ground_random_down_rate"].as<int>();
+    FrontEndConfig::neighbor_height_diff  = frontendconfig["neighbor_height_diff"].as<float>();
+    FrontEndConfig::max_height_difference  = frontendconfig["max_height_difference"].as<float>();
+    FrontEndConfig::estimate_ground_normal_method  = frontendconfig["estimate_ground_normal_method"].as<int>();
+    FrontEndConfig::normal_estimation_radius  = frontendconfig["normal_estimation_radius"].as<float>();
+    FrontEndConfig::fixed_num_downsampling  = frontendconfig["fixed_num_downsampling"].as<bool>();
+    FrontEndConfig::ground_random_down_down_rate = frontendconfig["ground_random_down_down_rate"].as<int>();
+
+//unground pts classify
+    FrontEndConfig::use_unground_pts_classify = frontendconfig["use_unground_pts_classify"].as<bool>();
+    FrontEndConfig::neighbor_searching_radius = frontendconfig["neighbor_searching_radius"].as<float>();
+    FrontEndConfig::neighbor_k = frontendconfig["neighbor_k"].as<int>();
+    FrontEndConfig::neigh_k_min= frontendconfig["neigh_k_min"].as<int>();
+    FrontEndConfig::pca_down_rate= frontendconfig["pca_down_rate"].as<int>();
+    FrontEndConfig::edge_thre= frontendconfig["edge_thre"].as<float>();
+    FrontEndConfig::planar_thre= frontendconfig["planar_thre"].as<float>();
+    FrontEndConfig::edge_thre_down= frontendconfig["edge_thre_down"].as<float>();
+    FrontEndConfig::planar_thre_down= frontendconfig["planar_thre_down"].as<float>();
+    FrontEndConfig::extract_vertex_points_method= frontendconfig["extract_vertex_points_method"].as<int>();
+    FrontEndConfig::curvature_thre = frontendconfig["curvature_thre"].as<float>();
+    FrontEndConfig::vertex_curvature_non_max_radius = frontendconfig["vertex_curvature_non_max_radius"].as<float>();
+    FrontEndConfig::linear_vertical_sin_high_thre = frontendconfig["linear_vertical_sin_high_thre"].as<float>();
+    FrontEndConfig::linear_vertical_sin_low_thre= frontendconfig["linear_vertical_sin_low_thre"].as<float>();
+    FrontEndConfig::planar_vertical_sin_high_thre = frontendconfig["planar_vertical_sin_high_thre"].as<float>();
+    FrontEndConfig::planar_vertical_sin_low_thre= frontendconfig["planar_vertical_sin_low_thre"].as<float>();
+    FrontEndConfig::pillar_down_fixed_num = frontendconfig["pillar_down_fixed_num"].as<int>();
+    FrontEndConfig::facade_down_fixed_num = frontendconfig["facade_down_fixed_num"].as<int>();
+    FrontEndConfig::beam_down_fixed_num = frontendconfig["beam_down_fixed_num"].as<int>();
+    FrontEndConfig::roof_down_fixed_num = frontendconfig["roof_down_fixed_num"].as<int>();
+    FrontEndConfig::unground_down_fixed_num = frontendconfig["unground_down_fixed_num"].as<int>();
+//    FrontEndConfig::beam_height_max = frontendconfig["beam_height_max"].as<float>();
+//    FrontEndConfig::roof_height_min = frontendconfig["roof_height_min"].as<float>();
+    FrontEndConfig::feature_pts_ratio_guess = frontendconfig["feature_pts_ratio_guess"].as<float>();
+    FrontEndConfig::sharpen_with_nms = frontendconfig["sharpen_with_nms"].as<bool>();
+    FrontEndConfig::use_distance_adaptive_pca = frontendconfig["use_distance_adaptive_pca"].as<bool>();
+
+    std::cout<<"offline yaml success load"<<std::endl;
+
+} // end Load_FrontEnd_YAML
+
+void Load_Udp_YAML(std::string udppath)
+{
+    YAML::Node udpconfig;
+    try{
+        udpconfig = YAML::LoadFile(udppath);
+    } catch(YAML::BadFile &e) {
+        std::cout<<"offline yaml read error!"<<udppath<<std::endl;
+        exit(1);
+    }
+    UdpConfig::cleint_ip = udpconfig["serverIP"].as<std::string>();
+    UdpConfig::clinet_port = udpconfig["clinetPort"].as<int>();
+    UdpConfig::server_port = udpconfig["serverPort"].as<int>();
+    std::cout<<"UdpConfig::server_port: "<<UdpConfig::server_port;
+    std::cout<<"UdpConfig::clinet_port: "<<UdpConfig::clinet_port;
+    std::cout<<"UdpConfig::cleint_ip: "<<UdpConfig::cleint_ip;
+    std::cout<<"Load_Udp_YAML success! ";
+
+}
 
 #endif

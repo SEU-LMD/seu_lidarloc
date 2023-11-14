@@ -1,7 +1,7 @@
 # 0 for opt mapping->wxy, 1 for loc mapping->sy.
 # TODO change yaml name
 #TODO remove not used parmater!!!!
-# slam_mode_switch: 0
+  slam_mode_switch: 1
 
 # 1 for debug (pub to rviz),0 for not debug
   if_debug: 0
@@ -12,7 +12,6 @@
 #  you must change it to right PATH or it will crush!!!!!!!!
   save_map_path: "/home/wxy/seu/reborn/11.1/seu_lidarloc/src/test/"
 
-  if_need_first_position: 0
 # 1 use DR , 0 use fuse
   use_DR_or_fuse_in_loc: 1
 

@@ -18,14 +18,9 @@
 #define average_kmh2Ms 0.1389
 
 //TODO remove
-using gtsam::symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz) /Pose3(x,y,z,r,p,y)
-using gtsam::symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
-using gtsam::symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
-
 //TODO change name to IMUWHEELDR
-class imu_wheel_dr  {
+class IMUWHEELDR  {
 public:
-    int slam_mode_switch = 1;
     PubSubInterface* pubsub;
     std::mutex odom_mutex;
     std::mutex gnssins_mutex;
@@ -43,25 +38,10 @@ public:
 
     bool systemInitialized = false;
     // 噪声协方差
-    gtsam::noiseModel::Diagonal::shared_ptr priorPoseNoise;
-    gtsam::noiseModel::Diagonal::shared_ptr priorVelNoise;
-    gtsam::noiseModel::Diagonal::shared_ptr priorBiasNoise;
-    gtsam::noiseModel::Diagonal::shared_ptr correctionNoise;
-    gtsam::noiseModel::Diagonal::shared_ptr correctionNoise2;
-    gtsam::Vector noiseModelBetweenBias;
-
-    gtsam::PreintegratedImuMeasurements *imuIntegratorImu_;
 
     std::deque<IMURawDataPtr> imuQueOpt;
     std::deque<IMURawDataPtr> imuQueImu;
 
-    gtsam::Pose3 prevPose_;
-    gtsam::Vector3 prevVel_;
-    gtsam::NavState prevState_;
-    gtsam::imuBias::ConstantBias prevBias_;
-
-    gtsam::NavState prevStateOdom;
-    gtsam::imuBias::ConstantBias prior_imu_bias;
     Eigen::Vector3d prior_acc_bias;
     Eigen::Vector3d prior_gyro_bias;
 
@@ -113,7 +93,7 @@ public:
         Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
         state.v_w_ = state_v_w;
         state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
-        EZLOG(INFO)<<state.p_wb_.x()<< " "<< state.p_wb_.y() <<" "<<state.p_wb_.z()<<endl;
+       // EZLOG(INFO)<<state.p_wb_.x()<< " "<< state.p_wb_.y() <<" "<<state.p_wb_.z()<<endl;
 
         last_state = state;
     }
@@ -145,17 +125,17 @@ public:
         if(!init)
         {
             double x,y,z;
-            if(slam_mode_switch){
-                std::ifstream downfile(MappingConfig::save_map_path+"Origin.txt");  //打开文件
+            if(LocConfig::slam_mode_on == 1){ // loc
+                std::ifstream downfile(LocConfig::save_map_path+"Origin.txt");  //打开文件
                 std::string line; //字符串
                 std::getline(downfile, line);//
                 std::istringstream iss(line);
                 iss >> x >> y >> z;
-              //  EZLOG(INFO)<<"First GNSS position: "<<x<<", "<<y<<", "<<z;
+               // EZLOG(INFO)<<"First GNSS position: "<<x<<", "<<y<<", "<<z;
                 downfile.close(); // 关闭文件
                 geoConverter.Reset(x, y, z);
             }
-            else{
+            else{ // mapping
                 geoConverter.Reset(gnss_ins_data.lla[0], gnss_ins_data.lla[1], gnss_ins_data.lla[2]);
             }
             init = 1;
@@ -202,7 +182,7 @@ public:
 
                     load_first_gnss_point = true;
                     gnss_cnt = 0;
-                    EZLOG(INFO)<<"RESET DR with GNSS: t_w_b"<<t_w_b.transpose()<<",R_w_b"<<R_w_b;
+                   // EZLOG(INFO)<<"RESET DR with GNSS: t_w_b"<<t_w_b.transpose()<<",R_w_b"<<R_w_b;
                 }
             }
 
@@ -244,21 +224,21 @@ public:
 
         Odometry_imuPredict_pub.timestamp = currentTime;
         Odometry_imuPredict_pub.frame = "map";
-        if(MappingConfig::use_DR_or_fuse_in_loc == 1){
+        if(LocConfig::use_DR_or_fuse_in_loc == 1){
             Function_AddDROdometryTypeToDataPreprocess(Odometry_imuPredict_pub);
-           // EZLOG(INFO)<<"1 of 2, DR send to data_preprocess. And Send Pose begin: ";
-          //  EZLOG(INFO)<<Odometry_imuPredict_pub.pose.pose;
-           // EZLOG(INFO)<<"1 of 2, DR send to data_preprocess. And Send Pose end!";
+//            EZLOG(INFO)<<"1 of 2, DR send to data_preprocess. And Send Pose begin: ";
+//            EZLOG(INFO)<<Odometry_imuPredict_pub.pose.pose;
+//            EZLOG(INFO)<<"1 of 2, DR send to data_preprocess. And Send Pose end!";
         }
 
         //for debug use
         DR_pose.timestamp = currentTime;
         DR_pose.frame = "map";
-        if(slam_mode_switch == 1){
+        if(LocConfig::slam_mode_on == 1){
             Function_AddDROdometryTypeToFuse(DR_pose);
-          //  EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose begin: ";
-            EZLOG(INFO)<<DR_pose.pose.pose;
-         //   EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose end!";
+//            EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose begin: ";
+//            EZLOG(INFO)<<DR_pose.pose.pose;
+//            EZLOG(INFO)<<"2 of 2, DR send to fuse. And Send Pose end!";
             Udp_OdomPub(Odometry_imuPredict_pub.pose);
         }
        // Udp_OdomPub(Odometry_imuPredict_pub.pose);
@@ -279,23 +259,18 @@ public:
     }
 
     //TODO adjust seq to satisify default udp_thread intput!!!!!!
-    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
-
+    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
         //设置imu的参数
         SetIMUPreParamter();
-        slam_mode_switch = _slam_mode_switch;
-      //  EZLOG(INFO)<<"imu wheel dr init : slam_mode_switch: "<<slam_mode_switch;
         pubsub = pubsub_;
         udp_thread = udp_thread_;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
         pubsub->addPublisher(topic_imu_raw_odom_origin, DataType::ODOMETRY, 10);
     }
 
-    void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
-
+    void Init(PubSubInterface* pubsub_){
         //设置imu的参数
         SetIMUPreParamter();
-        slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
         pubsub->addPublisher(topic_imu_raw_odom_origin, DataType::ODOMETRY, 10);

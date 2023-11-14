@@ -505,15 +505,25 @@ public:
         if (cloudKeyPoses3D->points.empty()) {
             systemInitialized = false;
             if (SensorConfig::useGPS) {
-                //加质量检测
-                //GNSS give lidar first pose
-                current_T_m_l[0] = q_lidar_roll;
-                current_T_m_l[1] = q_lidar_pitch;
-                current_T_m_l[2] = q_lidar_yaw;
-                current_T_m_l[3] = t_gnss_cur[0];
-                current_T_m_l[4] = t_gnss_cur[1];
-                current_T_m_l[5] = t_gnss_cur[2];
-                systemInitialized = true;
+                EZLOG(INFO)<<"pose_reliable"<<cur_ft.pose_reliable<<endl;
+                if(cur_ft.pose_reliable == true){
+                    EZLOG(INFO)<<"pose_reliable true"<<endl;
+                    current_T_m_l[0] = q_gnss_roll;
+                    current_T_m_l[1] = q_gnss_pitch;
+                    current_T_m_l[2] = q_gnss_yaw;
+                    current_T_m_l[3] = t_gnss_cur[0];
+                    current_T_m_l[4] = t_gnss_cur[1];
+                    current_T_m_l[5] = t_gnss_cur[2];
+                    systemInitialized = true;
+                }else{
+                    current_T_m_l[0] = q_lidar_roll;
+                    current_T_m_l[1] = q_lidar_pitch;
+                    current_T_m_l[2] = q_lidar_yaw;
+                    current_T_m_l[3] = 0;
+                    current_T_m_l[4] = 0;
+                    current_T_m_l[5] = 0;
+                    systemInitialized = true;
+                }
 
             } else {
                 //DR give lidar first pose
@@ -1251,7 +1261,7 @@ public:
         parameters.factorization = gtsam::ISAM2Params::QR;
 
         //TODO change function name!!!
-        if (SaveLidarKeyFrame() == false) return;
+        //if (SaveLidarKeyFrame() == false) return;
         // odom factor
         addOdomFactor();
 
@@ -1398,7 +1408,6 @@ public:
 
             if(!isEmpty){
 
-                EZLOG(INFO)<<deque_cloud.size()<<endl;
                 CloudFeature cur_ft;
                 {
                     std::lock_guard<std::mutex> lock(cloud_mutex);
@@ -1412,7 +1421,8 @@ public:
                 laserCloudSurfLast = cur_ft.surfaceCloud;
 
                 static double timeLastProcessing = -1;
-                if (timeLaserInfoCur - timeLastProcessing >=MappingConfig::mappingProcessInterval) {//TODO keyframe starategy
+                if (timeLaserInfoCur - timeLastProcessing >=MappingConfig::mappingProcessInterval) {
+                  //  if (SaveLidarKeyFrame() == true) {//TODO keyframe starategy
                     timeLastProcessing = timeLaserInfoCur;
                     updateInitialGuess(cur_ft);//TODO
                     if (systemInitialized) {

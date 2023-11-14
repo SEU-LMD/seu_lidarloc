@@ -26,7 +26,7 @@ public:
     DataPreprocess data_prep;
     FeatureExtraction ft_extr;
     LOCMapping loc_mapping;
-    imu_wheel_dr imu_wheeldr;
+    IMUWHEELDR imu_wheeldr;
     Fuse fuse;
     MapManager mapManager;
 
@@ -49,38 +49,38 @@ public:
         udp_thread =udp_thread_;
         //然后开启各个线程
         // 将data_prep to map_manager
-        data_prep.Init(pubsub, udp_thread,1);//remove magic number!!!!! TODO 1111
-        ft_extr.Init(pubsub,1);
+        data_prep.Init(pubsub, udp_thread);//remove magic number!!!!! TODO 1111
+        ft_extr.Init(pubsub);
         loc_mapping.Init(pubsub,&mapManager,udp_thread);
-        imu_wheeldr.Init(pubsub, udp_thread, 1);
+        imu_wheeldr.Init(pubsub, udp_thread);
         fuse.Init(pubsub,udp_thread);
         mapManager.Init(pubsub);
 
         //构建数据流关系
 //        auto add_imuodo_to_imgproj = std::bind(&DataPreprocess::AddIMUOdomData, &data_prep,std::placeholders::_1);
-        auto add_CloudInfo_from_imgproj_to_ftextr =
+        auto add_CloudInfo_from_dataPrep_to_ftextr =
                 std::bind(&FeatureExtraction::AddCloudData, &ft_extr,std::placeholders::_1);
-        auto add_CloudFeature_from_ftextr_to_locmapping =
+        auto add_CloudFeature_from_ftextr_to_loc =
                 std::bind(&LOCMapping::AddCloudData, &loc_mapping,std::placeholders::_1);
 
-        if(MappingConfig::use_DR_or_fuse_in_loc == 0){ // use_DR_or_fuse_in_loc = 0, use fuse
+        if(LocConfig::use_DR_or_fuse_in_loc == 0){ // use_DR_or_fuse_in_loc = 0, use fuse
             EZLOG(INFO)<<" use fuse to imageProj";
-            auto add_OdometryType_from_fuse_to_imageProj =
+            auto add_OdometryType_from_fuse_to_dataPrep =
                     std::bind(&DataPreprocess::AddDrOdomData, &data_prep, std::placeholders::_1);
             //        fuse 2 imageProjection
-            fuse.Function_AddLidarOdometryTypeToImageProjection = add_OdometryType_from_fuse_to_imageProj;
+            fuse.Function_AddLidarOdometryTypeToImageProjection = add_OdometryType_from_fuse_to_dataPrep;
         }
         else{ // use_DR_or_fuse_in_loc = 1 , use DR
             EZLOG(INFO)<<" use DR to imageProj";
-            auto add_OdometryType_from_DR_to_imageProj =
+            auto add_OdometryType_from_DR_to_dataPrep =
                     std::bind(&DataPreprocess::AddDrOdomData, &data_prep, std::placeholders::_1);
-            imu_wheeldr.Function_AddDROdometryTypeToDataPreprocess = add_OdometryType_from_DR_to_imageProj;
+            imu_wheeldr.Function_AddDROdometryTypeToDataPreprocess = add_OdometryType_from_DR_to_dataPrep;
         }
 
 //       to fuse
-        auto add_GNSSOdometryType_from_imgproj_to_fuse =
+        auto add_GNSSOdometryType_from_data_prep_to_fuse =
                 std::bind(&Fuse::AddGNSSToFuse, &fuse,std::placeholders::_1);
-        auto add_LidarOdometryType_from_locmapping_to_fuse =
+        auto add_LidarOdometryType_from_loc_to_fuse =
                 std::bind(&Fuse::AddLidarLocToFuse, &fuse,std::placeholders::_1);
         auto add_DROdometryType_from_DR_to_fuse =
                 std::bind(&Fuse::AddIMUToFuse, &fuse,std::placeholders::_1);
@@ -88,14 +88,13 @@ public:
                 std::bind(&MapManager::AddLoctoMapManager, &mapManager,std::placeholders::_1);
 
 //        data_prep 2 ft_extr
-        data_prep.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_imgproj_to_ftextr;
+        data_prep.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_dataPrep_to_ftextr;
 //        ft_extr 2 Loc
-        ft_extr.Function_AddCloudFeatureToLOCMapping = add_CloudFeature_from_ftextr_to_locmapping;
-
+        ft_extr.Function_AddCloudFeatureToLOCMapping = add_CloudFeature_from_ftextr_to_loc;
 //        data_prep 2 fuse
-        data_prep.Function_AddGNSSOdometryTypeToFuse = add_GNSSOdometryType_from_imgproj_to_fuse;
+        data_prep.Function_AddGNSSOdometryTypeToFuse = add_GNSSOdometryType_from_data_prep_to_fuse;
 //        Loc 2 fuse
-        loc_mapping.Function_AddLidarOdometryTypeToFuse = add_LidarOdometryType_from_locmapping_to_fuse;
+        loc_mapping.Function_AddLidarOdometryTypeToFuse = add_LidarOdometryType_from_loc_to_fuse;
 //        DR 2 fuse
         imu_wheeldr.Function_AddDROdometryTypeToFuse = add_DROdometryType_from_DR_to_fuse;
         // fuse 2 MapManager

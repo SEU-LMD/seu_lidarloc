@@ -13,7 +13,7 @@
 #include "utils/utility.h"
 //所有数据的基类
 
-enum DataType {IMU, LIDAR,GNSS, WHEEL, GNSS_INS,//from sensor
+enum DataType {IMU, LIDAR,GNSS,WHEEL, DR, GNSS_INS,//from sensor
                 ODOMETRY, PATH,MAP};//common used type
 
 class BaseType{
@@ -89,6 +89,7 @@ typedef std::shared_ptr<CloudTypeXYZICOLRANGE> CloudTypeXYZICOLRANGEPtr;
 class OdometryType:public BaseType{
     public:
         PoseT pose;
+//        bool pose_reliable;
         DataType getType(){
             return DataType::ODOMETRY;
         }
@@ -99,7 +100,7 @@ class DROdometryType:public BaseType{
 public:
     PoseT pose;
     DataType getType(){
-        return DataType::WHEEL;
+        return DataType::DR;
     }
 };
 typedef std::shared_ptr<DROdometryType> DROdometryTypePtr;
@@ -195,6 +196,7 @@ public:
     int frame_id;
     double timestamp;
     PoseT pose;
+    bool pose_reliable;
     PoseT DRPose;
 
 //    std::vector<int> label;
@@ -237,8 +239,9 @@ class CloudFeature{
 public:
     int frame_id;
     double timestamp;
-    PoseT pose;//
-    PoseT DRPose;//
+    PoseT pose;
+    PoseT DRPose;
+    bool pose_reliable;
     pcl::PointCloud<PointType>::Ptr cornerCloud;
     pcl::PointCloud<PointType>::Ptr surfaceCloud;
 

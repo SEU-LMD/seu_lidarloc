@@ -23,7 +23,7 @@ public:
 
     DataPreprocess data_pre;
     FeatureExtraction ft_extr;
-    imu_wheel_dr imu_wheeldr;//TODO 1111 change name to dr
+    IMUWHEELDR imu_wheeldr;//TODO 1111 change name to dr
     OPTMapping opt_mapping;
    // MapManager mapManager;
 
@@ -45,13 +45,13 @@ public:
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
         //然后开启各个线程
-        data_pre.Init(pubsub,0);//TODO 1111 read different config file
+        data_pre.Init(pubsub);//TODO 1111 read different config file
         EZLOG(INFO)<< "img_proj success!!"<<endl;
-        ft_extr.Init(pubsub,0);
+        ft_extr.Init(pubsub);
         EZLOG(INFO)<< "ft_extr success!!"<<endl;
         opt_mapping.Init(pubsub);
         EZLOG(INFO)<< "opt_mapping success!!"<<endl;
-        imu_wheeldr.Init(pubsub,0);
+        imu_wheeldr.Init(pubsub);
         EZLOG(INFO)<< "imu_pre success!!"<<endl;
 
         //构建数据流关系

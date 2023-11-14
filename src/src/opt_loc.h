@@ -88,8 +88,6 @@ public:
     pcl::PointCloud<PointTypePose>::Ptr Keyframe_Poses6D;  //历史关键帧 位姿
     pcl::KdTreeFLANN<PointType>::Ptr kdtree_localMap_surf;
     pcl::KdTreeFLANN<PointType>::Ptr kdtree_localMap_corner;
-    pcl::VoxelGrid<PointType> downSizeFilterCorner;
-    pcl::VoxelGrid<PointType> downSizeFilterSurf;
     pcl::UniformSampling<PointType> downSizeFilterCorner_US;
     pcl::UniformSampling<PointType> downSizeFilterSurf_US;
 
@@ -174,25 +172,9 @@ public:
         for (int i = 0; i < 6; ++i) {
             current_T_m_l[i] = 0;
         }
-
         matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
-
-        switch (MappingConfig::DownSampleModeSwitch) {
-            case 0: // voxel grid
-                downSizeFilterCorner.setLeafSize(MappingConfig::mappingCornerLeafSize,
-                                                 MappingConfig::mappingCornerLeafSize,
-                                                 MappingConfig::mappingCornerLeafSize);
-                downSizeFilterSurf.setLeafSize(MappingConfig::mappingSurfLeafSize,
-                                               MappingConfig::mappingSurfLeafSize,
-                                               MappingConfig::mappingSurfLeafSize);
-                break;
-            case 1:
-                downSizeFilterCorner_US.setRadiusSearch(MappingConfig::mappingCornerRadiusSize_US);
-                downSizeFilterSurf_US.setRadiusSearch(MappingConfig::mappingSurfRadiusSize_US);
-                break;
-
-        }
-
+        downSizeFilterCorner_US.setRadiusSearch(MappingConfig::mappingCornerRadiusSize_US);
+        downSizeFilterSurf_US.setRadiusSearch(MappingConfig::mappingSurfRadiusSize_US);
         EZLOG(INFO)<<"opt Loc init success!"<<std::endl;
     }
 
@@ -228,7 +210,6 @@ public:
                 transformIn->x, transformIn->y, transformIn->z, transformIn->roll,
                 transformIn->pitch, transformIn->yaw);
 
-//#pragma omp parallel for num_threads(numberOfCores)
         for (int i = 0; i < cloudSize; ++i) {
             const auto &pointFrom = cloudIn->points[i];
             cloudOut->points[i].x = transCur(0, 0) * pointFrom.x +
@@ -257,7 +238,6 @@ public:
                                       transformIn[1], transformIn[2]);
     }
 
-    //cur_ft = fuse res TODO 1030
     void updateInitialGuess(CloudFeature &cur_ft,PointType &_init_point) {
 
         Eigen::Vector3d t_w_cur;
@@ -353,20 +333,10 @@ public:
         _current_corner_ds->clear();
         _current_surf_ds->clear();
         // Downsample cloud from current scan
-        switch (MappingConfig::DownSampleModeSwitch) {
-            case 0:
-                downSizeFilterCorner.setInputCloud(_current_corner);
-                downSizeFilterCorner.filter(*_current_corner_ds);
-                downSizeFilterSurf.setInputCloud(_current_surf);
-                downSizeFilterSurf.filter(*_current_surf_ds);
-                break;
-            case 1:
-                downSizeFilterCorner_US.setInputCloud(_current_corner);
-                downSizeFilterCorner_US.filter(*_current_corner_ds);
-                downSizeFilterSurf_US.setInputCloud(_current_surf);
-                downSizeFilterSurf_US.filter(*_current_surf_ds);
-                break;
-        }
+        downSizeFilterCorner_US.setInputCloud(_current_corner);
+        downSizeFilterCorner_US.filter(*_current_corner_ds);
+        downSizeFilterSurf_US.setInputCloud(_current_surf);
+        downSizeFilterSurf_US.filter(*_current_surf_ds);
 
         CloudTypeXYZI currentlidar_surf_pub;
         currentlidar_surf_pub.frame = "map";
@@ -571,7 +541,7 @@ public:
                     coeff.z = s * lc;
                     coeff.intensity = s * ld2;
 
-                    if (s > 0.15) {
+                    if (s > 0.10) {
                         laserCloudOriCornerVec[i] = pointOri;// 原始点云
                         coeffSelCornerVec[i] = coeff; // 鲁棒距离，鲁棒向量
                         laserCloudOriCornerFlag[i] = true; // 对应找到的线
@@ -670,7 +640,7 @@ public:
                     coeff.z = s * pc;
                     coeff.intensity = s * pd2;
 
-                    if (s > 0.15) {
+                    if (s > 0.10) {
                         laserCloudOriSurfVec[i] = pointOri;
                         coeffSelSurfVec[i] = coeff;
                         laserCloudOriSurfFlag[i] = true;
@@ -844,9 +814,9 @@ public:
                               pcl::PointCloud<PointType>::Ptr &_localMap_corner_ds,
                               pcl::PointCloud<PointType>::Ptr &_localMap_surf_ds) {
         if (Keyframe_Poses3D->points.empty()) { return; }
-        const int maxIters = SensorConfig::LMOpt_Cnt;
-        if (_current_corner_ds->size() > MappingConfig::edgeFeatureMinValidNum &&
-            _current_surf_ds->size() > MappingConfig::surfFeatureMinValidNum) {
+        const int maxIters = LocConfig::maxIters;
+        if (_current_corner_ds->size() > LocConfig::edgeFeatureMinValidNum &&
+            _current_surf_ds->size() > LocConfig::surfFeatureMinValidNum) {
 //            add by prior map
             kdtree_localMap_corner->setInputCloud(_localMap_corner_ds);
             kdtree_localMap_surf->setInputCloud(_localMap_surf_ds);
@@ -884,11 +854,11 @@ public:
     void transformUpdate() {
         std::cout <<"transformUpdate " <<std::endl;
         current_T_m_l[0] =
-                constraintTransformation(current_T_m_l[0], MappingConfig::rotation_tollerance);
+                constraintTransformation(current_T_m_l[0], LocConfig::rotation_tollerance);
         current_T_m_l[1] =
-                constraintTransformation(current_T_m_l[1], MappingConfig::rotation_tollerance);
+                constraintTransformation(current_T_m_l[1], LocConfig::rotation_tollerance);
         current_T_m_l[5] =
-                constraintTransformation(current_T_m_l[5], MappingConfig::z_tollerance);
+                constraintTransformation(current_T_m_l[5],  LocConfig::z_tollerance);
 
     }
 
@@ -980,7 +950,7 @@ public:
                 current_corner = cur_ft.cornerCloud;
 
                 static double timeLastProcessing = -1;
-                if(timeLaserInfoCur - timeLastProcessing < MappingConfig::mappingProcessInterval){
+                if(timeLaserInfoCur - timeLastProcessing < LocConfig::mappingProcessInterval){
                     continue;
                 }
                 timeLastProcessing = timeLaserInfoCur;

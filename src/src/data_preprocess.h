@@ -16,8 +16,8 @@
 #include "utils/utility.h"
 #include "opencv2/opencv.hpp"   // for opencv4
 //#include <opencv/cv.h>
-#include "pcl/features/normal_3d_omp.h"
-#include "pcl/segmentation/sac_segmentation.h"
+//#include "pcl/features/normal_3d_omp.h"
+//#include "pcl/segmentation/sac_segmentation.h"
 
 #include <fstream>
 
@@ -36,7 +36,6 @@ public:
 
 class DataPreprocess {
 public:
-    int slam_mode_switch = 1;
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     std::mutex work_mutex;
@@ -89,20 +88,20 @@ public:
 
     std::shared_ptr<UDP_THREAD> udp_thread;//udp
 
-    //TODO remove 1111
-    bool GetFirstGnssPose(PoseT &_First_gnss_pose){
-        if(flag_first_gnss == true){
-          //  EZLOG(INFO)<<" First Gnss Pose get!";
-            _First_gnss_pose = First_gnss_pose;
-         //   EZLOG(INFO)<< "First_gnss_pose: ";
-         //   EZLOG(INFO)<< First_gnss_pose.pose;
-            return true;
-        }
-        else{
-            EZLOG(INFO)<<"Wait for GNSS First Pose!!!";
-            return false;
-        }
-    }
+    //TODO remove 1111 ----------Done
+//    bool GetFirstGnssPose(PoseT &_First_gnss_pose){
+//        if(flag_first_gnss == true){
+//            EZLOG(INFO)<<" First Gnss Pose get!";
+//            _First_gnss_pose = First_gnss_pose;
+//            EZLOG(INFO)<< "First_gnss_pose: ";
+//            EZLOG(INFO)<< First_gnss_pose.pose;
+//            return true;
+//        }
+//        else{
+//            EZLOG(INFO)<<"Wait for GNSS First Pose!!!";
+//            return false;
+//        }
+//    }
 
     void  AllocateMemory() {
         deskewCloud_body.reset(new pcl::PointCloud<PointType>());
@@ -146,12 +145,12 @@ public:
         return cost_time;
     }
 
-    //find closest Lidar pose  TODO 1111
-    double  FindIMUOdomPose(const CloudWithTime& cloudinfo, const std::deque<OdometryType>& pose_deque ,
-                               PoseT& T_w_l_lidar_start) {
+    //find closest Lidar pose  TODO 1111 ----------Done
+    double  FindLidarPoseinDROdom(const CloudWithTime& cloudinfo, const std::deque<OdometryType>& pose_deque ,
+                                  PoseT& T_w_l_lidar_start) {
         TicToc timer;
 
-        pcl::PointCloud<PointType> originCloud_w;//not used any more  TODO 1111
+//        pcl::PointCloud<PointType> originCloud_w;//not used any more  TODO 1111 -----------Done
 
         for (int i = 0; i < (int) pose_deque.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
 
@@ -185,40 +184,40 @@ public:
             continue;
         }
         return timer.toc();
-    }//end FindLidarFirstPose
+    }//end FindLidarPoseinDROdom
 
-    //TODO 1111 merge two functions!!!!
-    double FindLidarFirstPose(const CloudWithTime& cloudinfo,const std::deque<OdometryType>& odom_deque,
-                           PoseT& imuodom_curlidartime){
-
-        for (int i = 0; i < (int) odom_deque.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
-
-            if (odom_deque[i].timestamp > cloudinfo.min_ros_timestamp){
-                double ktime = (cloudinfo.min_ros_timestamp - odom_deque[i - 1].timestamp) / (odom_deque[i].timestamp - odom_deque[i - 1].timestamp);
-                //平移插值
-                Eigen::Vector3d t_imuodom;
-                t_imuodom = odom_deque[i - 1].pose.GetXYZ() +
-                                    ktime * (odom_deque[i].pose.GetXYZ() - odom_deque[i - 1].pose.GetXYZ());
-
-                //旋转插值
-                Eigen::Quaterniond q_imuodom;//旋转
-                q_imuodom = odom_deque[i-1].pose.GetQ().slerp(ktime,odom_deque[i].pose.GetQ());
-
-                //插值位姿态矩阵
-                imuodom_curlidartime  = PoseT (t_imuodom , q_imuodom);
-
-                break;
-            }
-            continue;
-        }
-    }
+    //TODO 1111 merge two functions!!!!---------Done
+//    double FindLidarFirstPose(const CloudWithTime& cloudinfo,const std::deque<OdometryType>& odom_deque,
+//                           PoseT& imuodom_curlidartime){
+//
+//        for (int i = 0; i < (int) odom_deque.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
+//
+//            if (odom_deque[i].timestamp > cloudinfo.min_ros_timestamp){
+//                double ktime = (cloudinfo.min_ros_timestamp - odom_deque[i - 1].timestamp) / (odom_deque[i].timestamp - odom_deque[i - 1].timestamp);
+//                //平移插值
+//                Eigen::Vector3d t_imuodom;
+//                t_imuodom = odom_deque[i - 1].pose.GetXYZ() +
+//                                    ktime * (odom_deque[i].pose.GetXYZ() - odom_deque[i - 1].pose.GetXYZ());
+//
+//                //旋转插值
+//                Eigen::Quaterniond q_imuodom;//旋转
+//                q_imuodom = odom_deque[i-1].pose.GetQ().slerp(ktime,odom_deque[i].pose.GetQ());
+//
+//                //插值位姿态矩阵
+//                imuodom_curlidartime  = PoseT (t_imuodom , q_imuodom);
+//
+//                break;
+//            }
+//            continue;
+//        }
+//    }
 
     //find x y z in lidar coordinate,Q in gnss coordinate at the pointtime and calculate translation matrix
-    //find lidar point pose TODO 1111 change function name to FindLidarPointPose
-    void FindRotation(const double pointTime,//lidar point time
+    //find lidar point pose TODO 1111 change function name to FindLidarPointPose -----------Done
+    void FindLidarPointPose(const double pointTime,//lidar point time
                       const CloudWithTime& cloudinfo,
-                      const std::deque<OdometryType>& pose_deque,
-                      PoseT& T_w_b_lidar_now) {//IMU数据中找到与当前点对应时刻的变换矩阵
+                            const std::deque<OdometryType>& pose_deque,
+                            PoseT& T_w_b_lidar_now) {//IMU数据中找到与当前点对应时刻的变换矩阵
 
         for(std::deque<OdometryType>::const_iterator it = pose_deque.begin();it!=pose_deque.end();it++){
             if (it->timestamp > pointTime)
@@ -265,8 +264,8 @@ public:
         double pointTime = cloudinfo.min_ros_timestamp + relTime;//scan时间加相对时间，获得点的时间
 
         PoseT T_w_b_lidar_now;
-        FindRotation(pointTime, cloudinfo, pose_deque,
-                     T_w_b_lidar_now);
+        FindLidarPointPose(pointTime, cloudinfo, pose_deque,
+                           T_w_b_lidar_now);
 
         Eigen::Vector3d origin_pt;
         origin_pt << point->x,point->y,point->z;
@@ -315,7 +314,6 @@ public:
                 continue;
             }
 
-
             int columnIdn = -1;//获取列号
 
             float horizonAngle = atan2(thisPoint.x, thisPoint.y) * 180 / M_PI;//水平角分辨率
@@ -339,7 +337,7 @@ public:
             //very important function@!!!!!!!!!
             if (SensorConfig::use_drodom_deskew){
                 if(cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp < 0){
-                 //   EZLOG(INFO)<<"wrong! latency!";
+                    EZLOG(INFO)<<"wrong! latency!";
                     continue;
                 }
                 thisPoint = DeskewPoint(&thisPoint,
@@ -355,10 +353,12 @@ public:
             deskewCloud_body->points[index] = thisPoint;
 
             //just for show
-            //TODO 1111 delete!!!!! if(debug)
-            auto thisPoint_offset = thisPoint;
-            thisPoint_offset.z = thisPoint_offset.z + 20.0;
-            deskewCloud_body_offset.points.push_back(thisPoint_offset);
+            //TODO 1111 delete!!!!! if(debug)----------Done
+            if(MappingConfig::if_debug) {
+                auto thisPoint_offset = thisPoint;
+                thisPoint_offset.z = thisPoint_offset.z + 20.0;
+                deskewCloud_body_offset.points.push_back(thisPoint_offset);
+            }
             valid_num++;
         }//end for
 
@@ -386,8 +386,8 @@ public:
         return timer.toc();
     }
 
-    //TODO 1111 remove T_w_l
-    double CloudExtraction(const PoseT& T_w_l, CloudInfo& cloudInfo) {
+    //TODO 1111 remove T_w_l----------Done
+    double CloudExtraction(CloudInfo& cloudInfo) {
 
         TicToc timer;
         pcl::PointCloud<PointXYZICOLRANGE>::Ptr   extractedCloud(new pcl::PointCloud<PointXYZICOLRANGE>());
@@ -423,15 +423,6 @@ public:
         }
         cloudInfo.cloud_ptr = extractedCloud;
 
-////        //for debug use
-//        if(MappingConfig::if_debug)
-//        {
-//            CloudTypeXYZICOLRANGE cloud_pub;
-//            cloud_pub.timestamp = cloudInfo.timestamp;
-//            cloud_pub.frame = "map";
-//            pcl::transformPointCloud(*extractedCloud, cloud_pub.cloud, T_w_l.pose.cast<float>());
-//            pubsub->PublishCloud(topic_deskw_cloud_to_ft_world, cloud_pub);
-//        }
         return timer.toc();
     }
 
@@ -455,13 +446,13 @@ public:
 //                EZLOG(INFO)<<"DoWork"<<endl;
                 ///0.do something
 
-                std::deque<OdometryType> imuodom_copy;//TODO 1111
+                std::deque<OdometryType> drqueue_copy;//TODO 1111
                 drodom_mutex.lock();
-                imuodom_copy = DrOdomQueue;
+                drqueue_copy = DrOdomQueue;
                 drodom_mutex.unlock();
 
-                double imuodo_min_ros_time = imuodom_copy.front().timestamp;
-                double imuodo_max_ros_time = imuodom_copy.back().timestamp;
+                double imuodo_min_ros_time = drqueue_copy.front().timestamp;
+                double imuodo_max_ros_time = drqueue_copy.back().timestamp;
                 // EZLOG(INFO)<<"imuodo_min_ros_time"<<imuodo_max_ros_time - imuodo_min_ros_time<<endl;
 
 
@@ -472,8 +463,6 @@ public:
 //                deque_cloud.pop_front();//TODO 1111
                 cloud_mutex.unlock();//unlock TODO 1111
 
-
-
                 CloudWithTime cloud_with_time;
                 GetCloudTime(cur_scan, cloud_with_time);
                 double cloud_min_ros_timestamp = cloud_with_time.min_ros_timestamp;
@@ -481,11 +470,14 @@ public:
 
                 //              gnss lidar gnss---->>>>
                 gnss_mutex.lock();
-                //TODO add vaid symbol to next node
+                //TODO add vaid symbol to next node---------Done
                 while (!GNSSQueue.empty()) {
-                    //TODO 1111 use delta absoulte time to align gnss and lidacloud!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-                    if (GNSSQueue.front().timestamp > cur_scan->timestamp) {
+                    //TODO 1111 use delta absoulte time to align gnss and lidacloud!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1-----Done add pose_reliable flag
+                    if ( GNSSQueue.front().timestamp > cur_scan->timestamp  ) {
                         cloudinfo.pose = GNSSQueue.front().pose;
+                        if(GNSSQueue.front().timestamp - cur_scan->timestamp > 5.0f ){
+                            cloudinfo.pose_reliable = false;
+                        }
                         GNSSQueue.clear();
                         break;
                     }
@@ -493,7 +485,7 @@ public:
                         GNSSQueue.pop_front();
                     }
                 }
-                gnss_mutex.unlock();//TODO 1111
+                gnss_mutex.unlock();//TODO 1111----------
                 ///2.
 //                if(odo_min_ros_time>cloud_min_ros_timestamp){
 //                    EZLOG(INFO)<<"odo is larger than lidar" <<endl;
@@ -505,7 +497,6 @@ public:
                     temp.timestamp = cloud_min_ros_timestamp - 0.01f;
                     DrOdomQueue.push_front(temp);
                 }
-
                // double cur_lidar_time = deque_cloud.front()->timestamp;
                // EZLOG(INFO)<<"TIMESTAMP"<<cur_lidar_time-cloud_min_ros_timestamp<<endl;
                 if(imuodo_min_ros_time<cloud_min_ros_timestamp &&
@@ -516,7 +507,7 @@ public:
 //                            temp.timestamp = cloud_min_ros_timestamp - 0.01f;
 //                            poseQueue.push_front(temp);
 //                        }
-                        cloud_mutex.lock();//TODO 1111
+                        cloud_mutex.lock();//TODO 1111 if necessery?
                         deque_cloud.pop_front();//TODO 1111
                         cloud_mutex.unlock();//TODO 11111
 
@@ -525,8 +516,8 @@ public:
 
                     /// 1.FindLidarFirstPose
                     PoseT T_w_l_lidar_first_pose;
-                    double cost_time_findpose = FindIMUOdomPose(cloud_with_time, imuodom_copy,//in
-                                                                   T_w_l_lidar_first_pose);//out
+                    double cost_time_findpose = FindLidarPoseinDROdom(cloud_with_time, drqueue_copy,//in
+                                                                      T_w_l_lidar_first_pose);//out
 
                     cloudinfo.DRPose = T_w_l_lidar_first_pose;
                     Eigen::Vector3d t_w_cur;
@@ -547,137 +538,115 @@ public:
 
                     ///2.imgprojection
                     ///update rangemat and deskewCloud_body
-                    double cost_time_projpc = ProjectPointCloud(cloud_with_time, imuodom_copy, T_w_l_lidar_first_pose);
+                    double cost_time_projpc = ProjectPointCloud(cloud_with_time, drqueue_copy, T_w_l_lidar_first_pose);
                   //  EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
 
                     ///3.cloudExtraction
-                    double cost_time_cloudextraction = CloudExtraction(T_w_l_lidar_first_pose, cloudinfo);
+                    double cost_time_cloudextraction = CloudExtraction(cloudinfo);
                   //  EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
 
-//                    ///ground filter
-//                  int gf_grid_pt_num_thre = 8;float gf_grid_resolution = 1.5;float gf_max_grid_height_diff; float gf_neighbor_height_diff = 1.5;
-//                        float gf_max_ground_height;int gf_down_rate_ground = 15;int gf_down_down_rate_ground = 2;
-//                        int gf_downsample_rate_nonground = 1;int gf_reliable_neighbor_grid_thre = 0;int estimate_ground_normal_method;float normal_estimation_radius = 2.0;
-//                        int distance_inverse_sampling_method = 0;float standard_distance = 15.0;bool fixed_num_downsampling = false;int ground_down_fixed_num = 500;bool extract_curb_or_not = false;
-//                        float intensity_thre = FLT_MAX;bool apply_scanner_filter = false;
-//
-//                    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_unground (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                    pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_curb (new pcl::PointCloud<PointXYZICOLRANGE>);
-//
-//                    TicToc time_gf;
-//
-//                    EZLOG(INFO)<<"cloudinfo.cloud_ptr->points.size() = "<<cloudinfo.cloud_ptr->points.size();
-//
-//                    fast_ground_filter(cloudinfo.cloud_ptr,
-//                                       cloud_ground,
-//                                       cloud_ground_down,
-//                                       cloud_unground,
-//                                       cloud_curb,
-//                                       gf_grid_pt_num_thre, gf_max_ground_height,gf_grid_resolution,
-//                                       distance_inverse_sampling_method, standard_distance,gf_downsample_rate_nonground,intensity_thre
-//
-////                                           gf_max_grid_height_diff,
-////						     gf_down_down_rate_ground,
-////						     estimate_ground_normal_method, normal_estimation_radius,
-////						    fixed_num_downsampling, ground_down_fixed_num, extract_curb_or_not,
-////						    apply_scanner_filter
-//                    );
-//                    double time_ground_filter = time_gf.toc();
-//                    EZLOG(INFO)<<"time_ground_filter = "<<time_ground_filter<<endl;
-//
-//                    if(MappingConfig::if_debug)
-//                    {
-//                        CloudTypeXYZICOLRANGE ground_pub,unground_pub;
-//                        ground_pub.timestamp = cloudinfo.timestamp;
-//                        ground_pub.frame = "map";
-//                        pcl::transformPointCloud(*cloud_ground, ground_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-//                        pubsub->PublishCloud(topic_ground_world, ground_pub);
-//                        unground_pub.timestamp = cloudinfo.timestamp;
-//                        unground_pub.frame = "map";
-//                        pcl::transformPointCloud(*cloud_unground, unground_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-//                        pubsub->PublishCloud(topic_unground_world, unground_pub);
-//                    }
-//
-//                    if(0)
-//                    {
-//
-//                        ///classify_nground_pts
-//
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-//                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_vertex (new pcl::PointCloud<PointXYZICOLRANGE>);
-//
-//                        float pca_neighbor_radius = 1.0;int pca_neighbor_k = 30 ;int pca_neighbor_k_min = 8;int pca_down_rate = 1;
-//                        float edge_thre = 0.65 ;float planar_thre = 0.65 ; float edge_thre_down = 0.75 ; float planar_thre_down = 0.75;
-//                        int extract_vertex_points_method = 2;float curvature_thre = 0.12;float vertex_curvature_non_max_r = 1.5 * pca_neighbor_radius;
-//                        float linear_vertical_sin_high_thre = 0.94;float linear_vertical_sin_low_thre = 0.17;
-//                        float planar_vertical_sin_high_thre = 0.98; float planar_vertical_sin_low_thre = 0.34;
-//
-//                        EZLOG(INFO)<<"cloud_unground->points.size() =  "<<cloud_unground->points.size()<<endl;
-//
-//                        TicToc time_classify_nground_pts;
-//
-//                        classify_nground_pts(cloud_unground,cloud_pillar,cloud_beam,cloud_facade,cloud_roof,
-//                                             cloud_pillar_down,cloud_beam_down,cloud_facade_down,cloud_roof_down,cloud_vertex,
-//                                             pca_neighbor_radius, pca_neighbor_k, pca_neighbor_k_min, pca_down_rate,
-//                                             edge_thre, planar_thre, edge_thre_down, planar_thre_down,
-//                                             extract_vertex_points_method, curvature_thre, vertex_curvature_non_max_r,
-//                                             linear_vertical_sin_high_thre, linear_vertical_sin_low_thre,
-//                                             planar_vertical_sin_high_thre, planar_vertical_sin_low_thre
-////                                         fixed_num_downsampling, pillar_down_fixed_num, facade_down_fixed_num,
-////                                         beam_down_fixed_num, roof_down_fixed_num, unground_down_fixed_num,
-////                                         beam_height_max, roof_height_min, feature_pts_ratio_guess,
-////                                         sharpen_with_nms_on, use_distance_adaptive_pca
-//                        );
-//                        EZLOG(INFO)<<"time_classify_nground_pts.toc() =  "<<time_classify_nground_pts.toc()<<endl;
-//
-//                        EZLOG(INFO)<<"cloud_pillar->points.size() =  "<<cloud_pillar->points.size()<<endl;
-//                        EZLOG(INFO)<<"cloud_beam->points.size() =  "<<cloud_beam->points.size()<<endl;
-//                        EZLOG(INFO)<<"cloud_facade->points.size() =  "<<cloud_facade->points.size()<<endl;
-//                        EZLOG(INFO)<<"cloud_roof->points.size() =  "<<cloud_roof->points.size()<<endl;
-//
-//                        if(MappingConfig::if_debug)
-//                        {
-//
-//                            CloudTypeXYZICOLRANGE cloud_pillar_pub,cloud_beam_pub,cloud_facade_pub,cloud_roof_pub;
-//                            cloud_pillar_pub.timestamp = cloudinfo.timestamp;
-//                            cloud_beam_pub.timestamp = cloudinfo.timestamp;
-//                            cloud_facade_pub.timestamp = cloudinfo.timestamp;
-//                            cloud_roof_pub.timestamp = cloudinfo.timestamp;
-//                            cloud_pillar_pub.frame = "map";
-//                            cloud_beam_pub.frame = "map";
-//                            cloud_facade_pub.frame = "map";
-//                            cloud_roof_pub.frame = "map";
-//                            pcl::transformPointCloud(*cloud_pillar, cloud_pillar_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-//                            pcl::transformPointCloud(*cloud_beam, cloud_beam_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-//                            pcl::transformPointCloud(*cloud_facade, cloud_facade_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-//                            pcl::transformPointCloud(*cloud_roof, cloud_roof_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-//                            pubsub->PublishCloud(topic_cloud_pillar_world, cloud_pillar_pub);
-//                            pubsub->PublishCloud(topic_cloud_beam_world, cloud_beam_pub);
-//                            pubsub->PublishCloud(topic_cloud_facade_world, cloud_facade_pub);
-//                            pubsub->PublishCloud(topic_cloud_roof_world, cloud_roof_pub);
-//
-//                        }
-//
-//                    }
+                    //        //for debug use
+                    if(MappingConfig::if_debug)
+                    {
+                        CloudTypeXYZICOLRANGE cloud_pub;
+                        cloud_pub.timestamp = cloudinfo.timestamp;
+                        cloud_pub.frame = "map";
+                        pcl::transformPointCloud(*cloudinfo.cloud_ptr, cloud_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                        pubsub->PublishCloud(topic_deskw_cloud_to_ft_world, cloud_pub);
+                    }
 
+                    ///ground filter
+                    if(FrontEndConfig::use_ground_filter){
 
+                        TicToc time_gf;
 
+                        EZLOG(INFO) << "points size: " << cloudinfo.cloud_ptr->size() << std::endl;
+                        fast_ground_filter(cloudinfo.cloud_ptr,
+                                           cloudinfo.cloud_ground,
+                                           cloudinfo.cloud_ground_down,
+                                           cloudinfo.cloud_unground
+                        );
+                        double time_ground_filter = time_gf.toc();
+
+                        EZLOG(INFO)<<"time_ground_filter = "<<time_ground_filter<<endl;
+
+                        if(MappingConfig::if_debug)
+                        {
+                            CloudTypeXYZICOLRANGE ground_pub,unground_pub;
+                            ground_pub.timestamp = cloudinfo.timestamp;
+                            ground_pub.frame = "map";
+                            pcl::transformPointCloud(*cloudinfo.cloud_ground, ground_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                            pubsub->PublishCloud(topic_ground_world, ground_pub);
+                            unground_pub.timestamp = cloudinfo.timestamp;
+                            unground_pub.frame = "map";
+                            pcl::transformPointCloud(*cloudinfo.cloud_unground, unground_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                            pubsub->PublishCloud(topic_unground_world, unground_pub);
+                        }
+                    }
+
+                    if(FrontEndConfig::use_unground_pts_classify){
+
+                        ///classify_nground_pts
+
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar_down (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam_down (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade_down (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof_down (new pcl::PointCloud<PointXYZICOLRANGE>);
+                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_vertex (new pcl::PointCloud<PointXYZICOLRANGE>);
+
+                        EZLOG(INFO)<<"cloud_unground->points.size() =  "<<cloudinfo.cloud_unground->points.size()<<endl;
+
+                        TicToc time_classify_nground_pts;
+
+                        classify_nground_pts(cloudinfo.cloud_unground,cloud_pillar,cloud_beam,cloud_facade,cloud_roof,
+                                             cloud_pillar_down,cloud_beam_down,cloud_facade_down,cloud_roof_down
+                        );
+                        EZLOG(INFO)<<"time_classify_nground_pts.toc() =  "<<time_classify_nground_pts.toc()<<endl;
+
+                        EZLOG(INFO)<<"cloud_pillar->points.size() =  "<<cloud_pillar->points.size()<<endl;
+                        EZLOG(INFO)<<"cloud_beam->points.size() =  "<<cloud_beam->points.size()<<endl;
+                        EZLOG(INFO)<<"cloud_facade->points.size() =  "<<cloud_facade->points.size()<<endl;
+                        EZLOG(INFO)<<"cloud_roof->points.size() =  "<<cloud_roof->points.size()<<endl;
+
+                        if(MappingConfig::if_debug)
+                        {
+
+                            CloudTypeXYZICOLRANGE cloud_pillar_pub,cloud_beam_pub,cloud_facade_pub,cloud_roof_pub;
+                            cloud_pillar_pub.timestamp = cur_scan->timestamp;
+                            cloud_beam_pub.timestamp = cur_scan->timestamp;
+                            cloud_facade_pub.timestamp = cur_scan->timestamp;
+                            cloud_roof_pub.timestamp = cur_scan->timestamp;
+                            cloud_pillar_pub.frame = "map";
+                            cloud_beam_pub.frame = "map";
+                            cloud_facade_pub.frame = "map";
+                            cloud_roof_pub.frame = "map";
+//                            cloud_pillar_pub.cloud = *cloud_pillar;
+//                            cloud_beam_pub.cloud = *cloud_beam;
+//                            cloud_facade_pub.cloud = *cloud_facade;
+//                            cloud_roof_pub.cloud = *cloud_roof;
+                            pcl::transformPointCloud(*cloud_pillar, cloud_pillar_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                            pcl::transformPointCloud(*cloud_beam, cloud_beam_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                            pcl::transformPointCloud(*cloud_facade, cloud_facade_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                            pcl::transformPointCloud(*cloud_roof, cloud_roof_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                            pubsub->PublishCloud(topic_cloud_pillar_world, cloud_pillar_pub);
+                            pubsub->PublishCloud(topic_cloud_beam_world, cloud_beam_pub);
+                            pubsub->PublishCloud(topic_cloud_facade_world, cloud_facade_pub);
+                            pubsub->PublishCloud(topic_cloud_roof_world, cloud_roof_pub);
+
+                        }
+
+                    } // end if(FrontEndConfig::use_unground_pts_classify)
 
                     ///4. send data to feature extraction node
 //                        ft_extr_ptr->AddCloudData(cloudinfo);
                     Function_AddCloudInfoToFeatureExtraction(cloudinfo);
-                   // EZLOG(INFO)
-                    //        << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
-                    //        << cloudinfo.cloud_ptr->points.size();
+                    //EZLOG(INFO)
+                           // << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
+                          //  << cloudinfo.cloud_ptr->points.size();
                     ///5.pop used odom
                     drodom_mutex.lock();
 //                        while(poseQueue.front().timestamp < cloud_max_ros_timestamp - 0.1f){
@@ -695,7 +664,7 @@ public:
                     cloud_mutex.unlock();
                 }
 
-                ResetParameters();//TODO 1111
+//                ResetParameters();//TODO 1111---------Done
                 //  }//end if(deque_cloud.size()!=0){
                 // else{
                 //      sleep(0.01);//线程休息10ms
@@ -752,8 +721,8 @@ public:
         if(!init)
         {
             double x,y,z;
-            if(slam_mode_switch){
-                std::ifstream downfile(MappingConfig::save_map_path+"Origin.txt");  //打开文件
+            if(LocConfig::slam_mode_on == 1){//loc
+                std::ifstream downfile(LocConfig::save_map_path+"Origin.txt");  //打开文件
                 std::string line; //字符串
                 std::getline(downfile, line);//
                 std::istringstream iss(line);
@@ -761,22 +730,15 @@ public:
                 downfile.close(); // 关闭文件
                 geoConverter.Reset(x, y, z);
             }
-            else{
+            else{//mapping
                 geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
                 MapSaver::SaveOriginLLA(data.lla);
-             //   EZLOG(INFO)<<"save first GNSS points: "<<data.lla[0]<<", "<<data.lla[1]<<", "<<data.lla[2];
+           //     EZLOG(INFO)<<"save first GNSS points: "<<data.lla[0]<<", "<<data.lla[1]<<", "<<data.lla[2];
             }
             init = true;
             return;
         }
 
-//        if(!init)
-//        {
-//            geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
-//            init = true;
-//            MapSaver::SaveOriginLLA(data.lla);
-//            return;
-//        }
 
         double t_enu[3];
         geoConverter.Forward(data.lla[0], data.lla[1], data.lla[2],
@@ -824,7 +786,7 @@ public:
         T_w_l_pub.pose = T_w_l;
         pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
 
-        //TODO 1029
+        //TODO 1029-----Done
         // GNSSINSType T_w_l_to_mapopt;
         // T_w_l_to_mapopt.lla[0] = T_w_l.GetXYZ()[0];
         // T_w_l_to_mapopt.lla[1] = T_w_l.GetXYZ()[1];
@@ -840,24 +802,20 @@ public:
         T_w_l_gnss.timestamp = data.timestamp;
         T_w_l_gnss.pose = T_w_l;
 
-         if (slam_mode_switch ==1){
+         if (LocConfig::slam_mode_on ==1){
              Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
-          //   EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose is :";
-          //   EZLOG(INFO)<<T_w_l_gnss.pose.pose;
-         //    EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose end!";
-//             static int flag_load_once = 0;
-//             if(flag_load_once ==0){
-//                 Function_AddFirstGNSSPoint2DR(T_w_l_gnss);
-//                 flag_load_once = 1;
-//             }
+//             EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose is :";
+//             EZLOG(INFO)<<T_w_l_gnss.pose.pose;
+//             EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose end!";
              Udp_OdomPub(T_w_l);
          }
-
             // TODO T_w_l_pub->>>>>>> is Gnss result need UDP
             //Udp_OdomPub(T_w_l);
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
 //        }
     }
+
+
 
     void AddDrOdomData(const OdometryType& data){
         drodom_mutex.lock();
@@ -866,9 +824,8 @@ public:
     }
 
     // not UDP
-    void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
+    void Init(PubSubInterface* pubsub_){
         AllocateMemory();
-        slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         //TODO MDC????? add #ifdefine X86 ROS
         pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
@@ -892,9 +849,8 @@ public:
 
 
     // UDP
-    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
+    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
         AllocateMemory();
-        slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         udp_thread = udp_thread_;
 
@@ -917,7 +873,7 @@ public:
 
 
         do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
-      //  EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
+       // EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
     }
 
     struct eigenvalue_t // Eigen Value ,lamada1 > lamada2 > lamada3;
@@ -1365,7 +1321,7 @@ public:
         float distance_weight;
         // int ground_random_down_rate_temp = ground_random_down_rate;
         // int nonground_random_down_rate_temp = nonground_random_down_rate;
-       // EZLOG(INFO)<<"cloud_in->size() = "<<cloud_in->size()<<endl;
+      //  EZLOG(INFO)<<"cloud_in->size() = "<<cloud_in->size()<<endl;
 
         for (int j = 0; j < cloud_in->size(); j++)
         {
@@ -1390,7 +1346,7 @@ public:
         row = ceil((bounds.max_y - bounds.min_y) / FrontEndConfig::grid_resolution);//grid_resolution 默认参数 = 3.0
         col = ceil((bounds.max_x - bounds.min_x) / FrontEndConfig::grid_resolution);
         num_grid = row * col;
-      //  EZLOG(INFO)<<"num_grid "<<num_grid;
+       // EZLOG(INFO)<<"num_grid "<<num_grid;
 
         grid_t *grid = new grid_t[num_grid];
 
@@ -1731,8 +1687,8 @@ public:
             cloud_ground->points.insert(cloud_ground->points.end(), grid_ground_pcs[i]->points.begin(), grid_ground_pcs[i]->points.end());
             cloud_unground->points.insert(cloud_unground->points.end(), grid_unground_pcs[i]->points.begin(), grid_unground_pcs[i]->points.end());
         }
-        EZLOG(INFO)<<"cloud_ground->points.size() = "<<cloud_ground->points.size();
-        EZLOG(INFO)<<"cloud_unground->points.size() = "<<cloud_unground->points.size();
+       // EZLOG(INFO)<<"cloud_ground->points.size() = "<<cloud_ground->points.size();
+       // EZLOG(INFO)<<"cloud_unground->points.size() = "<<cloud_unground->points.size();
 //
         //free memory
         delete[] grid;
@@ -1768,7 +1724,7 @@ public:
 ////        if (fixed_num_downsampling)
 ////            random_downsample_pcl(cloud_ground, cloud_ground_down, down_ground_fixed_num);
 
-        EZLOG(INFO)<<"finish ground_filter "<<endl;
+       // EZLOG(INFO)<<"finish ground_filter "<<endl;
 //
     } // end function fast_ground_filter
 
@@ -1792,17 +1748,17 @@ public:
                          pcl::PointCloud<pcl::Normal>::Ptr &normals)
     {
         // Create the normal estimation class, and pass the input dataset to it;
-        pcl::NormalEstimation<PointXYZICOLRANGE, pcl::Normal> ne;
-        ne.setInputCloud(in_cloud);
-        // Create an empty kd-tree representation, and pass it to the normal estimation object;
-        pcl::search::KdTree<PointXYZICOLRANGE>::Ptr tree(new pcl::search::KdTree<PointXYZICOLRANGE>());
-
-        ne.setSearchMethod(tree);
-        // Use all neighbors in a sphere of radius;
-        ne.setRadiusSearch(radius);
-        // Compute the normal
-        ne.compute(*normals);
-        check_normal(normals);
+//        pcl::NormalEstimation<PointXYZICOLRANGE, pcl::Normal> ne;
+//        ne.setInputCloud(in_cloud);
+//        // Create an empty kd-tree representation, and pass it to the normal estimation object;
+//        pcl::search::KdTree<PointXYZICOLRANGE>::Ptr tree(new pcl::search::KdTree<PointXYZICOLRANGE>());
+//
+//        ne.setSearchMethod(tree);
+//        // Use all neighbors in a sphere of radius;
+//        ne.setRadiusSearch(radius);
+//        // Compute the normal
+//        ne.compute(*normals);
+//        check_normal(normals);
         return true;
     }
 
@@ -1811,17 +1767,17 @@ public:
                          pcl::PointCloud<pcl::Normal>::Ptr &normals)
     {
         // Create the normal estimation class, and pass the input dataset to it;
-        pcl::NormalEstimation<PointXYZICOLRANGE, pcl::Normal> ne;
-//        ne.setNumberOfThreads(2); //More threads sometimes would not speed up the procedure
-        ne.setInputCloud(in_cloud);
-        // Create an empty kd-tree representation, and pass it to the normal estimation object;
-        pcl::search::KdTree<PointXYZICOLRANGE>::Ptr tree(new pcl::search::KdTree<PointXYZICOLRANGE>());
-        ne.setSearchMethod(tree);
-        // Use all neighbors in a sphere of radius;
-        ne.setKSearch(K);
-        // Compute the normal
-        ne.compute(*normals);
-        check_normal(normals);
+//        pcl::NormalEstimation<PointXYZICOLRANGE, pcl::Normal> ne;
+////        ne.setNumberOfThreads(2); //More threads sometimes would not speed up the procedure
+//        ne.setInputCloud(in_cloud);
+//        // Create an empty kd-tree representation, and pass it to the normal estimation object;
+//        pcl::search::KdTree<PointXYZICOLRANGE>::Ptr tree(new pcl::search::KdTree<PointXYZICOLRANGE>());
+//        ne.setSearchMethod(tree);
+//        // Use all neighbors in a sphere of radius;
+//        ne.setKSearch(K);
+//        // Compute the normal
+//        ne.compute(*normals);
+//        check_normal(normals);
         return true;
     }
 
@@ -1830,39 +1786,39 @@ public:
                           pcl::PointCloud<PointXYZICOLRANGE>::Ptr &planecloud,
                           pcl::ModelCoefficients::Ptr &coefficients) //Ransac
     {
-        pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-
-        // Create the segmentation object
-        pcl::SACSegmentation<PointXYZICOLRANGE> sacseg;//**********************************
-
-        // Optional
-        sacseg.setOptimizeCoefficients(true);
-
-        // Mandatory
-        sacseg.setModelType(pcl::SACMODEL_PLANE);
-        sacseg.setMethodType(pcl::SAC_RANSAC);
-        sacseg.setDistanceThreshold(threshold);
-        sacseg.setMaxIterations(max_iter);
-
-        sacseg.setInputCloud(cloud);
-        sacseg.segment(*inliers, *coefficients);
-
-        if (inliers->indices.size() == 0)
-        {
-            PCL_ERROR("Could not estimate a planar model for the given dataset.");
-        }
-
-        /*cout << "Model coefficients: " << coefficients->values[0] << " "
-        << coefficients->values[1] << " "
-        << coefficients->values[2] << " "
-        << coefficients->values[3] << std::endl;*/
-
-        //LOG(INFO) << "Model inliers number: " << inliers->indices.size() << std::endl;
-
-        for (size_t i = 0; i < inliers->indices.size(); ++i)
-        {
-            planecloud->push_back(cloud->points[inliers->indices[i]]);
-        }
+//        pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+//
+//        // Create the segmentation object
+//        pcl::SACSegmentation<PointXYZICOLRANGE> sacseg;//**********************************
+//
+//        // Optional
+//        sacseg.setOptimizeCoefficients(true);
+//
+//        // Mandatory
+//        sacseg.setModelType(pcl::SACMODEL_PLANE);
+//        sacseg.setMethodType(pcl::SAC_RANSAC);
+//        sacseg.setDistanceThreshold(threshold);
+//        sacseg.setMaxIterations(max_iter);
+//
+//        sacseg.setInputCloud(cloud);
+//        sacseg.segment(*inliers, *coefficients);
+//
+//        if (inliers->indices.size() == 0)
+//        {
+//            PCL_ERROR("Could not estimate a planar model for the given dataset.");
+//        }
+//
+//        /*cout << "Model coefficients: " << coefficients->values[0] << " "
+//        << coefficients->values[1] << " "
+//        << coefficients->values[2] << " "
+//        << coefficients->values[3] << std::endl;*/
+//
+//        //LOG(INFO) << "Model inliers number: " << inliers->indices.size() << std::endl;
+//
+//        for (size_t i = 0; i < inliers->indices.size(); ++i)
+//        {
+//            planecloud->push_back(cloud->points[inliers->indices[i]]);
+//        }
         return 1;
     }
 
