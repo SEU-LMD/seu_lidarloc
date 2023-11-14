@@ -1,0 +1,48 @@
+/*
+ * Copyright (C) 2017 Open Source Robotics Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+*/
+
+syntax = "proto2";
+package ignition.msgs;
+option java_package = "com.ignition.msgs";
+option java_outer_classname = "SurfaceProtos";
+
+/// \ingroup ignition.msgs
+/// \interface Surface
+/// \brief Information about a surface element
+
+import "ignition/msgs/header.proto";
+import "ignition/msgs/friction.proto";
+
+message Surface
+{
+  /// \brief Optional header data
+  optional Header header                    = 1;
+
+  optional Friction friction                = 2;
+  optional double restitution_coefficient   = 3;
+  optional double bounce_threshold          = 4;
+  optional double soft_cfm                  = 5;
+  optional double soft_erp                  = 6;
+  optional double kp                        = 7;
+  optional double kd                        = 8;
+  optional double max_vel                   = 9;
+  optional double min_depth                 = 10;
+  optional bool collide_without_contact     = 11;
+  optional uint32 collide_without_contact_bitmask = 12;
+  optional uint32 collide_bitmask           = 13;
+  optional double elastic_modulus           = 14;
+}

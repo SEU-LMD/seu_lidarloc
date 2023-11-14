@@ -1,0 +1,217 @@
+#if defined(TDataReader) && defined(TDataSeq) && defined(TData)
+
+// --- From DDSDataReader_impl: ----------------------------------------
+
+DDS_ReadCondition* TDataReader::CreateReadCondition(
+    DDS_SampleStateMask sampleStates,
+    DDS_ViewStateMask viewStates,
+    DDS_InstanceStateMask instanceStates)
+{
+    return DDS_DataReader::CreateReadCondition(
+        sampleStates,
+        viewStates,
+        instanceStates);
+}
+
+DDS_ReturnCode TDataReader::DeleteReadCondition(
+    DDS_ReadCondition* condition)
+{
+    return DDS_DataReader::DeleteReadCondition(
+        condition);
+}
+
+DDS_TopicDescription* TDataReader::GetTopicDescription()
+{
+    return DDS_DataReader::GetTopicDescription();
+}
+
+DDS_Subscriber* TDataReader::GetSubscriber()
+{
+    return DDS_DataReader::GetSubscriber();
+}
+
+DDS_ReturnCode TDataReader::SetQos(
+    const DDS_DataReaderQos& qos)
+{
+    return DDS_DataReader::SetQos(qos);
+}
+
+DDS_ReturnCode TDataReader::GetQos(
+    DDS_DataReaderQos& qos)
+{
+    return DDS_DataReader::GetQos(qos);
+}
+
+DDS_ReturnCode TDataReader::SetListener(
+    DDS_DataReaderListener* listener,
+    DDS_StatusMask mask)
+{
+    return DDS_DataReader::SetListener(
+        listener,
+        mask);
+}
+
+DDS_DataReaderListener* TDataReader::GetListener() {
+    return DDS_DataReader::GetListener();
+}
+
+DDS_ReturnCode TDataReader::GetSampleRejectedStatus(
+    DDS_SampleRejectedStatus& status)
+{
+    return DDS_DataReader::GetSampleRejectedStatus(status);
+}
+
+DDS_ReturnCode TDataReader::GetRequestedDeadlineMissedStatus(
+        DDS_RequestedDeadlineMissedStatus& status) {
+    return DDS_DataReader::GetRequestedDeadlineMissedStatus(status);
+}
+
+DDS_ReturnCode TDataReader::GetRequestedIncompatibleQosStatus(
+        DDS_RequestedIncompatibleQosStatus& status) {
+    return DDS_DataReader::GetRequestedIncompatibleQosStatus(status);
+}
+
+DDS_ReturnCode TDataReader::GetSampleLostStatus(
+        DDS_SampleLostStatus& status)
+{
+    return DDS_DataReader::GetSampleLostStatus(status);
+}
+
+DDS_ReturnCode TDataReader::GetSubscriptionMatchedStatus(
+        DDS_SubscriptionMatchedStatus& status)
+{
+    return DDS_DataReader::GetSubscriptionMatchedStatus(status);
+}
+
+DDS_StatusCondition* TDataReader::GetStatusCondition() {
+    return DDS_DataReader::GetStatusCondition();
+}
+
+DDS_StatusMask TDataReader::GetStatusChanges() {
+    return DDS_DataReader::GetStatusChanges();
+}
+
+DDS_InstanceHandle TDataReader::GetInstanceHandle() {
+    return DDS_DataReader::GetInstanceHandle();
+}
+
+// ---------------------------------------------------------------------
+
+DDS_ReturnCode TDataReader::Read(
+    TDataSeq& receivedData,
+    DDS_SampleInfoSeq& infoSeq,
+    DDS_Long maxSamples,
+    DDS_SampleStateMask sampleStates,
+    DDS_ViewStateMask viewStates,
+    DDS_InstanceStateMask instanceStates)
+{
+    return DDS_DataReader::ReadOrTakeUntypedI(
+        (DDS_DataSeq &)receivedData,
+        infoSeq,
+        maxSamples,
+        sampleStates | viewStates | instanceStates,
+        false);
+}
+
+DDS_ReturnCode TDataReader::Take(
+    TDataSeq& receivedData,
+    DDS_SampleInfoSeq& infoSeq,
+    DDS_Long maxSamples,
+    DDS_SampleStateMask sampleStates,
+    DDS_ViewStateMask viewStates,
+    DDS_InstanceStateMask instanceStates)
+{
+    return DDS_DataReader::ReadOrTakeUntypedI(
+        (DDS_DataSeq &)receivedData,
+        infoSeq,
+        maxSamples,
+        sampleStates | viewStates | instanceStates,
+        true);
+}
+
+DDS_ReturnCode TDataReader::TakeRawData(
+    TDataSeq& receivedData,
+    DDS_SampleInfoSeq& infoSeq,
+    DDS_Long maxSamples)
+{
+    return DDS_DataReader::TakeRawDataImpl(
+        (DDS_DataSeq&) receivedData,
+        infoSeq,
+        maxSamples);
+}
+
+DDS_ReturnCode TDataReader::ReadWithCondition(
+    TDataSeq& receivedData,
+    DDS_SampleInfoSeq& infoSeq,
+    DDS_Long maxSamples,
+    DDS_ReadCondition* condition)
+{
+    return DDS_DataReader::ReadOrTakeWConditionUntypedI(
+        (DDS_DataSeq &)receivedData,
+        infoSeq,
+        maxSamples,
+        condition,
+        false);
+}
+
+DDS_ReturnCode TDataReader::TakeWithCondition(
+    TDataSeq& receivedData,
+    DDS_SampleInfoSeq& infoSeq,
+    DDS_Long maxSamples,
+    DDS_ReadCondition* condition)
+{
+    return DDS_DataReader::ReadOrTakeWConditionUntypedI(
+        (DDS_DataSeq &)receivedData,
+        infoSeq,
+        maxSamples,
+        condition,
+        true);
+}
+
+DDS_ReturnCode TDataReader::ReturnLoan(
+    TDataSeq &receivedData,
+    DDS_SampleInfoSeq &infoSeq)
+{
+    return DDS_DataReader::ReturnLoanUntypedI(
+        reinterpret_cast<DDS_DataSeq &>(receivedData),
+        infoSeq);
+}
+
+DDS_ReturnCode TDataReader::ReturnLoan(
+    const DDS_InstanceHandle& handleOfData2Return)
+{
+    return DDS_DataReader::ReturnLoanUntypedI(handleOfData2Return);
+}
+
+// --- <<lifecycle>>: --------------------------------------------------
+
+TDataReader* TDataReader::CreateI(DDS_DataReader* reader)
+{
+    auto* typedDataReader = new TDataReader(reader);
+    return typedDataReader;
+}
+
+DDS_ReturnCode TDataReader::DestroyI(TDataReader* reader) noexcept
+{
+    delete reader;
+    return DDS_RETCODE_OK;
+}
+
+// ---------------------------------------------------------------------
+// Protected Methods
+// ---------------------------------------------------------------------
+
+// --- Constructors & destructors: -------------------------------------
+
+TDataReader::TDataReader(DDS_DataReader* impl)
+    : DDS_DataReader(impl)
+{
+    // empty
+}
+
+TDataReader::~TDataReader()
+{
+    // empty
+}
+
+#endif

@@ -22,4 +22,5 @@ cmake				-DCMAKE_BUILD_TYPE=Release \
 				..
 make -j 8
 make install                           
+cp -r ${dir_abs_path}/pcl-1.10.0/mycmake/* ${dir_abs_path}/pcl-1.10.0-install/share/pcl-1.10/
 

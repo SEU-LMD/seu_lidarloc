@@ -95,7 +95,7 @@ class SensorConfig{
 
 class MappingConfig{
     public:
-        static int slam_mode_switch;
+        static int slam_mode_swith;
         static int if_debug;
         static Eigen::Vector3d origin_gnss;
         static bool use_deskew;
@@ -145,7 +145,7 @@ class MappingConfig{
 
     };
 
-class LocConfig{
+class LocConfig {
 public:
     static int slam_mode_on;
     static Eigen::Vector3d origin_gnss;
@@ -153,8 +153,8 @@ public:
     static std::string save_map_path;
 
     // LOAM feature threshold
-    static int  edgeFeatureMinValidNum;
-    static int  surfFeatureMinValidNum;
+    static int edgeFeatureMinValidNum;
+    static int surfFeatureMinValidNum;
     static float odometrySurfRadiusSize_US;
     static float mappingCornerRadiusSize_US;
     static float mappingSurfRadiusSize_US;

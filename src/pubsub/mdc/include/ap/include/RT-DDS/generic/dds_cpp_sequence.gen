@@ -1,0 +1,184 @@
+#if defined(FooSeq) && defined(Foo)
+
+FooSeq::FooSeq(DDS_UnsignedLong max)
+    : maximum(max),
+      length(0),
+      buffer(nullptr),
+      owned(DDS_BOOLEAN_TRUE)
+{
+    if (max > 0) {
+        buffer = (Foo *)malloc(max * sizeof(Foo));
+        if (buffer == nullptr) {
+            maximum = 0;
+        }
+    }
+}
+
+FooSeq::FooSeq(const FooSeq &srcSeq)
+{
+    buffer = nullptr;
+    maximum = srcSeq.maximum;
+    length = srcSeq.length;
+    owned = srcSeq.owned;
+    if (maximum > 0) {
+        buffer = (Foo *)malloc(maximum * sizeof(Foo));
+        if (buffer != nullptr) {
+            if (memcpy_s(buffer, maximum * sizeof(Foo), srcSeq.buffer, maximum * sizeof(Foo)) != EOK) {
+                free(buffer);
+                buffer = nullptr;
+                maximum = 0;
+                length = 0;
+            }
+        } else {
+            maximum = 0;
+            length = 0;
+        }
+    }
+}
+
+FooSeq::~FooSeq()
+{
+    free(buffer);
+}
+
+DDS_Boolean FooSeq::SetMaximum(DDS_UnsignedLong newMax)
+{
+    int ret;
+    if (maximum > newMax) {
+        return DDS_BOOLEAN_FALSE;
+    }
+    if (maximum == newMax) {
+        return DDS_BOOLEAN_TRUE;
+    }
+    if (buffer == nullptr) {
+        buffer = (Foo *)malloc(newMax * sizeof(Foo));
+        if (buffer == nullptr) {
+            return DDS_BOOLEAN_FALSE;
+        }
+        maximum = newMax;
+    } else {
+        Foo *newBuffer = (Foo *)malloc(newMax * sizeof(Foo));
+        if (newBuffer == nullptr) {
+            return DDS_BOOLEAN_FALSE;
+        }
+        ret = memcpy_s(newBuffer, newMax * sizeof(Foo), buffer, maximum * sizeof(Foo));
+        if (ret != EOK) {
+            free(newBuffer);
+            return DDS_BOOLEAN_FALSE;
+        }
+        free(buffer);
+        buffer = newBuffer;
+        maximum = newMax;
+    }
+
+    return DDS_BOOLEAN_TRUE;
+}
+
+DDS_Boolean FooSeq::FromArray(const Foo array[], const DDS_UnsignedLong size)
+{
+    int ret;
+    if (size > maximum) {
+        if (!SetMaximum(size)) {
+            return DDS_BOOLEAN_FALSE;
+        }
+    }
+
+    ret = memcpy_s(buffer, maximum * sizeof(Foo), array, size * sizeof(Foo));
+    if (ret != EOK) {
+        return DDS_BOOLEAN_FALSE;
+    }
+    length = size;
+    return DDS_BOOLEAN_TRUE;
+}
+
+DDS_Boolean FooSeq::PushBack(Foo value)
+{
+    if (length == maximum) {
+        if (maximum == 0) {
+            if (!SetMaximum(2)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+        } else {
+            if (!SetMaximum(2 * maximum)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+        }
+    }
+    *(buffer + length) = value;
+    length++;
+    return DDS_BOOLEAN_TRUE;
+}
+
+DDS_Boolean FooSeq::Clear()
+{
+    if (memset_s(buffer, maximum * sizeof(Foo), 0, maximum * sizeof(Foo)) != EOK) {
+        return DDS_BOOLEAN_FALSE;
+    }
+    length = 0;
+    return DDS_BOOLEAN_TRUE;
+}
+
+Foo&FooSeq::At(DDS_UnsignedLong i) const
+{
+    return *(buffer + i);
+};
+
+DDS_UnsignedLong FooSeq::Maximum() const
+{
+    return maximum;
+}
+
+DDS_UnsignedLong FooSeq::Length() const
+{
+    return length;
+}
+
+Foo* FooSeq::GetBuffer()
+{
+    return buffer;
+}
+
+FooSeq &FooSeq::operator=(const struct FooSeq &srcSeq)
+{
+    if (this != &srcSeq) {
+        if (maximum != 0) {
+            free(buffer);
+            buffer = nullptr;
+        }
+        maximum = srcSeq.maximum;
+        length = srcSeq.length;
+        owned = srcSeq.owned;
+        if (maximum > 0) {
+            buffer = (Foo *)malloc(maximum * sizeof(Foo));
+            if (buffer != nullptr) {
+                if (memcpy_s(buffer, maximum * sizeof(Foo), srcSeq.buffer, maximum * sizeof(Foo)) != EOK) {
+                    free(buffer);
+                    buffer = nullptr;
+                    maximum = 0;
+                    length = 0;
+                }
+            } else {
+                maximum = 0;
+                length = 0;
+            }
+        }
+    }
+    return *this;
+}
+
+FooSeq &FooSeq::operator=(struct FooSeq &&srcSeq)
+{
+    /* Self-assignment detection */
+    if (&srcSeq == this) {
+        return *this;
+    }
+    maximum = srcSeq.maximum;
+    length = srcSeq.length;
+    owned = srcSeq.owned;
+    buffer = srcSeq.buffer;
+    srcSeq.buffer = nullptr;
+
+    return *this;
+}
+
+#endif
