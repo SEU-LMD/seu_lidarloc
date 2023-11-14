@@ -36,7 +36,6 @@ public:
 
 class DataPreprocess {
 public:
-    int slam_mode_switch = 1;
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     std::mutex work_mutex;
@@ -680,21 +679,13 @@ public:
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
-//        if((lidarScan_cnt > SensorConfig::lidarScanDownSample && MappingConfig::slam_mode_switch == 1)
-//            ||MappingConfig::slam_mode_switch == 0){
-            //        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
-            CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
 
-            *cloud_ptr = data;//深拷贝
-            cloud_mutex.lock();
-            deque_cloud.push_back(cloud_ptr);
-            cloud_mutex.unlock();
-            lidarScan_cnt =0;
-      //  }
-     //   else{
-    //        lidarScan_cnt++;
-    //    }
-
+        CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
+        *cloud_ptr = data;//深拷贝
+        cloud_mutex.lock();
+        deque_cloud.push_back(cloud_ptr);
+        cloud_mutex.unlock();
+        lidarScan_cnt =0;
     }
 
 
@@ -728,8 +719,8 @@ public:
         if(!init)
         {
             double x,y,z;
-            if(slam_mode_switch){
-                std::ifstream downfile(MappingConfig::save_map_path+"Origin.txt");  //打开文件
+            if(LocConfig::slam_mode_on == 1){//loc
+                std::ifstream downfile(LocConfig::save_map_path+"Origin.txt");  //打开文件
                 std::string line; //字符串
                 std::getline(downfile, line);//
                 std::istringstream iss(line);
@@ -737,7 +728,7 @@ public:
                 downfile.close(); // 关闭文件
                 geoConverter.Reset(x, y, z);
             }
-            else{
+            else{//mapping
                 geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
                 MapSaver::SaveOriginLLA(data.lla);
                 EZLOG(INFO)<<"save first GNSS points: "<<data.lla[0]<<", "<<data.lla[1]<<", "<<data.lla[2];
@@ -816,19 +807,13 @@ public:
         T_w_l_gnss.timestamp = data.timestamp;
         T_w_l_gnss.pose = T_w_l;
 
-         if (slam_mode_switch ==1){
+         if (LocConfig::slam_mode_on ==1){
              Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
-             EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose is :";
-             EZLOG(INFO)<<T_w_l_gnss.pose.pose;
-             EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose end!";
-//             static int flag_load_once = 0;
-//             if(flag_load_once ==0){
-//                 Function_AddFirstGNSSPoint2DR(T_w_l_gnss);
-//                 flag_load_once = 1;
-//             }
+//             EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose is :";
+//             EZLOG(INFO)<<T_w_l_gnss.pose.pose;
+//             EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose end!";
              Udp_OdomPub(T_w_l);
          }
-
             // TODO T_w_l_pub->>>>>>> is Gnss result need UDP
             //Udp_OdomPub(T_w_l);
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
@@ -844,9 +829,8 @@ public:
     }
 
     // not UDP
-    void Init(PubSubInterface* pubsub_,int _slam_mode_switch){
+    void Init(PubSubInterface* pubsub_){
         AllocateMemory();
-        slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         //TODO MDC????? add #ifdefine X86 ROS
         pubsub->addPublisher(topic_origin_cloud_world,DataType::LIDAR,1);
@@ -870,9 +854,8 @@ public:
 
 
     // UDP
-    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_,int _slam_mode_switch){
+    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
         AllocateMemory();
-        slam_mode_switch = _slam_mode_switch;
         pubsub = pubsub_;
         udp_thread = udp_thread_;
 

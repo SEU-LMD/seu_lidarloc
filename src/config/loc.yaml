@@ -1,0 +1,32 @@
+# 0 for not use, 1 for use
+# TODO change yaml name
+#TODO remove not used parmater!!!!
+slam_mode_on: 1
+
+# the path of map save
+#  you must change it to right PATH or it will crush!!!!!!!!
+save_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/park_loop1_out/"
+# 1 use DR , 0 use fuse
+use_DR_or_fuse_in_loc: 1
+
+# LOAM feature threshold
+edgeFeatureMinValidNum: 10
+surfFeatureMinValidNum: 100
+
+odometrySurfRadiusSize_US: 0.2                     # default: 0.4 - outdoor, 0.2 - indoor
+mappingCornerRadiusSize_US: 0.1                    # default: 0.2 - outdoor, 0.1 - indoor
+mappingSurfRadiusSize_US: 0.2                      # default: 0.4 - outdoor, 0.2 - indoor
+
+# robot motion constraint (in case you are using a 2D robot)
+z_tollerance: 5                            # meters
+rotation_tollerance: 5                     # radians
+
+# CPU Params
+mappingProcessInterval: 0.2                  # seconds, regulate mapping frequency
+
+# Keyframe
+surroundingkeyframeAddingDistThreshold: 1.0  # meters, regulate keyframe adding threshold
+surroundingkeyframeAddingAngleThreshold: 1.0  # radians, regulate keyframe adding threshold
+
+#LM opt
+maxIters: 10

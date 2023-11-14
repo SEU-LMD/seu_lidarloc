@@ -20,7 +20,7 @@ fixed_num_downsampling: false
 ground_random_down_down_rate: 2
 
 # unground pts classify
-use_unground_pts_classify: true
+use_unground_pts_classify: false
 neighbor_searching_radius: 1.0
 neighbor_k: 30
 neigh_k_min: 8

@@ -48,13 +48,13 @@ public:
         pubsub = pubsub_;
        // udp_thread =udp_thread_;
         //然后开启各个线程
-        img_proj.Init(pubsub,0);//TODO 1111 read different config file
+        img_proj.Init(pubsub);//TODO 1111 read different config file
         EZLOG(INFO)<< "img_proj success!!"<<endl;
-        ft_extr.Init(pubsub,0);
+        ft_extr.Init(pubsub);
         EZLOG(INFO)<< "ft_extr success!!"<<endl;
         opt_mapping.Init(pubsub);
         EZLOG(INFO)<< "opt_mapping success!!"<<endl;
-        imu_pre.Init(pubsub,0);
+        imu_pre.Init(pubsub);
         EZLOG(INFO)<< "imu_pre success!!"<<endl;
       //  mapManager.Init(pubsub);
 

@@ -13,7 +13,7 @@
 #include "utils/utility.h"
 //所有数据的基类
 
-enum DataType {IMU, LIDAR,GNSS, WHEEL, GNSS_INS,//from sensor
+enum DataType {IMU, LIDAR,GNSS,WHEEL, DR, GNSS_INS,//from sensor
                 ODOMETRY, PATH,MAP};//common used type
 
 class BaseType{
@@ -100,7 +100,7 @@ class DROdometryType:public BaseType{
 public:
     PoseT pose;
     DataType getType(){
-        return DataType::WHEEL;
+        return DataType::DR;
     }
 };
 typedef std::shared_ptr<DROdometryType> DROdometryTypePtr;
