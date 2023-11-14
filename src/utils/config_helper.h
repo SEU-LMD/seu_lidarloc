@@ -95,12 +95,12 @@ class SensorConfig{
 
 class MappingConfig{
     public:
+        static int slam_mode_switch;
         static int if_debug;
         static Eigen::Vector3d origin_gnss;
         static bool use_deskew;
         // save map
         static std::string save_map_path;
-        static int if_need_first_position;
 
         //Export settings
         static bool  savePCD;
@@ -167,7 +167,31 @@ class MappingConfig{
         static int scan_2_scan_num_surf;
     };
 
+class LocConfig{
+public:
+    static int slam_mode_on;
+    static Eigen::Vector3d origin_gnss;
+    // save map
+    static std::string save_map_path;
 
+    // LOAM feature threshold
+    static int  edgeFeatureMinValidNum;
+    static int  surfFeatureMinValidNum;
+    static float odometrySurfRadiusSize_US;
+    static float mappingCornerRadiusSize_US;
+    static float mappingSurfRadiusSize_US;
+
+    // robot motion constraint (in case you are using a 2D robot)
+    static float z_tollerance;
+    static float rotation_tollerance;
+    //CPU Params
+    static float mappingProcessInterval;
+    static int use_DR_or_fuse_in_loc;
+    static int maxIters;
+    static double surroundingkeyframeAddingDistThreshold;
+    static double surroundingkeyframeAddingAngleThreshold;
+
+};
 class SerializeConfig{
    public:
       static std::string map_in_path;
@@ -318,9 +342,9 @@ int SensorConfig::gtsamGNSSBetweenFactorDistance = 10;
 bool SensorConfig::use_drodom_deskew =false;
 int SensorConfig::lidarScanDownSample = 2;
 
+int MappingConfig::slam_mode_switch = 0;
 int MappingConfig::if_debug = 1;
 std::string MappingConfig::save_map_path = "";
-int MappingConfig::if_need_first_position = 1;
 
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
 bool  MappingConfig::savePCD=false;
@@ -385,6 +409,21 @@ float MappingConfig::globalMapLeafSize=-1;
 int  MappingConfig::scan_2_scan_num_surf = 1;
 int  MappingConfig::scan_2_scan_num_corner = 1;
 int MappingConfig::use_DR_or_fuse_in_loc = 1;
+
+int LocConfig::maxIters = 30;
+int LocConfig::slam_mode_on = 0;
+std::string LocConfig::save_map_path = "";
+int  LocConfig::edgeFeatureMinValidNum=-1;
+int  LocConfig::surfFeatureMinValidNum=-1;
+float LocConfig::odometrySurfRadiusSize_US = 0.6;
+float LocConfig::mappingCornerRadiusSize_US = 0.4;
+float LocConfig::mappingSurfRadiusSize_US = 0.6;
+float LocConfig::z_tollerance=-1;
+float LocConfig::rotation_tollerance=-1;
+float LocConfig::mappingProcessInterval=-1;
+double  LocConfig::surroundingkeyframeAddingDistThreshold = 1.0;
+double  LocConfig::surroundingkeyframeAddingAngleThreshold = 3.0;
+int LocConfig::use_DR_or_fuse_in_loc = 1;
 
 // offline mapping
 std::string SerializeConfig::map_in_path = "";
@@ -597,11 +636,11 @@ void Load_Mapping_YAML(std::string mappingpath)
             exit(1);
         }
 
+        MappingConfig::slam_mode_switch = mappingconfig["slam_mode_switch"].as<int>();
         MappingConfig::if_debug = mappingconfig["if_debug"].as<int>();
         MappingConfig::use_deskew=mappingconfig["use_deskew"].as<bool >();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();
-        MappingConfig::if_need_first_position = mappingconfig["if_need_first_position"].as<int>();
         // //Export settings
         MappingConfig::savePCD=mappingconfig["savePCD"].as<bool >();
         MappingConfig::savePCDDirectory=mappingconfig["savePCDDirectory"].as<std::string >();
@@ -611,7 +650,6 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::surfThreshold=mappingconfig["surfThreshold"].as<float >();
         MappingConfig::edgeFeatureMinValidNum=mappingconfig["edgeFeatureMinValidNum"].as<int >();
         MappingConfig::surfFeatureMinValidNum=mappingconfig["surfFeatureMinValidNum"].as<int >();
-//        std::cout<<MappingConfig::surfFeatureMinValidNum<<std::endl;
 
         //voxel filter paprams
         MappingConfig::DownSampleModeSwitch = mappingconfig["DownSampleModeSwitch"].as<int>();
@@ -633,7 +671,6 @@ void Load_Mapping_YAML(std::string mappingpath)
         //CPU Params
         MappingConfig::numberOfCores=mappingconfig["numberOfCores"].as<int >();
         MappingConfig::mappingProcessInterval=mappingconfig["mappingProcessInterval"].as<float >();
-//        std::cout<<MappingConfig::mappingProcessInterval<<std::endl;
 
         //Surrounding map
         MappingConfig::surroundingkeyframeAddingDistThreshold=mappingconfig["surroundingkeyframeAddingDistThreshold"].as<double >();
@@ -685,12 +722,42 @@ void Load_Mapping_YAML(std::string mappingpath)
         std::cout<<"MappingConfig::mappingSurfRadiusSize_US: "<< MappingConfig::mappingSurfRadiusSize_US<<std::endl;
         std::cout<<"MappingConfig::surroundingKeyframeDensity_US: "<< MappingConfig::surroundingKeyframeDensity_US<<std::endl;
         std::cout<<"MappingConfig::if_LoadFromMapManager: "<<MappingConfig::if_LoadFromMapManager<<std::endl;
-        std::cout<<"MappingConfig::if_need_first_position: "<<MappingConfig::if_need_first_position<<std::endl;
         std::cout<<"MappingConfig::use_DR_or_fuse_in_loc: "<<MappingConfig::use_DR_or_fuse_in_loc<<std::endl;
         std::cout<<"mapping yaml success load"<<std::endl;
 
 }//end function Load_Mapping_YAML
+void Load_Loc_YAML(std::string locPath){
+    YAML::Node LocConfig;
+    try{
+        LocConfig = YAML::LoadFile(locPath);
+    } catch(YAML::BadFile &e) {
+        std::cout << "loc yaml read error!" << locPath << std::endl;
+        exit(1);
+    }
+    LocConfig::slam_mode_on = LocConfig["slam_mode_on"].as<int>();
+    LocConfig::save_map_path = LocConfig["save_map_path"].as<std::string>();
+    LocConfig::edgeFeatureMinValidNum=LocConfig["edgeFeatureMinValidNum"].as<int >();
+    LocConfig::surfFeatureMinValidNum=LocConfig["surfFeatureMinValidNum"].as<int >();
+    LocConfig::mappingCornerRadiusSize_US = LocConfig["mappingCornerRadiusSize_US"].as<float >();
+    LocConfig::mappingSurfRadiusSize_US = LocConfig["mappingSurfRadiusSize_US"].as<float >();
+    LocConfig::z_tollerance=LocConfig["z_tollerance"].as<float >();
+    LocConfig::rotation_tollerance=LocConfig["rotation_tollerance"].as<float >();
+    LocConfig::mappingProcessInterval=LocConfig["mappingProcessInterval"].as<float >();
+    LocConfig::surroundingkeyframeAddingDistThreshold=LocConfig["surroundingkeyframeAddingDistThreshold"].as<double >();
+    LocConfig::surroundingkeyframeAddingAngleThreshold=LocConfig["surroundingkeyframeAddingAngleThreshold"].as<double >();
+    LocConfig::use_DR_or_fuse_in_loc = LocConfig["use_DR_or_fuse_in_loc"].as<int>();
+    LocConfig::maxIters =  LocConfig["maxIters"].as<int>();
 
+    std::cout<<"LocConfig::mappingProcessInterval"<<LocConfig::mappingProcessInterval<<std::endl;
+    std::cout<<"LocConfig::odometrySurfRadiusSize_US: "<<LocConfig::odometrySurfRadiusSize_US<<std::endl;
+    std::cout<<"LocConfig::mappingCornerRadiusSize_US: "<<LocConfig::mappingCornerRadiusSize_US<<std::endl;
+    std::cout<<"LocConfig::mappingSurfRadiusSize_US: "<< LocConfig::mappingSurfRadiusSize_US<<std::endl;
+    std::cout<<"LocConfig::use_DR_or_fuse_in_loc: "<<LocConfig::use_DR_or_fuse_in_loc<<std::endl;
+    std::cout<<"LocConfig::surroundingkeyframeAddingAngleThreshold: "<<LocConfig::surroundingkeyframeAddingAngleThreshold<<std::endl;
+    std::cout<<"LocConfig::surroundingkeyframeAddingDistThreshold: "<<LocConfig::surroundingkeyframeAddingDistThreshold<<std::endl;
+    std::cout<<"LocConfig::maxIters: "<<LocConfig::maxIters<<std::endl;
+    std::cout<<"Loc yaml success load"<<std::endl;
+}
 void Load_offline_YAML(std::string offlinepath)
     {
         YAML::Node offlineconfig;
@@ -790,6 +857,11 @@ void Load_Udp_YAML(std::string udppath)
     UdpConfig::cleint_ip = udpconfig["serverIP"].as<std::string>();
     UdpConfig::clinet_port = udpconfig["clinetPort"].as<int>();
     UdpConfig::server_port = udpconfig["serverPort"].as<int>();
+    std::cout<<"UdpConfig::server_port: "<<UdpConfig::server_port;
+    std::cout<<"UdpConfig::clinet_port: "<<UdpConfig::clinet_port;
+    std::cout<<"UdpConfig::cleint_ip: "<<UdpConfig::cleint_ip;
+    std::cout<<"Load_Udp_YAML success! ";
+
 }
 
 #endif

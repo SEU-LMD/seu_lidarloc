@@ -1,14 +1,10 @@
-# 0 for opt mapping->wxy, 1 for loc mapping->sy.
-# TODO change yaml name
 #TODO remove not used parmater!!!!
   slam_mode_switch: 0
 #  1 for use fuse, 0 is not use
   if_use_fuseNode: 1
 # 1 for debug (pub to rviz),0 for not debug
   if_debug: 0
-#
 #  if_use_
-
 
   # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!

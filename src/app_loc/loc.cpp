@@ -12,13 +12,14 @@
 #define X86
 #ifdef X86
 #include "pubsub/ros/ros_pubsub.h"
+#include "config/abs_current_path.h"
 #endif
 
 INITIALIZE_EASYLOGGINGPP
 
 int main(int argc, char **argv) {
 
-    CreateDirWithDelete("./log");//TODO 1111 change to absolute path
+    CreateDirWithDelete(ABS_CURRENT_SOURCE_PATH+"/log");//TODO 1111 change to absolute path
 
     //1.初始化 log
     el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Format, "%level %file %line : %msg");
@@ -37,15 +38,15 @@ int main(int argc, char **argv) {
     pubsub->initPubSub(argc, argv, "mapping");
 
     //3.初始化配置参数
-    Load_Udp_YAML("./config/udp.yaml");
-    Load_Sensor_YAML("./config/sensor.yaml");
-    Load_Mapping_YAML("./config/mapping.yaml");//TODO 1111 loc.yaml
-    Load_offline_YAML("./config/offline_mapping.yaml");
+    Load_Udp_YAML(ABS_CURRENT_SOURCE_PATH+"/config/udp.yaml");
+    Load_Sensor_YAML(ABS_CURRENT_SOURCE_PATH+"/config/sensor.yaml");
+    Load_Loc_YAML(ABS_CURRENT_SOURCE_PATH+"/config/loc.yaml");//TODO 1111 loc.yaml
+    Load_offline_YAML(ABS_CURRENT_SOURCE_PATH+"/config/offline_mapping.yaml");
+    Load_FrontEnd_YAML(ABS_CURRENT_SOURCE_PATH +"/config/front_end.yaml");
 
     //3.5 udp
     std::shared_ptr<UDP_THREAD> udp_thread = make_shared<UDP_THREAD>();
     udp_thread->init(UdpConfig::cleint_ip,UdpConfig::clinet_port,UdpConfig::server_port);
-
 
     //4.启动多个线程
     LocManager loc_manager;

@@ -8,21 +8,22 @@
 #include "pubsub/data_types.h"
 #include "utils/timer.h"
 
-#include <gtsam/geometry/Pose3.h>
-#include <gtsam/geometry/Rot3.h>
-#include <gtsam/inference/Symbol.h>
-#include <gtsam/navigation/CombinedImuFactor.h>
-#include <gtsam/navigation/GPSFactor.h>
+#include "gtsam/geometry/Pose3.h"
+#include "gtsam/geometry/Rot3.h"
+#include "gtsam/inference/Symbol.h"
+#include "gtsam/navigation/CombinedImuFactor.h"
+#include "gtsam/navigation/GPSFactor.h"
 #include "gtsam/navigation/ImuFactor.h"
-#include <gtsam/nonlinear/ISAM2.h>
+#include "gtsam/nonlinear/ISAM2.h"
 #include "gtsam/nonlinear/ISAM2Params.h"
-#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
-#include <gtsam/nonlinear/Marginals.h>
-#include <gtsam/nonlinear/NonlinearFactorGraph.h>
-#include <gtsam/nonlinear/Values.h>
-#include <gtsam/slam/BetweenFactor.h>
-#include <gtsam/slam/PriorFactor.h>//TODO 1111
-#include <gtsam/slam/dataset.h>  // gtsam
+#include "gtsam/nonlinear/LevenbergMarquardtOptimizer.h"
+#include "gtsam/nonlinear/Marginals.h"
+#include "gtsam/nonlinear/NonlinearFactorGraph.h"
+#include "gtsam/nonlinear/Values.h"
+#include "gtsam/slam/BetweenFactor.h"
+#include "gtsam/slam/PriorFactor.h"//TODO 1111
+#include "gtsam/slam/dataset.h"  // gtsam
+#include "math.h"
 
 #include "udp_seralize.h"
 #include "utils/udp_thread.h"
@@ -34,13 +35,13 @@ public:
     std::thread* HighFrequencyLoc_thread;
     int data_deque_max_size = 200;
     int front_index = 0;
-    std::deque<std::shared_ptr<BaseType>> data_deque;//TODO 1111 what is the meaning of
+    std::deque<std::shared_ptr<BaseType>> data_deque;//TODO 1111 what is the meaning of, all type of data---Done
     std::deque<std::shared_ptr<DROdometryType>> DR_data_deque;
     std::deque<std::shared_ptr<GNSSOdometryType>> Gnss_data_deque;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToDR;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToMapManager;
     std::function<void(const OdometryType&)> Function_AddLidarOdometryTypeToImageProjection;
-    std::mutex mutex_data;//TODO 1111 what is the meaning of data
+    std::mutex mutex_data;//TODO 1111 what is the meaning of data, all type of data---Done
     std::mutex mutex_DR_data;
     std::mutex Gnssmtx;
     std::mutex mtxGraph;
@@ -74,7 +75,7 @@ public:
     OdometryType current_lidar_world;
     PoseT last_pose;
     PoseT last_DR_pose;
-    bool if_roll_back = 0;//TODO :if abs loc arrived
+    bool if_asb_loc_arrived = 0;//TODO :if abs loc arrived
 
     std::string topic_highHz_pose = "/loc_result";
     std::string topic_testforRollBack_pose = "/loc_result_roll_back";
@@ -125,6 +126,12 @@ public:
     void RollBack(const OdometryType _current_pose,
                   std::deque<std::shared_ptr<DROdometryType>> _DR_data_deque,
                   OdometryType &_current_pose_align){
+        if(!_DR_data_deque.empty()){
+            if(_current_pose.timestamp <_DR_data_deque.front()->timestamp){
+                EZLOG(INFO)<<"FATAL! first lidar is not in DR queue! ";
+                exit(-1);
+            }
+        }
         while(!_DR_data_deque.empty()){
             if(_current_pose.timestamp <_DR_data_deque.front()->timestamp){ // -------lidar | DR DR DR ------>>>>
                 gtsam::Pose3 poseFrom(gtsam::Rot3(_DR_data_deque.front()->pose.GetR()),
@@ -137,8 +144,8 @@ public:
                 _current_pose_align.pose = PoseT(_current_pose.pose.pose * poseFrom.between(poseTo).matrix());
 
                 pubsub->PublishOdometry(topic_testforRollBack_pose, _current_pose_align);
-                _DR_data_deque.clear();//TODO 1111
-                if_roll_back = 1;
+                _DR_data_deque.clear();//TODO 1111-----Done
+                if_asb_loc_arrived = 1;
                 last_pose = _current_pose_align.pose;
 
                 break;
@@ -148,35 +155,6 @@ public:
             }
         }
     }
-
-    //TODO 1111
-    void RollBack(const OdometryType _current_pose,
-                  std::deque<std::shared_ptr<GNSSOdometryType>> _Gnss_data_deque,
-                  OdometryType &_current_pose_align){
-        while(!_Gnss_data_deque.empty()){
-            if(_current_pose.timestamp <_Gnss_data_deque.front()->timestamp){ // -------lidar | DR DR DR ------>>>>
-                gtsam::Pose3 poseFrom(gtsam::Rot3(_Gnss_data_deque.front()->pose.GetR()),
-                                      gtsam::Point3(_Gnss_data_deque.front()->pose.GetXYZ()));
-                gtsam::Pose3 poseTo(gtsam::Rot3(_Gnss_data_deque.back()->pose.GetR()),
-                                    gtsam::Point3(_Gnss_data_deque.back()->pose.GetXYZ()));
-
-                _current_pose_align.frame = "map";
-                _current_pose_align.timestamp = _Gnss_data_deque.back()->timestamp;
-                _current_pose_align.pose = PoseT(_current_pose.pose.pose * poseFrom.between(poseTo).matrix());
-
-                pubsub->PublishOdometry(topic_testforRollBack_pose, _current_pose_align);
-                _Gnss_data_deque.clear();
-                if_roll_back = 1;
-                last_pose = _current_pose_align.pose;
-
-                break;
-            }
-            else{
-                _Gnss_data_deque.pop_front();
-            }
-        }
-    }
-
 
     void Udp_OdomPub(const PoseT& odom_in){
         Vis_Odometry odom_out;
@@ -283,17 +261,6 @@ public:
                         RollBack(current_lidar_world, DR_data_deque, loc_result);
                         mutex_DR_data.unlock();
 
-//                        static int lidar_frame_cnt = 0;
-//                        if(lidar_frame_cnt > 15){
-//                            Gnssmtx.lock();
-//                            EZLOG(INFO)<<" GNSS factor in fuse!";
-//                            RollBack(current_lidar_world, Gnss_data_deque, loc_result);
-//                            Gnssmtx.unlock();
-//                            lidar_frame_cnt = 0;
-//                        }
-//                        lidar_frame_cnt++;
-
-//                        factor
                         last_lidar_pose = current_lidar_pose;
                         lidar_keyFrame_cnt++;
 
@@ -303,10 +270,9 @@ public:
                     //
                     case DataType::GNSS:
                     {
-                        //TODO judge gnss
-                        //receive TODO 1111 shengyi data
+                        //TODO judge gnss -----Done
+                        //receive TODO 1111 shengyi data-----Done
                         GNSSOdometryTypePtr cur_Gnss_odom;
-                        static PoseT last_DR_pose = PoseT(Eigen::Matrix4d::Identity());
                         cur_Gnss_odom = std::static_pointer_cast<GNSSOdometryType>(std::move(front_data));
                         Gnssmtx.lock();
                         Gnss_data_deque.push_back(cur_Gnss_odom);
@@ -396,7 +362,7 @@ public:
 
                     //TODO change name
                     //TODO 1111 add beteween factor when lidar and gnss arrives!!!!!!!!
-                    case DataType::WHEEL:
+                    case DataType::DR:
                     {
                         TicToc t1;
                         // 1. get wheel data and save it to deque
@@ -417,7 +383,7 @@ public:
                         // 3.iteration of DR: update iteration init point when rollback
                         loc_result.frame = "map";
                         loc_result.timestamp = current_timeStamp;
-                        if(if_roll_back){// predict from last rollback
+                        if(if_asb_loc_arrived){// predict from last rollback
                             loc_result.pose.pose = last_pose.pose * delta_pose_DR.pose;
                             last_pose = loc_result.pose.pose;
                         }else{ // normal predict
@@ -431,7 +397,7 @@ public:
                         EZLOG(INFO) << "5 Fuse to map_loder, and the loc_result pose begin:";
                         EZLOG(INFO)<<loc_result.pose.pose;
                         EZLOG(INFO) << "the loc_result pose end";
-                        if(MappingConfig::use_DR_or_fuse_in_loc == 0){
+                        if(LocConfig::use_DR_or_fuse_in_loc == 0){
                             Function_AddLidarOdometryTypeToImageProjection(loc_result);
                         }
                         // TODO loc_result->>>>>>> is high frequency loc result need UDP
