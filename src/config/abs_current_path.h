@@ -3,6 +3,6 @@
 
 #include <string>
 
-const static std::string ABS_CURRENT_SOURCE_PATH = "/home/sy/SEU_WS/seu_lidarloc_new/seu_lidarloc/src";
+const static std::string ABS_CURRENT_SOURCE_PATH = "/home/lsy/SEU/seu_lidarloc/src";
 
 #endif

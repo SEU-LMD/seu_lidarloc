@@ -165,6 +165,8 @@ class MappingConfig{
         static float globalMapLeafSize;//meiyong
         static int scan_2_scan_num_corner;
         static int scan_2_scan_num_surf;
+        static float gnss_pop_threshold;
+        static float gnss_align_threshold;
     };
 
 class LocConfig{
@@ -409,6 +411,8 @@ float MappingConfig::globalMapLeafSize=-1;
 int  MappingConfig::scan_2_scan_num_surf = 1;
 int  MappingConfig::scan_2_scan_num_corner = 1;
 int MappingConfig::use_DR_or_fuse_in_loc = 1;
+float MappingConfig::gnss_pop_threshold = 0.01f ;
+float MappingConfig::gnss_align_threshold = 0.01f;
 
 int LocConfig::maxIters = 30;
 int LocConfig::slam_mode_on = 0;
@@ -709,6 +713,8 @@ void Load_Mapping_YAML(std::string mappingpath)
 //        std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
         MappingConfig:: scan_2_scan_num_surf=mappingconfig["scan_2_scan_num_surf"].as<float >();
         MappingConfig:: scan_2_scan_num_corner=mappingconfig["scan_2_scan_num_corner"].as<float >();
+        MappingConfig:: gnss_pop_threshold=mappingconfig["gnss_pop_threshold"].as<float >();
+        MappingConfig:: gnss_align_threshold=mappingconfig["gnss_align_threshold"].as<float >();
 //        std::cout<<MappingConfig::globalMapLeafSize<<std::endl;
 
         std::cout<<"MappingConfig::mappingProcessInterval"<<MappingConfig::mappingProcessInterval<<std::endl;
