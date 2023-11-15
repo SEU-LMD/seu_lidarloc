@@ -19,6 +19,7 @@
 //#include "pcl/features/normal_3d_omp.h" //by wxq
 //#include "pcl/segmentation/sac_segmentation.h"
 #include "utils/filesys.h"
+#include "config/abs_current_path.h"
 #include "front_end/front_end.h"
 
 #include <fstream>
@@ -38,7 +39,6 @@ public:
 
 class DataPreprocess {
 public:
-    int slam_mode_switch = 1;
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
     std::mutex work_mutex;
@@ -275,8 +275,6 @@ public:
                 continue;
             }
 
-
-
             int columnIdn = -1;//获取列号
 
             float horizonAngle = atan2(thisPoint.x, thisPoint.y) * 180 / M_PI;//水平角分辨率
@@ -427,8 +425,6 @@ public:
                 cur_scan = deque_cloud.front();
 //                deque_cloud.pop_front();//TODO 1111
                 cloud_mutex.unlock();//unlock TODO 1111
-
-
 
                 CloudWithTime cloud_with_time;
                 GetCloudTime(cur_scan, cloud_with_time);
@@ -648,21 +644,13 @@ public:
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
-//        if((lidarScan_cnt > SensorConfig::lidarScanDownSample && MappingConfig::slam_mode_switch == 1)
-//            ||MappingConfig::slam_mode_switch == 0){
-            //        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
-            CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
 
-            *cloud_ptr = data;//深拷贝
-            cloud_mutex.lock();
-            deque_cloud.push_back(cloud_ptr);
-            cloud_mutex.unlock();
-            lidarScan_cnt =0;
-      //  }
-     //   else{
-    //        lidarScan_cnt++;
-    //    }
-
+        CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
+        *cloud_ptr = data;//深拷贝
+        cloud_mutex.lock();
+        deque_cloud.push_back(cloud_ptr);
+        cloud_mutex.unlock();
+        lidarScan_cnt =0;
     }
 
 
@@ -696,8 +684,8 @@ public:
         if(!init)
         {
             double x,y,z;
-            if(slam_mode_switch){
-                std::ifstream downfile(MappingConfig::save_map_path+"Origin.txt");  //打开文件
+            if(LocConfig::slam_mode_on == 1){//loc
+                std::ifstream downfile(LocConfig::save_map_path+"Origin.txt");  //打开文件
                 std::string line; //字符串
                 std::getline(downfile, line);//
                 std::istringstream iss(line);
@@ -770,6 +758,7 @@ public:
         }
 
 //        if(IsFileDirExist(MappingConfig::save_map_path)){
+//        if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
 
             gnss_mutex.lock();
             GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
@@ -790,6 +779,14 @@ public:
             }
 
 //        }
+//        }
+//        else{
+            //TODO
+//            EZLOG(INFO)<<"ABS_CURRENT_SOURCE_PATH+ ../flag_gnss "<<ABS_CURRENT_SOURCE_PATH+"/flag_gnss";
+//            exit(-1);
+//        }
+
+
 
     }
 

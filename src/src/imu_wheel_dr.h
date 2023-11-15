@@ -25,7 +25,7 @@ public:
     std::mutex odom_mutex;
     std::mutex gnssins_mutex;
     std::mutex lidarodom_mutex;
-    std::function<void(const OdometryType&)> Function_AddDROdometryTypeToImageProjection;
+    std::function<void(const OdometryType&)> Function_AddDROdometryTypeToDataPreprocess;
     std::function<void(const DROdometryType&)> Function_AddDROdometryTypeToFuse;
     std::ofstream outfile;
 
@@ -225,7 +225,7 @@ public:
         Odometry_imuPredict_pub.timestamp = currentTime;
         Odometry_imuPredict_pub.frame = "map";
         if(LocConfig::use_DR_or_fuse_in_loc == 1){
-            Function_AddDROdometryTypeToImageProjection(Odometry_imuPredict_pub);
+            Function_AddDROdometryTypeToDataPreprocess(Odometry_imuPredict_pub);
 //            EZLOG(INFO)<<"1 of 2, DR send to data_preprocess. And Send Pose begin: ";
 //            EZLOG(INFO)<<Odometry_imuPredict_pub.pose.pose;
 //            EZLOG(INFO)<<"1 of 2, DR send to data_preprocess. And Send Pose end!";

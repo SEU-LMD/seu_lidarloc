@@ -10,6 +10,7 @@
 #include "data_preprocess.h"
 #include "utils/MapSaver.h"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
+#include "config/abs_current_path.h"
 
 
 class DataCheck  {
@@ -34,7 +35,7 @@ public:
 
     std::string topic_gnss_odom_world = "/gnss_odom_world";
     std::string topic_dr_odom_world = "/dr_odom_world";
-    std::string save_map_path = "/home/lsy/map/";
+    std::string save_map_path = ABS_CURRENT_SOURCE_PATH;
 
     double lidar_start_time;
     double gnss_start_time;

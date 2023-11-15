@@ -8,9 +8,12 @@
 #include "utils/filesys.h"
 #include "utils/udp_thread.h"
 //选择中间件
-//#ifdef X86
+#define X86
+#ifdef X86
 #include "pubsub/ros/ros_pubsub.h"
-//#endif
+#else
+#include "pubsub/mdc/mdc_pubsub.h"
+#endif
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -28,24 +31,20 @@ int main(int argc, char **argv) {
 
     //2.初始化中间件
     PubSubInterface* pubsub;
-    //#ifdef X86
+    #ifdef X86
     pubsub = new ROSPubSub();
-    //#endif
+    #else
+    pubsub = new MDCPubSub();
+    #endif
 
     pubsub->initPubSub(argc, argv, "mapping");
 
     //3.初始化配置参数
     Load_Sensor_YAML("./config/sensor.yaml");
     Load_Mapping_YAML("./config/mapping.yaml");
-
+    Load_FrontEnd_YAML("./config/front_end.yaml");
 
     //TODO 1111 remove !!!!
-    const char* cleint_ip = "192.168.1.116";//move to yaml!!!!! magic number
-    int clinet_port=8000;
-    int server_port=7000;
-    std::shared_ptr<UDP_THREAD> udp_thread = make_shared<UDP_THREAD>();
-    udp_thread->init(cleint_ip,clinet_port,server_port);
-
     //4.启动多个线程
     MappingManager mapping_manager;
     mapping_manager.Init(pubsub);

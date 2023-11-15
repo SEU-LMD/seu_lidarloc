@@ -23,8 +23,6 @@ struct by_value {
     }
 };
 
-
-
 class FeatureExtraction  {
 public:
     PubSubInterface* pubsub;
@@ -132,9 +130,9 @@ public:
 
 
     void ExtractFeatures(CloudInfo& cur_scan,
-                         pcl::PointCloud<PointType>::Ptr cornerCloud,
-                         pcl::PointCloud<PointType>::Ptr surfaceCloud,
-                         pcl::PointCloud<PointType>::Ptr rawCloud) {
+                         pcl::PointCloud<PointType>::Ptr &cornerCloud,
+                         pcl::PointCloud<PointType>::Ptr &surfaceCloud,
+                         pcl::PointCloud<PointType>::Ptr &rawCloud) {
 
         pcl::PointCloud<PointType>::Ptr surfaceCloudScan(new pcl::PointCloud<PointType>());
         pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS(new pcl::PointCloud<PointType>());
@@ -168,8 +166,16 @@ public:
                     //point index
                     int ind = cloudSmoothness[k].ind;
                     //if point
+                    float edgeThreshold;
+                    if(MappingConfig::slam_mode_switch == 1){
+                        edgeThreshold = MappingConfig::edgeThreshold;
+                    }
+                    if(LocConfig::slam_mode_on == 1){
+                        edgeThreshold = LocConfig::edgeThreshold;
+                    }
+
                     if (cloudNeighborPicked[ind] == 0 &&
-                        cloudCurvature[ind] > MappingConfig::edgeThreshold) {
+                        cloudCurvature[ind] > edgeThreshold) {
                         largestPickedNum++;
                         if (largestPickedNum <= 20) {
                             cloudLabel[ind] = 1;
@@ -205,12 +211,18 @@ public:
                         }
                     }
                 }// end! traverse by curvature, from small to large
-
+                float surfThreshold;
+                if(MappingConfig::slam_mode_switch == 1){
+                    surfThreshold = MappingConfig::surfThreshold;
+                }
+                if(LocConfig::slam_mode_on == 1){
+                    surfThreshold = LocConfig::surfThreshold;
+                }
                 //extract surface point
                 for (int k = sp; k <= ep; k++) {
                     int ind = cloudSmoothness[k].ind;
                     if (cloudNeighborPicked[ind] == 0 &&
-                        cloudCurvature[ind] < MappingConfig::surfThreshold) {
+                        cloudCurvature[ind] < surfThreshold) {
                         cloudLabel[ind] = -1;
                         cur_scan.cloud_ptr->points[ind].label = -1;
                         cloudNeighborPicked[ind] = 1;
@@ -306,7 +318,7 @@ public:
                 cur_cloud = deque_cloud.front();
                 deque_cloud.pop_front();
                 cloud_mutex.unlock();
-
+                EZLOG(INFO)<<"cur_cloud size:"<<cur_cloud.cloud_ptr->size();
               //  EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
           //      EZLOG(INFO)<<"cur_cloud.frame_id = "<<cur_cloud.frame_id<<std::endl;
 //                EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
@@ -322,6 +334,7 @@ public:
                 pcl::PointCloud<PointType>::Ptr surfaceCloud(new  pcl::PointCloud<PointType>());
                 pcl::PointCloud<PointType>::Ptr rawCloud(new  pcl::PointCloud<PointType>());
                 ExtractFeatures(cur_cloud, cornerCloud, surfaceCloud,rawCloud);
+                EZLOG(INFO)<<"surfaceCloud size:"<<surfaceCloud->size()<<" cornerCloud size:"<<cornerCloud->size();
 //                EZLOG(INFO)<<"feature extraction cost time(ms) = "<<timer2.toc()<<std::endl;
                 TicToc timer1;
 
