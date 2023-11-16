@@ -175,13 +175,9 @@ bool assign_normal(PointXYZICOLRANGE &pt, pca_feature_t &pca_feature, bool is_pl
 {
     if (is_plane_feature)
     {
-//            EZLOG(INFO)<< "select points step 1" << std::endl;
         pt.normal_x = pca_feature.vectors.normalDirection.x();
-//            EZLOG(INFO)<< "select points step 2" << std::endl;
         pt.normal_y = pca_feature.vectors.normalDirection.y();
-//            EZLOG(INFO)<< "select points step 3" << std::endl;
         pt.normal_z = pca_feature.vectors.normalDirection.z();
-//            EZLOG(INFO)<< "select points step 4" << std::endl;
         pt.normal[3] = pca_feature.planar_2; //planrity
     }
     else
@@ -326,17 +322,7 @@ bool classify_nground_pts(pcl::PointCloud<PointXYZICOLRANGE>::Ptr &cloud_in,//in
                           pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam_down,
                           pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade_down,
                           pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof_down,
-//                              pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_vertex,
-//                              float neighbor_searching_radius, int neighbor_k, int neigh_k_min, int pca_down_rate, // one in ${pca_down_rate} unground points would be select as the query points for calculating pca, the else would only be used as neighborhood points
-//                              float edge_thre, float planar_thre, float edge_thre_down, float planar_thre_down,
-//                              int extract_vertex_points_method, float curvature_thre, float vertex_curvature_non_max_radius,
-//                              float linear_vertical_sin_high_thre, float linear_vertical_sin_low_thre,
-//                              float planar_vertical_sin_high_thre, float planar_vertical_sin_low_thre,
-//                              bool fixed_num_downsampling = false, int pillar_down_fixed_num = 200, int facade_down_fixed_num = 800, int beam_down_fixed_num = 200,
-//                              int roof_down_fixed_num = 100, int unground_down_fixed_num = 20000,
                           float beam_height_max = FLT_MAX, float roof_height_min = -FLT_MAX
-//                              float feature_pts_ratio_guess = 0.3, bool sharpen_with_nms = true,
-//                              bool use_distance_adaptive_pca = false
 )
 {
 
@@ -344,7 +330,7 @@ bool classify_nground_pts(pcl::PointCloud<PointXYZICOLRANGE>::Ptr &cloud_in,//in
 //            random_downsample_pcl(cloud_in, unground_down_fixed_num);
 
     //Do PCA
-//        PrincipleComponentAnalysis<PointT> pca_estimator;
+    //PrincipleComponentAnalysis<PointT> pca_estimator;
     std::vector<pca_feature_t> cloud_features;
 
     typename pcl::KdTreeFLANN<PointXYZICOLRANGE>::Ptr tree(new pcl::KdTreeFLANN<PointXYZICOLRANGE>);
@@ -548,30 +534,14 @@ bool classify_nground_pts(pcl::PointCloud<PointXYZICOLRANGE>::Ptr &cloud_in,//in
 
 
 
-
-
-
-
-
 void fast_ground_filter(
         const pcl::PointCloud<PointXYZICOLRANGE>::Ptr &cloud_in,
         pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground,//地面点
         pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground_down,//降才采样之后的地面点
         pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_unground,//非地面点
-//                            int min_grid_pt_num,
         float max_ground_height = FLT_MAX,
-//                            float grid_resolution,
-//                            int distance_weight_downsampling_method,float standard_distance,int nonground_random_down_rate,
         float intensity_thre = FLT_MAX
-//                            bool apply_grid_wise_outlier_filter = false,float outlier_std_scale = 3.0,
-//                            int reliable_neighbor_grid_num_thre = 0, int ground_random_down_rate = 1,float neighbor_height_diff = 25,
-//                             float max_height_difference = 0.3,int estimate_ground_normal_method = 3,
-//                            float normal_estimation_radius = 2.0, bool fixed_num_downsampling = false,int ground_random_down_down_rate = 2
 
-//                            ,  //estimate_ground_normal_method, 0: directly use (0,0,1), 1: estimate normal in fix radius neighborhood , 2: estimate normal in k nearest neighborhood, 3: use ransac to estimate plane coeffs in a grid
-//                               //standard distance: the distance where the distance_weight is 1
-//                           , int down_ground_fixed_num = 1000,
-//                            bool detect_curb_or_not = false,
 ){
 
     //0.主要功能是计算点云统计信息,为地面点提取做参数准备。计算出平均高度、地面点判定阈值、
@@ -882,65 +852,6 @@ void fast_ground_filter(
                 grid_ground_pcs[i]->points.push_back(grid_ground->points[j]); //Add to ground points
             }
 
-            //使用所有的点拟合平面，并更新地面点的法向量
-            ///使用RANSAC算法对grid的地面点进行平面拟合,以获取地面法向量
-//                if (estimate_ground_normal_method == 3 && grid_ground->points.size() >= min_grid_pt_num)
-//                {
-//                    ++estimate_normal_num;
-////                    std::chrono::steady_clock::time_point tic_ransac = std::chrono::steady_clock::now();
-//                    float normal_x, normal_y, normal_z;
-//
-//                    //RANSAC iteration number equation: p=1-(1-r^N)^M,
-//                    //r is the inlier ratio (> 0.75 in our case), N is 3 in our case (3 points can fit a plane), to get a confidence > 0.99, we need about 20 iteration (M=20)
-//                    /// use estimate_ground_normal_by_ransac函数进行RANSAC平面拟合,获取法向量坐标
-//
-//                    //pcl::PointCloud<PointXYZICOLRANGE>::Ptr grid_ground_tmp(new pcl::PointCloud<PointXYZICOLRANGE>);
-//                    for (int j = 0; j < grid_ground->points.size(); j += 10)
-//                    {
-////                        if (j % ground_random_down_rate_temp == 0 && std::abs(normal_z) > 0.8) //53 deg
-//
-//
-//                            grid_ground->points.push_back(grid_ground->points[j]);
-//                            //cloud_ground->points.push_back(grid_ground->points[j]); //Add to ground points
-//
-//                    }
-//
-////                    EZLOG(INFO)<<"grid_ground->points.size() = "<<grid_ground->points.size();
-////                    TicToc time_9;
-//                    estimate_ground_normal_by_ransac(grid_ground, 0.3 * max_height_difference, 20, normal_x, normal_y, normal_z);
-//                    ransac_time = ransac_time +time_9.toc();
-////                    for (int j = 0; j < grid_ground->points.size(); j++)
-////                    {
-//////                        if (j % ground_random_down_rate_temp == 0 && std::abs(normal_z) > 0.8) //53 deg
-////
-////                        if (j % 10 == 0 && std::abs(normal_z) > 0.8) //53 deg
-////                        {
-////                            grid_ground->points[j].normal_x = normal_x;
-////                            grid_ground->points[j].normal_y = normal_y;
-////                            grid_ground->points[j].normal_z = normal_z;
-////                            grid_ground_pcs[i]->points.push_back(grid_ground->points[j]); //Add to ground points
-////                            //cloud_ground->points.push_back(grid_ground->points[j]); //Add to ground points
-////                        }
-////                    }
-//                    for (int j = 0; j < grid_ground->points.size(); j++)
-//                    {
-////                        if (j % ground_random_down_rate_temp == 0 && std::abs(normal_z) > 0.8) //53 deg
-//
-//                        if (std::abs(normal_z) > 0.8) //53 deg
-//                        {
-//                            grid_ground->points[j].normal_x = normal_x;
-//                            grid_ground->points[j].normal_y = normal_y;
-//                            grid_ground->points[j].normal_z = normal_z;
-//                            grid_ground_pcs[i]->points.push_back(grid_ground->points[j]); //Add to ground points
-//                            //cloud_ground->points.push_back(grid_ground->points[j]); //Add to ground points
-//                        }
-//                    }
-////                    std::chrono::steady_clock::time_point toc_ransac = std::chrono::steady_clock::now();
-////                    std::chrono::duration<double> ground_ransac_time_per_grid = std::chrono::duration_cast<std::chrono::duration<double>>(toc_ransac - tic_ransac);
-////                    consuming_time_ransac += ground_ransac_time_per_grid.count() * 1000.0; //unit: ms
-////                    EZLOG(INFO)<<"consuming_time_ransac "<<consuming_time_ransac;
-//                }// end if (estimate_ground_normal_method == 3 && grid_ground->points.size() >= min_grid_pt_num)
-
             pcl::PointCloud<PointXYZICOLRANGE>().swap(*grid_ground);
 //                estimate_normal_time = estimate_normal_time + time_8.toc();
 //                EZLOG(INFO)<<"time_8.toc() = "<<time_8.toc();
@@ -959,37 +870,6 @@ void fast_ground_filter(
 //
     //free memory
     delete[] grid;
-
-//        ///根据设置的estimate_ground_normal_method,对合并后的地面点cloud_ground计算法线
-//        int normal_estimation_neighbor_k = 2 * min_grid_pt_num;
-//        pcl::PointCloud<pcl::Normal>::Ptr ground_normal(new pcl::PointCloud<pcl::Normal>);
-//        if (estimate_ground_normal_method == 1)
-////            pca_estimator.get_normal_pcar(cloud_ground, normal_estimation_radius, ground_normal);
-//            get_normal_pcar(cloud_ground, normal_estimation_radius, ground_normal);
-//        else if (estimate_ground_normal_method == 2)
-////            pca_estimator.get_normal_pcak(cloud_ground, normal_estimation_neighbor_k, ground_normal);
-//            get_normal_pcak(cloud_ground, normal_estimation_neighbor_k, ground_normal);
-//
-//        //3.对地面点进行随机下采样,并对每个地面点赋值法线
-//        for (int i = 0; i < cloud_ground->points.size(); i++)
-//        {
-//            if (estimate_ground_normal_method == 1 || estimate_ground_normal_method == 2)
-//            {
-//                cloud_ground->points[i].normal_x = ground_normal->points[i].normal_x;
-//                cloud_ground->points[i].normal_y = ground_normal->points[i].normal_y;
-//                cloud_ground->points[i].normal_z = ground_normal->points[i].normal_z;
-//            }
-//            if (!fixed_num_downsampling)
-//            {
-//                //LOG(INFO)<<cloud_ground->points[i].normal_x << "," << cloud_ground->points[i].normal_y << "," << cloud_ground->points[i].normal_z;
-//                if (i % ground_random_down_down_rate == 0)
-//                    cloud_ground_down->points.push_back(cloud_ground->points[i]);
-//            }
-//        }
-
-//
-////        if (fixed_num_downsampling)
-////            random_downsample_pcl(cloud_ground, cloud_ground_down, down_ground_fixed_num);
 
     EZLOG(INFO)<<"finish ground_filter "<<endl;
 //

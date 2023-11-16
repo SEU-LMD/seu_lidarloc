@@ -7,7 +7,7 @@ if_debug: 1
 use_ground_filter: true
 min_grid_pt_num: 8
 #max_ground_height: DBL_MAX #1111111111111
-grid_resolution: 1.5
+grid_resolution: 6.0
 distance_weight_downsampling_method: 0
 standard_distance: 15.0
 nonground_random_down_rate: 1
@@ -24,7 +24,7 @@ fixed_num_downsampling: false
 ground_random_down_down_rate: 2
 
 # unground pts classify
-use_unground_pts_classify: true
+use_unground_pts_classify: false
 neighbor_searching_radius: 1.0
 neighbor_k: 30
 neigh_k_min: 8

@@ -27,7 +27,7 @@ struct by_value {
 class FeatureExtraction  {
 public:
     PubSubInterface* pubsub;
-    std::mutex cloud_mutex;
+    std::mutex cloud_mutex1;
     std::deque<CloudInfo> deque_cloud;
     std::thread* do_work_thread;
     std::thread* save_Map_thread;
@@ -36,7 +36,6 @@ public:
     std::function<void(const CloudFeature&)> Function_AddCloudFeatureToOPTMapping;
 
     MapSaver map_saver;
-    int frame_id = -1;
 
     std::string topic_corner_world= "/cloud_corner";
     std::string topic_surf_world = "/cloud_surface";
@@ -270,18 +269,20 @@ public:
     void DoWork(){
         while(1){
             {
-                std::lock_guard<std::mutex> lock(cloud_mutex);
+                sleep(0.005);
+                std::lock_guard<std::mutex> lock(cloud_mutex1);
                 if(deque_cloud.empty()){
-                    sleep(0.01);
                     continue;
                 }
             }
             {
+                TicToc time_feature_extra;
+
                 CloudInfo cur_cloud;
-                cloud_mutex.lock();
+                cloud_mutex1.lock();
                 cur_cloud = deque_cloud.front();
                 deque_cloud.pop_front();
-                cloud_mutex.unlock();
+                cloud_mutex1.unlock();
 
                 CloudFeature cloud_feature;
 
@@ -386,6 +387,9 @@ public:
                 cloud_feature.cornerCloud = cornerCloud;
                 cloud_feature.surfaceCloud = surfaceCloud;
 
+                EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<endl;
+                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<endl;
+
                 if(FrontEndConfig::slam_mode_switch == 1){
                     Function_AddCloudFeatureToOPTMapping(cloud_feature);
                   //  EZLOG(INFO)<<"3 feature_extraction send to Mapping!And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
@@ -408,6 +412,8 @@ public:
                     pubsub->PublishCloud(topic_surf_world, surf_pub);
                 }
 
+                EZLOG(INFO)<<"time_feature_extra = "<<time_feature_extra.toc()<<endl;
+
             }
 
         }
@@ -415,9 +421,9 @@ public:
 
     void AddCloudData(const CloudInfo& data){
       //  EZLOG(INFO)<<"featureext_AddCloudData  "<<std::endl;
-        cloud_mutex.lock();
+        cloud_mutex1.lock();
         deque_cloud.push_back(data);
-        cloud_mutex.unlock();
+        cloud_mutex1.unlock();
     }
 
     void Init(PubSubInterface* pubsub_){

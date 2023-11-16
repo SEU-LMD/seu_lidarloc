@@ -133,6 +133,7 @@ public:
                                   PoseT& T_w_l_lidar_start) {
         TicToc timer;
 
+        //used
         for (int i = 1; i < (int) pose_deque.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
 
             if (pose_deque[i].timestamp > cloudinfo.min_ros_timestamp){
@@ -164,6 +165,9 @@ public:
             }
             continue;
         }
+
+
+
         return timer.toc();
     }//end FindLidarPoseinDROdom
 
@@ -399,13 +403,14 @@ public:
         while (1) {
 
             {
+                sleep(0.005);
                 std::lock_guard<std::mutex> lock(cloud_mutex);
                 if(deque_cloud.empty()){
-                    sleep(0.01);
                     continue;
                 }
             }
             {
+
                 ///0.do something
                 double drqueue_min_ros_time ;
                 double drqueue_max_ros_time ;
@@ -418,7 +423,7 @@ public:
                 // EZLOG(INFO)<<"drqueue_min_ros_time"<<drqueue_max_ros_time - drqueue_min_ros_time<<endl;
 
                 ///1.get cloud max and min time stamp to
-                TicToc time_getin;
+//                TicToc time_getin;
                 if(!isGetCurrentCloud)
                 {
                     cloud_mutex.lock();
@@ -429,7 +434,7 @@ public:
                     GetCloudTime(cur_scan, cur_cloud_time);
                     cloud_min_ros_timestamp = cur_cloud_time.min_ros_timestamp;
                     cloud_max_ros_timestamp = cur_cloud_time.max_ros_timestamp;
-                    time_getin.tic();
+//                    time_getin.tic();
                     isGetCurrentCloud = true;
 
                 }
@@ -469,7 +474,10 @@ public:
                 // EZLOG(INFO)<<"TIMESTAMP"<<cur_lidar_time-cloud_min_ros_timestamp<<endl;
                 if(drqueue_min_ros_time < cloud_min_ros_timestamp &&
                    drqueue_max_ros_time > cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
-                    EZLOG(INFO)<<"time_getin.toc() = "<<time_getin.toc()<<endl;
+//                    EZLOG(INFO)<<"time_getin.toc() = "<<time_getin.toc()<<endl;
+
+                    TicToc time_dataprep;
+                    TicToc time_dataprep_1;
 
                     isGetCurrentCloud = false;
                     isGetCorrespondingGNSS = false;
@@ -484,18 +492,21 @@ public:
 
                     cloudinfo.frame_id = frame_id++;
                     cloudinfo.timestamp = cur_scan->timestamp;
+                    EZLOG(INFO)<<"time_dataprep_1.toc() = "<<time_dataprep_1.toc()<<endl;
 
-//                    if(cloudinfo.pose_reliable){
-//                        ++GNSS_frames;
-//                    }else{
+                    if(cloudinfo.pose_reliable){
+                        ++GNSS_frames;
+                    }
+//                    else{
 //                        EZLOG(INFO) << "start gnss time:" << s << " end gnss time:" << e << " queue time:" << e - s << " cur lidar time:" << cur_scan->timestamp - s << " queue size:" <<n << endl;
 //                    }
-//                    EZLOG(INFO)<<"find gnss pose num = "<<GNSS_frames<<" / "<<frame_id<<" = "<<(float)GNSS_frames/(float)frame_id;
+                    EZLOG(INFO)<<"find gnss pose num = "<<GNSS_frames<<" / "<<frame_id<<" = "<<(float)GNSS_frames/(float)frame_id;
 
                     /// 1.FindLidarFirstPose
                     PoseT T_w_l_lidar_first_pose;
                     double cost_time_findpose = FindLidarPoseinDROdom(cur_cloud_time, drqueue_copy,//in
                                                                       T_w_l_lidar_first_pose);//out
+                    EZLOG(INFO) << "cost_time_findpose(ms) = " << cost_time_findpose << std::endl;
 
                     cloudinfo.DRPose = T_w_l_lidar_first_pose;
                     Eigen::Vector3d t_w_cur;
@@ -508,11 +519,11 @@ public:
                     ///2.imgprojection
                     ///update rangemat and deskewCloud_body
                     double cost_time_projpc = ProjectPointCloud(cur_cloud_time, drqueue_copy, T_w_l_lidar_first_pose);
-                    //  EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
+                      EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
 
                     ///3.cloudExtraction
                     double cost_time_cloudextraction = CloudExtraction(cloudinfo);
-                    //  EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
+                      EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
 
                     //        //for debug use
                     if(FrontEndConfig::if_debug)
@@ -524,23 +535,34 @@ public:
                         pubsub->PublishCloud(topic_deskw_cloud_to_ft_world, cloud_pub);
                     }
 
-
+                    TicToc time_dataprep_2;
                     ///4. send data to feature extraction node
                     Function_AddCloudInfoToFeatureExtraction(cloudinfo);
-                    EZLOG(INFO)<<"cloudinfo.frame_id"<< cloudinfo.frame_id<<endl;
+                    EZLOG(INFO)<<"time_dataprep_2 = "<<time_dataprep_2.toc()<<endl;
+                    EZLOG(INFO)<<"CloudInfo size:"<<cloudinfo.cloud_ptr -> points.size()
+                    <<" "<< cloudinfo.cloud_ground_down -> points.size()
+                    <<" "<< cloudinfo.cloud_ground -> points.size()
+                    <<" "<< cloudinfo.cloud_unground -> points.size()<<endl;
+
+//                    EZLOG(INFO)<<"cloudinfo.frame_id"<< cloudinfo.frame_id<<endl;
 //                    EZLOG(INFO)
 //                            << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
 //                            << cloudinfo.cloud_ptr->points.size();
                     ///5.pop used odom
+                    TicToc time_dataprep_3;
                     double thresh = cloud_max_ros_timestamp - 0.05f;
                     drodom_mutex.lock();
                     while(DrOdomQueue.front().timestamp < thresh){
                         DrOdomQueue.pop_front();
                     }
                     drodom_mutex.unlock();
+                    EZLOG(INFO)<<"time_dataprep_3 = "<<time_dataprep_3.toc()<<endl;
+
+                    EZLOG(INFO)<<"time_dataprep = "<<time_dataprep.toc()<<endl;
 
                     ResetParameters();
                 }//end function if
+
 
             }
 
