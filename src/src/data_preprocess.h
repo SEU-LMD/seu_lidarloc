@@ -592,7 +592,6 @@ public:
                     } // end if(FrontEndConfig::use_unground_pts_classify)
 
                     ///4. send data to feature extraction node
-//                        ft_extr_ptr->AddCloudData(cloudinfo);
                     Function_AddCloudInfoToFeatureExtraction(cloudinfo);
                     //EZLOG(INFO)
                            // << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "

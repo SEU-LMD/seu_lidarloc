@@ -281,11 +281,6 @@ public:
                 cur_cloud = deque_cloud.front();
                 deque_cloud.pop_front();
                 cloud_mutex.unlock();
-                EZLOG(INFO)<<"cur_cloud size:"<<cur_cloud.cloud_ptr->size();
-              //  EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
-          //      EZLOG(INFO)<<"cur_cloud.frame_id = "<<cur_cloud.frame_id<<std::endl;
-//                EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
-//                EZLOG(INFO)<<"cur_cloud.frame_id = "<<cur_cloud.frame_id<<std::endl;
 
                 //do some work
                 TicToc timer;
@@ -297,7 +292,6 @@ public:
                 pcl::PointCloud<PointType>::Ptr surfaceCloud(new  pcl::PointCloud<PointType>());
                 pcl::PointCloud<PointType>::Ptr rawCloud(new  pcl::PointCloud<PointType>());
                 ExtractFeatures(cur_cloud, cornerCloud, surfaceCloud,rawCloud);
-//                EZLOG(INFO)<<"feature extraction cost time(ms) = "<<timer2.toc()<<std::endl;
                 TicToc timer1;
 
                 CloudFeature cloud_feature;

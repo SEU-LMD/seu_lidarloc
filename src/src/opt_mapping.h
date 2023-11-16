@@ -508,56 +508,7 @@ public:
     }
     void updateInitialGuess(CloudFeature& cur_ft) {
 
-//      //tranform dr to xyz,rpy
-//        Eigen::Vector3d t_lidar_cur;
-//        Eigen::Quaterniond q_lidar_cur;
-//        Eigen::Matrix3d q_lidar_cur_matrix;
-//        float q_lidar_roll, q_lidar_pitch, q_lidar_yaw;
-//
-//        t_lidar_cur = cur_ft.DRPose.GetXYZ();
-//        q_lidar_cur = cur_ft.DRPose.GetQ();
-//        q_lidar_cur.normalize();
-//        q_lidar_cur_matrix = q_lidar_cur.toRotationMatrix();
-//
-//        // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
-//        q_lidar_pitch = asin(-q_lidar_cur_matrix(2, 0)); // 计算pitch
-//        if (cos(q_lidar_pitch) != 0) {
-//            q_lidar_roll = atan2(q_lidar_cur_matrix(2, 1), q_lidar_cur_matrix(2, 2)); // 计算roll
-//            q_lidar_yaw = atan2(q_lidar_cur_matrix(1, 0), q_lidar_cur_matrix(0, 0));  // 计算yaw
-//        } else {
-//            q_lidar_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
-//            q_lidar_yaw = atan2(-q_lidar_cur_matrix(0, 1), q_lidar_cur_matrix(1, 1)); // 计算yaw
-//        }
-//
-//       //tranform gnss to xyz rpy
-//        Eigen::Quaterniond q_gnss_cur;
-//        Eigen::Matrix3d q_gnss_cur_matrix;
-//
-//        t_gnss_cur = cur_ft.pose.GetXYZ();
-//        q_gnss_cur = cur_ft.pose.GetQ();
-//        q_gnss_cur.normalize();
-//        q_gnss_cur_matrix = q_lidar_cur.toRotationMatrix();
-//
-////        double noise_x = cur_ft.cov.block<1,1>(0, 0);
-////        double noise_y = cur_ft.cov.block<1,1>(1, 0);
-////        double noise_z = cur_ft.cov.block<1,1>(2, 0);
-//        for (int i = 0 ; i<3;i++){
-//            for (int j = 0; j<1 ;j++){
-//                noise_x = cur_ft.cov(0,0);
-//                noise_y = cur_ft.cov(1,0);
-//                noise_z = cur_ft.cov(2,0);
-//            }
-//        }
-//
-//        // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
-//        q_gnss_pitch = asin(-q_gnss_cur_matrix(2, 0)); // 计算pitch
-//        if (cos(q_gnss_pitch) != 0) {
-//            q_gnss_roll = atan2(q_gnss_cur_matrix(2, 1), q_gnss_cur_matrix(2, 2)); // 计算roll
-//            q_gnss_yaw = atan2(q_gnss_cur_matrix(1, 0), q_gnss_cur_matrix(0, 0));  // 计算yaw
-//        } else {
-//            q_gnss_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
-//            q_gnss_yaw = atan2(-q_gnss_cur_matrix(0, 1), q_gnss_cur_matrix(1, 1)); // 计算yaw
-//        }
+      //tranform dr to xyz,rpy
         Eigen::Vector3d t_lidar_cur;
         Eigen::Quaterniond q_lidar_cur;
         Eigen::Matrix3d q_lidar_cur_matrix;
@@ -1287,25 +1238,21 @@ public:
                 break;
             lastGPSPoint = curGPSPoint;
 
-           // gtsam::Vector Vector3(3);
-            gtsam::Vector Vector6(6);
-           // Vector6 <<noise_x,noise_y,noise_z,noise_roll,noise_pitch,noise_yaw;
-           // Vector3 << max(noise_x, 1.0), max(noise_y, 1.0), max(noise_z, 1.0);
-            Vector6 << 1e-6,1e-6,1e-6,1e-6,1e-6,1e-6;
-            gtsam::noiseModel::Diagonal::shared_ptr priorNoise = gtsam::noiseModel::Diagonal::Variances(Vector6);
-          //  EZLOG(INFO)<<"prior noise is suucess"<<endl;
+            gtsam::Vector Vector3(3);
+            Vector3 << max(noise_x, 1.0), max(noise_y, 1.0), max(noise_z, 1.0);
+           // Vector6 << 1e-6,1e-6,1e-6,1e-6,1e-6,1e-6;
+           // gtsam::noiseModel::Diagonal::shared_ptr priorNoise = gtsam::noiseModel::Diagonal::Variances(Vector6);
 
-            gtsam::Pose3 gnss_pose_gtsam = gtsam::Pose3(
-                    gtsam::Rot3::RzRyRx(q_gnss_roll, q_gnss_pitch, q_gnss_yaw),
-                    gtsam::Point3(t_gnss_cur[0], t_gnss_cur[1], t_gnss_cur[2]));
+           // gtsam::Pose3 gnss_pose_gtsam = gtsam::Pose3(
+           //         gtsam::Rot3::RzRyRx(q_gnss_roll, q_gnss_pitch, q_gnss_yaw),
+           //         gtsam::Point3(t_gnss_cur[0], t_gnss_cur[0], t_gnss_cur[0]));
 
-            gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(cloudKeyPoses3D->size(), gnss_pose_gtsam,
-                                                        priorNoise));
-           //  gtsam::noiseModel::Diagonal::shared_ptr gps_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
-           //  gtsam::GPSFactor gps_factor(cloudKeyPoses3D->size(), gtsam::Point3(gps_x, gps_y, gps_z), gps_noise);//TODO replace gps factor with priorfactor
-           // gtSAMgraph.add(gps_factor);
-           // EZLOG(INFO)<<"ADD GPS factor successfully!"<<endl;
-           EZLOG(INFO)<<"add gps factor successfully"<<endl;
+          //  gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(cloudKeyPoses3D->size(), gnss_pose_gtsam,
+            //                                            priorNoise));
+             gtsam::noiseModel::Diagonal::shared_ptr gps_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
+             gtsam::GPSFactor gps_factor(cloudKeyPoses3D->size(), gtsam::Point3(gps_x, gps_y, gps_z), gps_noise);//TODO replace gps factor with priorfactor
+            gtSAMgraph.add(gps_factor);
+            EZLOG(INFO)<<"ADD GPS factor successfully!"<<endl;
             isAddGnssKeyFrame == true;
            break;
        }
