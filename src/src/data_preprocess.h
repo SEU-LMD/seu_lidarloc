@@ -464,6 +464,7 @@ public:
                     }
                 }
 
+                ///2.
                 //use absolutue
                 if (!DrOdomQueue.empty() && drqueue_min_ros_time >= cloud_min_ros_timestamp) {
                     auto temp = DrOdomQueue.front();
@@ -616,7 +617,6 @@ public:
                     } // end if(FrontEndConfig::use_unground_pts_classify)
 
                     ///4. send data to feature extraction node
-//                        ft_extr_ptr->AddCloudData(cloudinfo);
                     Function_AddCloudInfoToFeatureExtraction(cloudinfo);
                     EZLOG(INFO)<<"cloudinfo.frame_id"<< cloudinfo.frame_id<<endl;
 //                    EZLOG(INFO)
@@ -647,7 +647,6 @@ public:
         cloud_mutex.unlock();
         lidarScan_cnt =0;
     }
-
 
 
     void Udp_OdomPub(const PoseT& data){
@@ -691,7 +690,7 @@ public:
             else{//mapping
                 geoConverter.Reset(data.lla[0], data.lla[1], data.lla[2]);
                 MapSaver::SaveOriginLLA(data.lla);
-                EZLOG(INFO)<<"save first GNSS points: "<<data.lla[0]<<", "<<data.lla[1]<<", "<<data.lla[2];
+           //     EZLOG(INFO)<<"save first GNSS points: "<<data.lla[0]<<", "<<data.lla[1]<<", "<<data.lla[2];
             }
             init = true;
             return;
@@ -732,10 +731,6 @@ public:
         pubsub->PublishOdometry(topic_gnss_odom_world_origin, T_w_b_pub_origin);
 
         PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
-//        if(flag_first_gnss == false){
-//            First_gnss_pose = T_w_l;
-//            flag_first_gnss = true;
-//        }
 
         OdometryType T_w_l_pub;
         T_w_l_pub.frame = "map";

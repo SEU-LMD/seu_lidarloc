@@ -93,6 +93,7 @@ public:
     Eigen::Affine3f incrementalOdometryAffineFront;
     Eigen::Vector3d t_gnss_cur;
     float q_gnss_roll, q_gnss_pitch, q_gnss_yaw;
+    double noise_x,noise_y,noise_z,noise_roll,noise_pitch,noise_yaw;
 
     vector <pair<int, int>> loopIndexQueue;
     vector <gtsam::Pose3> loopPoseQueue;
@@ -455,7 +456,56 @@ public:
 
     }
 
+    void dataprecess(CloudFeature& cur_ft){
 
+        //tranform gnss to xyz rpy
+        Eigen::Quaterniond q_gnss_cur;
+        Eigen::Matrix3d q_gnss_cur_matrix;
+
+        t_gnss_cur = cur_ft.pose.GetXYZ();
+        q_gnss_cur = cur_ft.pose.GetQ();
+        q_gnss_cur.normalize();
+        q_gnss_cur_matrix = q_gnss_cur.toRotationMatrix();
+
+        double noise_x = cur_ft.cov(0, 0);
+        double noise_y = cur_ft.cov(1,0);
+        double noise_z = cur_ft.cov(2,0);
+        EZLOG(INFO)<<"noise_x"<<noise_x<<"noise_y"<<noise_y<<"noise_z"<<noise_z;
+        noise_roll =cur_ft.cov(3,0);
+        noise_pitch = cur_ft.cov(4,0);
+        noise_yaw = cur_ft.cov(5,0);
+        EZLOG(INFO)<<"noise_roll"<<noise_x<<"noise_pitch"<<noise_y<<"noise_yaw"<<noise_z;
+
+
+
+//        double noise_x = cur_ft.cov.block<1,1>(0, 0);
+//        double noise_y = cur_ft.cov.block<1,1>(1, 0);
+//        double noise_z = cur_ft.cov.block<1,1>(2, 0);
+//        for (int i = 0 ; i<3;i++){
+//            for (int j = 0; j<1 ;j++){
+//                noise_x = cur_ft.cov(0,0);
+//                noise_y = cur_ft.cov(1,0);
+//                noise_z = cur_ft.cov(2,0);
+//                noise_roll =cur_ft.cov(3,0);
+//                noise_pitch = cur_ft.cov(4,0);
+//                noise_yaw = cur_ft.cov(5,0);
+//                EZLOG(INFO)<<"noise_x"<<noise_x<<"noise_y"<<noise_y<<"noise_z"<<noise_z;
+//                EZLOG(INFO)<<"noise_roll"<<noise_x<<"noise_pitch"<<noise_y<<"noise_yaw"<<noise_z;
+//
+//            }
+//        }
+
+        // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
+        q_gnss_pitch = asin(-q_gnss_cur_matrix(2, 0)); // 计算pitch
+        if (cos(q_gnss_pitch) != 0) {
+            q_gnss_roll = atan2(q_gnss_cur_matrix(2, 1), q_gnss_cur_matrix(2, 2)); // 计算roll
+            q_gnss_yaw = atan2(q_gnss_cur_matrix(1, 0), q_gnss_cur_matrix(0, 0));  // 计算yaw
+        } else {
+            q_gnss_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
+            q_gnss_yaw = atan2(-q_gnss_cur_matrix(0, 1), q_gnss_cur_matrix(1, 1)); // 计算yaw
+        }
+
+    }
     void updateInitialGuess(CloudFeature& cur_ft) {
 
       //tranform dr to xyz,rpy
@@ -478,27 +528,6 @@ public:
             q_lidar_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
             q_lidar_yaw = atan2(-q_lidar_cur_matrix(0, 1), q_lidar_cur_matrix(1, 1)); // 计算yaw
         }
-
-       //tranform gnss to xyz rpy
-        Eigen::Quaterniond q_gnss_cur;
-        Eigen::Matrix3d q_gnss_cur_matrix;
-
-        t_gnss_cur = cur_ft.pose.GetXYZ();
-        q_gnss_cur = cur_ft.pose.GetQ();
-        q_gnss_cur.normalize();
-        q_gnss_cur_matrix = q_lidar_cur.toRotationMatrix();
-
-        // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
-        q_gnss_pitch = asin(-q_gnss_cur_matrix(2, 0)); // 计算pitch
-        if (cos(q_gnss_pitch) != 0) {
-            q_gnss_roll = atan2(q_gnss_cur_matrix(2, 1), q_gnss_cur_matrix(2, 2)); // 计算roll
-            q_gnss_yaw = atan2(q_gnss_cur_matrix(1, 0), q_gnss_cur_matrix(0, 0));  // 计算yaw
-        } else {
-            q_gnss_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
-            q_gnss_yaw = atan2(-q_gnss_cur_matrix(0, 1), q_gnss_cur_matrix(1, 1)); // 计算yaw
-        }
-
-
         incrementalOdometryAffineFront = trans2Affine3f(current_T_m_l);
 
         if (cloudKeyPoses3D->points.empty()) {
@@ -1098,19 +1127,16 @@ public:
         return value;
     }
 
-    bool SaveLidarKeyFrame() {
+    bool IsKeyFrame() {
 
         if (cloudKeyPoses3D->points.empty()) return true;
-
-        if (SensorConfig::sensor == LidarType::LIVOX) {
-            if (timeLaserInfoCur - cloudKeyPoses6D->back().time > 1.0) return true;
-        }
 
         Eigen::Affine3f transStart = pclPointToAffine3f(cloudKeyPoses6D->back());
 
         Eigen::Affine3f transFinal = pcl::getTransformation(
                 current_T_m_l[3], current_T_m_l[4], current_T_m_l[5],
                 current_T_m_l[0], current_T_m_l[1], current_T_m_l[2]);
+
 
         Eigen::Affine3f transBetween = transStart.inverse() * transFinal;
         float x, y, z, roll, pitch, yaw;
@@ -1184,9 +1210,10 @@ public:
                 break;
             }
             cloud_mutex.unlock();
-            double noise_x = 1;
-            double noise_y = 1;
-            double noise_z = 1;
+//            double noise_x = 1;
+//            double noise_y = 1;
+//            double noise_z = 1;
+              EZLOG(INFO)<<noise_x<<","<<noise_y<<" ,"<<noise_z<<endl;
 
             if (abs(noise_x) > SensorConfig::gpsCovThreshold || abs(noise_y) > SensorConfig::gpsCovThreshold)
                 break;
@@ -1195,16 +1222,13 @@ public:
             double gps_y = t_gnss_cur[1];
             double gps_z = t_gnss_cur[2];
 
-
             if (!SensorConfig::useGpsElevation) {
                 gps_z = current_T_m_l[5];
                 noise_z = 0.001;
             }
-
             if (abs(gps_x) < 1e-6 && abs(gps_y) < 1e-6)
                 continue;
 
-            // Add GPS every a few meters
             PointType curGPSPoint;
             curGPSPoint.x = gps_x;
             curGPSPoint.y = gps_y;
@@ -1398,7 +1422,6 @@ public:
 
         while(1){
 
-
             bool isEmpty = false;
             {
                 std::lock_guard<std::mutex> lock(cloud_mutex);
@@ -1421,24 +1444,29 @@ public:
 
                 static double timeLastProcessing = -1;
                 if (timeLaserInfoCur - timeLastProcessing >=MappingConfig::mappingProcessInterval) {
-                  //  if (SaveLidarKeyFrame() == true) {//TODO keyframe starategy
+                  //  if (IsKeyFrame() == true) {//TODO keyframe starategy
+                      //  EZLOG(INFO)<<"IS keyFRame"<<endl;
                     timeLastProcessing = timeLaserInfoCur;
+                    dataprecess(cur_ft);
                     updateInitialGuess(cur_ft);//TODO
                     if (systemInitialized) {
-                        TicToc t1;
-                        extractSurroundingKeyFrames();
-                        EZLOG(INFO)<<" extractSurroundingKeyFrames COST TIME"<<t1.toc()<<endl;
-                        downsampleCurrentScan();
-                        TicToc t3;
-                        scan2MapOptimization();
-                        EZLOG(INFO)<<" scan2MapOptimization COST TIME"<<t3.toc()<<endl;
-                        TicToc t4;
-                        FactorOptandSavecloud();
-                        EZLOG(INFO)<<" saveKeyFramesAndFactor COST TIME"<<t4.toc()<<endl;
-                        TicToc t5;
-                        correctPoses();
-                        EZLOG(INFO)<<" correctPoses COST TIME"<<t5.toc()<<endl;
-                        publishOdometry();
+                        if(IsKeyFrame() == true){
+                           // TicToc t1;
+                            extractSurroundingKeyFrames();
+                          //  EZLOG(INFO)<<" extractSurroundingKeyFrames COST TIME"<<t1.toc()<<endl;
+                            downsampleCurrentScan();
+                           // TicToc t3;
+                            scan2MapOptimization();
+                           // EZLOG(INFO)<<" scan2MapOptimization COST TIME"<<t3.toc()<<endl;
+                           // TicToc t4;
+                            FactorOptandSavecloud();
+                           // EZLOG(INFO)<<" saveKeyFramesAndFactor COST TIME"<<t4.toc()<<endl;
+                          //  TicToc t5;
+                            correctPoses();
+                          //  EZLOG(INFO)<<" correctPoses COST TIME"<<t5.toc()<<endl;
+                            publishOdometry();
+
+                        }
 
                     }
                 }
