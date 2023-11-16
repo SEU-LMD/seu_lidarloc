@@ -96,7 +96,7 @@ class SensorConfig{
 class MappingConfig{
     public:
         static int slam_mode_switch;
-        static int if_debug;
+
         static Eigen::Vector3d origin_gnss;
         static bool use_deskew;
         // save map
@@ -199,6 +199,8 @@ class SerializeConfig{
 
 class FrontEndConfig{
     public:
+    static int slam_mode_switch;
+    static int if_debug;
     static bool use_ground_filter;
     static int min_grid_pt_num;
     static float max_ground_height;
@@ -326,7 +328,6 @@ bool SensorConfig::use_drodom_deskew =false;
 int SensorConfig::lidarScanDownSample = 2;
 
 int MappingConfig::slam_mode_switch = 0;
-int MappingConfig::if_debug = 1;
 std::string MappingConfig::save_map_path = "";
 
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
@@ -413,6 +414,8 @@ double SerializeConfig::setLeafSize = 0.6;
 double SerializeConfig::sequence_num = 271;
 
 // ground filter
+int FrontEndConfig::slam_mode_switch = 0;
+int FrontEndConfig::if_debug = 1;
 bool FrontEndConfig::use_ground_filter = true;
 int FrontEndConfig::min_grid_pt_num = 8;
 //float FrontEndConfig::max_ground_height = 50.0;
@@ -604,7 +607,6 @@ void Load_Mapping_YAML(std::string mappingpath)
         }
 
         MappingConfig::slam_mode_switch = mappingconfig["slam_mode_switch"].as<int>();
-        MappingConfig::if_debug = mappingconfig["if_debug"].as<int>();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();
 
@@ -654,7 +656,6 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig:: gnss_align_threshold=mappingconfig["gnss_align_threshold"].as<float >();
 
         std::cout<<"MappingConfig::mappingProcessInterval"<<MappingConfig::mappingProcessInterval<<std::endl;
-        std::cout<<"MappingConfig::if_debug: "<<MappingConfig::if_debug<<std::endl;
         std::cout<<"MappingConfig::DownSampleModeSwitch: "<< MappingConfig::DownSampleModeSwitch<<std::endl;
 
         std::cout<<"MappingConfig::odometrySurfRadiusSize_US: "<<MappingConfig::odometrySurfRadiusSize_US<<std::endl;
@@ -733,7 +734,8 @@ void Load_FrontEnd_YAML(std::string frontendpath)
         std::cout<<"front_end yaml read error!"<<frontendpath<<std::endl;
         exit(1);
     }
-
+    FrontEndConfig::slam_mode_switch = frontendconfig["slam_mode_switch"].as<int>();
+    FrontEndConfig::if_debug = frontendconfig["if_debug"].as<int>();
 // ground filter
     FrontEndConfig::use_ground_filter = frontendconfig["use_ground_filter"].as<bool>();
     FrontEndConfig::min_grid_pt_num = frontendconfig["min_grid_pt_num"].as<int>();

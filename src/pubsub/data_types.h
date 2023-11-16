@@ -233,9 +233,9 @@ CloudInfo& CloudInfo::operator=(const CloudInfo& d){
     endRingIndex = d.endRingIndex;
 
     *cloud_ptr = *d.cloud_ptr;
-    cloud_ground = d.cloud_ground;
-    cloud_ground_down = d.cloud_ground_down;
-    cloud_unground = d.cloud_unground;
+    *cloud_ground = *d.cloud_ground;
+    *cloud_ground_down = *d.cloud_ground_down;
+    *cloud_unground = *d.cloud_unground;
     return *this;
 }
 class CloudFeature{

@@ -74,13 +74,7 @@ public:
     std::string topic_deskw_cloud_to_ft_world = "/deskw_cloud_to_ft_world";
     std::string topic_imuodom_curlidartime_world = "/imuodom_curlidartime_world";
 
-    std::string topic_ground_world = "/ground_world";
-    std::string topic_unground_world = "/unground_world";
 
-    std::string topic_cloud_pillar_world = "/cloud_pillar_world";
-    std::string topic_cloud_beam_world = "/cloud_beam_world";
-    std::string topic_cloud_facade_world = "/cloud_facade_world";
-    std::string topic_cloud_roof_world = "/cloud_roof_world";
 
     pcl::PointCloud<PointType>::Ptr deskewCloud_body;//去畸变之后的全部点云
     cv::Mat rangeMat;
@@ -158,7 +152,7 @@ public:
 
                 //pusblish world origin cloud
                 //for debug use
-                if(MappingConfig::if_debug)
+                if(FrontEndConfig::if_debug)
                 {
                     CloudTypeXYZIRT cur_scan_cloud_w;
                     cur_scan_cloud_w.timestamp = cloudinfo.cloud_ptr->timestamp;
@@ -316,7 +310,7 @@ public:
 
             //just for show
             //TODO 1111 delete!!!!! if(debug)----------Done
-            if(MappingConfig::if_debug) {
+            if(FrontEndConfig::if_debug) {
                 auto thisPoint_offset = thisPoint;
                 thisPoint_offset.z = thisPoint_offset.z + 20.0;
                 deskewCloud_body_offset.points.push_back(thisPoint_offset);
@@ -332,7 +326,7 @@ public:
 //        EZLOG(INFO)<<"rangemat_outlier num = "<<rangemat_outlier<<std::endl;
 
 ////        for debug use
-        if(MappingConfig::if_debug)
+        if(FrontEndConfig::if_debug)
         {
             CloudTypeXYZI cloud_pub;
             cloud_pub.timestamp = cloudinfo.cloud_ptr->timestamp;
@@ -521,7 +515,7 @@ public:
                     //  EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
 
                     //        //for debug use
-                    if(MappingConfig::if_debug)
+                    if(FrontEndConfig::if_debug)
                     {
                         CloudTypeXYZICOLRANGE cloud_pub;
                         cloud_pub.timestamp = cloudinfo.timestamp;
@@ -530,91 +524,6 @@ public:
                         pubsub->PublishCloud(topic_deskw_cloud_to_ft_world, cloud_pub);
                     }
 
-                    ///ground filter
-                    if(FrontEndConfig::use_ground_filter){
-
-                        TicToc time_gf;
-
-                        EZLOG(INFO) << "points size: " << cloudinfo.cloud_ptr->size() << std::endl;
-                        fast_ground_filter(cloudinfo.cloud_ptr,
-                                           cloudinfo.cloud_ground,
-                                           cloudinfo.cloud_ground_down,
-                                           cloudinfo.cloud_unground
-                        );
-                        double time_ground_filter = time_gf.toc();
-
-                        EZLOG(INFO)<<"time_ground_filter = "<<time_ground_filter<<endl;
-
-                        if(MappingConfig::if_debug)
-                        {
-                            CloudTypeXYZICOLRANGE ground_pub,unground_pub;
-                            ground_pub.timestamp = cloudinfo.timestamp;
-                            ground_pub.frame = "map";
-                            pcl::transformPointCloud(*cloudinfo.cloud_ground, ground_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-                            pubsub->PublishCloud(topic_ground_world, ground_pub);
-                            unground_pub.timestamp = cloudinfo.timestamp;
-                            unground_pub.frame = "map";
-                            pcl::transformPointCloud(*cloudinfo.cloud_unground, unground_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-                            pubsub->PublishCloud(topic_unground_world, unground_pub);
-                        }
-                    }
-
-                    if(FrontEndConfig::use_unground_pts_classify){
-
-                        ///classify_nground_pts
-
-                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar (new pcl::PointCloud<PointXYZICOLRANGE>);
-                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam (new pcl::PointCloud<PointXYZICOLRANGE>);
-                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade (new pcl::PointCloud<PointXYZICOLRANGE>);
-                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof (new pcl::PointCloud<PointXYZICOLRANGE>);
-                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_pillar_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_beam_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_facade_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_roof_down (new pcl::PointCloud<PointXYZICOLRANGE>);
-                        pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_vertex (new pcl::PointCloud<PointXYZICOLRANGE>);
-
-                        EZLOG(INFO)<<"cloud_unground->points.size() =  "<<cloudinfo.cloud_unground->points.size()<<endl;
-
-                        TicToc time_classify_nground_pts;
-
-                        classify_nground_pts(cloudinfo.cloud_unground,cloud_pillar,cloud_beam,cloud_facade,cloud_roof,
-                                             cloud_pillar_down,cloud_beam_down,cloud_facade_down,cloud_roof_down
-                        );
-                        EZLOG(INFO)<<"time_classify_nground_pts.toc() =  "<<time_classify_nground_pts.toc()<<endl;
-
-                        EZLOG(INFO)<<"cloud_pillar->points.size() =  "<<cloud_pillar->points.size()<<endl;
-                        EZLOG(INFO)<<"cloud_beam->points.size() =  "<<cloud_beam->points.size()<<endl;
-                        EZLOG(INFO)<<"cloud_facade->points.size() =  "<<cloud_facade->points.size()<<endl;
-                        EZLOG(INFO)<<"cloud_roof->points.size() =  "<<cloud_roof->points.size()<<endl;
-
-                        if(MappingConfig::if_debug)
-                        {
-
-                            CloudTypeXYZICOLRANGE cloud_pillar_pub,cloud_beam_pub,cloud_facade_pub,cloud_roof_pub;
-                            cloud_pillar_pub.timestamp = cur_scan->timestamp;
-                            cloud_beam_pub.timestamp = cur_scan->timestamp;
-                            cloud_facade_pub.timestamp = cur_scan->timestamp;
-                            cloud_roof_pub.timestamp = cur_scan->timestamp;
-                            cloud_pillar_pub.frame = "map";
-                            cloud_beam_pub.frame = "map";
-                            cloud_facade_pub.frame = "map";
-                            cloud_roof_pub.frame = "map";
-//                            cloud_pillar_pub.cloud = *cloud_pillar;
-//                            cloud_beam_pub.cloud = *cloud_beam;
-//                            cloud_facade_pub.cloud = *cloud_facade;
-//                            cloud_roof_pub.cloud = *cloud_roof;
-                            pcl::transformPointCloud(*cloud_pillar, cloud_pillar_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-                            pcl::transformPointCloud(*cloud_beam, cloud_beam_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-                            pcl::transformPointCloud(*cloud_facade, cloud_facade_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-                            pcl::transformPointCloud(*cloud_roof, cloud_roof_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-                            pubsub->PublishCloud(topic_cloud_pillar_world, cloud_pillar_pub);
-                            pubsub->PublishCloud(topic_cloud_beam_world, cloud_beam_pub);
-                            pubsub->PublishCloud(topic_cloud_facade_world, cloud_facade_pub);
-                            pubsub->PublishCloud(topic_cloud_roof_world, cloud_roof_pub);
-
-                        }
-
-                    } // end if(FrontEndConfig::use_unground_pts_classify)
 
                     ///4. send data to feature extraction node
                     Function_AddCloudInfoToFeatureExtraction(cloudinfo);
@@ -747,7 +656,7 @@ public:
 //        EZLOG(INFO)<<"gnss_ins_out.rpy_sigma"<<data.rpy_sigma<<endl;
 
 
-        if(MappingConfig::if_debug) {
+        if(FrontEndConfig::if_debug) {
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
         }
 
@@ -803,16 +712,6 @@ public:
         pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
         pubsub->addPublisher(topic_gnss_odom_world_origin, DataType::ODOMETRY,2000);
         pubsub->addPublisher(topic_imuodom_curlidartime_world, DataType::ODOMETRY,2000);
-
-        pubsub->addPublisher(topic_ground_world,DataType::LIDAR,1);
-        pubsub->addPublisher(topic_unground_world,DataType::LIDAR,1);
-
-        pubsub->addPublisher(topic_cloud_pillar_world,DataType::LIDAR,1);
-        pubsub->addPublisher(topic_cloud_beam_world,DataType::LIDAR,1);
-        pubsub->addPublisher(topic_cloud_facade_world,DataType::LIDAR,1);
-        pubsub->addPublisher(topic_cloud_roof_world,DataType::LIDAR,1);
-
-
 
         do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
         EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
