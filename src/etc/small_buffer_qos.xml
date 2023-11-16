@@ -1,0 +1,70 @@
+<qos>
+    <profile name="DDSQosProfile">
+        <domain_participant name="domain_0_192.168.1.6">
+            <transport>
+                <mask>TRANSPORT_UDP</mask>
+            </transport>
+            <transport_interfaces>
+                <interfaces>
+                    <interface>192.168.1.6</interface>
+                </interfaces>
+            </transport_interfaces>
+        </domain_participant>
+        <datareader name="domain_0_192.168.1.6_2304_13_LidarReportEncodedDdsEvent_reader">
+            <durability>
+                <kind>VOLATILE_DURABILITY_QOS</kind>
+            </durability>
+            <reliability>
+                <kind>RELIABLE_RELIABILITY_QOS</kind>
+            </reliability>
+            <destination_order>
+                <kind>BY_RECEPTION_TIMESTAMP_DESTINATIONORDER_QOS</kind>
+            </destination_order>
+            <history>
+                <kind>KEEP_LAST_HISTORY_QOS</kind>
+                <depth>1</depth>
+            </history>
+            <transport>
+                <mask>TRANSPORT_UDP</mask>
+            </transport>
+            <transchannel>
+                <Channel>TRANS_CHANNEL_SHM</Channel>
+                <ShmId>150994957</ShmId>
+                <FragSize>7400000</FragSize>
+                <ListSize>33</ListSize>
+            </transchannel>
+            <ignore_local_participant>
+                <value>false</value>
+            </ignore_local_participant>
+        </datareader>
+        <datawriter name="domain_0_192.168.1.6_4672_113_LocationDdsEvent_writer">
+            <durability>
+                <kind>VOLATILE_DURABILITY_QOS</kind>
+            </durability>
+            <reliability>
+                <kind>RELIABLE_RELIABILITY_QOS</kind>
+            </reliability>
+            <destination_order>
+                <kind>BY_RECEPTION_TIMESTAMP_DESTINATIONORDER_QOS</kind>
+            </destination_order>
+            <history>
+                <kind>KEEP_LAST_HISTORY_QOS</kind>
+                <depth>3</depth>
+            </history>
+            <transport>
+                <mask>TRANSPORT_UDP</mask>
+            </transport>
+            <transchannel>
+                <Channel>TRANS_CHANNEL_UDP_SHM</Channel>
+                <ShmId>306184305</ShmId>
+                <FragSize>204800</FragSize>
+                <ListSize>20</ListSize>
+            </transchannel>
+            <transport_priority>
+                <value>0</value>
+            </transport_priority>
+        </datawriter>
+        <topic name="domain_0_192.168.1.6_4672_113_LocationDdsEvent"></topic>
+        <topic name="domain_0_192.168.1.6_2304_13_LidarReportEncodedDdsEvent"></topic>
+    </profile>
+</qos>
