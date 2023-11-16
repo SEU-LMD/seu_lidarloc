@@ -4,7 +4,7 @@
   slam_mode_switch: 0
 
 # 1 for debug (pub to rviz),0 for not debug
-  if_debug: 0
+  if_debug: 1
 #  if_use_
 
   # the path of map save
@@ -59,5 +59,5 @@
 
   #LM opt
   maxIters: 20
-  gnss_align_threshold: 0.02
-  gnss_pop_threshold: 0.0
+  gnss_align_threshold: 0.01
+  gnss_pop_threshold: -0.5

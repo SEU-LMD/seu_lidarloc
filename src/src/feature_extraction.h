@@ -27,7 +27,6 @@ class FeatureExtraction  {
 public:
     PubSubInterface* pubsub;
     std::mutex cloud_mutex;
-    std::mutex work_mutex;
     std::deque<CloudInfo> deque_cloud;
     std::thread* do_work_thread;
     std::thread* save_Map_thread;
@@ -307,7 +306,7 @@ public:
            // EZLOG(INFO)<<"featureext_DoWork while "<<std::endl;
             bool isempty = false;
             {
-                std::lock_guard<std::mutex> lock(work_mutex);
+                std::lock_guard<std::mutex> lock(cloud_mutex);
                 isempty = deque_cloud.empty();
             }
 
