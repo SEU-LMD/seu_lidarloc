@@ -11,7 +11,7 @@ set(UDP_DIRS $${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc/include/aarch64-linux-gnu)
 
 
 
-set(Communication_LIBS  ${CMAKE_CURRENT_SOURCE_DIR}/lib/libposition.a
+set(Communication_LIBS  ${CMAKE_CURRENT_SOURCE_DIR}/../env/lib/libposition.a
         /opt/platform/mdc_platform/lib/liblogging.so.1
         /opt/platform/mdc_platform/lib/libplog.so.1
         /opt/platform/mdc_platform/lib/liblog.so.1

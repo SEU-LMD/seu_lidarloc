@@ -59,6 +59,7 @@ add_subdirectory(./ThirdParty/GeographicLib/)
 include_directories(
         ./
         ./src
+        ./front_end
         ${Communication_DIR}
         ${PCL_INCLUDE_DIRS}
         ${OpenCV_INCLUDE_DIRS}
@@ -90,3 +91,9 @@ target_link_libraries(mapping ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LI
 
 #add_executable(loc app_loc/loc.cpp)
 #target_link_libraries(loc ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic  gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+
+#add_executable(dr_calib app_dr_calib/dr_calib.cpp)
+#target_link_libraries(dr_calib ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES
+
+#add_executable(data_check app_datacheck/datacheck.cpp)
+#target_link_libraries(data_check ${Communication_LIBS} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} libGeographic gtsam ${YAML_LIB})#YAML_CPP_LIBRARIES

@@ -18,6 +18,11 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
+#include "pcl/conversions.h"
+#include "pcl/point_cloud.h"
+#include "pcl/point_types.h"
+#include  <pcl_conversions/pcl_conversions.h>
+
 
 Eigen::Vector3d imu_angular_bias;
 Eigen::Vector3d imu_linear_acc_bias;

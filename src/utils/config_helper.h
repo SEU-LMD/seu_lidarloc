@@ -143,7 +143,10 @@ class MappingConfig{
         static int historyKeyframeSearchNum;
         static float  historyKeyframeFitnessScore;//
 
-    };
+        static float gnss_pop_threshold;
+        static float gnss_align_threshold;
+
+};
 
 class LocConfig{
 public:
@@ -158,6 +161,8 @@ public:
     static float odometrySurfRadiusSize_US;
     static float mappingCornerRadiusSize_US;
     static float mappingSurfRadiusSize_US;
+    static float edgeThreshold;
+    static float surfThreshold;
 
     // robot motion constraint (in case you are using a 2D robot)
     static float z_tollerance;
@@ -328,6 +333,7 @@ Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
 // LOAM feature threshold
 float MappingConfig::edgeThreshold=-1;
 float MappingConfig::surfThreshold=-1;
+
 int  MappingConfig::edgeFeatureMinValidNum=-1;
 int  MappingConfig::surfFeatureMinValidNum=-1;
 
@@ -366,12 +372,16 @@ float MappingConfig::historyKeyframeFitnessScore=-1;
 
 //mapping
 int MappingConfig::use_DR_or_fuse_in_loc = 1;
+float MappingConfig::gnss_pop_threshold = 0.01f ;
+float MappingConfig::gnss_align_threshold = 0.01f;
 
 int LocConfig::maxIters = 30;
 int LocConfig::slam_mode_on = 0;
 std::string LocConfig::save_map_path = "";
 int  LocConfig::edgeFeatureMinValidNum=-1;
 int  LocConfig::surfFeatureMinValidNum=-1;
+float LocConfig::edgeThreshold = 1.0;
+float LocConfig::surfThreshold = 1.0;
 float LocConfig::odometrySurfRadiusSize_US = 0.6;
 float LocConfig::mappingCornerRadiusSize_US = 0.4;
 float LocConfig::mappingSurfRadiusSize_US = 0.6;
@@ -603,7 +613,6 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::surfThreshold=mappingconfig["surfThreshold"].as<float >();
         MappingConfig::edgeFeatureMinValidNum=mappingconfig["edgeFeatureMinValidNum"].as<int >();
         MappingConfig::surfFeatureMinValidNum=mappingconfig["surfFeatureMinValidNum"].as<int >();
-//        std::cout<<MappingConfig::surfFeatureMinValidNum<<std::endl;
 
         //voxel filter paprams
         MappingConfig::DownSampleModeSwitch = mappingconfig["DownSampleModeSwitch"].as<int>();
@@ -624,7 +633,6 @@ void Load_Mapping_YAML(std::string mappingpath)
 
         //CPU Params
         MappingConfig::mappingProcessInterval=mappingconfig["mappingProcessInterval"].as<float >();
-//        std::cout<<MappingConfig::mappingProcessInterval<<std::endl;
 
         //Surrounding map
         MappingConfig::surroundingkeyframeAddingDistThreshold=mappingconfig["surroundingkeyframeAddingDistThreshold"].as<double >();
@@ -642,6 +650,9 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::historyKeyframeSearchNum=mappingconfig["historyKeyframeSearchNum"].as<int >();
         MappingConfig::historyKeyframeFitnessScore=mappingconfig["historyKeyframeFitnessScore"].as<float >();
         MappingConfig::use_DR_or_fuse_in_loc = mappingconfig["use_DR_or_fuse_in_loc"].as<int>();
+        MappingConfig:: gnss_pop_threshold=mappingconfig["gnss_pop_threshold"].as<float >();
+        MappingConfig:: gnss_align_threshold=mappingconfig["gnss_align_threshold"].as<float >();
+
         std::cout<<"MappingConfig::mappingProcessInterval"<<MappingConfig::mappingProcessInterval<<std::endl;
         std::cout<<"MappingConfig::if_debug: "<<MappingConfig::if_debug<<std::endl;
         std::cout<<"MappingConfig::DownSampleModeSwitch: "<< MappingConfig::DownSampleModeSwitch<<std::endl;
@@ -668,6 +679,8 @@ void Load_Loc_YAML(std::string locPath){
     LocConfig::surfFeatureMinValidNum=LocConfig["surfFeatureMinValidNum"].as<int >();
     LocConfig::mappingCornerRadiusSize_US = LocConfig["mappingCornerRadiusSize_US"].as<float >();
     LocConfig::mappingSurfRadiusSize_US = LocConfig["mappingSurfRadiusSize_US"].as<float >();
+    LocConfig::edgeThreshold = LocConfig["edgeThreshold"].as<float>();
+    LocConfig::surfThreshold = LocConfig["surfThreshold"].as<float>();
     LocConfig::z_tollerance=LocConfig["z_tollerance"].as<float >();
     LocConfig::rotation_tollerance=LocConfig["rotation_tollerance"].as<float >();
     LocConfig::mappingProcessInterval=LocConfig["mappingProcessInterval"].as<float >();

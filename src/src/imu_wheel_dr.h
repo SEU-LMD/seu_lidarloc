@@ -93,7 +93,7 @@ public:
         Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
         state.v_w_ = state_v_w;
         state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
-       // EZLOG(INFO)<<state.p_wb_.x()<< " "<< state.p_wb_.y() <<" "<<state.p_wb_.z()<<endl;
+//        EZLOG(INFO)<<state.p_wb_.x()<< " "<< state.p_wb_.y() <<" "<<state.p_wb_.z()<<endl;
 
         last_state = state;
     }
@@ -131,7 +131,7 @@ public:
                 std::getline(downfile, line);//
                 std::istringstream iss(line);
                 iss >> x >> y >> z;
-               // EZLOG(INFO)<<"First GNSS position: "<<x<<", "<<y<<", "<<z;
+                EZLOG(INFO)<<"First GNSS position: "<<x<<", "<<y<<", "<<z;
                 downfile.close(); // 关闭文件
                 geoConverter.Reset(x, y, z);
             }
@@ -182,7 +182,7 @@ public:
 
                     load_first_gnss_point = true;
                     gnss_cnt = 0;
-                   // EZLOG(INFO)<<"RESET DR with GNSS: t_w_b"<<t_w_b.transpose()<<",R_w_b"<<R_w_b;
+//                    EZLOG(INFO)<<"RESET DR with GNSS: t_w_b"<<t_w_b.transpose()<<",R_w_b"<<R_w_b;
                 }
             }
 
@@ -210,7 +210,7 @@ public:
         lidar_preditct_pose_Rwl_ = state.Rwb_ * R_b_l;
         lidar_preditct_pose_p_wl_ = state.Rwb_ * (SensorConfig::T_L_B.inverse().block<3,1>(0, 3)) + state.p_wb_; // 地面存在高程误差——外参？ 建图？
 //        lidar_preditct_pose_p_wl_ =  lidar_preditct_pose_p_wl_ + SensorConfig::T_L_DR.block<3,1>(0,3);
-      //  EZLOG(INFO) << lidar_preditct_pose_p_wl_.x() << " " << lidar_preditct_pose_p_wl_.y() << " " << lidar_preditct_pose_p_wl_.z() << endl;
+//        EZLOG(INFO) << lidar_preditct_pose_p_wl_.x() << " " << lidar_preditct_pose_p_wl_.y() << " " << lidar_preditct_pose_p_wl_.z() << endl;
 
         PoseT lidar_preditct_pose(lidar_preditct_pose_p_wl_, lidar_preditct_pose_Rwl_);
         Odometry_imuPredict_pub.pose = lidar_preditct_pose;
