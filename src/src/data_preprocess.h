@@ -478,6 +478,7 @@ public:
                         cloudinfo.pose = GNSSQueue.front().pose;
                         cloudinfo.pose_reliable = true;
                         cloudinfo.cov = GNSSQueue.front().cov;
+
                         if(GNSSQueue.front().timestamp - cur_scan->timestamp > 5.0f ){
                             cloudinfo.pose_reliable = false;
                         }
@@ -490,10 +491,7 @@ public:
                 }
                 gnss_mutex.unlock();//TODO 1111----------
                 ///2.
-//                if(odo_min_ros_time>cloud_min_ros_timestamp){
-//                    EZLOG(INFO)<<"odo is larger than lidar" <<endl;
-//                    exit(1);
-//                }
+
                 //use absolutue
                 if (!DrOdomQueue.empty() && imuodo_min_ros_time >= cloud_min_ros_timestamp) {
                     auto temp = DrOdomQueue.front();
@@ -504,12 +502,7 @@ public:
                // EZLOG(INFO)<<"TIMESTAMP"<<cur_lidar_time-cloud_min_ros_timestamp<<endl;
                 if(imuodo_min_ros_time<cloud_min_ros_timestamp &&
                     imuodo_max_ros_time>cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
-                   // EZLOG(INFO)<<"get in odo_min_ros_time"<<endl;
-//                        if(odo_min_ros_time >= cloud_min_ros_timestamp){
-//                            auto temp = poseQueue.front();
-//                            temp.timestamp = cloud_min_ros_timestamp - 0.01f;
-//                            poseQueue.push_front(temp);
-//                        }
+
                         cloud_mutex.lock();//TODO 1111 if necessery?
                         deque_cloud.pop_front();//TODO 1111
                         cloud_mutex.unlock();//TODO 11111
@@ -523,21 +516,6 @@ public:
                                                                       T_w_l_lidar_first_pose);//out
 
                     cloudinfo.DRPose = T_w_l_lidar_first_pose;
-                    Eigen::Vector3d t_w_cur;
-                    Eigen::Quaterniond q_w_cur;
-                    Eigen::Matrix3d q_w_cur_matrix;
-                    t_w_cur = T_w_l_lidar_first_pose.GetXYZ();
-                    q_w_cur = T_w_l_lidar_first_pose.GetQ();
-                    q_w_cur.normalize();
-                   // EZLOG(INFO)<<"t_w_cur"<<t_w_cur.x()
-                     //                     <<t_w_cur.y()
-                     //                     <<t_w_cur.z()<<endl;
-
-                   // EZLOG(INFO)<<"t_w_cur"<<q_w_cur.x()
-                    //           <<q_w_cur.y()
-                    //           <<q_w_cur.z()
-                    //           <<q_w_cur.w()<<endl;
-                  //  EZLOG(INFO) << "FindLidarFirstPose cost time(ms) = " << cost_time_findpose << std::endl;
 
                     ///2.imgprojection
                     ///update rangemat and deskewCloud_body
@@ -645,16 +623,11 @@ public:
                     } // end if(FrontEndConfig::use_unground_pts_classify)
 
                     ///4. send data to feature extraction node
-//                        ft_extr_ptr->AddCloudData(cloudinfo);
                     Function_AddCloudInfoToFeatureExtraction(cloudinfo);
-                    //EZLOG(INFO)
-                           // << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
-                          //  << cloudinfo.cloud_ptr->points.size();
+
                     ///5.pop used odom
                     drodom_mutex.lock();
-//                        while(poseQueue.front().timestamp < cloud_max_ros_timestamp - 0.1f){
-//                            poseQueue.pop_front();
-//                        }
+
                     double thresh = cloud_max_ros_timestamp - 0.05f;
                     while(DrOdomQueue.front().timestamp < thresh){
                         DrOdomQueue.pop_front();
@@ -667,20 +640,14 @@ public:
                     cloud_mutex.unlock();
                 }
 
-//                ResetParameters();//TODO 1111---------Done
-                //  }//end if(deque_cloud.size()!=0){
-                // else{
-                //      sleep(0.01);//线程休息10ms
-                //  }
+
             }
 
         }//end function while(1)
     }
 
     void AddCloudData(const CloudTypeXYZIRT& data){
-//        if((lidarScan_cnt > SensorConfig::lidarScanDownSample && MappingConfig::slam_mode_switch == 1)
-//            ||MappingConfig::slam_mode_switch == 0){
-            //        CloudTypeXYZIRTPtr cloud_ptr = make_shared<CloudTypeXYZIRT>();
+
             CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
 
             *cloud_ptr = data;//深拷贝
@@ -688,13 +655,8 @@ public:
             deque_cloud.push_back(cloud_ptr);
             cloud_mutex.unlock();
             lidarScan_cnt =0;
-      //  }
-     //   else{
-    //        lidarScan_cnt++;
-    //    }
 
     }
-
 
 
     void Udp_OdomPub(const PoseT& data){
@@ -720,7 +682,7 @@ public:
 
 //        deque_gnssins.push_back(data);
         if(data.lla[0]<0 || data.lla[1]<0 || data.lla[2]<0){
-            EZLOG(INFO)<<"Bad GNSS in DataPre,drop!";
+            //EZLOG(INFO)<<"Bad GNSS in DataPre,drop!";
             return;
         }
         if(!init)
@@ -780,19 +742,15 @@ public:
         pubsub->PublishOdometry(topic_gnss_odom_world_origin, T_w_b_pub_origin);
 
         PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
-//        if(flag_first_gnss == false){
-//            First_gnss_pose = T_w_l;
-//            flag_first_gnss = true;
-//        }
 
         OdometryType T_w_l_pub;
         T_w_l_pub.frame = "map";
         T_w_l_pub.timestamp = data.timestamp;
         T_w_l_pub.pose = T_w_l;
-        T_w_l_pub.cov[0] =  data.lla_sigma[0];
-        T_w_l_pub.cov[1] =  data.lla_sigma[1];
-        T_w_l_pub.cov[2] =  data.lla_sigma[2];
-        T_w_l_pub.cov[3] =  data.rpy_sigma[0];
+        T_w_l_pub.cov[0] =  data.rpy_sigma[0];
+        T_w_l_pub.cov[1] =  data.rpy_sigma[1];
+        T_w_l_pub.cov[2] =  data.rpy_sigma[2];
+        T_w_l_pub.cov[3] =  data.lla_sigma[0];
         T_w_l_pub.cov[4] =  data.lla_sigma[1];
         T_w_l_pub.cov[5] =  data.lla_sigma[2];
 

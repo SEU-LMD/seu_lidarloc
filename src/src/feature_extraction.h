@@ -245,70 +245,28 @@ public:
                     }
                 }
 
-                //for debug use
-                {
-//                    int n_cor = 0;
-//                    int n_sur = 0;
-//                    int n_pt = 0;
-//                    for (int n_label = 0; n_label <= cur_scan.label.size(); ++n_label) {
-//                        if (cur_scan.label[n_label] == 1) {
-//                            ++n_cor;
-//                        } else if (cur_scan.label[n_label] == -1) {
-//                            ++n_sur;
-//                        } else if (cur_scan.label[n_label] == 0) {
-//                            ++n_pt;
-//                        }
-//                    }
-//                    EZLOG(INFO) << "n_cor = " << n_cor << std::endl;
-//                    EZLOG(INFO) << "n_sur = " << n_sur << std::endl;
-//                    EZLOG(INFO) << "n_pt = " << n_pt << std::endl;
-//                    EZLOG(INFO) << "cornerCloud->size() = " << cornerCloud->size() << std::endl;
-                }
-
-                  // surface point and point doesn't be processed ,regard as surface
-                  ///take too much time
-//                for (int k = sp; k <= ep; k++) {
-//                    if (cloudLabel[k] <= 0) {
-//                        PointType pt_tmp;
-//                        auto& pt_origin = cur_scan.cloud_ptr->points[k];
-//                        pt_tmp.x = pt_origin.x;
-//                        pt_tmp.y = pt_origin.y;
-//                        pt_tmp.z = pt_origin.z;
-//                        pt_tmp.intensity = pt_origin.intensity;
-//                        surfaceCloudScan->push_back(pt_tmp);
-//                    }
-//                }
             }
 
-//            surfaceCloudScanDS->clear();
-//            downSizeFilter.setInputCloud(surfaceCloudScan);
-//            downSizeFilter.filter(*surfaceCloudScanDS);
-//
-//            *surfaceCloud += *surfaceCloudScanDS;
         }
     }//end fucntion ExtractFeatures
 
     void DoWork(){
         while(1){
-           // EZLOG(INFO)<<"featureext_DoWork while "<<std::endl;
-            bool isempty = false;
-            {
-                std::lock_guard<std::mutex> lock(work_mutex);
-                isempty = deque_cloud.empty();
-            }
 
-            if(!isempty){
-              //  EZLOG(INFO)<<"featureext_DoWork  "<<std::endl;
+            {
+                std::lock_guard<std::mutex> lock(cloud_mutex);
+                if(deque_cloud.empty()){
+                    sleep(0.01);
+                    continue;
+                }
+            }
+//            if(!isempty){
+            {
                 CloudInfo cur_cloud;
                 cloud_mutex.lock();
                 cur_cloud = deque_cloud.front();
                 deque_cloud.pop_front();
                 cloud_mutex.unlock();
-
-              //  EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
-          //      EZLOG(INFO)<<"cur_cloud.frame_id = "<<cur_cloud.frame_id<<std::endl;
-//                EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
-//                EZLOG(INFO)<<"cur_cloud.frame_id = "<<cur_cloud.frame_id<<std::endl;
 
                 //do some work
                 TicToc timer;
@@ -320,50 +278,7 @@ public:
                 pcl::PointCloud<PointType>::Ptr surfaceCloud(new  pcl::PointCloud<PointType>());
                 pcl::PointCloud<PointType>::Ptr rawCloud(new  pcl::PointCloud<PointType>());
                 ExtractFeatures(cur_cloud, cornerCloud, surfaceCloud,rawCloud);
-//                EZLOG(INFO)<<"feature extraction cost time(ms) = "<<timer2.toc()<<std::endl;
                 TicToc timer1;
-
-//                int n_cor =0;
-//                int n_sur =0;
-//                for(int k_rawCloud = 0;k_rawCloud <= rawCloud->size();++k_rawCloud){
-//                    if(rawCloud->points[k_rawCloud].intensity == 1){
-//                        ++n_cor;
-//                    }else if(rawCloud->points[k_rawCloud].intensity == -1){
-//                        ++n_sur;
-//                    }
-//                }
-//                EZLOG(INFO)<<"n_cor = "<<n_cor<<std::endl;
-          //      EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size();
-//                EZLOG(INFO)<<"n_sur = "<<n_sur<<std::endl;
-           //     EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size();
-//                int n_cor =0;
-//                int n_sur =0;
-//                for(int k_rawCloud = 0;k_rawCloud <= rawCloud->size();++k_rawCloud){
-//                    if(rawCloud->points[k_rawCloud].intensity == 1){
-//                        ++n_cor;
-//                    }else if(rawCloud->points[k_rawCloud].intensity == -1){
-//                        ++n_sur;
-//                    }
-//                }
-//                EZLOG(INFO)<<"n_cor = "<<n_cor<<std::endl;
-//                EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<std::endl;
-//                EZLOG(INFO)<<"n_sur = "<<n_sur<<std::endl;
-//                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<std::endl;
-
-//                ///save cloud with label
-//                if(MappingConfig::slam_mode_switch == 0)
-//                {
-//                    CloudInfoFt raw_cloud;
-//                    raw_cloud.raw_Cloud = rawCloud;
-//                    raw_cloud.frame_id = ++frame_id;
-//                    //map_saver.AddCloudToSave(raw_cloud);
-//                    EZLOG(INFO)<<"save cloud with label!"<<std::endl;
-//                }
-//                CloudInfoFt raw_cloud;
-//                raw_cloud.raw_cloud = cur_cloud.cloud_ptr;
-//                raw_cloud.frame_id = ++frame_id;
-//                map_saver.AddCloudToSave(raw_cloud);
-//                EZLOG(INFO)<<"save cloud with label!"<<std::endl;
 
                 CloudFeature cloud_feature;
                 cloud_feature.timestamp = cur_cloud.timestamp;
@@ -375,10 +290,6 @@ public:
                 cloud_feature.cornerCloud = cornerCloud;
                 cloud_feature.surfaceCloud = surfaceCloud;
 
-//                switch it when you test your code
-//                opt_mapping_ptr->AddCloudData(cloud_feature);
-//                loc_mapping_ptr->AddCloudData(cloud_feature);
-
                 if(MappingConfig::slam_mode_switch == 1 ){
                     Function_AddCloudFeatureToOPTMapping(cloud_feature);
                   //  EZLOG(INFO)<<"3 feature_extraction send to Mapping!And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
@@ -387,7 +298,6 @@ public:
                     Function_AddCloudFeatureToLOCMapping(cloud_feature);
                   //  EZLOG(INFO)<<"3 feature_extraction send to Loc! And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
                 }
-
 
                 //for debug use
                 if(MappingConfig::if_debug)
@@ -402,18 +312,15 @@ public:
                     pubsub->PublishCloud(topic_corner_world, corner_pub);
                     pubsub->PublishCloud(topic_surf_world, surf_pub);
                 }
-//                EZLOG(INFO)<<"send feature extraction to next = "<<timer1.toc()<<std::endl;
 
             }
 
-            else{
-                sleep(0.01);
-            }
         }
     }
 
     void AddCloudData(const CloudInfo& data){
       //  EZLOG(INFO)<<"featureext_AddCloudData  "<<std::endl;
+
         cloud_mutex.lock();
         deque_cloud.push_back(data);
         cloud_mutex.unlock();
