@@ -49,40 +49,6 @@ class Position {
     };
 
 
-    void pubilsh(const std::string &topic_name, const OdometryType &data){
-        HafTime timestamp = GetHafTimestamp();
-        auto out = std::make_shared<HafLocation>();
-        if(topic_name=="/lidar_odometry")
-        out->header.seq = 1;
-        else if(topic_name=="/imu_odom_raw")
-        out->header.seq = 2;
-        else if(topic_name=="/gnss_odom_world")
-        out->header.seq = 3;
-        out->header.timestamp = timestamp;
-        out->header.frameID = "location";
-        // out->pose.pose.position.x = lat;  // 纬度信息,latdata.pose.GetXYZ[0]
-        // out->pose.pose.position.y = lng;  // 经度信息,lon
-        // out->pose.pose.position.z = alt;  // 海拔信息,height
-        Eigen::Vector3d t_data = data.pose.GetXYZ();
-        out->pose.pose.position.x = t_data[0];  // 纬度信息,latdata.pose.GetXYZ[0]
-        out->pose.pose.position.y = t_data[1];  // 经度信息,lon
-        out->pose.pose.position.z = t_data[2];  // 海拔信息,height
-
-        Eigen::Quaterniond Q_data = data.pose.GetQ();
-        out->pose.pose.orientation.x = Q_data.x();
-        out->pose.pose.orientation.y = Q_data.y();
-        out->pose.pose.orientation.z = Q_data.z();
-        out->pose.pose.orientation.w = Q_data.w();
-
-        //check order;
-
-        out->odomType = 0;
-
-        if (node_.SendLocation(out) != Adsfi::HAF_SUCCESS) {
-            HAF_LOG_ERROR << "Send Location Failed!";
-        }
-    };
-
 
 private:
     PositionBase node_;
@@ -154,7 +120,7 @@ private:
                         else if (canId == 805) {  // 大地高度
                             int32_t posAlt = data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
                             data_out->lla[2] = static_cast<double>(posAlt) * 0.001;
-                            HAF_LOG_INFO << ara::log::Setprecision(16) << "canId = 805, alt: " << alt;
+                            HAF_LOG_INFO << ara::log::Setprecision(16) << "canId = 805, alt: " << data_out->lla[2];
                         }
                         else if (canId == 806) {
                             uint32_t posESigmaX = data[0] + (data[1] << 8) + ((data[2] & 0x0F) << 16);
@@ -296,7 +262,7 @@ private:
                 while (!node_.IsStop()) {
                     CloudTypeXYZIRTPtr  lidar_out =  make_shared<CloudTypeXYZIRT>(); 
                     std::shared_ptr<Adsfi::LidarFrameV2> data;
-                    Adsfi::HafStatus ret = node_.GetLidar(data);
+                    Adsfi::HafStatus ret = node_.GetLidar(data,UINT32_MAX);
                     if (ret == Adsfi::HAF_PROGRAM_STOPED)
                         break;
                     if (ret == Adsfi::HAF_SUCCESS) { 

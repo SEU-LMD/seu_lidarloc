@@ -394,7 +394,6 @@ public:
         }
         else {
             top_cache_update = false;
-            return;
         }
 
         //需要加载就加载
