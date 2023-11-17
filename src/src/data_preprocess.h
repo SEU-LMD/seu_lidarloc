@@ -57,6 +57,8 @@ public:
     //   std::function<void(const GNSSOdometryType&)>Function_AddGNSSOdometryTypeToOPTMapping;
     std::function<void(const GNSSOdometryType&)>Function_AddFirstGNSSPoint2DR;
 
+    // std::function<void(const OdometryType&)> Function_AddOdometryTypeToOPTMapping;
+
     bool init = false;
     GeographicLib::LocalCartesian geoConverter;
     int frame_id = 0;

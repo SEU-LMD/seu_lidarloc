@@ -49,10 +49,10 @@ public:
         EZLOG(INFO)<< "img_proj success!!"<<endl;
         ft_extr.Init(pubsub);
         EZLOG(INFO)<< "ft_extr success!!"<<endl;
-        opt_mapping.Init(pubsub);
-        EZLOG(INFO)<< "opt_mapping success!!"<<endl;
+//        opt_mapping.Init(pubsub);
+//        EZLOG(INFO)<< "opt_mapping success!!"<<endl;
         imu_wheeldr.Init(pubsub);
-        EZLOG(INFO)<< "imu_pre success!!"<<endl;
+//        EZLOG(INFO)<< "imu_pre success!!"<<endl;
 
         //构建数据流关系
         //imgproj 1111 chanage name

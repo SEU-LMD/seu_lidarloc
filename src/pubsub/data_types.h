@@ -209,7 +209,28 @@ public:
     pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground;
     pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_ground_down;
     pcl::PointCloud<PointXYZICOLRANGE>::Ptr cloud_unground;
+    CloudInfo(const CloudInfo &d){
+        frame_id = d.frame_id;
+        timestamp = d.timestamp;
+        pose = d.pose;
+        DRPose = d.DRPose;
+        cov = d.cov;
+        pose_reliable = d.pose_reliable;
 
+//    std::vector<int> label;
+        startRingIndex = d.startRingIndex;
+        endRingIndex = d.endRingIndex;
+
+//        cloud_ptr = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+//        cloud_ground = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+//        cloud_ground_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+//        cloud_unground = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
+
+        cloud_ptr = d.cloud_ptr;
+        cloud_ground = d.cloud_ground;
+        cloud_ground_down = d.cloud_ground_down;
+        cloud_unground = d.cloud_unground;
+    }
     CloudInfo()
     {
         cloud_ptr = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
@@ -227,15 +248,16 @@ CloudInfo& CloudInfo::operator=(const CloudInfo& d){
     pose = d.pose;
     DRPose = d.DRPose;
     cov = d.cov;
+    pose_reliable = d.pose_reliable;
 
 //    std::vector<int> label;
     startRingIndex = d.startRingIndex;
     endRingIndex = d.endRingIndex;
 
     *cloud_ptr = *d.cloud_ptr;
-    cloud_ground = d.cloud_ground;
-    cloud_ground_down = d.cloud_ground_down;
-    cloud_unground = d.cloud_unground;
+    *cloud_ground = *d.cloud_ground;
+    *cloud_ground_down = *d.cloud_ground_down;
+    *cloud_unground = *d.cloud_unground;
     return *this;
 }
 class CloudFeature{

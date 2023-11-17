@@ -3,15 +3,14 @@
 #TODO remove not used parmater!!!!
   slam_mode_switch: 1
 
-# 1 for debug (pub to rviz),0 for not debug
-  if_debug: 0
+
 #  if_use_
 
   # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!
-  save_map_path: "/home/wxy/seu/reborn/11.1/seu_lidarloc/src/result/park20/"
+#  save_map_path: "/home/wxy/seu/reborn/11.1/seu_lidarloc/src/newbag/"
 #  save_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/park_loop1_out/"
-# save_map_path: "/home/lsy/map/"
+  save_map_path: "/home/lsy/map/"
   if_need_first_position: 0
 # 1 use DR , 0 use fuse
   use_DR_or_fuse_in_loc: 1

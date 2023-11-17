@@ -385,6 +385,11 @@ public:
                 cloud_feature.timestamp = cur_cloud.timestamp;
                 cloud_feature.pose = cur_cloud.pose;
                 cloud_feature.pose_reliable = cur_cloud.pose_reliable;
+
+                EZLOG(INFO)<<"cur_cloud.pose_reliable = "<<cur_cloud.pose_reliable<<endl;
+                EZLOG(INFO)<<"cloud_feature.pose_reliable = "<<cloud_feature.pose_reliable<<endl;
+
+
                 cloud_feature.cov = cur_cloud.cov;
                 cloud_feature.DRPose = cur_cloud.DRPose;
                 cloud_feature.frame_id = cur_cloud.frame_id;
@@ -394,7 +399,7 @@ public:
                 EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<endl;
                 EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<endl;
 
-                if(FrontEndConfig::slam_mode_switch == SLAM_MODE::OPT_MAPPING){
+                if(FrontEndConfig::slam_mode_switch == 1){
                     Function_AddCloudFeatureToOPTMapping(cloud_feature);
                   //  EZLOG(INFO)<<"3 feature_extraction send to Mapping!And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
                 }else if(FrontEndConfig::slam_mode_switch == SLAM_MODE::OPT_LOCATION){
