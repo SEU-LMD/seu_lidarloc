@@ -41,7 +41,6 @@ public:
         imu_wheeldr.AddGNSSINSData(gnssins_data);
     }
 
-
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
         //然后开启各个线程
@@ -49,8 +48,8 @@ public:
         EZLOG(INFO)<< "img_proj success!!"<<endl;
         ft_extr.Init(pubsub);
         EZLOG(INFO)<< "ft_extr success!!"<<endl;
-//        opt_mapping.Init(pubsub);
-//        EZLOG(INFO)<< "opt_mapping success!!"<<endl;
+        opt_mapping.Init(pubsub);
+        EZLOG(INFO)<< "opt_mapping success!!"<<endl;
         imu_wheeldr.Init(pubsub);
 //        EZLOG(INFO)<< "imu_pre success!!"<<endl;
 
@@ -63,7 +62,6 @@ public:
 
         auto add_DROdometryType_from_DR_to_imgproj =
                 std::bind(&DataPreprocess::AddDrOdomData, &data_pre,std::placeholders::_1);
-
 
         data_pre.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_datapre_to_ftextr;
         ft_extr.Function_AddCloudFeatureToOPTMapping = add_CloudFeature_from_ftextr_to_optmapping;

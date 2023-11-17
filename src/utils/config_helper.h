@@ -20,6 +20,8 @@ namespace LidarType{
     std::string OUSTER = "ouster";
     std::string LIVOX = "livox";
 }
+
+
 class SensorConfig{
     public:
     //Topics
@@ -466,6 +468,14 @@ float FrontEndConfig::gnss_align_threshold = 0.01f;
 std::string UdpConfig::cleint_ip = " ";
 int UdpConfig::clinet_port = -1;
 int UdpConfig::server_port = -1;
+
+void SetOptMappingMode(){
+    FrontEndConfig::slam_mode_switch = 1;
+}
+
+void SetOptLocationMode(){
+    FrontEndConfig::slam_mode_switch = 0;
+}
 
 void Load_Sensor_YAML(std::string sensorpath)
 {

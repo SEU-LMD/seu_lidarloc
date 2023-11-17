@@ -1,5 +1,5 @@
 #mode0: loc mode1: mapping
-slam_mode_switch: 1
+slam_mode_switch: 0
 # 1 for debug (pub to rviz),0 for not debug
 if_debug: 1
 
@@ -7,7 +7,7 @@ gnss_align_threshold: 0.02
 gnss_pop_threshold: 0.0
 
 # ground filter
-use_ground_filter: true
+use_ground_filter: false
 min_grid_pt_num: 8
 #max_ground_height: DBL_MAX #1111111111111
 grid_resolution: 6.0

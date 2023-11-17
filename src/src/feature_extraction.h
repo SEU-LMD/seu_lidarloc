@@ -295,7 +295,7 @@ public:
 
                     TicToc time_gf;
 
-                    EZLOG(INFO) << "points size: " << cur_cloud.cloud_ptr->size() << std::endl;
+                  //  EZLOG(INFO) << "points size: " << cur_cloud.cloud_ptr->size() << std::endl;
                     fast_ground_filter(cur_cloud.cloud_ptr,
                                        cur_cloud.cloud_ground,
                                        cur_cloud.cloud_ground_down,
@@ -303,7 +303,7 @@ public:
                     );
                     double time_ground_filter = time_gf.toc();
 
-                    EZLOG(INFO)<<"time_ground_filter = "<<time_ground_filter<<endl;
+                   // EZLOG(INFO)<<"time_ground_filter = "<<time_ground_filter<<endl;
 
                     if(FrontEndConfig::if_debug)
                     {
@@ -319,26 +319,26 @@ public:
                     }
                 }
 
-                EZLOG(INFO)<<"cloud_ground->points.size() =  "<<cur_cloud.cloud_ground->points.size()<<endl;
-                EZLOG(INFO)<<"cloud_unground->points.size() =  "<<cur_cloud.cloud_unground->points.size()<<endl;
+               // EZLOG(INFO)<<"cloud_ground->points.size() =  "<<cur_cloud.cloud_ground->points.size()<<endl;
+               // EZLOG(INFO)<<"cloud_unground->points.size() =  "<<cur_cloud.cloud_unground->points.size()<<endl;
 
                 if(FrontEndConfig::use_unground_pts_classify){
 
                     ///classify_nground_pts
 
-                    EZLOG(INFO)<<"cloud_unground->points.size() =  "<<cur_cloud.cloud_unground->points.size()<<endl;
+                  //  EZLOG(INFO)<<"cloud_unground->points.size() =  "<<cur_cloud.cloud_unground->points.size()<<endl;
 
                     TicToc time_classify_nground_pts;
 
                     classify_nground_pts(cur_cloud.cloud_unground,cloud_feature.cloud_pillar,cloud_feature.cloud_beam,cloud_feature.cloud_facade,cloud_feature.cloud_roof,
                                          cloud_feature.cloud_pillar_down,cloud_feature.cloud_beam_down,cloud_feature.cloud_facade_down,cloud_feature.cloud_roof_down
                     );
-                    EZLOG(INFO)<<"time_classify_nground_pts.toc() =  "<<time_classify_nground_pts.toc()<<endl;
+                 //   EZLOG(INFO)<<"time_classify_nground_pts.toc() =  "<<time_classify_nground_pts.toc()<<endl;
 
-                    EZLOG(INFO)<<"cloud_pillar->points.size() =  "<<cloud_feature.cloud_pillar->points.size()<<endl;
-                    EZLOG(INFO)<<"cloud_beam->points.size() =  "<<cloud_feature.cloud_beam->points.size()<<endl;
-                    EZLOG(INFO)<<"cloud_facade->points.size() =  "<<cloud_feature.cloud_facade->points.size()<<endl;
-                    EZLOG(INFO)<<"cloud_roof->points.size() =  "<<cloud_feature.cloud_roof->points.size()<<endl;
+                  //  EZLOG(INFO)<<"cloud_pillar->points.size() =  "<<cloud_feature.cloud_pillar->points.size()<<endl;
+                  //  EZLOG(INFO)<<"cloud_beam->points.size() =  "<<cloud_feature.cloud_beam->points.size()<<endl;
+                  //  EZLOG(INFO)<<"cloud_facade->points.size() =  "<<cloud_feature.cloud_facade->points.size()<<endl;
+                   // EZLOG(INFO)<<"cloud_roof->points.size() =  "<<cloud_feature.cloud_roof->points.size()<<endl;
 
                     if(FrontEndConfig::if_debug)
                     {
@@ -386,8 +386,8 @@ public:
                 cloud_feature.pose = cur_cloud.pose;
                 cloud_feature.pose_reliable = cur_cloud.pose_reliable;
 
-                EZLOG(INFO)<<"cur_cloud.pose_reliable = "<<cur_cloud.pose_reliable<<endl;
-                EZLOG(INFO)<<"cloud_feature.pose_reliable = "<<cloud_feature.pose_reliable<<endl;
+               // EZLOG(INFO)<<"cur_cloud.pose_reliable = "<<cur_cloud.pose_reliable<<endl;
+               // EZLOG(INFO)<<"cloud_feature.pose_reliable = "<<cloud_feature.pose_reliable<<endl;
 
 
                 cloud_feature.cov = cur_cloud.cov;
@@ -396,10 +396,10 @@ public:
                 cloud_feature.cornerCloud = cornerCloud;
                 cloud_feature.surfaceCloud = surfaceCloud;
 
-                EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<endl;
-                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<endl;
+               // EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<endl;
+               // EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<endl;
 
-                if(FrontEndConfig::slam_mode_switch == 1){
+                if(FrontEndConfig::slam_mode_switch == SLAM_MODE::OPT_MAPPING){
                     Function_AddCloudFeatureToOPTMapping(cloud_feature);
                   //  EZLOG(INFO)<<"3 feature_extraction send to Mapping!And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
                 }else if(FrontEndConfig::slam_mode_switch == SLAM_MODE::OPT_LOCATION){
@@ -421,7 +421,7 @@ public:
                     pubsub->PublishCloud(topic_surf_world, surf_pub);
                 }
 
-                EZLOG(INFO)<<"time_feature_extra = "<<time_feature_extra.toc()<<endl;
+               // EZLOG(INFO)<<"time_feature_extra = "<<time_feature_extra.toc()<<endl;
 
             }
 
