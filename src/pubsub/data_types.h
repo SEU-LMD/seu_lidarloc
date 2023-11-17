@@ -215,6 +215,7 @@ public:
         pose = d.pose;
         DRPose = d.DRPose;
         cov = d.cov;
+        pose_reliable = d.pose_reliable;
 
 //    std::vector<int> label;
         startRingIndex = d.startRingIndex;
@@ -247,6 +248,7 @@ CloudInfo& CloudInfo::operator=(const CloudInfo& d){
     pose = d.pose;
     DRPose = d.DRPose;
     cov = d.cov;
+    pose_reliable = d.pose_reliable;
 
 //    std::vector<int> label;
     startRingIndex = d.startRingIndex;

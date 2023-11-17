@@ -428,7 +428,7 @@ public:
                 {
                     cloud_mutex.lock();
                     cur_scan = deque_cloud.front();
-//                    deque_cloud.pop_front();
+                    deque_cloud.pop_front();
                     cloud_mutex.unlock();//unlock TODO 1111
 
                     GetCloudTime(cur_scan, cur_cloud_time);
@@ -476,6 +476,8 @@ public:
                    drqueue_max_ros_time > cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
 //                    EZLOG(INFO)<<"time_getin.toc() = "<<time_getin.toc()<<endl;
 
+                EZLOG(INFO)<<"cloudinfo.pose_reliable = "<<cloudinfo.pose_reliable<<endl;
+
                     TicToc time_dataprep;
                     TicToc time_dataprep_1;
 
@@ -486,9 +488,9 @@ public:
                     drqueue_copy = DrOdomQueue;
                     drodom_mutex.unlock();
 
-                    cloud_mutex.lock();
-                    deque_cloud.pop_front();
-                    cloud_mutex.unlock();//unlock TODO 1111
+//                    cloud_mutex.lock();
+//                    deque_cloud.pop_front();
+//                    cloud_mutex.unlock();//unlock TODO 1111
 
                     cloudinfo.frame_id = frame_id++;
                     cloudinfo.timestamp = cur_scan->timestamp;

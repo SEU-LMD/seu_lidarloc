@@ -381,6 +381,11 @@ public:
                 cloud_feature.timestamp = cur_cloud.timestamp;
                 cloud_feature.pose = cur_cloud.pose;
                 cloud_feature.pose_reliable = cur_cloud.pose_reliable;
+
+                EZLOG(INFO)<<"cur_cloud.pose_reliable = "<<cur_cloud.pose_reliable<<endl;
+                EZLOG(INFO)<<"cloud_feature.pose_reliable = "<<cloud_feature.pose_reliable<<endl;
+
+
                 cloud_feature.cov = cur_cloud.cov;
                 cloud_feature.DRPose = cur_cloud.DRPose;
                 cloud_feature.frame_id = cur_cloud.frame_id;
