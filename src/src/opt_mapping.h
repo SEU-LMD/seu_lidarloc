@@ -428,10 +428,11 @@ public:
                 pclPointTogtsamPose3(copy_cloudKeyPoses6D->points[loopKeyPre]);
 
         gtsam::Vector Vector6(6);
-        float noiseScore = icp.getFitnessScore() * 0.01;
+        float noiseScore = icp.getFitnessScore() ;
         EZLOG(INFO)<<"LOOP noise is "<<noiseScore<<endl;
-        Vector6 << noiseScore, noiseScore, noiseScore, noiseScore, noiseScore,
-                noiseScore;
+      //  Vector6 << noiseScore, noiseScore, noiseScore, noiseScore, noiseScore,
+       //         noiseScore;
+        Vector6<<0.01,0.01,0.01,0.01,0.01,0.01;
         gtsam::noiseModel::Diagonal::shared_ptr constraintNoise =
                 gtsam::noiseModel::Diagonal::Variances(Vector6);
         // Add pose constraint
@@ -540,13 +541,13 @@ public:
         q_lidar_rpy = Qua2Euler(q_gnss_cur);
         //EZLOG(INFO)<<"q_lidar_rpy"<<q_lidar_rpy[0]<<q_lidar_rpy[1]<<q_lidar_rpy[2]<<endl;
 
-        noise_x = cur_ft.cov(0, 0) * 0.01;
-        noise_y = cur_ft.cov(1,0) * 0.01;
-        noise_z = cur_ft.cov(2,0) * 0.01;
+        noise_x = cur_ft.cov(0, 0);
+        noise_y = cur_ft.cov(1,0);
+        noise_z = cur_ft.cov(2,0) ;
         EZLOG(INFO)<<"noise_x"<<noise_x<<"noise_y"<<noise_y<<"noise_z"<<noise_z;
-        noise_roll = cur_ft.cov(3,0) * 0.01;
-        noise_pitch = cur_ft.cov(4,0)* 0.01;
-        noise_yaw = cur_ft.cov(5,0)* 0.01;
+        noise_roll = cur_ft.cov(3,0);
+        noise_pitch = cur_ft.cov(4,0);
+        noise_yaw = cur_ft.cov(5,0);
         EZLOG(INFO)<<"noise_roll"<<noise_roll<<"noise_pitch"<<noise_pitch<<"noise_yaw"<<noise_yaw;
 
          IsRealiableGnss = cur_ft.pose_reliable;
@@ -1186,7 +1187,7 @@ public:
         if (cloudKeyPoses3D->points.empty()) {
             gtsam::noiseModel::Diagonal::shared_ptr priorNoise =
                     gtsam::noiseModel::Diagonal::Variances(
-                            (gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8)//rpy xyz
+                            (gtsam::Vector(6) << 1e-1, 1e-1, M_PI * M_PI, 1e8, 1e8, 1e8)//rpy xyz
                                     .finished());  // rad*rad, meter*meter
 
             gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(cloudKeyPoses3D->size(), trans2gtsamPose(current_T_m_l),
@@ -1197,7 +1198,7 @@ public:
 
             gtsam::noiseModel::Diagonal::shared_ptr odometryNoise =
                     gtsam::noiseModel::Diagonal::Variances(
-                            (gtsam::Vector(6) << 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3).finished());
+                            (gtsam::Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished());
 
             gtsam::Pose3 poseFrom =
                     pclPointTogtsamPose3(cloudKeyPoses6D->points.back());
@@ -1224,11 +1225,10 @@ public:
         if (cloudKeyPoses3D->points.empty() )//|| cloudKeyPoses3D->points.size() == 1
             return;
 
-        if(IsRealiableGnss == true){
-            EZLOG(INFO)<<"IsRealiableGnss is good!!"<<endl;
-        }else{
+        if(IsRealiableGnss == false){
             return;
         }
+        EZLOG(INFO)<<"IsRealiableGnss is good!!"<<endl;
 //
 //        if (cloudKeyPoses3D->points.empty() )//|| cloudKeyPoses3D->points.size() == 1
 //            return;
@@ -1273,7 +1273,7 @@ public:
 
             gtsam::Vector Vector6(6);
            // Vector3 << max(noise_x, 1.0), max(noise_y, 1.0), max(noise_z, 1.0);
-            noise_z = 1e-4;
+            noise_z = 1e-2;
             Vector6<< noise_roll,noise_pitch,noise_yaw,noise_x,noise_y,noise_z;
            // Vector6 << 1e-4,1e-4,1e-4,1e-4,1e-4,1e-4;
             gtsam::noiseModel::Diagonal::shared_ptr priorNoise = gtsam::noiseModel::Diagonal::Variances(Vector6);
