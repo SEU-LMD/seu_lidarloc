@@ -554,65 +554,11 @@ public:
 
          IsRealiableGnss = cur_ft.pose_reliable;
 //
-//         if(IsRealiableGnss == true){
-//             EZLOG(INFO)<<"IsRealiableGnss is good!!"<<endl;
-//         }else{
-//             EZLOG(INFO)<<"IsRealiableGnss is so bad"<<endl;
-//         }
-        // EZLOG(INFO)<<"IsRealiableGnss"<<IsRealiableGnss<<endl;
-
-        //tranform gnss to xyz rpy
-        //Eigen::Quaterniond q_gnss_cur;
-       // Eigen::Matrix3d q_gnss_cur_matrix;
-       // t_gnss_cur = cur_ft.pose.GetXYZ();
-       // R_gnss_cur = cur_ft.pose.GetR();
-       // q_gnss_cur = cur_ft.pose.GetQ();
-//        q_gnss_cur.normalize();
-       // q_gnss_cur_matrix = q_gnss_cur.toRotationMatrix();
-//        Eigen::Vector3d q_gnss_rpy = Qua2Euler(q_gnss_cur);
-//        q_gnss_roll = q_gnss_rpy[0];
-//        q_gnss_pitch = q_gnss_rpy[1];
-//        q_gnss_yaw = q_gnss_rpy[2];
-
-//        double noise_x = cur_ft.cov(0, 0);
-//        double noise_y = cur_ft.cov(1,0);
-//        double noise_z = cur_ft.cov(2,0);
-//        EZLOG(INFO)<<"noise_x"<<noise_x<<"noise_y"<<noise_y<<"noise_z"<<noise_z;
-//        noise_roll =cur_ft.cov(3,0);
-//        noise_pitch = cur_ft.cov(4,0);
-//        noise_yaw = cur_ft.cov(5,0);
-//        EZLOG(INFO)<<"noise_roll"<<noise_x<<"noise_pitch"<<noise_y<<"noise_yaw"<<noise_z;
-
-        // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
-//        q_gnss_pitch = asin(-q_gnss_cur_matrix(2, 0)); // 计算pitch
-//        if (cos(q_gnss_pitch) != 0) {
-//            q_gnss_roll = atan2(q_gnss_cur_matrix(2, 1), q_gnss_cur_matrix(2, 2)); // 计算roll
-//            q_gnss_yaw = atan2(q_gnss_cur_matrix(1, 0), q_gnss_cur_matrix(0, 0));  // 计算yaw
-//        } else {
-//            q_gnss_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
-//            q_gnss_yaw = atan2(-q_gnss_cur_matrix(0, 1), q_gnss_cur_matrix(1, 1)); // 计算yaw
-//        }
-
-       // Eigen::Vector3d t_lidar_cur;
-
-//        Eigen::Quaterniond q_lidar_cur;
-//        Eigen::Matrix3d q_lidar_cur_matrix;
-       // float q_lidar_roll, q_lidar_pitch, q_lidar_yaw;
-
-//        t_lidar_cur = cur_ft.DRPose.GetXYZ();
-//        q_lidar_cur = cur_ft.DRPose.GetQ();
-//        q_lidar_cur.normalize();
-//        q_lidar_cur_matrix = q_lidar_cur.toRotationMatrix();
-
-        // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
-//        q_lidar_pitch = asin(-q_lidar_cur_matrix(2, 0)); // 计算pitch
-//        if (cos(q_lidar_pitch) != 0) {
-//            q_lidar_roll = atan2(q_lidar_cur_matrix(2, 1), q_lidar_cur_matrix(2, 2)); // 计算roll
-//            q_lidar_yaw = atan2(q_lidar_cur_matrix(1, 0), q_lidar_cur_matrix(0, 0));  // 计算yaw
-//        } else {
-//            q_lidar_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
-//            q_lidar_yaw = atan2(-q_lidar_cur_matrix(0, 1), q_lidar_cur_matrix(1, 1)); // 计算yaw
-//        }
+         if(IsRealiableGnss == true){
+             EZLOG(INFO)<<"IsRealiableGnss is good!!"<<endl;
+         }else{
+             EZLOG(INFO)<<"IsRealiableGnss is so bad"<<endl;
+         }
 
     }
     void updateInitialGuess(CloudFeature& cur_ft) {

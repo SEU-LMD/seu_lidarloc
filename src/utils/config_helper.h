@@ -96,7 +96,7 @@ class SensorConfig{
 class MappingConfig{
     public:
         static int slam_mode_switch;
-        static int if_debug;
+
         static Eigen::Vector3d origin_gnss;
         static bool use_deskew;
         // save map
@@ -142,9 +142,6 @@ class MappingConfig{
         static float historyKeyframeSearchTimeDiff;
         static int historyKeyframeSearchNum;
         static float  historyKeyframeFitnessScore;//
-
-        static float gnss_pop_threshold;
-        static float gnss_align_threshold;
 
 };
 
@@ -199,6 +196,8 @@ class SerializeConfig{
 
 class FrontEndConfig{
     public:
+    static int slam_mode_switch;
+    static int if_debug;
     static bool use_ground_filter;
     static int min_grid_pt_num;
     static float max_ground_height;
@@ -244,6 +243,8 @@ class FrontEndConfig{
     static  float feature_pts_ratio_guess;
     static bool sharpen_with_nms;
     static bool use_distance_adaptive_pca;
+    static float gnss_pop_threshold;
+    static float gnss_align_threshold;
 
 }; // end FrontEndConfig
 
@@ -326,7 +327,6 @@ bool SensorConfig::use_drodom_deskew =false;
 int SensorConfig::lidarScanDownSample = 2;
 
 int MappingConfig::slam_mode_switch = 0;
-int MappingConfig::if_debug = 1;
 std::string MappingConfig::save_map_path = "";
 
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
@@ -372,8 +372,6 @@ float MappingConfig::historyKeyframeFitnessScore=-1;
 
 //mapping
 int MappingConfig::use_DR_or_fuse_in_loc = 1;
-float MappingConfig::gnss_pop_threshold = 0.01f ;
-float MappingConfig::gnss_align_threshold = 0.01f;
 
 int LocConfig::maxIters = 30;
 int LocConfig::slam_mode_on = 0;
@@ -413,6 +411,8 @@ double SerializeConfig::setLeafSize = 0.6;
 double SerializeConfig::sequence_num = 271;
 
 // ground filter
+int FrontEndConfig::slam_mode_switch = 0;
+int FrontEndConfig::if_debug = 1;
 bool FrontEndConfig::use_ground_filter = true;
 int FrontEndConfig::min_grid_pt_num = 8;
 //float FrontEndConfig::max_ground_height = 50.0;
@@ -459,6 +459,8 @@ int FrontEndConfig::unground_down_fixed_num = 20000;
 float FrontEndConfig::feature_pts_ratio_guess = 0.3 ;
 bool FrontEndConfig::sharpen_with_nms = true;
 bool FrontEndConfig::use_distance_adaptive_pca = false;
+float FrontEndConfig::gnss_pop_threshold = 0.01f ;
+float FrontEndConfig::gnss_align_threshold = 0.01f;
 
 //udp
 std::string UdpConfig::cleint_ip = " ";
@@ -604,7 +606,6 @@ void Load_Mapping_YAML(std::string mappingpath)
         }
 
         MappingConfig::slam_mode_switch = mappingconfig["slam_mode_switch"].as<int>();
-        MappingConfig::if_debug = mappingconfig["if_debug"].as<int>();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();
 
@@ -650,11 +651,8 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::historyKeyframeSearchNum=mappingconfig["historyKeyframeSearchNum"].as<int >();
         MappingConfig::historyKeyframeFitnessScore=mappingconfig["historyKeyframeFitnessScore"].as<float >();
         MappingConfig::use_DR_or_fuse_in_loc = mappingconfig["use_DR_or_fuse_in_loc"].as<int>();
-        MappingConfig:: gnss_pop_threshold=mappingconfig["gnss_pop_threshold"].as<float >();
-        MappingConfig:: gnss_align_threshold=mappingconfig["gnss_align_threshold"].as<float >();
 
         std::cout<<"MappingConfig::mappingProcessInterval"<<MappingConfig::mappingProcessInterval<<std::endl;
-        std::cout<<"MappingConfig::if_debug: "<<MappingConfig::if_debug<<std::endl;
         std::cout<<"MappingConfig::DownSampleModeSwitch: "<< MappingConfig::DownSampleModeSwitch<<std::endl;
 
         std::cout<<"MappingConfig::odometrySurfRadiusSize_US: "<<MappingConfig::odometrySurfRadiusSize_US<<std::endl;
@@ -733,7 +731,8 @@ void Load_FrontEnd_YAML(std::string frontendpath)
         std::cout<<"front_end yaml read error!"<<frontendpath<<std::endl;
         exit(1);
     }
-
+    FrontEndConfig::slam_mode_switch = frontendconfig["slam_mode_switch"].as<int>();
+    FrontEndConfig::if_debug = frontendconfig["if_debug"].as<int>();
 // ground filter
     FrontEndConfig::use_ground_filter = frontendconfig["use_ground_filter"].as<bool>();
     FrontEndConfig::min_grid_pt_num = frontendconfig["min_grid_pt_num"].as<int>();
@@ -781,6 +780,8 @@ void Load_FrontEnd_YAML(std::string frontendpath)
     FrontEndConfig::feature_pts_ratio_guess = frontendconfig["feature_pts_ratio_guess"].as<float>();
     FrontEndConfig::sharpen_with_nms = frontendconfig["sharpen_with_nms"].as<bool>();
     FrontEndConfig::use_distance_adaptive_pca = frontendconfig["use_distance_adaptive_pca"].as<bool>();
+    FrontEndConfig:: gnss_pop_threshold=frontendconfig["gnss_pop_threshold"].as<float >();
+    FrontEndConfig:: gnss_align_threshold=frontendconfig["gnss_align_threshold"].as<float >();
 
     std::cout<<"offline yaml success load"<<std::endl;
 
