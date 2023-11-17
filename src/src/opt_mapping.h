@@ -37,9 +37,12 @@ public:
     std::thread* do_work_thread;
     std::thread* loop_thread;
     std::thread* save_Map_thread;
+    std::thread* savepathThread;
     std::mutex cloud_mutex;
     std::mutex mtxloop;
     std::mutex mtxGraph;
+    std::mutex timer_mutex;
+
     MapSaver map_saver;
 
     std::function<void(const OdometryType&)> Function_AddOdometryTypeToIMUPreintegration;
@@ -91,20 +94,29 @@ public:
     Eigen::Affine3f transPointAssociateToMap;
     Eigen::Affine3f T_wl;
     Eigen::Affine3f incrementalOdometryAffineFront;
+    Eigen::Vector3d q_gnss_rpy;
+    Eigen::Vector3d q_lidar_rpy;
     Eigen::Vector3d t_gnss_cur;
-    float q_gnss_roll, q_gnss_pitch, q_gnss_yaw;
+    Eigen::Vector3d t_lidar_cur;
+    Eigen::Matrix3d R_gnss_cur;
+   // float q_gnss_roll, q_gnss_pitch, q_gnss_yaw;
+   // float q_lidar_roll, q_lidar_pitch, q_lidar_yaw;
+
     double noise_x,noise_y,noise_z,noise_roll,noise_pitch,noise_yaw;
 
     vector <pair<int, int>> loopIndexQueue;
     vector <gtsam::Pose3> loopPoseQueue;
     vector <gtsam::noiseModel::Diagonal::shared_ptr> loopNoiseQueue;
     vector<PoseT> opt_poses;
+    vector<PoseT> opt_correct_poses;
     map<int, int> loopIndexContainer;  // from new to old
 
     bool isAddloopFrame = false;
     bool isAddGnssKeyFrame = false;
     bool isAddOdomKeyFrame = false;
     bool init = false;
+    bool  IsRealiableGnss =false;
+    bool timer_start = false;
 
     int lastLoopIndex = -1;
     int laserCloudCornerFromMapDSNum = 0;
@@ -121,6 +133,7 @@ public:
     gtsam::Pose3 last_gnss_poses;
     gtsam::ISAM2 *isam;
     gtsam::NonlinearFactorGraph gtSAMgraph;
+    gtsam::NonlinearFactorGraph gtSAMgraphloop;
 
     gtsam::Values initialEstimate;
     gtsam::Values isamCurrentEstimate;
@@ -132,6 +145,7 @@ public:
     Eigen::Vector3d originLLA;
     bool systemInitialized = false;
     GeographicLib::LocalCartesian geoConverter;
+    TicToc timer_cloud;
 
     void allocateMemory() {
         gtsam::ISAM2Params parameters;
@@ -275,6 +289,62 @@ public:
         return thisPose6D;
     }
 
+
+
+    void savePathThread() {
+        while (1) {
+
+            //保证有了位姿数据
+            if (timer_start == true) {
+                timer_mutex.lock();
+                double delta_time = timer_cloud.toc();
+                timer_mutex.unlock();
+                EZLOG(INFO)<<"delta_time = "<<delta_time<<std::endl;
+                if(delta_time>1000){
+                   // EZLOG(INFO)<<"1"<<endl;
+                   // int numPoses = opt_poses.size();
+                   //1.构建因子图gtSAMgraphloop；
+                    addLoopFactor();
+                    gtsam::Vector Vector6(6);
+                    Vector6 << 1e-2,1e-2,1e-2,1e-2,1e-2,1e-2;
+                    gtsam::noiseModel::Diagonal::shared_ptr unaryNoise = gtsam::noiseModel::Diagonal::Variances(Vector6);
+
+                    //3.给定初值
+                    gtsam::Values initialLoop;
+                    int numPoses = isamCurrentEstimate.size();
+                    EZLOG(INFO)<<"numpose size"<<numPoses<<endl;
+
+
+
+                    for (int i = 0; i <numPoses; ++i){
+                        gtsam::Pose3 initialloopEstimate = isamCurrentEstimate.at<gtsam::Pose3>(i);
+                        initialLoop.insert(numPoses,initialloopEstimate);
+                    }
+                    EZLOG(INFO)<<"3"<<endl;
+                   //3.优化
+                    gtsam::LevenbergMarquardtOptimizer optimizer(gtSAMgraphloop, initialLoop);
+                    gtsam::Values  resultloop =optimizer.optimize();
+                    EZLOG(INFO)<<"5"<<endl;
+
+                    int num = resultloop.size();
+                    PoseT gloabal_corrected_pose;
+                    gloabal_corrected_pose = isamCurrentEstimate.at<gtsam::Pose3>(num - 1).matrix();
+                    opt_poses.push_back(gloabal_corrected_pose);
+                    map_saver.SavePoses(opt_poses);
+//                    for (int i = 0; i<num;++i){
+//                        PoseT gloabal_corrected_pose;
+//                        gloabal_corrected_pose = resultloop.at<gtsam::Pose3>(i).matrix();;
+//                        opt_correct_poses[i] = gloabal_corrected_pose;
+//                        map_saver.SaveCorrectPoses(opt_correct_poses);
+//                    }
+
+                }
+            }//end if(delta_time>5000)
+
+            sleep(0.1);
+        }
+    }
+
     void loopClosureThread() {
         if (MappingConfig::loopClosureEnableFlag == false) return;
 
@@ -362,6 +432,7 @@ public:
 
         gtsam::Vector Vector6(6);
         float noiseScore = icp.getFitnessScore();
+        EZLOG(INFO)<<"LOOP noise is "<<noiseScore<<endl;
         Vector6 << noiseScore, noiseScore, noiseScore, noiseScore, noiseScore,
                 noiseScore;
         gtsam::noiseModel::Diagonal::shared_ptr constraintNoise =
@@ -457,77 +528,95 @@ public:
     }
 
     void dataprecess(CloudFeature& cur_ft){
-
-        //tranform gnss to xyz rpy
+        //gnss data preprocess
         Eigen::Quaterniond q_gnss_cur;
-        Eigen::Matrix3d q_gnss_cur_matrix;
-
         t_gnss_cur = cur_ft.pose.GetXYZ();
+        R_gnss_cur = cur_ft.pose.GetR();
         q_gnss_cur = cur_ft.pose.GetQ();
-        q_gnss_cur.normalize();
-        q_gnss_cur_matrix = q_gnss_cur.toRotationMatrix();
+        q_gnss_rpy =Qua2Euler(q_gnss_cur);
+        //EZLOG(INFO)<<"q_gnss_rpy"<<q_gnss_rpy[0]<<q_gnss_rpy[1]<<q_gnss_rpy[2]<<endl;
 
-        double noise_x = cur_ft.cov(0, 0);
-        double noise_y = cur_ft.cov(1,0);
-        double noise_z = cur_ft.cov(2,0);
+        //lidar data preprocess
+        Eigen::Quaterniond q_lidar_cur;
+        t_lidar_cur = cur_ft.DRPose.GetXYZ();
+        q_lidar_cur = cur_ft.DRPose.GetQ();
+        q_lidar_rpy = Qua2Euler(q_gnss_cur);
+        //EZLOG(INFO)<<"q_lidar_rpy"<<q_lidar_rpy[0]<<q_lidar_rpy[1]<<q_lidar_rpy[2]<<endl;
+
+        double noise_x = cur_ft.cov(0, 0) * 0.01;
+        double noise_y = cur_ft.cov(1,0) * 0.01;
+        double noise_z = cur_ft.cov(2,0) * 0.01;
         EZLOG(INFO)<<"noise_x"<<noise_x<<"noise_y"<<noise_y<<"noise_z"<<noise_z;
-        noise_roll =cur_ft.cov(3,0);
-        noise_pitch = cur_ft.cov(4,0);
-        noise_yaw = cur_ft.cov(5,0);
+        noise_roll = cur_ft.cov(3,0) * 0.01;
+        noise_pitch = cur_ft.cov(4,0)* 0.01;
+        noise_yaw = cur_ft.cov(5,0)* 0.01;
         EZLOG(INFO)<<"noise_roll"<<noise_x<<"noise_pitch"<<noise_y<<"noise_yaw"<<noise_z;
 
-
-
-//        double noise_x = cur_ft.cov.block<1,1>(0, 0);
-//        double noise_y = cur_ft.cov.block<1,1>(1, 0);
-//        double noise_z = cur_ft.cov.block<1,1>(2, 0);
-//        for (int i = 0 ; i<3;i++){
-//            for (int j = 0; j<1 ;j++){
-//                noise_x = cur_ft.cov(0,0);
-//                noise_y = cur_ft.cov(1,0);
-//                noise_z = cur_ft.cov(2,0);
-//                noise_roll =cur_ft.cov(3,0);
-//                noise_pitch = cur_ft.cov(4,0);
-//                noise_yaw = cur_ft.cov(5,0);
-//                EZLOG(INFO)<<"noise_x"<<noise_x<<"noise_y"<<noise_y<<"noise_z"<<noise_z;
-//                EZLOG(INFO)<<"noise_roll"<<noise_x<<"noise_pitch"<<noise_y<<"noise_yaw"<<noise_z;
+         IsRealiableGnss = cur_ft.pose_reliable;
 //
-//            }
-//        }
+//         if(IsRealiableGnss == true){
+//             EZLOG(INFO)<<"IsRealiableGnss is good!!"<<endl;
+//         }else{
+//             EZLOG(INFO)<<"IsRealiableGnss is so bad"<<endl;
+//         }
+        // EZLOG(INFO)<<"IsRealiableGnss"<<IsRealiableGnss<<endl;
+
+        //tranform gnss to xyz rpy
+        //Eigen::Quaterniond q_gnss_cur;
+       // Eigen::Matrix3d q_gnss_cur_matrix;
+       // t_gnss_cur = cur_ft.pose.GetXYZ();
+       // R_gnss_cur = cur_ft.pose.GetR();
+       // q_gnss_cur = cur_ft.pose.GetQ();
+//        q_gnss_cur.normalize();
+       // q_gnss_cur_matrix = q_gnss_cur.toRotationMatrix();
+//        Eigen::Vector3d q_gnss_rpy = Qua2Euler(q_gnss_cur);
+//        q_gnss_roll = q_gnss_rpy[0];
+//        q_gnss_pitch = q_gnss_rpy[1];
+//        q_gnss_yaw = q_gnss_rpy[2];
+
+//        double noise_x = cur_ft.cov(0, 0);
+//        double noise_y = cur_ft.cov(1,0);
+//        double noise_z = cur_ft.cov(2,0);
+//        EZLOG(INFO)<<"noise_x"<<noise_x<<"noise_y"<<noise_y<<"noise_z"<<noise_z;
+//        noise_roll =cur_ft.cov(3,0);
+//        noise_pitch = cur_ft.cov(4,0);
+//        noise_yaw = cur_ft.cov(5,0);
+//        EZLOG(INFO)<<"noise_roll"<<noise_x<<"noise_pitch"<<noise_y<<"noise_yaw"<<noise_z;
 
         // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
-        q_gnss_pitch = asin(-q_gnss_cur_matrix(2, 0)); // 计算pitch
-        if (cos(q_gnss_pitch) != 0) {
-            q_gnss_roll = atan2(q_gnss_cur_matrix(2, 1), q_gnss_cur_matrix(2, 2)); // 计算roll
-            q_gnss_yaw = atan2(q_gnss_cur_matrix(1, 0), q_gnss_cur_matrix(0, 0));  // 计算yaw
-        } else {
-            q_gnss_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
-            q_gnss_yaw = atan2(-q_gnss_cur_matrix(0, 1), q_gnss_cur_matrix(1, 1)); // 计算yaw
-        }
+//        q_gnss_pitch = asin(-q_gnss_cur_matrix(2, 0)); // 计算pitch
+//        if (cos(q_gnss_pitch) != 0) {
+//            q_gnss_roll = atan2(q_gnss_cur_matrix(2, 1), q_gnss_cur_matrix(2, 2)); // 计算roll
+//            q_gnss_yaw = atan2(q_gnss_cur_matrix(1, 0), q_gnss_cur_matrix(0, 0));  // 计算yaw
+//        } else {
+//            q_gnss_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
+//            q_gnss_yaw = atan2(-q_gnss_cur_matrix(0, 1), q_gnss_cur_matrix(1, 1)); // 计算yaw
+//        }
+
+       // Eigen::Vector3d t_lidar_cur;
+
+//        Eigen::Quaterniond q_lidar_cur;
+//        Eigen::Matrix3d q_lidar_cur_matrix;
+       // float q_lidar_roll, q_lidar_pitch, q_lidar_yaw;
+
+//        t_lidar_cur = cur_ft.DRPose.GetXYZ();
+//        q_lidar_cur = cur_ft.DRPose.GetQ();
+//        q_lidar_cur.normalize();
+//        q_lidar_cur_matrix = q_lidar_cur.toRotationMatrix();
+
+        // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
+//        q_lidar_pitch = asin(-q_lidar_cur_matrix(2, 0)); // 计算pitch
+//        if (cos(q_lidar_pitch) != 0) {
+//            q_lidar_roll = atan2(q_lidar_cur_matrix(2, 1), q_lidar_cur_matrix(2, 2)); // 计算roll
+//            q_lidar_yaw = atan2(q_lidar_cur_matrix(1, 0), q_lidar_cur_matrix(0, 0));  // 计算yaw
+//        } else {
+//            q_lidar_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
+//            q_lidar_yaw = atan2(-q_lidar_cur_matrix(0, 1), q_lidar_cur_matrix(1, 1)); // 计算yaw
+//        }
 
     }
     void updateInitialGuess(CloudFeature& cur_ft) {
 
-      //tranform dr to xyz,rpy
-        Eigen::Vector3d t_lidar_cur;
-        Eigen::Quaterniond q_lidar_cur;
-        Eigen::Matrix3d q_lidar_cur_matrix;
-        float q_lidar_roll, q_lidar_pitch, q_lidar_yaw;
-
-        t_lidar_cur = cur_ft.DRPose.GetXYZ();
-        q_lidar_cur = cur_ft.DRPose.GetQ();
-        q_lidar_cur.normalize();
-        q_lidar_cur_matrix = q_lidar_cur.toRotationMatrix();
-
-        // 提取欧拉角（Z-Y-X旋转顺序）q_w_cur_roll,q_w_cur_pitch,q_w_cur_yaw;
-        q_lidar_pitch = asin(-q_lidar_cur_matrix(2, 0)); // 计算pitch
-        if (cos(q_lidar_pitch) != 0) {
-            q_lidar_roll = atan2(q_lidar_cur_matrix(2, 1), q_lidar_cur_matrix(2, 2)); // 计算roll
-            q_lidar_yaw = atan2(q_lidar_cur_matrix(1, 0), q_lidar_cur_matrix(0, 0));  // 计算yaw
-        } else {
-            q_lidar_roll = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
-            q_lidar_yaw = atan2(-q_lidar_cur_matrix(0, 1), q_lidar_cur_matrix(1, 1)); // 计算yaw
-        }
         incrementalOdometryAffineFront = trans2Affine3f(current_T_m_l);
 
         if (cloudKeyPoses3D->points.empty()) {
@@ -536,17 +625,17 @@ public:
                 EZLOG(INFO)<<"pose_reliable"<<cur_ft.pose_reliable<<endl;
                 if(cur_ft.pose_reliable == true){
                     EZLOG(INFO)<<"pose_reliable true"<<endl;
-                    current_T_m_l[0] = q_gnss_roll;
-                    current_T_m_l[1] = q_gnss_pitch;
-                    current_T_m_l[2] = q_gnss_yaw;
+                    current_T_m_l[0] = q_gnss_rpy[0];
+                    current_T_m_l[1] = q_gnss_rpy[1];
+                    current_T_m_l[2] = q_gnss_rpy[2];
                     current_T_m_l[3] = t_gnss_cur[0];
                     current_T_m_l[4] = t_gnss_cur[1];
                     current_T_m_l[5] = t_gnss_cur[2];
                     systemInitialized = true;
                 }else{
-                    current_T_m_l[0] = q_lidar_roll;
-                    current_T_m_l[1] = q_lidar_pitch;
-                    current_T_m_l[2] = q_lidar_yaw;
+                    current_T_m_l[0] = q_lidar_rpy[0];
+                    current_T_m_l[1] = q_lidar_rpy[1];
+                    current_T_m_l[2] = q_lidar_rpy[2];
                     current_T_m_l[3] = 0;
                     current_T_m_l[4] = 0;
                     current_T_m_l[5] = 0;
@@ -558,9 +647,9 @@ public:
                 current_T_m_l[3] = 0;
                 current_T_m_l[4] = 0;
                 current_T_m_l[5] = 0;
-                current_T_m_l[0] = q_lidar_roll;
-                current_T_m_l[1] = q_lidar_pitch;
-                current_T_m_l[2] = q_lidar_yaw;
+                current_T_m_l[0] = q_lidar_rpy[0];
+                current_T_m_l[1] = q_lidar_rpy[1];
+                current_T_m_l[2] = q_lidar_rpy[2];
                 ////TODO why not to send value to [0~2]
                 systemInitialized = true;
 
@@ -575,8 +664,8 @@ public:
         static bool lastDRAvailable = false;
         static Eigen::Affine3f lastDRPose;
         Eigen::Affine3f CurrentDRPose = pcl::getTransformation(
-                t_lidar_cur[0], t_lidar_cur[1], t_lidar_cur[2], q_lidar_roll, q_lidar_pitch,
-                q_lidar_yaw);
+                t_lidar_cur[0], t_lidar_cur[1], t_lidar_cur[2],  q_lidar_rpy[0],  q_lidar_rpy[1],
+                q_lidar_rpy[2]);
 
         if (lastDRAvailable == false) {
             lastDRPose = CurrentDRPose;
@@ -1169,7 +1258,7 @@ public:
 
             gtsam::noiseModel::Diagonal::shared_ptr odometryNoise =
                     gtsam::noiseModel::Diagonal::Variances(
-                            (gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
+                            (gtsam::Vector(6) << 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3).finished());
 
 
             gtsam::Pose3 poseFrom =
@@ -1195,6 +1284,8 @@ public:
 
         if (deque_cloud.empty()) return;
 
+       // if (IsRealiableGnss == false) return;
+
         if (cloudKeyPoses3D->points.empty() || cloudKeyPoses3D->points.size() == 1)
             return;
 
@@ -1210,10 +1301,7 @@ public:
                 break;
             }
             cloud_mutex.unlock();
-//            double noise_x = 1;
-//            double noise_y = 1;
-//            double noise_z = 1;
-              EZLOG(INFO)<<noise_x<<","<<noise_y<<" ,"<<noise_z<<endl;
+             // EZLOG(INFO)<<"noise x "<<noise_x<<","<<noise_y<<" ,"<<noise_z<<","<<noise_roll<<","<<noise_pitch<<","<<noise_yaw<<","<<endl;
 
             if (abs(noise_x) > SensorConfig::gpsCovThreshold || abs(noise_y) > SensorConfig::gpsCovThreshold)
                 break;
@@ -1227,7 +1315,7 @@ public:
                 noise_z = 0.001;
             }
             if (abs(gps_x) < 1e-6 && abs(gps_y) < 1e-6)
-                continue;
+                break;
 
             PointType curGPSPoint;
             curGPSPoint.x = gps_x;
@@ -1238,20 +1326,21 @@ public:
                 break;
             lastGPSPoint = curGPSPoint;
 
-            gtsam::Vector Vector3(3);
-            Vector3 << max(noise_x, 1.0), max(noise_y, 1.0), max(noise_z, 1.0);
-           // Vector6 << 1e-6,1e-6,1e-6,1e-6,1e-6,1e-6;
-           // gtsam::noiseModel::Diagonal::shared_ptr priorNoise = gtsam::noiseModel::Diagonal::Variances(Vector6);
+            gtsam::Vector Vector6(6);
+           // Vector3 << max(noise_x, 1.0), max(noise_y, 1.0), max(noise_z, 1.0);
+            Vector6<< noise_x,noise_y,noise_z,noise_roll,noise_pitch,noise_yaw;
+           // Vector6 << 1e-4,1e-4,1e-4,1e-4,1e-4,1e-4;
+            gtsam::noiseModel::Diagonal::shared_ptr priorNoise = gtsam::noiseModel::Diagonal::Variances(Vector6);
 
-           // gtsam::Pose3 gnss_pose_gtsam = gtsam::Pose3(
-           //         gtsam::Rot3::RzRyRx(q_gnss_roll, q_gnss_pitch, q_gnss_yaw),
-           //         gtsam::Point3(t_gnss_cur[0], t_gnss_cur[0], t_gnss_cur[0]));
+            gtsam::Pose3 gnss_pose_gtsam = gtsam::Pose3(
+                    gtsam::Rot3(R_gnss_cur),
+                    gtsam::Point3(t_gnss_cur[0], t_gnss_cur[1], t_gnss_cur[2]));
 
-          //  gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(cloudKeyPoses3D->size(), gnss_pose_gtsam,
-            //                                            priorNoise));
-             gtsam::noiseModel::Diagonal::shared_ptr gps_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
-             gtsam::GPSFactor gps_factor(cloudKeyPoses3D->size(), gtsam::Point3(gps_x, gps_y, gps_z), gps_noise);//TODO replace gps factor with priorfactor
-            gtSAMgraph.add(gps_factor);
+            gtSAMgraphloop.add(gtsam::PriorFactor<gtsam::Pose3>(cloudKeyPoses3D->size(), gnss_pose_gtsam,
+                                                        priorNoise));
+            // gtsam::noiseModel::Diagonal::shared_ptr gps_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
+          //   gtsam::GPSFactor gps_factor(cloudKeyPoses3D->size(), gtsam::Point3(gps_x, gps_y, gps_z), gps_noise);//TODO replace gps factor with priorfactor
+         //   gtSAMgraph.add(gps_factor);
             EZLOG(INFO)<<"ADD GPS factor successfully!"<<endl;
             isAddGnssKeyFrame == true;
            break;
@@ -1260,16 +1349,16 @@ public:
 
     void addLoopFactor() {
         if (loopIndexQueue.empty()) return;
-
+        EZLOG(INFO)<< "loopIndexQueue size"<< loopIndexQueue.size();
         for (int i = 0; i < (int) loopIndexQueue.size(); ++i) {
             int indexFrom = loopIndexQueue[i].first;
             int indexTo = loopIndexQueue[i].second;
             gtsam::Pose3 poseBetween = loopPoseQueue[i];
             gtsam::noiseModel::Diagonal::shared_ptr noiseBetween = loopNoiseQueue[i];
-            mtxGraph.lock();
-            gtSAMgraph.add(
+           // mtxGraph.lock();
+            gtSAMgraphloop.add(
                     gtsam::BetweenFactor<gtsam::Pose3>(indexFrom, indexTo, poseBetween, noiseBetween));
-            mtxGraph.unlock();
+           // mtxGraph.unlock();
         }
 
         loopIndexQueue.clear();
@@ -1362,10 +1451,12 @@ public:
         map_saver.SavePoses(opt_poses);
         ////TODO
         if (isAddloopFrame == true || isAddGnssKeyFrame == true ) {
+           // if (isAddGnssKeyFrame == true ) {
             // clear map cache
             laserCloudMapContainer.clear();
             int start_idx = 0;
             if(isAddloopFrame ==true|| isAddGnssKeyFrame == true ){
+          //  if(isAddGnssKeyFrame == true ){
                 start_idx = min(0,numPoses - 30);
             }
 
@@ -1398,7 +1489,7 @@ public:
 
             isAddloopFrame = false;
             isAddGnssKeyFrame == false;
-            isAddOdomKeyFrame == false;
+           // isAddOdomKeyFrame == false;
 
         }
 
@@ -1446,25 +1537,35 @@ public:
                 if (timeLaserInfoCur - timeLastProcessing >=MappingConfig::mappingProcessInterval) {
                   //  if (IsKeyFrame() == true) {//TODO keyframe starategy
                       //  EZLOG(INFO)<<"IS keyFRame"<<endl;
-                    timeLastProcessing = timeLaserInfoCur;
+                  //  timeLastProcessing = timeLaserInfoCur;
+
+                    TicToc t0;
                     dataprecess(cur_ft);
+                    EZLOG(INFO)<<" dataprecess COST TIME"<<t0.toc()<<endl;
+                    TicToc t6;
                     updateInitialGuess(cur_ft);//TODO
+                    EZLOG(INFO)<<" updateInitialGuess COST TIME"<<t6.toc()<<endl;
                     if (systemInitialized) {
                         if(IsKeyFrame() == true){
-                           // TicToc t1;
+                            TicToc t1;
                             extractSurroundingKeyFrames();
-                          //  EZLOG(INFO)<<" extractSurroundingKeyFrames COST TIME"<<t1.toc()<<endl;
+                            EZLOG(INFO)<<" extractSurroundingKeyFrames COST TIME"<<t1.toc()<<endl;
                             downsampleCurrentScan();
-                           // TicToc t3;
+                            TicToc t3;
                             scan2MapOptimization();
-                           // EZLOG(INFO)<<" scan2MapOptimization COST TIME"<<t3.toc()<<endl;
-                           // TicToc t4;
+                            EZLOG(INFO)<<" scan2MapOptimization COST TIME"<<t3.toc()<<endl;
+                            TicToc t4;
                             FactorOptandSavecloud();
-                           // EZLOG(INFO)<<" saveKeyFramesAndFactor COST TIME"<<t4.toc()<<endl;
-                          //  TicToc t5;
+                            EZLOG(INFO)<<" saveKeyFramesAndFactor COST TIME"<<t4.toc()<<endl;
+                            TicToc t5;
                             correctPoses();
-                          //  EZLOG(INFO)<<" correctPoses COST TIME"<<t5.toc()<<endl;
+                            EZLOG(INFO)<<" correctPoses COST TIME"<<t5.toc()<<endl;
                             publishOdometry();
+//
+                            timer_mutex.lock();
+                            timer_cloud.tic();
+                            timer_start = true;
+                            timer_mutex.unlock();
 
                         }
 
@@ -1491,6 +1592,7 @@ public:
         do_work_thread = new std::thread(&OPTMapping::DoWork, this);
         loop_thread =new std::thread(&OPTMapping::loopClosureThread, this);
         save_Map_thread = new std::thread(&MapSaver::do_work, &(OPTMapping::map_saver));
+       // savepathThread = new std::thread(&OPTMapping::savePathThread, this);
 
     }
 };

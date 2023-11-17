@@ -227,6 +227,7 @@ CloudInfo& CloudInfo::operator=(const CloudInfo& d){
     pose = d.pose;
     DRPose = d.DRPose;
     cov = d.cov;
+
 //    std::vector<int> label;
     startRingIndex = d.startRingIndex;
     endRingIndex = d.endRingIndex;

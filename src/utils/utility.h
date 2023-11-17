@@ -89,6 +89,20 @@ Eigen::Matrix4d ConstructPoseT(const Eigen::Vector3d& t, const Eigen::Quaternion
 Eigen::Vector3d PoseTMulPt(const Eigen::Matrix4d& T, const Eigen::Vector3d& pt){
     return T.block<3,3>(0,0)*pt+T.block<3,1>(0,3);
 }
+Eigen::Vector3d Qua2Euler(const Eigen::Quaterniond& q){
+    Eigen::Vector3d rpy;
+    Eigen::Matrix3d q_2_matrix = q.toRotationMatrix();
+    //get euler angle according to （Z-Y-X）to get roll,pitch,yaw;
+    rpy[1] = asin(-q_2_matrix(2, 0)); // 计算pitch
+    if (cos(rpy[1]) != 0) {
+        rpy[0] = atan2(q_2_matrix(2, 1), q_2_matrix(2, 2)); // 计算roll
+        rpy[2] = atan2(q_2_matrix(1, 0), q_2_matrix(0, 0));  // 计算yaw
+    } else {
+        rpy[0] = 0; // 如果pitch为正90度或负90度，则roll和yaw无法唯一确定
+        rpy[2] = atan2(-q_2_matrix(0, 1), q_2_matrix(1, 1)); // 计算yaw
+    }
+    return rpy;
+}
 
 
 class PoseT{
