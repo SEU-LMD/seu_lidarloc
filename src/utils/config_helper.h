@@ -171,6 +171,27 @@ public:
     static double surroundingkeyframeAddingDistThreshold;
     static double surroundingkeyframeAddingAngleThreshold;
 
+    // GTSAM noise
+    static double GNSS_noise_roll;
+    static double GNSS_noise_pitch;
+    static double GNSS_noise_yaw;
+    static double GNSS_noise_x;
+    static double GNSS_noise_y;
+    static double GNSS_noise_z;
+    static double LidarOdom_noise_roll;
+    static double LidarOdom_noise_pitch;
+    static double LidarOdom_noise_yaw;
+    static double LidarOdom_noise_x;
+    static double LidarOdom_noise_y;
+    static double LidarOdom_noise_z;
+    static double DR_noise_roll;
+    static double DR_noise_pitch;
+    static double DR_noise_yaw;
+    static double DR_noise_x;
+    static double DR_noise_y;
+    static double DR_noise_z;
+    static int GNSSupdateDR;
+
 };
 class SerializeConfig{
    public:
@@ -389,6 +410,25 @@ float LocConfig::mappingProcessInterval=-1;
 double  LocConfig::surroundingkeyframeAddingDistThreshold = 1.0;
 double  LocConfig::surroundingkeyframeAddingAngleThreshold = 3.0;
 int LocConfig::use_DR_or_fuse_in_loc = 1;
+double LocConfig::GNSS_noise_roll = 1e-2;
+double LocConfig::GNSS_noise_pitch = 1e-2;
+double LocConfig::GNSS_noise_yaw = 1e-2;
+double LocConfig::GNSS_noise_x = 1e-2;
+double LocConfig::GNSS_noise_y = 1e-2;
+double LocConfig::GNSS_noise_z = 1e-2;
+double LocConfig::LidarOdom_noise_roll = 1e-2;
+double LocConfig::LidarOdom_noise_pitch = 1e-2;
+double LocConfig::LidarOdom_noise_yaw = 1e-2;
+double LocConfig::LidarOdom_noise_x = 1e-2;
+double LocConfig::LidarOdom_noise_y = 1e-2;
+double LocConfig::LidarOdom_noise_z = 1e-2;
+double LocConfig::DR_noise_x = 1e-2;
+double LocConfig::DR_noise_y = 1e-2;
+double LocConfig::DR_noise_z = 1e-2;
+double LocConfig::DR_noise_roll = 1e-2;
+double LocConfig::DR_noise_pitch = 1e-2;
+double LocConfig::DR_noise_yaw = 1e-2;
+int LocConfig::GNSSupdateDR = 1;
 
 // offline mapping
 std::string SerializeConfig::map_in_path = "";
@@ -686,6 +726,25 @@ void Load_Loc_YAML(std::string locPath){
     LocConfig::surroundingkeyframeAddingAngleThreshold=LocConfig["surroundingkeyframeAddingAngleThreshold"].as<double >();
     LocConfig::use_DR_or_fuse_in_loc = LocConfig["use_DR_or_fuse_in_loc"].as<int>();
     LocConfig::maxIters =  LocConfig["maxIters"].as<int>();
+    LocConfig::GNSS_noise_roll = LocConfig["GNSS_noise_roll"].as<double>();
+    LocConfig::GNSS_noise_pitch = LocConfig["GNSS_noise_pitch"].as<double>();
+    LocConfig::GNSS_noise_yaw = LocConfig["GNSS_noise_yaw"].as<double>();
+    LocConfig::GNSS_noise_x = LocConfig["GNSS_noise_x"].as<double>();
+    LocConfig::GNSS_noise_y = LocConfig["GNSS_noise_y"].as<double>();
+    LocConfig::GNSS_noise_z = LocConfig["GNSS_noise_z"].as<double>();
+    LocConfig::LidarOdom_noise_x = LocConfig["LidarOdom_noise_x"].as<double>();
+    LocConfig::LidarOdom_noise_y = LocConfig["LidarOdom_noise_y"].as<double>();
+    LocConfig::LidarOdom_noise_z = LocConfig["LidarOdom_noise_z"].as<double>();
+    LocConfig::LidarOdom_noise_roll = LocConfig["LidarOdom_noise_roll"].as<double>();
+    LocConfig::LidarOdom_noise_pitch = LocConfig["LidarOdom_noise_pitch"].as<double>();
+    LocConfig::LidarOdom_noise_yaw = LocConfig["LidarOdom_noise_yaw"].as<double>();
+    LocConfig::DR_noise_x = LocConfig["DR_noise_x"].as<double>();
+    LocConfig::DR_noise_y = LocConfig["DR_noise_y"].as<double>();
+    LocConfig::DR_noise_z = LocConfig["DR_noise_z"].as<double>();
+    LocConfig::DR_noise_roll = LocConfig["DR_noise_roll"].as<double>();
+    LocConfig::DR_noise_pitch = LocConfig["DR_noise_pitch"].as<double>();
+    LocConfig::DR_noise_yaw = LocConfig["DR_noise_yaw"].as<double>();
+    LocConfig::GNSSupdateDR = LocConfig["GNSSupdateDR"].as<int>();
 
     std::cout<<"LocConfig::mappingProcessInterval"<<LocConfig::mappingProcessInterval<<std::endl;
     std::cout<<"LocConfig::odometrySurfRadiusSize_US: "<<LocConfig::odometrySurfRadiusSize_US<<std::endl;
@@ -695,6 +754,27 @@ void Load_Loc_YAML(std::string locPath){
     std::cout<<"LocConfig::surroundingkeyframeAddingAngleThreshold: "<<LocConfig::surroundingkeyframeAddingAngleThreshold<<std::endl;
     std::cout<<"LocConfig::surroundingkeyframeAddingDistThreshold: "<<LocConfig::surroundingkeyframeAddingDistThreshold<<std::endl;
     std::cout<<"LocConfig::maxIters: "<<LocConfig::maxIters<<std::endl;
+    std::cout<<"LocConfig::DR_noise_roll: "<<LocConfig::DR_noise_roll<<std::endl;
+    std::cout<<"LocConfig::DR_noise_pitch: "<<LocConfig::DR_noise_pitch<<std::endl;
+    std::cout<<"LocConfig::DR_noise_yaw: "<<LocConfig::DR_noise_yaw<<std::endl;
+    std::cout<<"LocConfig::DR_noise_x: "<<LocConfig::DR_noise_x<<std::endl;
+    std::cout<<"LocConfig::DR_noise_y: "<<LocConfig::DR_noise_y<<std::endl;
+    std::cout<<"LocConfig::DR_noise_z: "<<LocConfig::DR_noise_z<<std::endl;
+    std::cout<<"LocConfig::LidarOdom_noise_roll: "<<LocConfig::LidarOdom_noise_roll<<std::endl;
+    std::cout<<"LocConfig::LidarOdom_noise_pitch: "<<LocConfig::LidarOdom_noise_pitch<<std::endl;
+    std::cout<<"LocConfig::LidarOdom_noise_yaw: "<<LocConfig::LidarOdom_noise_yaw<<std::endl;
+    std::cout<<"LocConfig::LidarOdom_noise_x: "<<LocConfig::LidarOdom_noise_x<<std::endl;
+    std::cout<<"LocConfig::LidarOdom_noise_y: "<<LocConfig::LidarOdom_noise_y<<std::endl;
+    std::cout<<"LocConfig::LidarOdom_noise_z: "<<LocConfig::LidarOdom_noise_z<<std::endl;
+    std::cout<<"LocConfig::GNSS_noise_roll: "<<LocConfig::GNSS_noise_roll<<std::endl;
+    std::cout<<"LocConfig::GNSS_noise_pitch: "<<LocConfig::GNSS_noise_pitch<<std::endl;
+    std::cout<<"LocConfig::GNSS_noise_yaw: "<<LocConfig::GNSS_noise_yaw<<std::endl;
+    std::cout<<"LocConfig::GNSS_noise_x: "<<LocConfig::GNSS_noise_x<<std::endl;
+    std::cout<<"LocConfig::GNSS_noise_y: "<<LocConfig::GNSS_noise_y<<std::endl;
+    std::cout<<"LocConfig::GNSS_noise_z: "<<LocConfig::GNSS_noise_z<<std::endl;
+    std::cout<<"LocConfig::GNSSupdateDR: "<<LocConfig::GNSSupdateDR<<std::endl;
+
+
     std::cout<<"Loc yaml success load"<<std::endl;
 }
 void Load_offline_YAML(std::string offlinepath)

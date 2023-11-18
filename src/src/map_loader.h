@@ -314,7 +314,7 @@ public:
         for (int i=begin_bulid_cubeJ; i<begin_bulid_cubeJ+3; ++i) {
             for(int j=begin_bulid_cubeI; j<begin_bulid_cubeI+3; ++j){
                 laser_cloud_valid_ind[k]=j+i*SerializeConfig::lasercloud_width;
-                EZLOG(INFO)<<laser_cloud_valid_ind[k]<<std::endl;
+//                EZLOG(INFO)<<laser_cloud_valid_ind[k]<<std::endl;
                 k++;
             }
         }
@@ -394,7 +394,6 @@ public:
         }
         else {
             top_cache_update = false;
-            return;
         }
 
         //需要加载就加载

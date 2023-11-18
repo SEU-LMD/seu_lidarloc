@@ -203,12 +203,12 @@ public:
         gnss_ins_out.wheel_speed[3] = gnss_ins_in->whlspd.ESCWhlFLSpd;
 
         gnss_ins_out.gps_status = gnss_ins_in->locationState;
-        if(gnss_ins_in->locationState == 11 && gnss_ins_in->locationState >20 &&
-           (gnss_ins_in->position.y > 117 && gnss_ins_in->position.y < 118) &&
-           (gnss_ins_in->position.x > 31 && gnss_ins_in->position.x < 32))
-        {
-            gnss_ins_out.gps_status = true;
-        }
+//        if(gnss_ins_in->locationState == 11 && gnss_ins_in->locationState >20 &&
+//           (gnss_ins_in->position.y > 117 && gnss_ins_in->position.y < 118) &&
+//           (gnss_ins_in->position.x > 31 && gnss_ins_in->position.x < 32))
+//        {
+//            gnss_ins_out.gps_status = true;
+//        }
 
         gnss_ins_out.velocity = gnss_ins_in->velocity;
         ///use for test new bag

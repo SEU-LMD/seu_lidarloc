@@ -20,7 +20,7 @@ mappingCornerRadiusSize_US: 0.1                    # default: 0.2 - outdoor, 0.1
 mappingSurfRadiusSize_US: 0.2                      # default: 0.4 - outdoor, 0.2 - indoor
 
 # robot motion constraint (in case you are using a 2D robot)
-z_tollerance: 5                            # meters
+z_tollerance: 2                            # meters
 rotation_tollerance: 5                     # radians
 
 # CPU Params
@@ -32,3 +32,24 @@ surroundingkeyframeAddingAngleThreshold: 1.0  # radians, regulate keyframe addin
 
 #LM opt
 maxIters: 10
+
+#GTSAMNoise
+GNSS_noise_roll: 1e-2
+GNSS_noise_pitch: 1e-2
+GNSS_noise_yaw: 1e-2
+GNSS_noise_x: 1e-6
+GNSS_noise_y: 1e-6
+GNSS_noise_z: 1e-6
+LidarOdom_noise_roll: 1e-2
+LidarOdom_noise_pitch: 1e-2
+LidarOdom_noise_yaw: 1e-2
+LidarOdom_noise_x: 1e-2
+LidarOdom_noise_y: 1e-2
+LidarOdom_noise_z: 1e-2
+DR_noise_roll: 1e-1
+DR_noise_pitch: 1e-1
+DR_noise_yaw: 1e-1
+DR_noise_x: 1e-4
+DR_noise_y: 1e-4
+DR_noise_z: 1e-4
+GNSSupdateDR: 1

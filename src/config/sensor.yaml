@@ -79,6 +79,6 @@
                   1, 0, 0,
                   0, 0, 1 ]
 
-  use_drodom_deskew: true
+  use_drodom_deskew: false
   use_gnss_deskew: false
   use_unground_classify: false

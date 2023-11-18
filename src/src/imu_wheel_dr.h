@@ -13,6 +13,8 @@
 
 #include "udp_seralize.h"
 #include "utils/udp_thread.h"
+#include "utils/filesys.h"
+#include "config/abs_current_path.h"
 
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #define average_kmh2Ms 0.1389
@@ -78,7 +80,8 @@ public:
 
     void Wheel_predict(IMURawWheelDataPtr curr_imu){
         double imuTime = curr_imu->timestamp;
-        double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);//TODO???? 1111
+        double dt = (lastImuT_imu < 0) ? (1.0 / 100) : (imuTime - lastImuT_imu);
+//        double dt = (lastImuT_imu < 0) ? (1.0 / SensorConfig::imuHZ) : (imuTime - lastImuT_imu);//TODO???? 1111----Done
         lastImuT_imu = imuTime;
 //        state_.timestamp = curr_imu->timestamp;
 //        const Eigen::Vector3d gyr_unbias =  curr_imu->imu_angular_v - prior_gyro_bias;  // gyro not unbias for now
@@ -93,7 +96,7 @@ public:
         Eigen::Vector3d state_v_w = state.Rwb_ * state_v_b;
         state.v_w_ = state_v_w;
         state.p_wb_ = last_state.p_wb_ + (last_state.v_w_ + state.v_w_)/2 *dt;//position
-//        EZLOG(INFO)<<state.p_wb_.x()<< " "<< state.p_wb_.y() <<" "<<state.p_wb_.z()<<endl;
+       // EZLOG(INFO)<<state.p_wb_.x()<< " "<< state.p_wb_.y() <<" "<<state.p_wb_.z()<<endl;
 
         last_state = state;
     }
@@ -120,7 +123,6 @@ public:
         TicToc time1;
         double currentTime = gnss_ins_data.timestamp;
         static bool init = false;
-        static bool load_first_gnss_point = false;
 
         if(!init)
         {
@@ -138,17 +140,64 @@ public:
             else{ // mapping
                 geoConverter.Reset(gnss_ins_data.lla[0], gnss_ins_data.lla[1], gnss_ins_data.lla[2]);
             }
+            //TODO 1111 move below gnss code to here---Done
+//            if(load_first_gnss_point == true){ return;}
+            //gnss bad
+            if(gnss_ins_data.lla[0] < 0 || gnss_ins_data.lla[1] < 0 || gnss_ins_data.lla[2] < 0){
+                EZLOG(INFO)<<"DR: GNSS value is bad: "<<gnss_ins_data.lla[0]<<","
+                                                <<gnss_ins_data.lla[1]<<","
+                                                <<gnss_ins_data.lla[2];
+                return;
+            }
+            if(gnss_ins_data.gps_status != 42 && gnss_ins_data.gps_status != 52 && gnss_ins_data.gps_status != 33){
+                EZLOG(INFO)<<"DR: GNSS status is bad: "<<gnss_ins_data.gps_status;
+                return;
+            }
+            // gnss good
+            Eigen::Matrix3d z_matrix;
+            Eigen::Matrix3d x_matrix;
+            Eigen::Matrix3d y_matrix;
+            double heading_Z = -gnss_ins_data.yaw * 0.017453293;
+            double pitch_Y = gnss_ins_data.pitch * 0.017453293;
+            double roll_X = gnss_ins_data.roll * 0.017453293;
+            z_matrix << cos(heading_Z), -sin(heading_Z), 0,
+                    sin(heading_Z), cos(heading_Z),  0,
+                    0,                 0,            1;
+
+            x_matrix << 1,                 0,              0,
+                    0,            cos(pitch_Y),     -sin(pitch_Y),
+                    0,            sin(pitch_Y),    cos(pitch_Y);
+
+            y_matrix << cos(roll_X) ,     0,        sin(roll_X),
+                    0,                 1,               0 ,
+                    -sin(roll_X),      0,         cos(roll_X);
+            double t_enu[3];
+            geoConverter.Forward(gnss_ins_data.lla[0], gnss_ins_data.lla[1], gnss_ins_data.lla[2],
+                                 t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
+            Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb zxy右前上，zyx前左上
+            Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
+
+            state.p_wb_ = t_w_b;
+            state.Rwb_ = R_w_b;
+//                    state.v_w_[1] = gnss_ins_data.velocity; // gnss velocity
+            state.v_w_[1] = (gnss_ins_data.wheel_speed[0] + gnss_ins_data.wheel_speed[1]) * average_kmh2Ms; // gnss velocity, /2 /3.6
+            last_state.p_wb_ = state.p_wb_;
+            last_state.Rwb_ = state.Rwb_;
+            last_state.v_w_ = state.v_w_;
+
             init = 1;
-            //TODO 1111 move below gnss code to here
+
+            EZLOG(INFO)<<"RESET DR with GNSS: t_w_b"<<t_w_b.transpose();
             return;
         }
 
-        // update wheel
+//        // update wheel
         static int gnss_cnt = 0;
-        // first init, or gnss_cnt>500,but gnss must 42 or 52
-        if(load_first_gnss_point == false || gnss_cnt > 500){
-            if(gnss_ins_data.lla[0]>0 && gnss_ins_data.lla[1]>0 && gnss_ins_data.lla[2]>0){
-                if(gnss_ins_data.gps_status == 42 || gnss_ins_data.gps_status == 52|| gnss_ins_data.gps_status == 33){
+//        // first init, or gnss_cnt>500,but gnss must 42 or 52
+        if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
+            if(gnss_cnt > 500){
+                if(gnss_ins_data.lla[0] > 0 && gnss_ins_data.lla[1] > 0 && gnss_ins_data.lla[2] > 0){
+                    // gnss good
                     Eigen::Matrix3d z_matrix;
                     Eigen::Matrix3d x_matrix;
                     Eigen::Matrix3d y_matrix;
@@ -179,15 +228,19 @@ public:
                     last_state.p_wb_ = state.p_wb_;
                     last_state.Rwb_ = state.Rwb_;
                     last_state.v_w_ = state.v_w_;
-
-                    load_first_gnss_point = true;
                     gnss_cnt = 0;
-//                    EZLOG(INFO)<<"RESET DR with GNSS: t_w_b"<<t_w_b.transpose()<<",R_w_b"<<R_w_b;
                 }
-            }
 
+            }
+            if(LocConfig::GNSSupdateDR == 1){
+                gnss_cnt++;
+            }
         }
-        gnss_cnt++;
+        else{
+            EZLOG(INFO)<<"CONTROL! NO GNSS!"<<ABS_CURRENT_SOURCE_PATH+"/flag_gnss";
+        }
+
+//
         // DR----->>>>>>TO ENU
         IMURawWheelDataPtr imuWheel_raw (new IMURawWheelData);
         imuWheel_raw->imu_angular_v_body = gnss_ins_data.imu_angular_v_body * 0.017453293; //转弧度值
@@ -258,8 +311,8 @@ public:
         last_state = state;
     }
 
-    //TODO adjust seq to satisify default udp_thread intput!!!!!!
-    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){
+    //TODO adjust seq to satisify default udp_thread intput!!!!!!----Done
+    void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_ = nullptr){
         //设置imu的参数
         SetIMUPreParamter();
         pubsub = pubsub_;
@@ -268,13 +321,6 @@ public:
         pubsub->addPublisher(topic_imu_raw_odom_origin, DataType::ODOMETRY, 10);
     }
 
-    void Init(PubSubInterface* pubsub_){
-        //设置imu的参数
-        SetIMUPreParamter();
-        pubsub = pubsub_;
-        pubsub->addPublisher(topic_imu_raw_odom, DataType::ODOMETRY, 10);
-        pubsub->addPublisher(topic_imu_raw_odom_origin, DataType::ODOMETRY, 10);
-    }
 };
 
 #endif //SEU_LIDARLOC_IMUPREINTEGRATION_H

@@ -383,9 +383,13 @@ public:
 
 
                 cloud_feature.timestamp = cur_cloud.timestamp;
-                cloud_feature.pose = cur_cloud.pose;
-                cloud_feature.pose_reliable = cur_cloud.pose_reliable;
-
+                if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
+                    cloud_feature.pose = cur_cloud.pose;
+                    cloud_feature.pose_reliable = cur_cloud.pose_reliable;
+                }
+                else{
+                    EZLOG(INFO)<<"CONTROL! NO GNSS!";
+                }
                 EZLOG(INFO)<<"cur_cloud.pose_reliable = "<<cur_cloud.pose_reliable<<endl;
                 EZLOG(INFO)<<"cloud_feature.pose_reliable = "<<cloud_feature.pose_reliable<<endl;
 

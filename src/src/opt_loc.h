@@ -172,8 +172,8 @@ public:
             current_T_m_l[i] = 0;
         }
         matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
-        downSizeFilterCorner_US.setRadiusSearch(MappingConfig::mappingCornerRadiusSize_US);
-        downSizeFilterSurf_US.setRadiusSearch(MappingConfig::mappingSurfRadiusSize_US);
+        downSizeFilterCorner_US.setRadiusSearch(LocConfig::mappingCornerRadiusSize_US);
+        downSizeFilterSurf_US.setRadiusSearch(LocConfig::mappingSurfRadiusSize_US);
         EZLOG(INFO)<<"opt Loc init success!"<<std::endl;
     }
 
@@ -879,11 +879,17 @@ public:
         Eigen::Affine3f transBetween = transStart.inverse() * transFinal;
         float x, y, z, roll, pitch, yaw;
         pcl::getTranslationAndEulerAngles(transBetween, x, y, z, roll, pitch, yaw);
-
-        if (abs(roll) < MappingConfig::surroundingkeyframeAddingAngleThreshold &&
-            abs(pitch) < MappingConfig::surroundingkeyframeAddingAngleThreshold &&
-            abs(yaw) < MappingConfig::surroundingkeyframeAddingAngleThreshold &&
-            sqrt(x * x + y * y + z * z) < MappingConfig::surroundingkeyframeAddingDistThreshold){
+//        if (abs(roll) < LocConfig::surroundingkeyframeAddingAngleThreshold &&
+//            abs(pitch) < LocConfig::surroundingkeyframeAddingAngleThreshold &&
+//            abs(yaw) < LocConfig::surroundingkeyframeAddingAngleThreshold &&
+//            sqrt(x * x + y * y + z * z) < LocConfig::surroundingkeyframeAddingDistThreshold){
+//            return false;
+//        }
+        // distance
+        if(abs(yaw) > LocConfig::surroundingkeyframeAddingAngleThreshold){
+            return true;
+        }
+        if(sqrt(x * x + y * y)< LocConfig::surroundingkeyframeAddingDistThreshold){
             return false;
         }
 
@@ -892,7 +898,9 @@ public:
         return true;
     }
 
-    void ResultsAndPub2Fuse() {
+    void ResultsAndPub2Fuse(const int &_frame_id,
+                            PoseT &_GTpose,
+                            bool &_GTpose_reliability) {
 
         OdometryType current_Lidar_pose;
         Eigen::Affine3f Lidarodom_2_map = trans2Affine3f(current_T_m_l);//T_ml
@@ -902,11 +910,13 @@ public:
         current_Lidar_pose.frame = "map";
         current_Lidar_pose.timestamp = timeLaserInfoCur;
         current_Lidar_pose.pose.pose = Lidarodom_2_map.matrix().cast<double>();
-
+        current_Lidar_pose.frame_cnt = _frame_id;
+        if(ISDEBUG(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
+            current_Lidar_pose.GTpose = _GTpose;
+            current_Lidar_pose.GTpose_reliability = _GTpose_reliability;
+        }
         Function_AddLidarOdometryTypeToFuse(current_Lidar_pose);
-        EZLOG(INFO)<<"4 Loc send to Fuse! lidar result begin: ";
-        EZLOG(INFO)<<current_Lidar_pose.pose.pose;
-        EZLOG(INFO)<<"lidar result end";
+        EZLOG(INFO)<<"4 Loc send to Fuse! lidar result : "<< current_Lidar_pose.pose.GetXYZ().transpose();
 
         pubsub->PublishOdometry(topic_lidar_origin_odometry, current_Lidar_pose);
 
@@ -947,7 +957,6 @@ public:
                 timeLaserInfoCur = cur_ft.timestamp;
                 current_surf = cur_ft.surfaceCloud;
                 current_corner = cur_ft.cornerCloud;
-
                 static double timeLastProcessing = -1;
                 if(timeLaserInfoCur - timeLastProcessing < LocConfig::mappingProcessInterval){
                     continue;
@@ -964,19 +973,19 @@ public:
                     continue;
                 }
 
+                //3.downSample current scan TODO1111
+                TicToc t_3;
+                downsampleCurrentScan(current_corner,current_surf,current_corner_ds,current_surf_ds);
+                EZLOG(INFO)<<"downsampleCurrentScan() time : "<<t_3.toc();
+
                 TicToc t_2;
-                //3.load PriorMap
+                //4.load PriorMap
                 map_manager_ptr->SafeLockCloud();
                 map_manager_ptr->GetCurMapCloud(priorMap_corner,priorMap_surf);
                 EZLOG(INFO)<<"GetCurMapCloud() time : "<<t_2.toc();
                 {
                     pub_CornerAndSurfFromMap(priorMap_corner,priorMap_surf); // debug use
                 }
-
-                //4.downSample current scan TODO1111
-                TicToc t_3;
-                downsampleCurrentScan(current_corner,current_surf,current_corner_ds,current_surf_ds);
-                EZLOG(INFO)<<"downsampleCurrentScan() time : "<<t_3.toc();
 
                 //5.extract prior map
                 TicToc t_7;
@@ -990,7 +999,7 @@ public:
                 map_manager_ptr->SafeUnlockCloud();//very important fucniton to protect map manager memory!!!!!!!
 
                 TicToc t_5;
-                ResultsAndPub2Fuse();//TODO 1030 change function name------Done
+                ResultsAndPub2Fuse(cur_ft.frame_id,cur_ft.pose,cur_ft.pose_reliable);//TODO 1030 change function name------Done
                 EZLOG(INFO)<<"ResultsAndPub2Fuse() time : "<<t_5.toc();
 
             }
@@ -1004,7 +1013,7 @@ public:
 * add by sy for load Prior map Corner
 * @param mapFile
 */
-    void Init(PubSubInterface* pubsub_, MapManager* map_manager_ptr_, std::shared_ptr<UDP_THREAD> udp_thread_){
+    void Init(PubSubInterface* pubsub_, MapManager* map_manager_ptr_, std::shared_ptr<UDP_THREAD> udp_thread_ = nullptr){
         pubsub = pubsub_;
         map_manager_ptr = map_manager_ptr_;
         udp_thread = udp_thread_;
