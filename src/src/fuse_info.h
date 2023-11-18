@@ -163,21 +163,26 @@ public:
         udp_thread -> SendUdpMSg(fu_str);
     }
 
-    void DRAlignWithLidarAndClear(std::deque<std::shared_ptr<DROdometryType>> &_DR_data_deque,
-                                  double &current_lidar_time,
+
+    //bool TODO 1118
+    void DRAlignWithLidarAndClear(std::deque<std::shared_ptr<DROdometryType>> &_DR_data_deque,//TODO 1118 add const
+                                  double &current_lidar_time,//TODO 1118 add const
                                   PoseT &current_DR_pose,
                                   PoseT &last_DR_pose
                                   ){
         while(!_DR_data_deque.empty()){
+        
             if(current_lidar_time - _DR_data_deque.front()->timestamp < 0.01f){
                 current_DR_pose = _DR_data_deque.front()->pose;
                 last_DR_pose = _DR_data_deque.back()->pose;
+                //return true;
                 break;
             }
             else{
                 _DR_data_deque.pop_front();
             }
         }
+        //return false;
     }
 
     void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_ = nullptr){

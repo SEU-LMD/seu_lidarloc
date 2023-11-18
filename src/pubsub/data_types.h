@@ -247,6 +247,7 @@ public:
     CloudInfo& operator=(const CloudInfo& temp);
 };
 typedef std::shared_ptr<CloudInfo> CloudInfoPtr;
+
 CloudInfo& CloudInfo::operator=(const CloudInfo& d){
     frame_id = d.frame_id;
     timestamp = d.timestamp;
@@ -258,13 +259,14 @@ CloudInfo& CloudInfo::operator=(const CloudInfo& d){
 //    std::vector<int> label;
     startRingIndex = d.startRingIndex;
     endRingIndex = d.endRingIndex;
-
+    //TODO 1118 test cost time
     *cloud_ptr = *d.cloud_ptr;
     *cloud_ground = *d.cloud_ground;
     *cloud_ground_down = *d.cloud_ground_down;
     *cloud_unground = *d.cloud_unground;
     return *this;
 }
+
 class CloudFeature{
 public:
     int frame_id;

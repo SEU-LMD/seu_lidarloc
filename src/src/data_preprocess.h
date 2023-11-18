@@ -3,7 +3,7 @@
 #ifndef SEU_LIDARLOC_DATAPREPROCESS_H
 #define SEU_LIDARLOC_DATAPREPROCESS_H
 
-#define DBL_MAX		__DBL_MAX__
+#define DBL_MAX		__DBL_MAX__//1118 what is this? TODO
 
 #include <mutex>
 #include <thread>
@@ -433,6 +433,7 @@ public:
 
                 }
 
+                //gnss related!
                 static double s = 0.0, e = 0.0;
                 static int n = 0;
                 if(!isGetCorrespondingGNSS)
@@ -440,34 +441,41 @@ public:
                     cloudinfo.pose_reliable = false;
                     std::lock_guard<std::mutex> lock(gnss_mutex);
                     if(!GNSSQueue.empty()){
-                    for(int i = 0;i<GNSSQueue.size();++i){
-                        if(abs(GNSSQueue[i].timestamp - cur_scan->timestamp) < FrontEndConfig::gnss_align_threshold){
-                            cloudinfo.pose = GNSSQueue[i].pose;
-                            cloudinfo.pose_reliable = true;
-                            cloudinfo.cov = GNSSQueue[i].cov;
-                            isGetCorrespondingGNSS = true;
-                            break;
+                        for(int i = 0;i<GNSSQueue.size();++i){
+                            if(abs(GNSSQueue[i].timestamp - cur_scan->timestamp) < FrontEndConfig::gnss_align_threshold){
+                                cloudinfo.pose = GNSSQueue[i].pose;
+                                cloudinfo.pose_reliable = true;
+                                cloudinfo.cov = GNSSQueue[i].cov;
+                                isGetCorrespondingGNSS = true;
+                                break;
+                            }
                         }
-                    }
-                    if(!cloudinfo.pose_reliable){
-                        s = GNSSQueue.front().timestamp;
-                        e = GNSSQueue.back().timestamp;
-                        n = GNSSQueue.size();
-                    }
-                    while(!GNSSQueue.empty() && GNSSQueue.front().timestamp - cur_scan->timestamp < FrontEndConfig::gnss_pop_threshold ){
-                        GNSSQueue.pop_front();
-                    }
+                        //for debug use 1118 TODOs
+                        {
+                            if(!cloudinfo.pose_reliable){
+                                s = GNSSQueue.front().timestamp;
+                                e = GNSSQueue.back().timestamp;
+                                n = GNSSQueue.size();
+                            }
+                        }
+                        
+                        while(!GNSSQueue.empty() && GNSSQueue.front().timestamp - cur_scan->timestamp < FrontEndConfig::gnss_pop_threshold ){
+                            GNSSQueue.pop_front();
+                        }
                     }
                 }
 
                 ///2.
                 //use absolutue
+                //TODO 1118 delete and test!
                 if (!DrOdomQueue.empty() && drqueue_min_ros_time >= cloud_min_ros_timestamp) {
                     auto temp = DrOdomQueue.front();
                     temp.timestamp = cloud_min_ros_timestamp - 0.01f;
-                    DrOdomQueue.push_front(temp);
+                    DrOdomQueue.push_front(temp);//TODO 1118 add lock
+                    //isGetCurrentCloud = false;
                 }
 
+                //TODO 1118, add else to test
                 if(drqueue_min_ros_time < cloud_min_ros_timestamp &&
                    drqueue_max_ros_time > cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
 //                    EZLOG(INFO)<<"time_getin.toc() = "<<time_getin.toc()<<endl;
@@ -556,7 +564,7 @@ public:
                 }//end function if
 
 
-            }
+            }//TODO 1118
 
         }//end function while(1)
     }

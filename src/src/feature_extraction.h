@@ -374,12 +374,12 @@ public:
                 CalculateSmoothness(cur_cloud);
                 MarkOccludedPoints(cur_cloud);
 //                EZLOG(INFO)<<"before feature extraction cost time(ms) = "<<timer.toc()<<std::endl;
-                TicToc timer2;
+                TicToc timer2;//TODO 1118 not used!
                 pcl::PointCloud<PointType>::Ptr cornerCloud(new  pcl::PointCloud<PointType>());
                 pcl::PointCloud<PointType>::Ptr surfaceCloud(new  pcl::PointCloud<PointType>());
                 pcl::PointCloud<PointType>::Ptr rawCloud(new  pcl::PointCloud<PointType>());
                 ExtractFeatures(cur_cloud, cornerCloud, surfaceCloud,rawCloud);
-                TicToc timer1;
+                TicToc timer1;//TODO 1118 not used!
 
 
                 cloud_feature.timestamp = cur_cloud.timestamp;
@@ -388,6 +388,7 @@ public:
                     cloud_feature.pose_reliable = cur_cloud.pose_reliable;
                 }
                 else{
+                    //TODO 1118 pose_reliable = false;
                     EZLOG(INFO)<<"CONTROL! NO GNSS!";
                 }
 //                EZLOG(INFO)<<"cur_cloud.pose_reliable = "<<cur_cloud.pose_reliable<<endl;
