@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
     Load_Loc_YAML(ABS_CURRENT_SOURCE_PATH+"/config/loc.yaml");//TODO 1111 loc.yaml
     Load_offline_YAML(ABS_CURRENT_SOURCE_PATH+"/config/offline_mapping.yaml");
     Load_FrontEnd_YAML(ABS_CURRENT_SOURCE_PATH +"/config/front_end.yaml");
+    SetOptLocationMode();
 
     //3.5 udp
     std::shared_ptr<UDP_THREAD> udp_thread = make_shared<UDP_THREAD>();
