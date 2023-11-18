@@ -911,7 +911,7 @@ public:
         current_Lidar_pose.timestamp = timeLaserInfoCur;
         current_Lidar_pose.pose.pose = Lidarodom_2_map.matrix().cast<double>();
         current_Lidar_pose.frame_cnt = _frame_id;
-        if(ISDEBUG(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
+        if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
             current_Lidar_pose.GTpose = _GTpose;
             current_Lidar_pose.GTpose_reliability = _GTpose_reliability;
         }
