@@ -1,0 +1,27 @@
+{
+  "logging": {
+    "level": "info",
+    "console": "false",
+    "syslog": {
+      "enable": "true"
+    }
+  },
+  "routing": "someipd",
+  "network": "HostEthernetCommConnector",
+  "unicast": "192.168.1.6",
+  "netmask": "255.255.255.0",
+  "applications": [
+    {
+      "name": "/huawei/ap/SwComponent/RSLidarApplicationSwComponent/LidarDriverProcess",
+      "id": "8852"
+    }
+  ],
+  "services": [],
+  "clients": [],
+  "service-discovery": {
+    "enable": "true",
+    "multicast": "239.192.255.251",
+    "port": "30491",
+    "protocol": "udp"
+  }
+}

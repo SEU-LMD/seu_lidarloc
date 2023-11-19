@@ -1,0 +1,185 @@
+{
+  "applicationName": "/huawei/ap/SwComponent/RSLidarApplicationSwComponent/LidarDriverProcess",
+  "services": [
+    {
+      "service": "/HuaweiMDC/PlatformServiceInterface/LidarServiceInterface/LidarServiceInterface",
+      "serviceId": 2304,
+      "protocolIdUsed": false,
+      "events": [
+        {
+          "event": "mdcEvent",
+          "id": 10488,
+          "isDpRawData": false,
+          "dataType": "/HuaweiMDC/PlatformServiceInterface/LidarMsgDataType/LidarPointCloud",
+          "topicName": "LidarReportEncodedDdsEvent"
+        }
+      ],
+      "fields": [],
+      "methods": [],
+      "instances": [
+        {
+          "shortName": "/huawei/ap/Service/instance/RSLidar13Instance",
+          "instance": "13",
+          "domainId": 0,
+          "network": "192.168.1.6",
+          "isClient": false,
+          "fastSerialize": true,
+          "qosProfile": "default_qos.xml",
+          "events": [
+            {
+              "id": 10488,
+              "qosProfile": "default_qos.xml",
+              "dataIds": []
+            }
+          ],
+          "fields": [],
+          "methods": []
+        },
+        {
+          "shortName": "/huawei/ap/Service/instance/RSLidar14Instance",
+          "instance": "14",
+          "domainId": 0,
+          "network": "192.168.1.6",
+          "isClient": false,
+          "fastSerialize": true,
+          "qosProfile": "default_qos.xml",
+          "events": [
+            {
+              "id": 10488,
+              "qosProfile": "default_qos.xml",
+              "dataIds": []
+            }
+          ],
+          "fields": [],
+          "methods": []
+        },
+        {
+          "shortName": "/huawei/ap/Service/instance/RSLidar15Instance",
+          "instance": "15",
+          "domainId": 0,
+          "network": "192.168.1.6",
+          "isClient": false,
+          "fastSerialize": true,
+          "qosProfile": "default_qos.xml",
+          "events": [
+            {
+              "id": 10488,
+              "qosProfile": "default_qos.xml",
+              "dataIds": []
+            }
+          ],
+          "fields": [],
+          "methods": []
+        },
+        {
+          "shortName": "/huawei/ap/Service/instance/RSLidar12Instance",
+          "instance": "12",
+          "domainId": 0,
+          "network": "192.168.1.6",
+          "isClient": false,
+          "fastSerialize": true,
+          "qosProfile": "default_qos.xml",
+          "events": [
+            {
+              "id": 10488,
+              "qosProfile": "default_qos.xml",
+              "dataIds": []
+            }
+          ],
+          "fields": [],
+          "methods": []
+        },
+        {
+          "shortName": "/huawei/ap/Service/instance/RSLidar16Instance",
+          "instance": "16",
+          "domainId": 0,
+          "network": "192.168.1.6",
+          "isClient": false,
+          "fastSerialize": true,
+          "qosProfile": "default_qos.xml",
+          "events": [
+            {
+              "id": 10488,
+              "qosProfile": "default_qos.xml",
+              "dataIds": []
+            }
+          ],
+          "fields": [],
+          "methods": []
+        },
+        {
+          "shortName": "/huawei/ap/Service/instance/RSLidar17Instance",
+          "instance": "17",
+          "domainId": 0,
+          "network": "192.168.1.6",
+          "isClient": false,
+          "fastSerialize": true,
+          "qosProfile": "default_qos.xml",
+          "events": [
+            {
+              "id": 10488,
+              "qosProfile": "default_qos.xml",
+              "dataIds": []
+            }
+          ],
+          "fields": [],
+          "methods": []
+        },
+        {
+          "shortName": "/huawei/ap/Service/instance/RSLidar18Instance",
+          "instance": "18",
+          "domainId": 0,
+          "network": "192.168.1.6",
+          "isClient": false,
+          "fastSerialize": true,
+          "qosProfile": "default_qos.xml",
+          "events": [
+            {
+              "id": 10488,
+              "qosProfile": "default_qos.xml",
+              "dataIds": []
+            }
+          ],
+          "fields": [],
+          "methods": []
+        }
+      ]
+    },
+    {
+      "service": "/HuaweiMDC/PlatformServiceInterface/DiagnosisServiceInterface/DiagReportServiceInterface",
+      "serviceId": 8006,
+      "protocolIdUsed": false,
+      "events": [
+        {
+          "event": "reportEvent",
+          "id": 63748,
+          "isDpRawData": false,
+          "dataType": "/HuaweiMDC/PlatformServiceInterface/DiagnosisMsgDataType/DiagReportMsg",
+          "topicName": "DiagReportDdsEvent"
+        }
+      ],
+      "fields": [],
+      "methods": [],
+      "instances": [
+        {
+          "shortName": "/huawei/ap/Service/instance/RSLidarDiagReportProvidedServiceInstance",
+          "instance": "5",
+          "domainId": 0,
+          "network": "192.168.1.6",
+          "isClient": false,
+          "fastSerialize": true,
+          "qosProfile": "default_qos.xml",
+          "events": [
+            {
+              "id": 63748,
+              "qosProfile": "default_qos.xml",
+              "dataIds": []
+            }
+          ],
+          "fields": [],
+          "methods": []
+        }
+      ]
+    }
+  ]
+}

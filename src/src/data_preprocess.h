@@ -372,18 +372,18 @@ public:
 //        EZLOG(INFO)<<"rangemat_outlier num = "<<rangemat_outlier<<std::endl;
 
 ////        for debug use
-        if(MappingConfig::if_debug)
-        {
-            CloudTypeXYZI cloud_pub;
-            cloud_pub.timestamp = cloudinfo.cloud_ptr->timestamp;
-            cloud_pub.frame = "map";
-            pcl::transformPointCloud(deskewCloud_body_offset, cloud_pub.cloud, (T_w_b_lidar_start).pose.cast<float>());
-
-            pubsub->PublishCloud(topic_deskew_cloud_world, cloud_pub);
-            //        EZLOG(INFO)<<"deskewCloud_body size = "<<deskewCloud_body->points.size()<<std::endl;
-//        EZLOG(INFO)<<"deskewCloud_body_offset size = "<<deskewCloud_body_offset.points.size()<<std::endl;
-//        EZLOG(INFO)<<"deskewCloud_w size = "<<deskewCloud_w.points.size()<<std::endl;
-        }
+//        if(MappingConfig::if_debug)
+//        {
+//            CloudTypeXYZI cloud_pub;
+//            cloud_pub.timestamp = cloudinfo.cloud_ptr->timestamp;
+//            cloud_pub.frame = "map";
+//            pcl::transformPointCloud(deskewCloud_body_offset, cloud_pub.cloud, (T_w_b_lidar_start).pose.cast<float>());
+//
+//            pubsub->PublishCloud(topic_deskew_cloud_world, cloud_pub);
+//            //        EZLOG(INFO)<<"deskewCloud_body size = "<<deskewCloud_body->points.size()<<std::endl;
+////        EZLOG(INFO)<<"deskewCloud_body_offset size = "<<deskewCloud_body_offset.points.size()<<std::endl;
+////        EZLOG(INFO)<<"deskewCloud_w size = "<<deskewCloud_w.points.size()<<std::endl;
+//        }
 
         return timer.toc();
     }

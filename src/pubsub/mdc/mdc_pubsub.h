@@ -38,7 +38,6 @@ class MDCPubSub:public PubSubInterface{
                             HAF_LOG_ERROR << "position init failed!";
                             exit(-1);                          
                              }
-                        position_ptr->Process();
             }
 
 
@@ -48,12 +47,16 @@ class MDCPubSub:public PubSubInterface{
                                 position_ptr->LidarFunction = callback ;
                     }
                     else if(type==DataType::GNSS_INS){
+                            std::cout<<"begin add gnssfunction"<<std::endl;
                             position_ptr->GNSSINSFunction = callback ;
+                        std::cout<<"end add gnssfunction"<<std::endl;
+
                     }
             }
 
 
             void run(){
+                position_ptr->Process();
                 while ((!g_stopFlag) && !position_ptr->IsStop()) {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
                 }

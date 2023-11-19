@@ -1,0 +1,48 @@
+{
+  "instanceSpecifiers": [
+    {
+      "instanceSpecifier": "LidarDriverExecutable/RSLidarRootSwComponent/LidarPointCloudPPort",
+      "service": "/HuaweiMDC/PlatformServiceInterface/LidarServiceInterface/LidarServiceInterface",
+      "instanceIdentifiers": [
+        {
+          "protocol": "DDS",
+          "instanceIdentifier": "13"
+        },
+        {
+          "protocol": "DDS",
+          "instanceIdentifier": "14"
+        },
+        {
+          "protocol": "DDS",
+          "instanceIdentifier": "15"
+        },
+        {
+          "protocol": "DDS",
+          "instanceIdentifier": "12"
+        },
+        {
+          "protocol": "DDS",
+          "instanceIdentifier": "16"
+        },
+        {
+          "protocol": "DDS",
+          "instanceIdentifier": "17"
+        },
+        {
+          "protocol": "DDS",
+          "instanceIdentifier": "18"
+        }
+      ]
+    },
+    {
+      "instanceSpecifier": "LidarDriverExecutable/RSLidarRootSwComponent/RSLidarDiagReportPPort",
+      "service": "/HuaweiMDC/PlatformServiceInterface/DiagnosisServiceInterface/DiagReportServiceInterface",
+      "instanceIdentifiers": [
+        {
+          "protocol": "DDS",
+          "instanceIdentifier": "5"
+        }
+      ]
+    }
+  ]
+}

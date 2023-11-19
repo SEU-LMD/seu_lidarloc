@@ -53,7 +53,7 @@ void PubilshOdometry(const UDP_CLENT& client){
     if(vis_Odometry.type=="gn"){
         nav_msgs::Odometry gnss_msg;
         gnss_msg.header.stamp =ros::Time::now();
-        gnss_msg.header.frame_id = "map";
+        gnss_msg.header.frame_id = "/map";
         gnss_msg.pose.pose.position.x = vis_Odometry.t[0];
         gnss_msg.pose.pose.position.y = vis_Odometry.t[1];
         gnss_msg.pose.pose.position.z = vis_Odometry.t[2];
@@ -68,7 +68,7 @@ void PubilshOdometry(const UDP_CLENT& client){
     else if(vis_Odometry.type=="li"){
         nav_msgs::Odometry lida_msg;
         lida_msg.header.stamp =ros::Time::now();
-        lida_msg.header.frame_id = "map";
+        lida_msg.header.frame_id = "/map";
         lida_msg.pose.pose.position.x = vis_Odometry.t[0];
         lida_msg.pose.pose.position.y = vis_Odometry.t[1];
         lida_msg.pose.pose.position.z = vis_Odometry.t[2];
@@ -83,7 +83,7 @@ void PubilshOdometry(const UDP_CLENT& client){
     else if(vis_Odometry.type=="dr"){
         nav_msgs::Odometry dr_msg;
         dr_msg.header.stamp =ros::Time::now();
-        dr_msg.header.frame_id = "map";
+        dr_msg.header.frame_id = "/map";
         dr_msg.pose.pose.position.x = vis_Odometry.t[0];
         dr_msg.pose.pose.position.y = vis_Odometry.t[1];
         dr_msg.pose.pose.position.z = vis_Odometry.t[2];
@@ -97,7 +97,7 @@ void PubilshOdometry(const UDP_CLENT& client){
     else if(vis_Odometry.type=="fu"){
         nav_msgs::Odometry dr_msg;
         dr_msg.header.stamp =ros::Time::now();
-        dr_msg.header.frame_id = "map";
+        dr_msg.header.frame_id = "/map";
         dr_msg.pose.pose.position.x = vis_Odometry.t[0];
         dr_msg.pose.pose.position.y = vis_Odometry.t[1];
         dr_msg.pose.pose.position.z = vis_Odometry.t[2];
