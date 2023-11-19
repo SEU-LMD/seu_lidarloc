@@ -3,7 +3,7 @@
 #ifndef SEU_LIDARLOC_DATAPREPROCESS_H
 #define SEU_LIDARLOC_DATAPREPROCESS_H
 
-#define DBL_MAX		__DBL_MAX__
+#define DBL_MAX		__DBL_MAX__//1118 what is this? TODO
 
 #include <mutex>
 #include <thread>
@@ -289,7 +289,7 @@ public:
             //very important function@!!!!!!!!!
             if (SensorConfig::use_drodom_deskew){
                 if(cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp < 0){
-                   // EZLOG(INFO)<<"wrong! latency!";
+                    EZLOG(INFO)<<"wrong! latency!";
                     continue;
                 }
                 thisPoint = DeskewPoint(&thisPoint,
@@ -432,6 +432,7 @@ public:
 
                 }
 
+                //gnss related!
                 static double s = 0.0, e = 0.0;
                 static int n = 0;
                 if(!isGetCorrespondingGNSS)
@@ -439,34 +440,41 @@ public:
                     cloudinfo.pose_reliable = false;
                     std::lock_guard<std::mutex> lock(gnss_mutex);
                     if(!GNSSQueue.empty()){
-                    for(int i = 0;i<GNSSQueue.size();++i){
-                        if(abs(GNSSQueue[i].timestamp - cur_scan->timestamp) < FrontEndConfig::gnss_align_threshold){
-                            cloudinfo.pose = GNSSQueue[i].pose;
-                            cloudinfo.pose_reliable = true;
-                            cloudinfo.cov = GNSSQueue[i].cov;
-                            isGetCorrespondingGNSS = true;
-                            break;
+                        for(int i = 0;i<GNSSQueue.size();++i){
+                            if(abs(GNSSQueue[i].timestamp - cur_scan->timestamp) < FrontEndConfig::gnss_align_threshold){
+                                cloudinfo.pose = GNSSQueue[i].pose;
+                                cloudinfo.pose_reliable = true;
+                                cloudinfo.cov = GNSSQueue[i].cov;
+                                isGetCorrespondingGNSS = true;
+                                break;
+                            }
                         }
-                    }
-                    if(!cloudinfo.pose_reliable){
-                        s = GNSSQueue.front().timestamp;
-                        e = GNSSQueue.back().timestamp;
-                        n = GNSSQueue.size();
-                    }
-                    while(!GNSSQueue.empty() && GNSSQueue.front().timestamp - cur_scan->timestamp < FrontEndConfig::gnss_pop_threshold ){
-                        GNSSQueue.pop_front();
-                    }
+                        //for debug use 1118 TODOs
+                        {
+                            if(!cloudinfo.pose_reliable){
+                                s = GNSSQueue.front().timestamp;
+                                e = GNSSQueue.back().timestamp;
+                                n = GNSSQueue.size();
+                            }
+                        }
+                        
+                        while(!GNSSQueue.empty() && GNSSQueue.front().timestamp - cur_scan->timestamp < FrontEndConfig::gnss_pop_threshold ){
+                            GNSSQueue.pop_front();
+                        }
                     }
                 }
 
                 ///2.
                 //use absolutue
+                //TODO 1118 delete and test!
                 if (!DrOdomQueue.empty() && drqueue_min_ros_time >= cloud_min_ros_timestamp) {
                     auto temp = DrOdomQueue.front();
                     temp.timestamp = cloud_min_ros_timestamp - 0.01f;
-                    DrOdomQueue.push_front(temp);
+                    DrOdomQueue.push_front(temp);//TODO 1118 add lock
+                    //isGetCurrentCloud = false;
                 }
 
+                //TODO 1118, add else to test
                 if(drqueue_min_ros_time < cloud_min_ros_timestamp &&
                    drqueue_max_ros_time > cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
 //                    EZLOG(INFO)<<"time_getin.toc() = "<<time_getin.toc()<<endl;
@@ -555,7 +563,7 @@ public:
                 }//end function if
 
 
-            }
+            }//TODO 1118
 
         }//end function while(1)
     }
@@ -571,14 +579,13 @@ public:
     }
 
 
-    void Udp_OdomPub(const PoseT& data){
+    void Udp_OdomPub(const PoseT& data, const std::string gnss_type){
         Vis_Odometry odom_out;
         std::string fu_str;
-        odom_out.type = "gn";
+        odom_out.type = gnss_type;
         odom_out.t[0]= data.GetXYZ().x();
         odom_out.t[1]= data.GetXYZ().y();
         odom_out.t[2]= data.GetXYZ().z();
-
 
         odom_out.q.x() = data.GetQ().x();
         odom_out.q.y() = data.GetQ().y();
@@ -589,12 +596,13 @@ public:
         udp_thread -> SendUdpMSg(fu_str);
     }
 
+
     //
     void AddGNSSINSSData(const GNSSINSType& data){
 
 //        deque_gnssins.push_back(data);
         if(data.lla[0]<0 || data.lla[1]<0 || data.lla[2]<0){
-           // EZLOG(INFO)<<"Bad GNSS in DataPre,drop!";
+            EZLOG(INFO)<<"Bad GNSS in DataPre,drop!";
             return;
         }
         if(!init)
@@ -651,9 +659,7 @@ public:
         T_w_b_pub_origin.pose = T_w_b;
 
         pubsub->PublishOdometry(topic_gnss_odom_world_origin, T_w_b_pub_origin);
-
         PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
-
         OdometryType T_w_l_pub;
         T_w_l_pub.frame = "map";
         T_w_l_pub.timestamp = data.timestamp;
@@ -665,42 +671,24 @@ public:
         T_w_l_pub.cov[4] =  data.rpy_sigma[1];
         T_w_l_pub.cov[5] =  data.rpy_sigma[2];
 
-//        EZLOG(INFO)<<"gnss_ins_out.lla_sigma"<<data.lla_sigma<<endl;
-//        EZLOG(INFO)<<"gnss_ins_out.rpy_sigma"<<data.rpy_sigma<<endl;
-
-
         if(FrontEndConfig::if_debug) {
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
         }
 
-//        if(IsFileDirExist(MappingConfig::save_map_path)){
-//        if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
-
-        gnss_mutex.lock();
-        GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
-        gnss_mutex.unlock();
-
-        GNSSOdometryType T_w_l_gnss;
-        T_w_l_gnss.frame = "map";
-        T_w_l_gnss.timestamp = data.timestamp;
-        T_w_l_gnss.pose = T_w_l;
-
-        if (LocConfig::slam_mode_on ==1){
-            Function_AddGNSSOdometryTypeToFuse(T_w_l_gnss);
-//                EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose is :";
-//                EZLOG(INFO)<<T_w_l_gnss.pose.pose;
-//                EZLOG(INFO)<<"step2. 2 of 2, Data_preprocess to fuse, GNSS pose end!";
-
-            Udp_OdomPub(T_w_l);
+        if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")) { // if
+            gnss_mutex.lock();
+            GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
+            gnss_mutex.unlock();
+            if (LocConfig::slam_mode_on == 1) {
+                Udp_OdomPub(T_w_l,"gn");
+            }
         }
-
-//        }
-//        }
-//        else{
+        else{
         //TODO
-//            EZLOG(INFO)<<"ABS_CURRENT_SOURCE_PATH+ ../flag_gnss "<<ABS_CURRENT_SOURCE_PATH+"/flag_gnss";
+            EZLOG(INFO)<<"CONTROL! NO GNSS!"<<ABS_CURRENT_SOURCE_PATH+"/flag_gnss";
+            Udp_OdomPub(T_w_l,"ng");
 //            exit(-1);
-//        }
+        }
 
     }
 
@@ -725,7 +713,7 @@ public:
         pubsub->addPublisher(topic_imuodom_curlidartime_world, DataType::ODOMETRY,2000);
 
         do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
-       // EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
+        EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;
     }
 
 };

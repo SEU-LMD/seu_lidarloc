@@ -89,8 +89,11 @@ typedef std::shared_ptr<CloudTypeXYZICOLRANGE> CloudTypeXYZICOLRANGEPtr;
 class OdometryType:public BaseType{
     public:
         PoseT pose;
+        PoseT GTpose; // align with gnss in loc
+        bool GTpose_reliability;
 //        bool pose_reliable;
         Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
+        int frame_cnt; // frameid
         DataType getType(){
             return DataType::ODOMETRY;
         }
@@ -110,6 +113,8 @@ class GNSSOdometryType:public BaseType{
 public:
     PoseT pose;
     Eigen::Matrix<double,6,1> cov;
+    int frame_id; // align with lidar
+    bool pose_reliability;
     DataType getType(){
         return DataType::GNSS;
     }
@@ -242,6 +247,7 @@ public:
     CloudInfo& operator=(const CloudInfo& temp);
 };
 typedef std::shared_ptr<CloudInfo> CloudInfoPtr;
+
 CloudInfo& CloudInfo::operator=(const CloudInfo& d){
     frame_id = d.frame_id;
     timestamp = d.timestamp;
@@ -253,18 +259,19 @@ CloudInfo& CloudInfo::operator=(const CloudInfo& d){
 //    std::vector<int> label;
     startRingIndex = d.startRingIndex;
     endRingIndex = d.endRingIndex;
-
+    //TODO 1118 test cost time
     *cloud_ptr = *d.cloud_ptr;
     *cloud_ground = *d.cloud_ground;
     *cloud_ground_down = *d.cloud_ground_down;
     *cloud_unground = *d.cloud_unground;
     return *this;
 }
+
 class CloudFeature{
 public:
     int frame_id;
     double timestamp;
-    PoseT pose;//
+    PoseT pose;// gnss prior pose
     bool pose_reliable;
     PoseT DRPose;//
     Eigen::Matrix<double,6,1> cov;//组合导航设备的置信度
