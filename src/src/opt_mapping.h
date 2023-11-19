@@ -230,7 +230,7 @@ public:
     {
         pcl::PointCloud<PointType>::Ptr cloudOut(new pcl::PointCloud<PointType>());
 
-        int cloudSize = cloudIn->size();
+        int cloudSize = cloudIn->points.size();
         cloudOut->resize(cloudSize);
 
         Eigen::Affine3f transCur = pcl::getTransformation(
@@ -347,8 +347,7 @@ public:
 
         while (1) {
             performLoopClosure();
-
-            sleep(0.05);
+            sleep(1);
         }
     }
 
@@ -502,7 +501,7 @@ public:
     void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes,
                                const int &key, const int &searchNum) {
 
-        nearKeyframes->clear();
+       // nearKeyframes->clear();
         int cloudSize = copy_cloudKeyPoses6D->size();
 
         for (int i = -searchNum; i <= searchNum; ++i) {

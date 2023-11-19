@@ -379,11 +379,6 @@ public:
     }
 
     void DoWork() {
-        CloudInfo cloudinfo;
-        cloudinfo.startRingIndex.assign(SensorConfig::N_SCAN,
-                                        0);//为cloudInfo中的startRingIndex、endRingIndex向量分配大小N_SCAN,并初始化为0
-        cloudinfo.endRingIndex.assign(SensorConfig::N_SCAN, 0);
-
         CloudTypeXYZIRTPtr cur_scan;
         CloudWithTime cur_cloud_time;
         double cloud_min_ros_timestamp = 0.0;
@@ -393,6 +388,10 @@ public:
         long long int GNSS_frames = 0;
 
         while (1) {
+            CloudInfo cloudinfo;//TODO
+            cloudinfo.startRingIndex.assign(SensorConfig::N_SCAN,
+                                            0);//为cloudInfo中的startRingIndex、endRingIndex向量分配大小N_SCAN,并初始化为0
+            cloudinfo.endRingIndex.assign(SensorConfig::N_SCAN, 0);
 
             {
                 sleep(0.005);
