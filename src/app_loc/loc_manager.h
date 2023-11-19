@@ -34,14 +34,21 @@ public:
 
 
     void CloudCallback(const BaseType& msg){
+        EZLOG(INFO)<<"cloudCallback in"<<std::endl;
         const CloudTypeXYZIRT& cloud_data = *((CloudTypeXYZIRT*)&msg);
+        EZLOG(INFO)<<"cloudCallback middle"<<std::endl;
         data_prep.AddCloudData(cloud_data);
+        EZLOG(INFO)<<"cloudCallback out"<<std::endl;
     }
 
     void GNSSINSCallback(const BaseType& msg){
+        EZLOG(INFO)<<"gnsscallback in"<<std::endl;
         const GNSSINSType& gnssins_data = *((GNSSINSType*)&msg);
+        EZLOG(INFO)<<"gnsscalback middle"<<std::endl;
         data_prep.AddGNSSINSSData(gnssins_data);
+        EZLOG(INFO)<<"gnsscallback add dataprep end"<<std::endl;
         imu_wheeldr.AddGNSSINSData(gnssins_data);
+        EZLOG(INFO)<<"gnsscalback add imu wheeldr end"<<std::endl;
     }
 
     void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_){

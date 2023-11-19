@@ -44,5 +44,5 @@ unground_down_fixed_num: 20000
 #beam_height_max: FLT_MAX
 #roof_height_min: -FLT_MAX
 feature_pts_ratio_guess: 0.3
-sharpen_with_nms: true
+sharpen_with_nms: false
 use_distance_adaptive_pca: false

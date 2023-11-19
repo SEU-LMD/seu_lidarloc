@@ -10,7 +10,7 @@
           "event": "LocationEvent",
           "id": 23528,
           "isDpRawData": false,
-          "dataType": "/HuaweiMDC/FunctionalSoftware/LocationMsgDataType/Location",
+          "dataType": "/HuaweiMDC/FunctionalSoftware/LocationMsgDataType/LocationV2",
           "topicName": "LocationDdsEvent"
         }
       ],

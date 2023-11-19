@@ -78,6 +78,14 @@
           "unreliable": "54906",
           "events": [],
           "methods": []
+        },
+        {
+          "instance": "8",
+          "isClient": true,
+          "shortName": "/HuaweiMDC/FunctionalSoftware/PositionApplication/Service/Instance/MdcCanFd07RxServiceInstance",
+          "unreliable": "54907",
+          "events": [],
+          "methods": []
         }
       ]
     }

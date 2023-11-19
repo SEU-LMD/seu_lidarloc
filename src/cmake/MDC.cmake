@@ -1,7 +1,7 @@
 #TODO 1111 TODO add MDC cmake  --done
 set(SRC_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc)
 set(SHARED_INC_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc/include/shared/include)
-set(GENERATED_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc/include/generated/include)
+set(GENERATED_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc/include/generated/includes)
 set(AP_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc/include/ap/include)
 set(MDC_ACLLIB_SDK  ${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc/include/acllib)
 set(UDP_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/pubsub/mdc/include/aarch64-linux-gnu)

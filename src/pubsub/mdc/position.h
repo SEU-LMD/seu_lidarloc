@@ -7,6 +7,7 @@
 #include "pubsub/data_types.h"
 #include "timestamp.h"
 #include "utils/utility.h"
+#include <mutex>
 
 // INITIALIZE_EASYLOGGINGPP
 
@@ -53,23 +54,43 @@ class Position {
 private:
     PositionBase node_;
     std::vector<std::thread> threadPool_;
-    std::shared_ptr<GNSSINSType> data_out = make_shared<GNSSINSType>();
+    std::mutex  wheel_mutx;
+    double wheel_speed[4]={0};
+
+
 
 
     //GNSSINS thread to receive data
     void SubPosition(){
-                      while (!node_.IsStop()){
-                    std::shared_ptr<HafCanRxFrame> recv_data;
+        double lat = -1.0;              // 纬度
+        double lng = -1.0;              // 经度
+        double alt = -1.0;              // 高度计
+        std::shared_ptr<GNSSINSType> data_out = make_shared<GNSSINSType>();
+        EZLOG(INFO)<<"beign subpostiotin"<<std::endl;
+        while (!node_.IsStop()){
+            EZLOG(INFO)<<"beign subpostiotin loop"<<std::endl;
+
+            std::shared_ptr<HafCanRxFrame> recv_data;
+            EZLOG(INFO)<<" subpostiotin getdata"<<std::endl;
                     HafStatus ret = node_.GetPosition(recv_data);
-                    //自己的数据类型
+            EZLOG(INFO)<<"subpostiotin getdata end"<<std::endl;
+
+            //自己的数据类型
                     if (ret == HAF_PROGRAM_STOPED)
-                    return;
+                    {
+                        EZLOG(INFO)<<"imu wrong"<<std::endl;
+                        return;
+                    }
                     if (ret == HAF_NOT_READY) {
                     HAF_LOG_ERROR << "Get Position Data Timeout";
-                    continue;
+                        EZLOG(INFO)<<"Get Position Data Timeout"<<std::endl;
+                        continue;
                     }
+                    EZLOG(INFO)<<"subpostion begin send"<<std::endl;
                     bool send = false;
                     for (size_t i = 0; i < recv_data->elements.size(); ++i) {
+
+                        EZLOG(INFO)<<"imu coming"<<std::endl;
                         HafCanRxBaseFrame can_frame = recv_data->elements[i];
                         uint32_t canId = can_frame.canId;
                         auto& data = can_frame.data;
@@ -119,7 +140,7 @@ private:
                         }
                         else if (canId == 805) {  // 大地高度
                             int32_t posAlt = data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
-                            data_out->lla[2] = static_cast<double>(posAlt) * 0.001;
+                            alt = static_cast<double>(posAlt) * 0.001;
                             HAF_LOG_INFO << ara::log::Setprecision(16) << "canId = 805, alt: " << data_out->lla[2];
                         }
                         else if (canId == 806) {
@@ -230,16 +251,16 @@ private:
                         }
                         else if (canId == 813) {  // 经度
                             uint32_t posLon = data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
-                            data_out->lla[1] = (static_cast<double>(posLon) + data[4] * 4294967296) * 0.00000001;
+
+                             lng= (static_cast<double>(posLon) + data[4] * 4294967296) * 0.00000001;
 
                             HAF_LOG_INFO << "canId = 813, lng: " << ara::log::Setprecision(16) << data_out->lla[1];
                         }
                         else if (canId == 814) {  // 纬度
                             uint32_t posLat = data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
-                            data_out->lla[0] = static_cast<double>(posLat) * 0.00000001;
+                            lat = static_cast<double>(posLat) * 0.00000001;
 
                             HAF_LOG_INFO << "canId = 814, lat: " << ara::log::Setprecision(16) << data_out->lla[0];
-                            send = true;
                         }
                     }
                     
@@ -247,13 +268,30 @@ private:
                            continue;
                     }
                     else{
+                        std::cout << "begin fasong"<<std::endl;
                         data_out->timestamp = Adsfi::ToSecond(GetHafTimestamp());
+                        std::cout << "end fasong"<<std::endl;
+
                         data_out->frame="map";
+                        data_out->lla[1] = lng;
+                        data_out->lla[0] = lat;
+                        data_out->lla[2] = alt;
+                        {
+                            std::lock_guard<std::mutex> lock(wheel_mutx);
+                            data_out->wheel_speed[0] = wheel_speed[0];
+                            data_out->wheel_speed[1] = wheel_speed[1];
+                            data_out->wheel_speed[2] = wheel_speed[2];
+                            data_out->wheel_speed[3] = wheel_speed[3];
+                        }
+                        std::cout<<"begin callback" <<std::endl;
                         GNSSINSFunction(*data_out);
-                    	EZLOG(INFO)<<"imu_gnss"<<std::endl;
+                        lat = -1.0;              // 纬度
+                        lng = -1.0;              // 经度
+                        alt = -1.0;              // 高度计
+                    	EZLOG(INFO)<<"imu_gnss_out"<<std::endl;
 		    }
-                }  //end while()         
-  };//end function  SubPosition
+        }  //end while()
+    };//end function  SubPosition
 
   //lidar thread to receive data
     void SubLidar(){
@@ -267,7 +305,7 @@ private:
                         break;
                     if (ret == Adsfi::HAF_SUCCESS) { 
                         HAF_LOG_INFO << "Get Lidar Data Succeed, Seq = " << data->seq;
-                        std::cout<<"lidar_is_here"<<std::endl;
+                        EZLOG(INFO)<<"lidar_is_here"<<std::endl;
                         const uint8_t* buf = data->rawData.data();
                         size_t points_size = data->rawData.size() / point_bytes;
                         for (size_t i = 0U; i < points_size; ++i) {
@@ -298,12 +336,13 @@ private:
             for (auto el : frame->elements) {
                 uint32_t canId = el.canId;
                 if (canId == 0x23A) {
-                    data_out->wheel_speed[0] = (((el.data[1] & 0x0F) << 9) + (el.data[2] << 1) + ((el.data[3] & 0x80) >> 7)) * 0.0563; // 右后轮速
-                    data_out->wheel_speed[1] = (((el.data[3] & 0x7F) << 6) + ((el.data[4] & 0xFC) >> 2)) * 0.0563; // 左后轮速
-                    data_out->wheel_speed[2]= (((el.data[4] & 0x03) << 11) + (el.data[5] << 3) + ((el.data[6] & 0xE0) >> 5)) * 0.0563; // 右前轮速
-                    data_out->wheel_speed[3] = (((el.data[6] & 0x1F) << 8) + el.data[7]) * 0.0563; // 左前轮速
-                    HAF_LOG_INFO << "recv can eps data, ESCWhlRRSpd = " << data_out->wheel_speed[0] << ", ESCWhlRLSpd = " << data_out->wheel_speed[1]
-                                 << ", ESCWhlFRSpd = " << data_out->wheel_speed[2] << ", ESCWhlFLSpd = " << data_out->wheel_speed[3];
+                    EZLOG(INFO)<<"wheel_in"<<std::endl;
+                    std::lock_guard<std::mutex> lock(wheel_mutx);
+                    wheel_speed[0] = (((el.data[1] & 0x0F) << 9) + (el.data[2] << 1) + ((el.data[3] & 0x80) >> 7)) * 0.0563; // 右后轮速
+                    wheel_speed[1] = (((el.data[3] & 0x7F) << 6) + ((el.data[4] & 0xFC) >> 2)) * 0.0563; // 左后轮速
+                    wheel_speed[2]= (((el.data[4] & 0x03) << 11) + (el.data[5] << 3) + ((el.data[6] & 0xE0) >> 5)) * 0.0563; // 右前轮速
+                    wheel_speed[3] = (((el.data[6] & 0x1F) << 8) + el.data[7]) * 0.0563; // 左前轮速
+                    EZLOG(INFO)<<"wheel_out"<<std::endl;
                 }
             }
         }

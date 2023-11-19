@@ -1,0 +1,54 @@
+%YAML:1.0
+
+logFile: ./    #logPath, Does not support dynamic modification
+appName: LDR #Node name
+description: Lidar Driver module
+priority: 0    #{0 ... 12} not currently used
+scheduleFrequency: 10 #not currently used
+isDetermineSchedule: false    #{true, false}, not currently used
+logMode: 6    #{0, 1, 2, 3, 4, 5, 6}, 0: 固定文件存储，异步日志 1: 打屏，同步日志，适合调试， 2: 指定文件存储，同步日志，适合调试，
+              #3：固定+打屏， 4：固定+指定， 5：打屏+指定， 6：固定+打屏+指定
+logLevel: 2    #{0，1，2，3，4，5, 6}， 0：verbose, 1：debug, 2：info, 3：warn, 4：error, 5：fatal, 6：off
+
+isLidarFusionEnable: false # 是否发送融合点云，默认发送
+lidarFusionInstanceID: 12 # 融合点云发送ID
+lidar:
+  - driver:
+      isEnable: true  # 雷达是否启用
+      isSendEnable: true  # 是否发送单个点云，默认不发送，需要单个雷达调试时开启
+      sendInstanceID: 13
+      lidar_type: RS80    # middle, ip=192.168.16.200
+      msop_port: 6699
+      difop_port: 7788
+      x: 1.0643611808326423      # unit, m
+      y: -0.15445911502207996     # unit, m
+      z: 1.5001287207358263      # unit, m
+      roll: -0.012593245042115252   # unit, radian
+      pitch: -0.0019382539844213999  # unit, radian
+      yaw: 0.006376673590008153    # unit, radian
+  - driver:
+      isEnable: true
+      isSendEnable: false
+      sendInstanceID: 14
+      lidar_type: RSHELIOS # left, ip=192.168.13.201
+      msop_port: 2010
+      difop_port: 2011
+      x: 1.062
+      y: 0.222
+      z: 1.255
+      roll: -0.6400122543100001
+      pitch: 0.00855211357
+      yaw: 0.00628318548
+  - driver:
+      isEnable: true
+      isSendEnable: false
+      sendInstanceID: 15
+      lidar_type: RSHELIOS_16P  # right, ip=192.168.15.203
+      msop_port: 2030
+      difop_port: 2031
+      x: 1.068
+      y: -0.677
+      z: 1.327
+      roll: 0.60353487194
+      pitch: 0.00331612567
+      yaw: 0.00628318548
