@@ -400,170 +400,159 @@ public:
                     continue;
                 }
             }
+
+            ///0.do something
+            double drqueue_min_ros_time ;
+            double drqueue_max_ros_time ;
+            //TODO 1111
             {
-
-                ///0.do something
-                double drqueue_min_ros_time ;
-                double drqueue_max_ros_time ;
-                std::deque<OdometryType> drqueue_copy;//TODO 1111
-                {
-                    std::lock_guard<std::mutex> lock(drodom_mutex);
-                    if(DrOdomQueue.empty()){
-                        continue;
-                    }
-                    drqueue_min_ros_time = DrOdomQueue.front().timestamp;
-                    drqueue_max_ros_time = DrOdomQueue.back().timestamp;
+                std::lock_guard<std::mutex> lock(drodom_mutex);
+                if(DrOdomQueue.empty()){
+                    continue;
                 }
+                drqueue_min_ros_time = DrOdomQueue.front().timestamp;
+                drqueue_max_ros_time = DrOdomQueue.back().timestamp;
+            }
 
-                ///1.get cloud max and min time stamp to
+            ///1.get cloud max and min time stamp to
 //                TicToc time_getin;
-                if(!isGetCurrentCloud)
-                {
-                    cloud_mutex.lock();
-                    cur_scan = deque_cloud.front();
-                    deque_cloud.pop_front();
-                    cloud_mutex.unlock();//unlock TODO 1111
+            if(!isGetCurrentCloud)
+            {
+                cloud_mutex.lock();
+                cur_scan = deque_cloud.front();
+                deque_cloud.pop_front();
+                cloud_mutex.unlock();//unlock TODO 1111
 
-                    GetCloudTime(cur_scan, cur_cloud_time);
-                    cloud_min_ros_timestamp = cur_cloud_time.min_ros_timestamp;
-                    cloud_max_ros_timestamp = cur_cloud_time.max_ros_timestamp;
+                GetCloudTime(cur_scan, cur_cloud_time);
+                cloud_min_ros_timestamp = cur_cloud_time.min_ros_timestamp;
+                cloud_max_ros_timestamp = cur_cloud_time.max_ros_timestamp;
 //                    time_getin.tic();
-                    isGetCurrentCloud = true;
+                isGetCurrentCloud = true;
 
+            }
+
+            //gnss related!
+            if(!isGetCorrespondingGNSS)
+            {
+                cloudinfo.pose_reliable = false;
+                std::lock_guard<std::mutex> lock(gnss_mutex);
+                if(!GNSSQueue.empty()){
+                    for(int i = 0;i<GNSSQueue.size();++i){
+                        if(abs(GNSSQueue[i].timestamp - cur_scan->timestamp) < FrontEndConfig::gnss_align_threshold){
+                            cloudinfo.pose = GNSSQueue[i].pose;
+                            cloudinfo.cov = GNSSQueue[i].cov;
+                            cloudinfo.pose_reliable = true;
+                            isGetCorrespondingGNSS = true;
+                            break;
+                        }
+                    }
+                    while(!GNSSQueue.empty() && GNSSQueue.front().timestamp - cur_scan->timestamp < FrontEndConfig::gnss_pop_threshold ){
+                        GNSSQueue.pop_front();
+                    }
                 }
+            }
 
-                //gnss related!
-                static double s = 0.0, e = 0.0;
-                static int n = 0;
-                if(!isGetCorrespondingGNSS)
+            ///2.
+            //use absolutue
+            //TODO 1118 delete and test!
+//                if (!DrOdomQueue.empty() && drqueue_min_ros_time >= cloud_min_ros_timestamp) {
+//                    auto temp = DrOdomQueue.front();
+//                    temp.timestamp = cloud_min_ros_timestamp - 0.01f;
+//                    DrOdomQueue.push_front(temp);//TODO 1118 add lock
+//                    //isGetCurrentCloud = false;
+//                }
+            static int pop_lidar_scan_num = 0; //if time_dr > time_lidar, pop lidar
+            if(drqueue_min_ros_time > cloud_min_ros_timestamp){
+                ++pop_lidar_scan_num;
+                if(pop_lidar_scan_num % 5 == 0)
+                    EZLOG(INFO)<< "Pop current lidar scan! " << pop_lidar_scan_num <<" / "<<frame_id<<" = "<<(float)pop_lidar_scan_num/(float)frame_id <<std::endl;
+                isGetCurrentCloud = false;
+                isGetCorrespondingGNSS = false;
+                continue;
+            }
+
+            //TODO 1118, add else to test
+            if(drqueue_max_ros_time >= cloud_max_ros_timestamp){
+                TicToc time_dataprep;
+                TicToc time_dataprep_1;
+                isGetCurrentCloud = false;
+                isGetCorrespondingGNSS = false;
+
+                std::deque<OdometryType> drqueue_copy;
+                drodom_mutex.lock();
+                drqueue_copy = DrOdomQueue;
+                drodom_mutex.unlock();
+
+                cloudinfo.frame_id = frame_id++;
+                cloudinfo.timestamp = cur_scan->timestamp;
+              //  EZLOG(INFO)<<"time_dataprep_1.toc() = "<<time_dataprep_1.toc()<<endl;
+
+                if(cloudinfo.pose_reliable == false || frame_id % 100 == 0){
+                    EZLOG(INFO)<<"find gnss pose num = "<<GNSS_frames<<" / "<<frame_id<<" = "<<(float)GNSS_frames/(float)frame_id;
+                }
+                ++GNSS_frames;
+
+                /// 1.FindLidarFirstPose
+                PoseT T_w_l_lidar_first_pose;
+                double cost_time_findpose = FindLidarPoseinDROdom(cur_cloud_time, drqueue_copy,//in
+                                                                  T_w_l_lidar_first_pose);//out
+               // EZLOG(INFO) << "cost_time_findpose(ms) = " << cost_time_findpose << std::endl;
+
+                cloudinfo.DRPose = T_w_l_lidar_first_pose;
+                Eigen::Vector3d t_w_cur;
+                Eigen::Quaterniond q_w_cur;
+                Eigen::Matrix3d q_w_cur_matrix;//TODO remove?
+                t_w_cur = T_w_l_lidar_first_pose.GetXYZ();
+                q_w_cur = T_w_l_lidar_first_pose.GetQ();
+                q_w_cur.normalize();
+
+                ///2.imgprojection
+                ///update rangemat and deskewCloud_body
+                double cost_time_projpc = ProjectPointCloud(cur_cloud_time, drqueue_copy, T_w_l_lidar_first_pose);
+                 // EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
+
+                ///3.cloudExtraction
+                double cost_time_cloudextraction = CloudExtraction(cloudinfo);
+                //  EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
+
+                //        //for debug use
+                if(FrontEndConfig::if_debug)
                 {
-                    cloudinfo.pose_reliable = false;
-                    std::lock_guard<std::mutex> lock(gnss_mutex);
-                    if(!GNSSQueue.empty()){
-                        for(int i = 0;i<GNSSQueue.size();++i){
-                            if(abs(GNSSQueue[i].timestamp - cur_scan->timestamp) < FrontEndConfig::gnss_align_threshold){
-                                cloudinfo.pose = GNSSQueue[i].pose;
-                                cloudinfo.pose_reliable = true;
-                                cloudinfo.cov = GNSSQueue[i].cov;
-                                isGetCorrespondingGNSS = true;
-                                break;
-                            }
-                        }
-                        //for debug use 1118 TODOs
-                        {
-                            if(!cloudinfo.pose_reliable){
-                                s = GNSSQueue.front().timestamp;
-                                e = GNSSQueue.back().timestamp;
-                                n = GNSSQueue.size();
-                            }
-                        }
-                        
-                        while(!GNSSQueue.empty() && GNSSQueue.front().timestamp - cur_scan->timestamp < FrontEndConfig::gnss_pop_threshold ){
-                            GNSSQueue.pop_front();
-                        }
-                    }
+                    CloudTypeXYZICOLRANGE cloud_pub;
+                    cloud_pub.timestamp = cloudinfo.timestamp;
+                    cloud_pub.frame = "map";
+                    pcl::transformPointCloud(*cloudinfo.cloud_ptr, cloud_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                    pubsub->PublishCloud(topic_deskw_cloud_to_ft_world, cloud_pub);
                 }
 
-                ///2.
-                //use absolutue
-                //TODO 1118 delete and test!
-                if (!DrOdomQueue.empty() && drqueue_min_ros_time >= cloud_min_ros_timestamp) {
-                    auto temp = DrOdomQueue.front();
-                    temp.timestamp = cloud_min_ros_timestamp - 0.01f;
-                    DrOdomQueue.push_front(temp);//TODO 1118 add lock
-                    //isGetCurrentCloud = false;
-                }
-
-                //TODO 1118, add else to test
-                if(drqueue_min_ros_time < cloud_min_ros_timestamp &&
-                   drqueue_max_ros_time > cloud_max_ros_timestamp){//odo_min_ros_time<cloud_min_ros_timestamp&&
-//                    EZLOG(INFO)<<"time_getin.toc() = "<<time_getin.toc()<<endl;
-
-                    TicToc time_dataprep;
-                    TicToc time_dataprep_1;
-
-                    isGetCurrentCloud = false;
-                    isGetCorrespondingGNSS = false;
-
-                    drodom_mutex.lock();
-                    drqueue_copy = DrOdomQueue;
-                    drodom_mutex.unlock();
-
-                    cloudinfo.frame_id = frame_id++;
-                    cloudinfo.timestamp = cur_scan->timestamp;
-                  //  EZLOG(INFO)<<"time_dataprep_1.toc() = "<<time_dataprep_1.toc()<<endl;
-
-                    if(cloudinfo.pose_reliable){
-                        ++GNSS_frames;
-                    }
-                    else{
-                       // EZLOG(INFO) << "start gnss time:" << s << " end gnss time:" << e << " queue time:" << e - s << " cur lidar time:" << cur_scan->timestamp - s << " queue size:" <<n << endl;
-                    }
-                    //EZLOG(INFO)<<"find gnss pose num = "<<GNSS_frames<<" / "<<frame_id<<" = "<<(float)GNSS_frames/(float)frame_id;
-
-                    /// 1.FindLidarFirstPose
-                    PoseT T_w_l_lidar_first_pose;
-                    double cost_time_findpose = FindLidarPoseinDROdom(cur_cloud_time, drqueue_copy,//in
-                                                                      T_w_l_lidar_first_pose);//out
-                   // EZLOG(INFO) << "cost_time_findpose(ms) = " << cost_time_findpose << std::endl;
-
-                    cloudinfo.DRPose = T_w_l_lidar_first_pose;
-                    Eigen::Vector3d t_w_cur;
-                    Eigen::Quaterniond q_w_cur;
-                    Eigen::Matrix3d q_w_cur_matrix;
-                    t_w_cur = T_w_l_lidar_first_pose.GetXYZ();
-                    q_w_cur = T_w_l_lidar_first_pose.GetQ();
-                    q_w_cur.normalize();
-
-                    ///2.imgprojection
-                    ///update rangemat and deskewCloud_body
-                    double cost_time_projpc = ProjectPointCloud(cur_cloud_time, drqueue_copy, T_w_l_lidar_first_pose);
-                     // EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
-
-                    ///3.cloudExtraction
-                    double cost_time_cloudextraction = CloudExtraction(cloudinfo);
-                    //  EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
-
-                    //        //for debug use
-                    if(FrontEndConfig::if_debug)
-                    {
-                        CloudTypeXYZICOLRANGE cloud_pub;
-                        cloud_pub.timestamp = cloudinfo.timestamp;
-                        cloud_pub.frame = "map";
-                        pcl::transformPointCloud(*cloudinfo.cloud_ptr, cloud_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-                        pubsub->PublishCloud(topic_deskw_cloud_to_ft_world, cloud_pub);
-                    }
-
-                    TicToc time_dataprep_2;
-                    ///4. send data to feature extraction node
-                    Function_AddCloudInfoToFeatureExtraction(cloudinfo);
-                   // EZLOG(INFO)<<"time_dataprep_2 = "<<time_dataprep_2.toc()<<endl;
-                   // EZLOG(INFO)<<"CloudInfo size:"<<cloudinfo.cloud_ptr -> points.size()
-                   // <<" "<< cloudinfo.cloud_ground_down -> points.size()
-                   // <<" "<< cloudinfo.cloud_ground -> points.size()
-                   // <<" "<< cloudinfo.cloud_unground -> points.size()<<endl;
+                TicToc time_dataprep_2;
+                ///4. send data to feature extraction node
+                Function_AddCloudInfoToFeatureExtraction(cloudinfo);
+               // EZLOG(INFO)<<"time_dataprep_2 = "<<time_dataprep_2.toc()<<endl;
+               // EZLOG(INFO)<<"CloudInfo size:"<<cloudinfo.cloud_ptr -> points.size()
+               // <<" "<< cloudinfo.cloud_ground_down -> points.size()
+               // <<" "<< cloudinfo.cloud_ground -> points.size()
+               // <<" "<< cloudinfo.cloud_unground -> points.size()<<endl;
 
 //                    EZLOG(INFO)<<"cloudinfo.frame_id"<< cloudinfo.frame_id<<endl;
 //                    EZLOG(INFO)
 //                            << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
 //                            << cloudinfo.cloud_ptr->points.size();
-                    ///5.pop used odom
-                    TicToc time_dataprep_3;
-                    double thresh = cloud_max_ros_timestamp - 0.05f;
-                    drodom_mutex.lock();
-                    while(DrOdomQueue.front().timestamp < thresh){
-                        DrOdomQueue.pop_front();
-                    }
-                    drodom_mutex.unlock();
-                    //EZLOG(INFO)<<"time_dataprep_3 = "<<time_dataprep_3.toc()<<endl;
+                ///5.pop used odom
+                TicToc time_dataprep_3;
+                const double thresh = cloud_max_ros_timestamp - 0.05f;
+                drodom_mutex.lock();
+                while(DrOdomQueue.front().timestamp < thresh){
+                    DrOdomQueue.pop_front();
+                }
+                drodom_mutex.unlock();
+                //EZLOG(INFO)<<"time_dataprep_3 = "<<time_dataprep_3.toc()<<endl;
 
-                   // EZLOG(INFO)<<"time_dataprep = "<<time_dataprep.toc()<<endl;
+               // EZLOG(INFO)<<"time_dataprep = "<<time_dataprep.toc()<<endl;
 
-                    ResetParameters();
-                }//end function if
-
-
-            }//TODO 1118
+                ResetParameters();
+            }//end function if
+            //TODO 1118
 
         }//end function while(1)
     }
@@ -602,7 +591,10 @@ public:
 
 //        deque_gnssins.push_back(data);
         if(data.lla[0]<0 || data.lla[1]<0 || data.lla[2]<0){
-            EZLOG(INFO)<<"Bad GNSS in DataPre,drop!";
+            //EZLOG(INFO)<<"Bad GNSS in DataPre,drop!";
+            return;
+        }
+        if(data.gps_status != 42){
             return;
         }
         if(!init)
