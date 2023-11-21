@@ -23,7 +23,7 @@
 #include "gtsam/slam/BetweenFactor.h"
 #include "gtsam/slam/PriorFactor.h"//TODO 1111
 #include "gtsam/slam/dataset.h"  // gtsam
-#include "math.h"
+#include <math.h>
 
 #include "udp_seralize.h"
 #include "utils/udp_thread.h"
@@ -252,15 +252,28 @@ public:
 
 //                          ADD GNSS factor
 //                          ------Gi_1 Li_1-DRi_1 --------Gi-Li-Di--------
+                            static float magic_number = 100.0;
                             if(Odom_Li_temp->GTpose_reliability == true
                             && IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
+
+                                GNSSNoise = gtsam::noiseModel::Diagonal::Variances(
+                                        (gtsam::Vector(6) << LocConfig::GNSS_noise_roll,
+                                                LocConfig::GNSS_noise_pitch,
+                                                LocConfig::GNSS_noise_yaw * magic_number,
+                                                LocConfig::GNSS_noise_x * magic_number,
+                                                LocConfig::GNSS_noise_y * magic_number,
+                                                LocConfig::GNSS_noise_z).finished());
+                                magic_number = magic_number >= 6.0 ? magic_number - 5.0 : 1.0;
+
                                 gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(
-                                lidar_keyFrame_cnt,
-                                gtsam::Pose3(gtsam::Rot3(Odom_Li_temp->GTpose.GetR()) ,
-                                             gtsam::Point3(Odom_Li_temp->GTpose.GetXYZ())),
-                                GNSSNoise));
+                                        lidar_keyFrame_cnt,
+                                        gtsam::Pose3(gtsam::Rot3(Odom_Li_temp->GTpose.GetR()) ,
+                                                     gtsam::Point3(Odom_Li_temp->GTpose.GetXYZ())),
+                                        GNSSNoise));
+
                             }
                             else{
+                                magic_number = 100;
                                 EZLOG(INFO)<<"current gnss is not used! reason are here: "<<Odom_Li_temp->GTpose_reliability;
                                 EZLOG(INFO)<<"IsFileDirExist(flag_gnss): "
                                            <<IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss");
@@ -272,6 +285,7 @@ public:
                         gtSAMgraph.print("Fuse GTSAM Graph:\n");
                         // update iSAM
                         isam->update(gtSAMgraph, initialEstimate);
+                        isam->update();
                         isam->update();
                         gtSAMgraph.resize(0);
                         initialEstimate.clear();
@@ -288,12 +302,17 @@ public:
                         current_lidar_world.pose.pose = current_pose.pose;
                         pubsub->PublishOdometry(topic_current_lidar_pose, current_lidar_world);
 
-                        RollBack(current_lidar_world,
-                                 DR_T_w_bi_rollback,
-                                 DR_T_w_bc_rollback,
-                                 DR_data_deque.back()->timestamp,
-                                 loc_result,
-                                 last_pose_fromRollBack);
+                        if(LocConfig::ifRollBack == 1){
+                            last_pose_fromRollBack = DR_T_w_bc_rollback;
+                        }
+                        else{
+                            RollBack(current_lidar_world,
+                                     DR_T_w_bi_rollback,
+                                     DR_T_w_bc_rollback,
+                                     DR_data_deque.back()->timestamp,
+                                     loc_result,
+                                     last_pose_fromRollBack);
+                        }
 
                         Lidar_T_w_Li_1_factor = Lidar_T_w_Li_factor;
                         lidar_keyFrame_cnt++;
@@ -340,7 +359,7 @@ public:
                         break;
                     }
                 }
-                EZLOG(INFO)<<"Fuse cost in ms: "<<t_fuse.toc();
+                EZLOG(INFO)<<"Fuse pub Frequency : "<<1.0 / t_fuse.toc();
             }
             else{
                 sleep(0.001);

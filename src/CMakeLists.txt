@@ -69,7 +69,7 @@ include_directories(
         ./ThirdParty/easylog-9.89/src/
         ${YAML_CPP_INCLUDE_DIR}
         ${FLANN_DIRS}
-        ./udp_helper.h
+        udp_helper_h
 )
 
 MESSAGE(STATUS "------------${EIGEN3_INCLUDE_DIR}------------------")

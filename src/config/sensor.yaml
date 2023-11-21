@@ -39,11 +39,11 @@
   downsampleRate: 1                           # default: 1. Downsample your data if too many points. i.e., 16 = 64 / 4, 16 = 16 / 1
   lidarMinRange: 1.5                          # default: 1.0, minimum lidar range to be used
   lidarMaxRange: 1000.0
-  lidarMinRing: 5                          # default: 1.0, minimum lidar range to be used
-  lidarMaxRing: 75
+  lidarMinRing: 0                          # default: 1.0, minimum lidar range to be used
+  lidarMaxRing: 80
   gtsamGNSSBetweenFactorDistance: 5
   lidarScanDownSample: -1                      #every lidarScanDownSample times cal 1, if -1 drop
-  LMOpt_Cnt: 10
+  LMOpt_Cnt: 30
 
   # IMU Settings
   imuAccNoise: 0.035 #VRW,加速度计随机游走。0.035m/s/√h 0.000583333
