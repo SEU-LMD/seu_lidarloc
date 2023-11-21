@@ -4,10 +4,7 @@
 
 #ifndef SEU_LIDARLOC_OPT_LOPC_H
 #define SEU_LIDARLOC_OPT_LOPC_H
-
-#include "pubsub/pubusb.h"
-#include "pubsub/data_types.h"
-
+//3rdParty
 #include "pcl/common/common.h"
 #include "pcl/common/transforms.h"
 #include "pcl/filters/crop_box.h"
@@ -21,10 +18,8 @@
 #include "pcl/range_image/range_image.h"
 #include "pcl/registration/icp.h"
 #include "pcl/conversions.h"
-
 #include "opencv2/opencv.hpp"
 #include "opencv2/imgproc.hpp"
-
 #include "gtsam/geometry/Pose3.h"
 #include "gtsam/geometry/Rot3.h"
 #include "gtsam/inference/Symbol.h"
@@ -40,14 +35,13 @@
 #include "gtsam/slam/BetweenFactor.h"
 #include "gtsam/slam/PriorFactor.h"
 #include "gtsam/slam/dataset.h"  // gtsam
-
-
 #include "GeoGraphicLibInclude/Geocentric.hpp"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "GeoGraphicLibInclude/Geoid.hpp"
-
-
+//homeMade
 #include "map_loader.h"
+#include "pubsub/pubusb.h"
+#include "pubsub/data_types.h"
 
 
 class LOCMapping{
@@ -356,7 +350,7 @@ public:
         CloudTypeXYZI currentlidar_surf_pub;
         currentlidar_surf_pub.frame = "map";
         currentlidar_surf_pub.timestamp = timeLaserInfoCur;
-        pcl::transformPointCloud(*_current_corner_ds, currentlidar_surf_pub.cloud, (T_wb_pub).cast<float>());
+        pcl::transformPointCloud(*_current_surf_ds, currentlidar_surf_pub.cloud, (T_wb_pub).cast<float>());
         pubsub->PublishCloud(topic_current_lidarPcl, currentlidar_surf_pub);
 
 

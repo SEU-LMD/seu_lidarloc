@@ -7,7 +7,7 @@
 
 #include <string>
 #include "Eigen/Core"           //eigen
-#include <Eigen/Geometry>       //quaterniond
+#include "Eigen/Geometry"      //quaterniond
 
 class Vis_Odometry{
 public:

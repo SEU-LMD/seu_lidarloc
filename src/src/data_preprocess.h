@@ -4,30 +4,25 @@
 #define SEU_LIDARLOC_DATAPREPROCESS_H
 
 #define DBL_MAX		__DBL_MAX__
-
+// system
 #include <mutex>
 #include <thread>
-
+#include <fstream>
+//3rdParty
+#include "GeoGraphicLibInclude/LocalCartesian.hpp"
+#include "opencv2/opencv.hpp"   // for opencv4
+//homeMade
 #include "pubsub/pubusb.h"
 #include "feature_extraction.h"
-#include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
 #include "utils/utility.h"
-#include "opencv2/opencv.hpp"   // for opencv4
-//#include <opencv/cv.h>
-//#include "pcl/features/normal_3d_omp.h" //by wxq
-//#include "pcl/segmentation/sac_segmentation.h"
 #include "utils/filesys.h"
 #include "config/abs_current_path.h"
 #include "front_end/front_end.h"
-
-#include <fstream>
-
 #include "utils/udp_thread.h"
-
-#include "udp_helper.h/udp_seralize.h"
-#include "udp_helper.h/udp_client.h"
+#include "udp_helper_h/udp_seralize.h"
+#include "udp_helper_h/udp_client.h"
 
 class CloudWithTime{
 public:
@@ -723,7 +718,7 @@ public:
         }
         else{
         //TODO
-            EZLOG(INFO)<<"CONTROL! NO GNSS!"<<ABS_CURRENT_SOURCE_PATH+"/flag_gnss";
+//            EZLOG(INFO)<<"CONTROL! NO GNSS!"<<ABS_CURRENT_SOURCE_PATH+"/flag_gnss";
             Udp_OdomPub(T_w_l,"ng");
 //            exit(-1);
         }

@@ -4,10 +4,9 @@
 
 #ifndef SEU_LIDARLOC_FUSE_INFO_H
 #define SEU_LIDARLOC_FUSE_INFO_H
-#include "pubsub/pubusb.h"
-#include "pubsub/data_types.h"
-#include "utils/timer.h"
-
+// system
+#include <math.h>
+// 3rdParty
 #include "gtsam/geometry/Pose3.h"
 #include "gtsam/geometry/Rot3.h"
 #include "gtsam/inference/Symbol.h"
@@ -23,9 +22,11 @@
 #include "gtsam/slam/BetweenFactor.h"
 #include "gtsam/slam/PriorFactor.h"//TODO 1111
 #include "gtsam/slam/dataset.h"  // gtsam
-#include <math.h>
-
+//homeMade
 #include "udp_seralize.h"
+#include "pubsub/pubusb.h"
+#include "pubsub/data_types.h"
+#include "utils/timer.h"
 #include "utils/udp_thread.h"
 #include "utils/filesys.h"
 #include "config/abs_current_path.h"
@@ -163,8 +164,8 @@ public:
         udp_thread -> SendUdpMSg(fu_str);
     }
 
-    void DRAlignWithLidarAndClear(std::deque<std::shared_ptr<DROdometryType>> &_DR_data_deque,
-                                  double &current_lidar_time,
+    bool DRAlignWithLidarAndClear(std::deque<std::shared_ptr<DROdometryType>> &_DR_data_deque,
+                                  const double &current_lidar_time,
                                   PoseT &current_DR_pose,
                                   PoseT &last_DR_pose
                                   ){
@@ -172,12 +173,13 @@ public:
             if(current_lidar_time - _DR_data_deque.front()->timestamp < 0.01f){
                 current_DR_pose = _DR_data_deque.front()->pose;
                 last_DR_pose = _DR_data_deque.back()->pose;
-                break;
+                return true;
             }
             else{
                 _DR_data_deque.pop_front();
             }
         }
+        return false;
     }
 
     void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_ = nullptr){
@@ -231,16 +233,23 @@ public:
                             break;
                         }
                         else{
-//                            add DR between factor
-//                          ------Li-DRi------DRc-
-                            DRAlignWithLidarAndClear(DR_data_deque, time_Li, DR_T_w_bi_rollback, DR_T_w_bc_rollback);
-//                          ADD DR factor
-//                          ------Li_1-DRi_1 --------Li-Di--------
-                            gtSAMgraph.add(gtsam::BetweenFactor<gtsam::Pose3>(
-                                    lidar_keyFrame_cnt - 1, lidar_keyFrame_cnt,
-                                    gtsam::Pose3(DR_T_w_bi_1_factor.between(DR_T_w_bi_rollback).pose), DRNoise));
-
-                            DR_T_w_bi_1_factor = DR_T_w_bi_rollback;
+//                          ------Li-DRi------DRc- align
+//                          ------Li_1-DRi_1 --------Li-Di-------- add DR between factor
+                            static bool flag_last_dr_exist = true;
+                            if(DRAlignWithLidarAndClear(DR_data_deque,
+                                                           time_Li,
+                                                        DR_T_w_bi_rollback,
+                                                        DR_T_w_bc_rollback)){
+                                if(flag_last_dr_exist == true){
+                                    gtSAMgraph.add(gtsam::BetweenFactor<gtsam::Pose3>(
+                                            lidar_keyFrame_cnt - 1, lidar_keyFrame_cnt,
+                                            gtsam::Pose3(DR_T_w_bi_1_factor.between(DR_T_w_bi_rollback).pose), DRNoise));
+                                }
+                                DR_T_w_bi_1_factor = DR_T_w_bi_rollback;
+                                flag_last_dr_exist = true;
+                            }else{
+                                flag_last_dr_exist = false;
+                            }
 
 //                          ADD Lidar factor
 //                          ------Li_1-DRi_1 --------Li-Di--------

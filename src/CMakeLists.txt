@@ -4,7 +4,7 @@ project(seu_lidarloc)
 set(CMAKE_BUILD_TYPE "Release")#Release Debug
 set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -pthread")
+set(CMAKE_CXX_FLAGS "-O0 -Wall -g -pthread")
 
 add_definitions(-w)
 

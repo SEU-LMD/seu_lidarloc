@@ -2,21 +2,22 @@
 // Use the Velodyne point format as a common representation
 #ifndef SEU_LIDARLOC_IMUPREINTEGRATION_H
 #define SEU_LIDARLOC_IMUPREINTEGRATION_H
+// system
 #include <mutex>
 #include <thread>
 #include <iostream>
-
+// 3rdPatry
+#include "GeoGraphicLibInclude/LocalCartesian.hpp"
+// homeMade
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
-
 #include "udp_seralize.h"
 #include "utils/udp_thread.h"
 #include "utils/filesys.h"
 #include "config/abs_current_path.h"
 
-#include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #define average_kmh2Ms 0.1389
 
 //TODO remove
@@ -237,11 +238,7 @@ public:
                 gnss_cnt++;
             }
         }
-        else{
-            EZLOG(INFO)<<"CONTROL! NO GNSS!"<<ABS_CURRENT_SOURCE_PATH+"/flag_gnss";
-        }
 
-//
         // DR----->>>>>>TO ENU
         IMURawWheelDataPtr imuWheel_raw (new IMURawWheelData);
         imuWheel_raw->imu_angular_v_body = gnss_ins_data.imu_angular_v_body * 0.017453293; //转弧度值

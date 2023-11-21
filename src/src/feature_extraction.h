@@ -1,6 +1,9 @@
 #include <mutex>
 #ifndef SEU_LIDARLOC_FEATUREEXTRACTION_H
 #define SEU_LIDARLOC_FEATUREEXTRACTION_H
+
+#include "pcl/common/pca.h"
+
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
 #include "utils/timer.h"
@@ -8,8 +11,6 @@
 #include "opt_loc.h"
 #include "data_preprocess.h"
 #include "utils/MapSaver.h"
-
-#include "pcl/common/pca.h"
 #include "front_end/front_end.h"
 
 enum SLAM_MODE{
