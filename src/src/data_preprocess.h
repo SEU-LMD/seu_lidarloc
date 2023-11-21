@@ -439,8 +439,9 @@ public:
                         for(int i = 0;i<GNSSQueue.size();++i){
                             if(abs(GNSSQueue[i].timestamp - cur_scan->timestamp) < FrontEndConfig::gnss_align_threshold){
                                 cloudinfo.pose = GNSSQueue[i].pose;
-                                cloudinfo.pose_reliable = true;
-                                cloudinfo.pose_reliable = GNSSQueue[i].GTpose_reliability;
+                                if(GNSSQueue[i].GTpose_reliability){
+                                    cloudinfo.pose_reliable = true;
+                                }
                                 cloudinfo.cov = GNSSQueue[i].cov;
                                 isGetCorrespondingGNSS = true;
                                 break;
@@ -598,46 +599,46 @@ public:
             EZLOG(INFO)<<"Bad GNSS value in DataPre,drop!: "<<data.lla.transpose() ;
             return false;
         }
-        if(data.gps_status != 42){
-            EZLOG(INFO)<<"Bad GNSS status DataPre,drop!: "<<data.gps_status;
-
-            { // for debug use
-                double t_enu[3];
-                geoConverter.Forward(data.lla[0], data.lla[1], data.lla[2],
-                                     t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
-
-                Eigen::Matrix3d z_matrix;//calculate Quaternion
-                Eigen::Matrix3d x_matrix;
-                Eigen::Matrix3d y_matrix;
-                double heading_Z = -data.yaw * 0.017453293;
-                double pitch_Y = data.pitch * 0.017453293;
-                double roll_X = data.roll * 0.017453293;
-                z_matrix << cos(heading_Z), -sin(heading_Z), 0,
-                        sin(heading_Z), cos(heading_Z),  0,
-                        0,                 0,            1;
-
-                x_matrix << 1,                 0,              0,
-                        0,            cos(pitch_Y),     -sin(pitch_Y),
-                        0,            sin(pitch_Y),    cos(pitch_Y);
-
-                y_matrix << cos(roll_X) ,     0,        sin(roll_X),
-                        0,                 1,               0 ,
-                        -sin(roll_X),      0,         cos(roll_X);
-
-                Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb zxy右前上，zyx前左上
-                Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
-                Eigen::Quaterniond q_w_b(R_w_b);//获得局部坐标系的四元数
-                PoseT T_w_b(t_w_b, R_w_b);
-                PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
-                OdometryType T_w_l_pub;
-                T_w_l_pub.frame = "map";
-                T_w_l_pub.timestamp = data.timestamp;
-                T_w_l_pub.pose = T_w_l;
-                pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
-            } // for debug use
-
-            return false;
-        }
+//        if(data.gps_status != 42){
+//            EZLOG(INFO)<<"Bad GNSS status DataPre,drop!: "<<data.gps_status;
+//
+//            { // for debug use
+//                double t_enu[3];
+//                geoConverter.Forward(data.lla[0], data.lla[1], data.lla[2],
+//                                     t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
+//
+//                Eigen::Matrix3d z_matrix;//calculate Quaternion
+//                Eigen::Matrix3d x_matrix;
+//                Eigen::Matrix3d y_matrix;
+//                double heading_Z = -data.yaw * 0.017453293;
+//                double pitch_Y = data.pitch * 0.017453293;
+//                double roll_X = data.roll * 0.017453293;
+//                z_matrix << cos(heading_Z), -sin(heading_Z), 0,
+//                        sin(heading_Z), cos(heading_Z),  0,
+//                        0,                 0,            1;
+//
+//                x_matrix << 1,                 0,              0,
+//                        0,            cos(pitch_Y),     -sin(pitch_Y),
+//                        0,            sin(pitch_Y),    cos(pitch_Y);
+//
+//                y_matrix << cos(roll_X) ,     0,        sin(roll_X),
+//                        0,                 1,               0 ,
+//                        -sin(roll_X),      0,         cos(roll_X);
+//
+//                Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb zxy右前上，zyx前左上
+//                Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
+//                Eigen::Quaterniond q_w_b(R_w_b);//获得局部坐标系的四元数
+//                PoseT T_w_b(t_w_b, R_w_b);
+//                PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
+//                OdometryType T_w_l_pub;
+//                T_w_l_pub.frame = "map";
+//                T_w_l_pub.timestamp = data.timestamp;
+//                T_w_l_pub.pose = T_w_l;
+//                pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
+//            } // for debug use
+//
+//            return false;
+//        }
         return true;
     }
     //
@@ -712,12 +713,16 @@ public:
         T_w_l_pub.cov[3] =  data.rpy_sigma[0];
         T_w_l_pub.cov[4] =  data.rpy_sigma[1];
         T_w_l_pub.cov[5] =  data.rpy_sigma[2];
+        T_w_l_pub.GTpose_reliability = false;
 
         if(FrontEndConfig::if_debug) {
             pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
         }
 
         if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")) { // if
+            if(data.gps_status == 42){
+                T_w_l_pub.GTpose_reliability = true;
+            }
             gnss_mutex.lock();
             GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
             gnss_mutex.unlock();
