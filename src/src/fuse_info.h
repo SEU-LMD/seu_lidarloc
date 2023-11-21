@@ -4,10 +4,9 @@
 
 #ifndef SEU_LIDARLOC_FUSE_INFO_H
 #define SEU_LIDARLOC_FUSE_INFO_H
-#include "pubsub/pubusb.h"
-#include "pubsub/data_types.h"
-#include "utils/timer.h"
-
+// system
+#include <math.h>
+// 3rdParty
 #include "gtsam/geometry/Pose3.h"
 #include "gtsam/geometry/Rot3.h"
 #include "gtsam/inference/Symbol.h"
@@ -23,9 +22,11 @@
 #include "gtsam/slam/BetweenFactor.h"
 #include "gtsam/slam/PriorFactor.h"//TODO 1111
 #include "gtsam/slam/dataset.h"  // gtsam
-#include "math.h"
-
+//homeMade
 #include "udp_seralize.h"
+#include "pubsub/pubusb.h"
+#include "pubsub/data_types.h"
+#include "utils/timer.h"
 #include "utils/udp_thread.h"
 #include "utils/filesys.h"
 #include "config/abs_current_path.h"
@@ -162,27 +163,23 @@ public:
         fu_str = odom_out.ToString();
         udp_thread -> SendUdpMSg(fu_str);
     }
-
-
     //bool TODO 1118
-    void DRAlignWithLidarAndClear(std::deque<std::shared_ptr<DROdometryType>> &_DR_data_deque,//TODO 1118 add const
-                                  double &current_lidar_time,//TODO 1118 add const
+    bool DRAlignWithLidarAndClear(std::deque<std::shared_ptr<DROdometryType>> &_DR_data_deque,
+                                  const double &current_lidar_time,
                                   PoseT &current_DR_pose,
                                   PoseT &last_DR_pose
                                   ){
         while(!_DR_data_deque.empty()){
-        
             if(current_lidar_time - _DR_data_deque.front()->timestamp < 0.01f){
                 current_DR_pose = _DR_data_deque.front()->pose;
                 last_DR_pose = _DR_data_deque.back()->pose;
-                //return true;
-                break;
+                return true;
             }
             else{
                 _DR_data_deque.pop_front();
             }
         }
-        //return false;
+        return false;
     }
 
     void Init(PubSubInterface* pubsub_,std::shared_ptr<UDP_THREAD> udp_thread_ = nullptr){
@@ -236,16 +233,23 @@ public:
                             break;
                         }
                         else{
-//                            add DR between factor
-//                          ------Li-DRi------DRc-
-                            DRAlignWithLidarAndClear(DR_data_deque, time_Li, DR_T_w_bi_rollback, DR_T_w_bc_rollback);
-//                          ADD DR factor
-//                          ------Li_1-DRi_1 --------Li-Di--------
-                            gtSAMgraph.add(gtsam::BetweenFactor<gtsam::Pose3>(
-                                    lidar_keyFrame_cnt - 1, lidar_keyFrame_cnt,
-                                    gtsam::Pose3(DR_T_w_bi_1_factor.between(DR_T_w_bi_rollback).pose), DRNoise));
-
-                            DR_T_w_bi_1_factor = DR_T_w_bi_rollback;
+//                          ------Li-DRi------DRc- align
+//                          ------Li_1-DRi_1 --------Li-Di-------- add DR between factor
+                            static bool flag_last_dr_exist = true;
+                            if(DRAlignWithLidarAndClear(DR_data_deque,
+                                                           time_Li,
+                                                        DR_T_w_bi_rollback,
+                                                        DR_T_w_bc_rollback)){
+                                if(flag_last_dr_exist == true){
+                                    gtSAMgraph.add(gtsam::BetweenFactor<gtsam::Pose3>(
+                                            lidar_keyFrame_cnt - 1, lidar_keyFrame_cnt,
+                                            gtsam::Pose3(DR_T_w_bi_1_factor.between(DR_T_w_bi_rollback).pose), DRNoise));
+                                }
+                                DR_T_w_bi_1_factor = DR_T_w_bi_rollback;
+                                flag_last_dr_exist = true;
+                            }else{
+                                flag_last_dr_exist = false;
+                            }
 
 //                          ADD Lidar factor
 //                          ------Li_1-DRi_1 --------Li-Di--------
@@ -257,15 +261,28 @@ public:
 
 //                          ADD GNSS factor
 //                          ------Gi_1 Li_1-DRi_1 --------Gi-Li-Di--------
+                            static float magic_number = 100.0;
                             if(Odom_Li_temp->GTpose_reliability == true
                             && IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
+
+                                GNSSNoise = gtsam::noiseModel::Diagonal::Variances(
+                                        (gtsam::Vector(6) << LocConfig::GNSS_noise_roll,
+                                                LocConfig::GNSS_noise_pitch,
+                                                LocConfig::GNSS_noise_yaw * magic_number,
+                                                LocConfig::GNSS_noise_x * magic_number,
+                                                LocConfig::GNSS_noise_y * magic_number,
+                                                LocConfig::GNSS_noise_z).finished());
+                                magic_number = magic_number >= 6.0 ? magic_number - 5.0 : 1.0;
+
                                 gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(
-                                lidar_keyFrame_cnt,
-                                gtsam::Pose3(gtsam::Rot3(Odom_Li_temp->GTpose.GetR()) ,
-                                             gtsam::Point3(Odom_Li_temp->GTpose.GetXYZ())),
-                                GNSSNoise));
+                                        lidar_keyFrame_cnt,
+                                        gtsam::Pose3(gtsam::Rot3(Odom_Li_temp->GTpose.GetR()) ,
+                                                     gtsam::Point3(Odom_Li_temp->GTpose.GetXYZ())),
+                                        GNSSNoise));
+
                             }
                             else{
+                                magic_number = 100;
                                 EZLOG(INFO)<<"current gnss is not used! reason are here: "<<Odom_Li_temp->GTpose_reliability;
                                 EZLOG(INFO)<<"IsFileDirExist(flag_gnss): "
                                            <<IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss");
@@ -277,6 +294,7 @@ public:
                         gtSAMgraph.print("Fuse GTSAM Graph:\n");
                         // update iSAM
                         isam->update(gtSAMgraph, initialEstimate);
+                        isam->update();
                         isam->update();
                         gtSAMgraph.resize(0);
                         initialEstimate.clear();
@@ -293,12 +311,17 @@ public:
                         current_lidar_world.pose.pose = current_pose.pose;
                         pubsub->PublishOdometry(topic_current_lidar_pose, current_lidar_world);
 
-                        RollBack(current_lidar_world,
-                                 DR_T_w_bi_rollback,
-                                 DR_T_w_bc_rollback,
-                                 DR_data_deque.back()->timestamp,
-                                 loc_result,
-                                 last_pose_fromRollBack);
+                        if(LocConfig::ifRollBack == 1){
+                            last_pose_fromRollBack = DR_T_w_bc_rollback;
+                        }
+                        else{
+                            RollBack(current_lidar_world,
+                                     DR_T_w_bi_rollback,
+                                     DR_T_w_bc_rollback,
+                                     DR_data_deque.back()->timestamp,
+                                     loc_result,
+                                     last_pose_fromRollBack);
+                        }
 
                         Lidar_T_w_Li_1_factor = Lidar_T_w_Li_factor;
                         lidar_keyFrame_cnt++;
@@ -345,7 +368,7 @@ public:
                         break;
                     }
                 }
-                EZLOG(INFO)<<"Fuse cost in ms: "<<t_fuse.toc();
+                EZLOG(INFO)<<"Fuse pub Frequency : "<<1.0 / t_fuse.toc();
             }
             else{
                 sleep(0.001);

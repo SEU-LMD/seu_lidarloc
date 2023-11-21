@@ -193,6 +193,8 @@ public:
     static double DR_noise_y;
     static double DR_noise_z;
     static int GNSSupdateDR;
+    static int ifRollBack;
+    static int updateFrequencyFrameCnt;
 
 };
 class SerializeConfig{
@@ -354,8 +356,8 @@ std::string MappingConfig::save_map_path = "";
 
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
 // LOAM feature threshold
-float MappingConfig::edgeThreshold=-1;
-float MappingConfig::surfThreshold=-1;
+float MappingConfig::edgeThreshold = 0.1;
+float MappingConfig::surfThreshold = 0.1;
 
 int  MappingConfig::edgeFeatureMinValidNum=-1;
 int  MappingConfig::surfFeatureMinValidNum=-1;
@@ -402,7 +404,7 @@ std::string LocConfig::save_map_path = "";
 int  LocConfig::edgeFeatureMinValidNum=-1;
 int  LocConfig::surfFeatureMinValidNum=-1;
 float LocConfig::edgeThreshold = 1.0;
-float LocConfig::surfThreshold = 1.0;
+float LocConfig::surfThreshold = 0.1;
 float LocConfig::odometrySurfRadiusSize_US = 0.6;
 float LocConfig::mappingCornerRadiusSize_US = 0.4;
 float LocConfig::mappingSurfRadiusSize_US = 0.6;
@@ -431,6 +433,8 @@ double LocConfig::DR_noise_roll = 1e-2;
 double LocConfig::DR_noise_pitch = 1e-2;
 double LocConfig::DR_noise_yaw = 1e-2;
 int LocConfig::GNSSupdateDR = 1;
+int LocConfig::ifRollBack = 1;
+int LocConfig::updateFrequencyFrameCnt = 1;
 
 // offline mapping
 std::string SerializeConfig::map_in_path = "";
@@ -755,6 +759,8 @@ void Load_Loc_YAML(std::string locPath){
     LocConfig::DR_noise_pitch = LocConfig["DR_noise_pitch"].as<double>();
     LocConfig::DR_noise_yaw = LocConfig["DR_noise_yaw"].as<double>();
     LocConfig::GNSSupdateDR = LocConfig["GNSSupdateDR"].as<int>();
+    LocConfig::ifRollBack = LocConfig["ifRollBack"].as<int>();
+    LocConfig::updateFrequencyFrameCnt = LocConfig["updateFrequencyFrameCnt"].as<int>();
 
     std::cout<<"LocConfig::mappingProcessInterval"<<LocConfig::mappingProcessInterval<<std::endl;
     std::cout<<"LocConfig::odometrySurfRadiusSize_US: "<<LocConfig::odometrySurfRadiusSize_US<<std::endl;
@@ -764,6 +770,7 @@ void Load_Loc_YAML(std::string locPath){
     std::cout<<"LocConfig::surroundingkeyframeAddingAngleThreshold: "<<LocConfig::surroundingkeyframeAddingAngleThreshold<<std::endl;
     std::cout<<"LocConfig::surroundingkeyframeAddingDistThreshold: "<<LocConfig::surroundingkeyframeAddingDistThreshold<<std::endl;
     std::cout<<"LocConfig::maxIters: "<<LocConfig::maxIters<<std::endl;
+    std::cout<<"LocConfig::surfThreshold: "<<LocConfig::surfThreshold<<std::endl;
     std::cout<<"LocConfig::DR_noise_roll: "<<LocConfig::DR_noise_roll<<std::endl;
     std::cout<<"LocConfig::DR_noise_pitch: "<<LocConfig::DR_noise_pitch<<std::endl;
     std::cout<<"LocConfig::DR_noise_yaw: "<<LocConfig::DR_noise_yaw<<std::endl;
@@ -783,6 +790,8 @@ void Load_Loc_YAML(std::string locPath){
     std::cout<<"LocConfig::GNSS_noise_y: "<<LocConfig::GNSS_noise_y<<std::endl;
     std::cout<<"LocConfig::GNSS_noise_z: "<<LocConfig::GNSS_noise_z<<std::endl;
     std::cout<<"LocConfig::GNSSupdateDR: "<<LocConfig::GNSSupdateDR<<std::endl;
+    std::cout<<"LocConfig::updateFrequencyFrameCnt: "<<LocConfig::updateFrequencyFrameCnt<<std::endl;
+    std::cout<<"LocConfig::ifRollBack: "<<LocConfig::ifRollBack<<std::endl;
 
 
     std::cout<<"Loc yaml success load"<<std::endl;

@@ -5,9 +5,9 @@ slam_mode_on: 1
 
 # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!
-save_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/park_loop1_out/"
+save_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/road_loop_out/"
 # 1 use DR , 0 use fuse
-use_DR_or_fuse_in_loc: 1
+use_DR_or_fuse_in_loc: 0
 
 # LOAM feature threshold
 edgeFeatureMinValidNum: 10
@@ -20,7 +20,7 @@ mappingCornerRadiusSize_US: 0.1                    # default: 0.2 - outdoor, 0.1
 mappingSurfRadiusSize_US: 0.2                      # default: 0.4 - outdoor, 0.2 - indoor
 
 # robot motion constraint (in case you are using a 2D robot)
-z_tollerance: 2                            # meters
+z_tollerance: 5                            # meters
 rotation_tollerance: 5                     # radians
 
 # CPU Params
@@ -31,25 +31,49 @@ surroundingkeyframeAddingDistThreshold: 1.0  # meters, regulate keyframe adding 
 surroundingkeyframeAddingAngleThreshold: 1.0  # radians, regulate keyframe adding threshold
 
 #LM opt
-maxIters: 10
+maxIters: 30
 
-#GTSAMNoise
-GNSS_noise_roll: 1e-2
-GNSS_noise_pitch: 1e-2
-GNSS_noise_yaw: 1e-2
-GNSS_noise_x: 1e-6
-GNSS_noise_y: 1e-6
-GNSS_noise_z: 1e-6
-LidarOdom_noise_roll: 1e-2
-LidarOdom_noise_pitch: 1e-2
-LidarOdom_noise_yaw: 1e-2
-LidarOdom_noise_x: 1e-2
-LidarOdom_noise_y: 1e-2
-LidarOdom_noise_z: 1e-2
+#tunnel
+#GNSS_noise_roll: 1e-2
+#GNSS_noise_pitch: 1e-2
+#GNSS_noise_yaw: 2e-2
+#GNSS_noise_x: 2e-2
+#GNSS_noise_y: 2e-2
+#GNSS_noise_z: 2e-2
+#LidarOdom_noise_roll: 1e-2
+#LidarOdom_noise_pitch: 1e-2
+#LidarOdom_noise_yaw: 2e-2
+#LidarOdom_noise_x: 1e-3
+#LidarOdom_noise_y: 1e-3
+#LidarOdom_noise_z: 1e-3
+#DR_noise_roll: 1e-2
+#DR_noise_pitch: 1e-2
+#DR_noise_yaw: 1e-3
+#DR_noise_x: 2e-2
+#DR_noise_y: 2e-2
+#DR_noise_z: 1e-3
+
+GNSSupdateDR: 0
+GNSSBetweenOrPrior: 1
+ifRollBack: 0
+updateFrequencyFrameCnt: 100
+
+# road_loop
+GNSS_noise_roll: 1
+GNSS_noise_pitch: 1
+GNSS_noise_yaw: 1
+GNSS_noise_x: 3e-1
+GNSS_noise_y: 3e-1
+GNSS_noise_z: 100
+LidarOdom_noise_roll: 1e-1
+LidarOdom_noise_pitch: 1e-1
+LidarOdom_noise_yaw: 1.0
+LidarOdom_noise_x: 2e-2
+LidarOdom_noise_y: 2e-2
+LidarOdom_noise_z: 1e-1
 DR_noise_roll: 1e-1
 DR_noise_pitch: 1e-1
 DR_noise_yaw: 1e-1
-DR_noise_x: 1e-4
-DR_noise_y: 1e-4
-DR_noise_z: 1e-4
-GNSSupdateDR: 1
+DR_noise_x: 0.1
+DR_noise_y: 0.1
+DR_noise_z: 1e-1

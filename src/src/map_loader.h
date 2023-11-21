@@ -68,8 +68,8 @@ public:
     std::vector<std::string>   pcd_feature;
 //有多少个小grid就有多少个指针
 // TODO 为何？112？
-    pcl::PointCloud<PointType>::Ptr laser_cloud_corner_array[1000];
-    pcl::PointCloud<PointType>::Ptr laser_cloud_surf_array[1000];
+    pcl::PointCloud<PointType>::Ptr laser_cloud_corner_array[10000];
+    pcl::PointCloud<PointType>::Ptr laser_cloud_surf_array[10000];
 //需要建图的索引 3*3  jianshu
     int laser_cloud_valid_ind[9];
 //需要加载的地图的索引  5*5 jiazai
