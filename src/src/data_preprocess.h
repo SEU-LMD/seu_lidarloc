@@ -395,7 +395,7 @@ public:
                     continue;
                 }
             }
-            {
+
 
             ///0.do something
             double drqueue_min_ros_time ;
@@ -468,86 +468,89 @@ public:
             }
 
             //TODO 1118, add else to test
-            if(drqueue_max_ros_time >= cloud_max_ros_timestamp){
-                TicToc time_dataprep;
-                TicToc time_dataprep_1;
-                isGetCurrentCloud = false;
-                isGetCorrespondingGNSS = false;
+            if(drqueue_max_ros_time < cloud_max_ros_timestamp){
+                continue;
+            }
 
-                std::deque<OdometryType> drqueue_copy;
-                drodom_mutex.lock();
-                drqueue_copy = DrOdomQueue;
-                drodom_mutex.unlock();
+            TicToc time_dataprep;
+            TicToc time_dataprep_1;
+            isGetCurrentCloud = false;
+            isGetCorrespondingGNSS = false;
 
-                cloudinfo.frame_id = frame_id++;
-                cloudinfo.timestamp = cur_scan->timestamp;
-              //  EZLOG(INFO)<<"time_dataprep_1.toc() = "<<time_dataprep_1.toc()<<endl;
+            std::deque<OdometryType> drqueue_copy;
+            drodom_mutex.lock();
+            drqueue_copy = DrOdomQueue;
+            drodom_mutex.unlock();
 
-                if(cloudinfo.pose_reliable == false || frame_id % 100 == 0){
-                    EZLOG(INFO)<<"find gnss pose num = "<<GNSS_frames<<" / "<<frame_id<<" = "<<(float)GNSS_frames/(float)frame_id;
-                }
-                ++GNSS_frames;
+            cloudinfo.frame_id = frame_id++;
+            cloudinfo.timestamp = cur_scan->timestamp;
+          //  EZLOG(INFO)<<"time_dataprep_1.toc() = "<<time_dataprep_1.toc()<<endl;
 
-                /// 1.FindLidarFirstPose
-                PoseT T_w_l_lidar_first_pose;
-                double cost_time_findpose = FindLidarPoseinDROdom(cur_cloud_time, drqueue_copy,//in
-                                                                  T_w_l_lidar_first_pose);//out
-               // EZLOG(INFO) << "cost_time_findpose(ms) = " << cost_time_findpose << std::endl;
+            if(cloudinfo.pose_reliable == false || frame_id % 100 == 0){
+                EZLOG(INFO)<<"find gnss pose num = "<<GNSS_frames<<" / "<<frame_id<<" = "<<(float)GNSS_frames/(float)frame_id;
+            }
+            ++GNSS_frames;
 
-                cloudinfo.DRPose = T_w_l_lidar_first_pose;
-                Eigen::Vector3d t_w_cur;
-                Eigen::Quaterniond q_w_cur;
-                Eigen::Matrix3d q_w_cur_matrix;//TODO remove?
-                t_w_cur = T_w_l_lidar_first_pose.GetXYZ();
-                q_w_cur = T_w_l_lidar_first_pose.GetQ();
-                q_w_cur.normalize();
+            /// 1.FindLidarFirstPose
+            PoseT T_w_l_lidar_first_pose;
+            double cost_time_findpose = FindLidarPoseinDROdom(cur_cloud_time, drqueue_copy,//in
+                                                              T_w_l_lidar_first_pose);//out
+           // EZLOG(INFO) << "cost_time_findpose(ms) = " << cost_time_findpose << std::endl;
 
-                ///2.imgprojection
-                ///update rangemat and deskewCloud_body
-                double cost_time_projpc = ProjectPointCloud(cur_cloud_time, drqueue_copy, T_w_l_lidar_first_pose);
-                 // EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
+            cloudinfo.DRPose = T_w_l_lidar_first_pose;
+            Eigen::Vector3d t_w_cur;
+            Eigen::Quaterniond q_w_cur;
+            Eigen::Matrix3d q_w_cur_matrix;//TODO remove?
+            t_w_cur = T_w_l_lidar_first_pose.GetXYZ();
+            q_w_cur = T_w_l_lidar_first_pose.GetQ();
+            q_w_cur.normalize();
 
-                ///3.cloudExtraction
-                double cost_time_cloudextraction = CloudExtraction(cloudinfo);
-                //  EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
+            ///2.imgprojection
+            ///update rangemat and deskewCloud_body
+            double cost_time_projpc = ProjectPointCloud(cur_cloud_time, drqueue_copy, T_w_l_lidar_first_pose);
+             // EZLOG(INFO) << "cost_time_projpc(ms) = " << cost_time_projpc << std::endl;
 
-                //        //for debug use
-                if(FrontEndConfig::if_debug)
-                {
-                    CloudTypeXYZICOLRANGE cloud_pub;
-                    cloud_pub.timestamp = cloudinfo.timestamp;
-                    cloud_pub.frame = "map";
-                    pcl::transformPointCloud(*cloudinfo.cloud_ptr, cloud_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
-                    pubsub->PublishCloud(topic_deskw_cloud_to_ft_world, cloud_pub);
-                }
+            ///3.cloudExtraction
+            double cost_time_cloudextraction = CloudExtraction(cloudinfo);
+            //  EZLOG(INFO)<<"cost_time_cloudextraction(ms) = "<<cost_time_cloudextraction<<std::endl;
 
-                TicToc time_dataprep_2;
-                ///4. send data to feature extraction node
-                Function_AddCloudInfoToFeatureExtraction(cloudinfo);
-               // EZLOG(INFO)<<"time_dataprep_2 = "<<time_dataprep_2.toc()<<endl;
-               // EZLOG(INFO)<<"CloudInfo size:"<<cloudinfo.cloud_ptr -> points.size()
-               // <<" "<< cloudinfo.cloud_ground_down -> points.size()
-               // <<" "<< cloudinfo.cloud_ground -> points.size()
-               // <<" "<< cloudinfo.cloud_unground -> points.size()<<endl;
+            //        //for debug use
+            if(FrontEndConfig::if_debug)
+            {
+                CloudTypeXYZICOLRANGE cloud_pub;
+                cloud_pub.timestamp = cloudinfo.timestamp;
+                cloud_pub.frame = "map";
+                pcl::transformPointCloud(*cloudinfo.cloud_ptr, cloud_pub.cloud, T_w_l_lidar_first_pose.pose.cast<float>());
+                pubsub->PublishCloud(topic_deskw_cloud_to_ft_world, cloud_pub);
+            }
+
+            TicToc time_dataprep_2;
+            ///4. send data to feature extraction node
+            Function_AddCloudInfoToFeatureExtraction(cloudinfo);
+           // EZLOG(INFO)<<"time_dataprep_2 = "<<time_dataprep_2.toc()<<endl;
+           // EZLOG(INFO)<<"CloudInfo size:"<<cloudinfo.cloud_ptr -> points.size()
+           // <<" "<< cloudinfo.cloud_ground_down -> points.size()
+           // <<" "<< cloudinfo.cloud_ground -> points.size()
+           // <<" "<< cloudinfo.cloud_unground -> points.size()<<endl;
 
 //                    EZLOG(INFO)<<"cloudinfo.frame_id"<< cloudinfo.frame_id<<endl;
 //                    EZLOG(INFO)
 //                            << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
 //                            << cloudinfo.cloud_ptr->points.size();
-                ///5.pop used odom
-                TicToc time_dataprep_3;
-                const double thresh = cloud_max_ros_timestamp - 0.05f;
-                drodom_mutex.lock();
-                while(DrOdomQueue.front().timestamp < thresh){
-                    DrOdomQueue.pop_front();
-                }
-                drodom_mutex.unlock();
-                //EZLOG(INFO)<<"time_dataprep_3 = "<<time_dataprep_3.toc()<<endl;
+            ///5.pop used odom
+            TicToc time_dataprep_3;
+            const double thresh = cloud_max_ros_timestamp - 0.05f;
+            drodom_mutex.lock();
+            while(DrOdomQueue.front().timestamp < thresh){
+                DrOdomQueue.pop_front();
+            }
+            drodom_mutex.unlock();
+            //EZLOG(INFO)<<"time_dataprep_3 = "<<time_dataprep_3.toc()<<endl;
 
-               // EZLOG(INFO)<<"time_dataprep = "<<time_dataprep.toc()<<endl;
+           // EZLOG(INFO)<<"time_dataprep = "<<time_dataprep.toc()<<endl;
 
-                ResetParameters();
-            }//end function if
+            ResetParameters();
+            //end function if
             //TODO 1118
 
         }//end function while(1)
@@ -585,54 +588,12 @@ public:
 //        EZLOG(INFO)<<setprecision(14)<<data.timestamp<<" data.gps_status: "<<data.gps_status;
         if(data.lla[0]<0 || data.lla[1]<0 || data.lla[2]<0){
             //EZLOG(INFO)<<"Bad GNSS in DataPre,drop!";
-            return;
+            return false;
         }
         if(data.gps_status != 42){
-            return;
-        }
             EZLOG(INFO)<<"Bad GNSS value in DataPre,drop!: "<<data.lla.transpose() ;
             return false;
         }
-//        if(data.gps_status != 42){
-//            EZLOG(INFO)<<"Bad GNSS status DataPre,drop!: "<<data.gps_status;
-//
-//            { // for debug use
-//                double t_enu[3];
-//                geoConverter.Forward(data.lla[0], data.lla[1], data.lla[2],
-//                                     t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
-//
-//                Eigen::Matrix3d z_matrix;//calculate Quaternion
-//                Eigen::Matrix3d x_matrix;
-//                Eigen::Matrix3d y_matrix;
-//                double heading_Z = -data.yaw * 0.017453293;
-//                double pitch_Y = data.pitch * 0.017453293;
-//                double roll_X = data.roll * 0.017453293;
-//                z_matrix << cos(heading_Z), -sin(heading_Z), 0,
-//                        sin(heading_Z), cos(heading_Z),  0,
-//                        0,                 0,            1;
-//
-//                x_matrix << 1,                 0,              0,
-//                        0,            cos(pitch_Y),     -sin(pitch_Y),
-//                        0,            sin(pitch_Y),    cos(pitch_Y);
-//
-//                y_matrix << cos(roll_X) ,     0,        sin(roll_X),
-//                        0,                 1,               0 ,
-//                        -sin(roll_X),      0,         cos(roll_X);
-//
-//                Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb zxy右前上，zyx前左上
-//                Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
-//                Eigen::Quaterniond q_w_b(R_w_b);//获得局部坐标系的四元数
-//                PoseT T_w_b(t_w_b, R_w_b);
-//                PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
-//                OdometryType T_w_l_pub;
-//                T_w_l_pub.frame = "map";
-//                T_w_l_pub.timestamp = data.timestamp;
-//                T_w_l_pub.pose = T_w_l;
-//                pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
-//            } // for debug use
-//
-//            return false;
-//        }
         return true;
     }
     //
