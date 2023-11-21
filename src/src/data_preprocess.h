@@ -445,6 +445,7 @@ public:
                             if(abs(GNSSQueue[i].timestamp - cur_scan->timestamp) < FrontEndConfig::gnss_align_threshold){
                                 cloudinfo.pose = GNSSQueue[i].pose;
                                 cloudinfo.pose_reliable = true;
+                                cloudinfo.pose_reliable = GNSSQueue[i].GTpose_reliability;
                                 cloudinfo.cov = GNSSQueue[i].cov;
                                 isGetCorrespondingGNSS = true;
                                 break;
