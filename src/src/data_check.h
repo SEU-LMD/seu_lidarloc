@@ -1,7 +1,11 @@
 
 #ifndef SEU_LIDARLOC_DATA_CHECK_MANAGER_H
 #define SEU_LIDARLOC_DATA_CHECK_MANAGER_H
+
 #include <mutex>
+
+#include "GeoGraphicLibInclude/LocalCartesian.hpp"
+
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
 #include "utils/timer.h"
@@ -9,7 +13,6 @@
 #include "opt_loc.h"
 #include "data_preprocess.h"
 #include "utils/MapSaver.h"
-#include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "config/abs_current_path.h"
 
 

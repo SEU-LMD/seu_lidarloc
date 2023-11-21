@@ -4,10 +4,7 @@
 
 #ifndef SEU_LIDARLOC_OPT_LOPC_H
 #define SEU_LIDARLOC_OPT_LOPC_H
-
-#include "pubsub/pubusb.h"
-#include "pubsub/data_types.h"
-
+//3rdParty
 #include "pcl/common/common.h"
 #include "pcl/common/transforms.h"
 #include "pcl/filters/crop_box.h"
@@ -21,10 +18,8 @@
 #include "pcl/range_image/range_image.h"
 #include "pcl/registration/icp.h"
 #include "pcl/conversions.h"
-
 #include "opencv2/opencv.hpp"
 #include "opencv2/imgproc.hpp"
-
 #include "gtsam/geometry/Pose3.h"
 #include "gtsam/geometry/Rot3.h"
 #include "gtsam/inference/Symbol.h"
@@ -40,14 +35,13 @@
 #include "gtsam/slam/BetweenFactor.h"
 #include "gtsam/slam/PriorFactor.h"
 #include "gtsam/slam/dataset.h"  // gtsam
-
-
 #include "GeoGraphicLibInclude/Geocentric.hpp"
 #include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #include "GeoGraphicLibInclude/Geoid.hpp"
-
-
+//homeMade
 #include "map_loader.h"
+#include "pubsub/pubusb.h"
+#include "pubsub/data_types.h"
 
 
 class LOCMapping{
@@ -101,6 +95,7 @@ public:
     Eigen::Affine3f T_wl;
 
     Eigen::Matrix4d T_wb_pub;
+    PoseT T_wb_last;
 
     float current_T_m_l[6]; // roll pitch yaw x y z
     double timeLaserInfoCur;
@@ -109,7 +104,6 @@ public:
     cv::Mat matP;
 
     int lidarScan_cnt = 0;
-
 
     void AddCloudData(const CloudFeature& cloud_ft){
         if(lidarScan_cnt > SensorConfig::lidarScanDownSample){
@@ -174,7 +168,7 @@ public:
         matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
         downSizeFilterCorner_US.setRadiusSearch(LocConfig::mappingCornerRadiusSize_US);
         downSizeFilterSurf_US.setRadiusSearch(LocConfig::mappingSurfRadiusSize_US);
-        EZLOG(INFO)<<"opt Loc init success!"<<std::endl;
+        EZLOG(INFO)<<"opt Loc init success!";
     }
 
     void pub_CornerAndSurfFromMap(pcl::PointCloud<PointType>::Ptr &_corner_map, pcl::PointCloud<PointType>::Ptr &_surf_map)
@@ -237,7 +231,8 @@ public:
                                       transformIn[1], transformIn[2]);
     }
 
-    void updateInitialGuess(CloudFeature &cur_ft,PointType &_init_point) {
+    void updateInitialGuess(CloudFeature &cur_ft,
+                            PointType &_init_point) {
 
         Eigen::Vector3d t_w_cur;
         Eigen::Quaterniond q_w_cur;
@@ -249,6 +244,8 @@ public:
         q_w_cur = cur_ft.DRPose.GetR();
         q_w_cur.normalize();
         q_w_cur_matrix = q_w_cur.toRotationMatrix();
+
+//        PoseT T_wb_current(t_w_cur,q_w_cur_matrix);
         T_wb_pub.block<3,3>(0, 0) = q_w_cur_matrix;
         T_wb_pub.block<3,1>(0, 3) = t_w_cur;
 
@@ -262,23 +259,36 @@ public:
             q_w_cur_yaw = atan2(-q_w_cur_matrix(0, 1), q_w_cur_matrix(1, 1)); // 计算yaw
         }
 
-        // initialization the  frame
+        static Eigen::Affine3f _T_wb_last;
+        Eigen::Affine3f T_wb_current = pcl::getTransformation(
+                t_w_cur[0], t_w_cur[1], t_w_cur[2],  q_w_cur_roll,  q_w_cur_pitch,
+                q_w_cur_yaw);
 
-        //TODO GNSS init
-        current_T_m_l[0] = q_w_cur_roll;
-        current_T_m_l[1] = q_w_cur_pitch;
-        current_T_m_l[2] = q_w_cur_yaw;
-        current_T_m_l[3] = t_w_cur[0];
-        current_T_m_l[4] = t_w_cur[1];
-        current_T_m_l[5] = t_w_cur[2];
+        if(Keyframe_Poses3D->size() == 0){
+            current_T_m_l[0] = q_w_cur_roll;
+            current_T_m_l[1] = q_w_cur_pitch;
+            current_T_m_l[2] = q_w_cur_yaw;
+            current_T_m_l[3] = t_w_cur[0];
+            current_T_m_l[4] = t_w_cur[1];
+            current_T_m_l[5] = t_w_cur[2];
+            _T_wb_last = T_wb_current;
+        }
+        else{
+            Eigen::Affine3f T_wb_between = _T_wb_last.inverse() * T_wb_current;
+            Eigen::Affine3f T_w_li_1 = trans2Affine3f(current_T_m_l);
+            Eigen::Affine3f T_w_li = T_w_li_1 * T_wb_between;
+            pcl::getTranslationAndEulerAngles(
+                    T_w_li, current_T_m_l[3], current_T_m_l[4],
+                    current_T_m_l[5], current_T_m_l[0],
+                    current_T_m_l[1], current_T_m_l[2]);
+            _T_wb_last = T_wb_current;
+        }
 
         current_frame = WORLD;
         _init_point.x = t_w_cur.x();
         _init_point.y = t_w_cur.y();
         _init_point.z = t_w_cur.z();
         _init_point.intensity = cur_ft.frame_id;
-
-
     }//end funtion updateInitialGuess
 
 /**
@@ -340,7 +350,7 @@ public:
         CloudTypeXYZI currentlidar_surf_pub;
         currentlidar_surf_pub.frame = "map";
         currentlidar_surf_pub.timestamp = timeLaserInfoCur;
-        pcl::transformPointCloud(*_current_corner_ds, currentlidar_surf_pub.cloud, (T_wb_pub).cast<float>());
+        pcl::transformPointCloud(*_current_surf_ds, currentlidar_surf_pub.cloud, (T_wb_pub).cast<float>());
         pubsub->PublishCloud(topic_current_lidarPcl, currentlidar_surf_pub);
 
 
@@ -813,6 +823,8 @@ public:
                               pcl::PointCloud<PointType>::Ptr &_localMap_corner_ds,
                               pcl::PointCloud<PointType>::Ptr &_localMap_surf_ds) {
         if (Keyframe_Poses3D->points.empty()) { return; }
+        static int lidarframeCnt = 0;
+        static int lidarOptSuccessCnt = 0;
         const int maxIters = LocConfig::maxIters;
         if (_current_corner_ds->size() > LocConfig::edgeFeatureMinValidNum &&
             _current_surf_ds->size() > LocConfig::surfFeatureMinValidNum) {
@@ -829,20 +841,22 @@ public:
 
                 combineOptimizationCoeffs(_current_corner_ds->size(),_current_surf_ds->size());
 
-                if(iterCount == SensorConfig::LMOpt_Cnt){
+                if(iterCount == LocConfig::maxIters-1 ){
                     EZLOG(INFO)<<"LMOptimization FAILED!!"<<endl;
                     break;
                 }
 
                 if (LMOptimization(iterCount) == true) {
-                    EZLOG(INFO)<<"LMOptimization Success!!"<<endl;
-                    EZLOG(INFO)<<"iterCount: " << iterCount<<std::endl;
-                    EZLOG(INFO)<< "optimize_time in ms: "<<optimize_time.toc() <<std::endl;
+                    lidarOptSuccessCnt++;
+                    EZLOG(INFO)<<"LMOptimization Success!!: "
+                               << " iterCount: "<<iterCount
+                               <<" optimize_time in ms:"<<optimize_time.toc();
                     break;
                 }
-
             }
-
+            lidarframeCnt++;
+            EZLOG(INFO)<<"Lidar Loc OPT successful ratio is: "<<(1.0 * lidarOptSuccessCnt / lidarframeCnt)*100.0
+                       <<" %";
             transformUpdate();
         } else {
             EZLOG(INFO) <<"Not enough features! : ";
@@ -964,6 +978,7 @@ public:
                 timeLastProcessing = timeLaserInfoCur;
                 EZLOG(INFO) <<"Recive current_surf size: "<<current_surf->size()
                             <<" current_corner size: "<<current_corner->size();
+
                 //1. init pose
                 updateInitialGuess(cur_ft,init_point);
 

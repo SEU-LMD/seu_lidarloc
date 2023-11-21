@@ -2,21 +2,22 @@
 // Use the Velodyne point format as a common representation
 #ifndef SEU_LIDARLOC_IMUPREINTEGRATION_H
 #define SEU_LIDARLOC_IMUPREINTEGRATION_H
+// system
 #include <mutex>
 #include <thread>
 #include <iostream>
-
+// 3rdPatry
+#include "GeoGraphicLibInclude/LocalCartesian.hpp"
+// homeMade
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
 #include "utils/MapSaver.h"
 #include "utils/timer.h"
-
 #include "udp_seralize.h"
 #include "utils/udp_thread.h"
 #include "utils/filesys.h"
 #include "config/abs_current_path.h"
 
-#include "GeoGraphicLibInclude/LocalCartesian.hpp"
 #define average_kmh2Ms 0.1389
 
 //TODO remove
@@ -197,57 +198,54 @@ public:
         if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
             if(gnss_cnt > 500){
                 if(gnss_ins_data.lla[0] > 0 && gnss_ins_data.lla[1] > 0 && gnss_ins_data.lla[2] > 0){
-                    // gnss good
-                    Eigen::Matrix3d z_matrix;
-                    Eigen::Matrix3d x_matrix;
-                    Eigen::Matrix3d y_matrix;
-                    double heading_Z = -gnss_ins_data.yaw * 0.017453293;
-                    double pitch_Y = gnss_ins_data.pitch * 0.017453293;
-                    double roll_X = gnss_ins_data.roll * 0.017453293;
-                    z_matrix << cos(heading_Z), -sin(heading_Z), 0,
-                            sin(heading_Z), cos(heading_Z),  0,
-                            0,                 0,            1;
+                    if(gnss_ins_data.gps_status ==42){
+                        // gnss good
+                        Eigen::Matrix3d z_matrix;
+                        Eigen::Matrix3d x_matrix;
+                        Eigen::Matrix3d y_matrix;
+                        double heading_Z = -gnss_ins_data.yaw * 0.017453293;
+                        double pitch_Y = gnss_ins_data.pitch * 0.017453293;
+                        double roll_X = gnss_ins_data.roll * 0.017453293;
+                        z_matrix << cos(heading_Z), -sin(heading_Z), 0,
+                                sin(heading_Z), cos(heading_Z),  0,
+                                0,                 0,            1;
 
-                    x_matrix << 1,                 0,              0,
-                            0,            cos(pitch_Y),     -sin(pitch_Y),
-                            0,            sin(pitch_Y),    cos(pitch_Y);
+                        x_matrix << 1,                 0,              0,
+                                0,            cos(pitch_Y),     -sin(pitch_Y),
+                                0,            sin(pitch_Y),    cos(pitch_Y);
 
-                    y_matrix << cos(roll_X) ,     0,        sin(roll_X),
-                            0,                 1,               0 ,
-                            -sin(roll_X),      0,         cos(roll_X);
-                    double t_enu[3];
-                    geoConverter.Forward(gnss_ins_data.lla[0], gnss_ins_data.lla[1], gnss_ins_data.lla[2],
-                                         t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
-                    Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb zxy右前上，zyx前左上
-                    Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
+                        y_matrix << cos(roll_X) ,     0,        sin(roll_X),
+                                0,                 1,               0 ,
+                                -sin(roll_X),      0,         cos(roll_X);
+                        double t_enu[3];
+                        geoConverter.Forward(gnss_ins_data.lla[0], gnss_ins_data.lla[1], gnss_ins_data.lla[2],
+                                             t_enu[0], t_enu[1], t_enu[2]);//t_enu = enu coordiate
+                        Eigen::Matrix3d R_w_b =  (z_matrix*x_matrix*y_matrix);   // Pw = Twb * Pb zxy右前上，zyx前左上
+                        Eigen::Vector3d t_w_b(t_enu[0], t_enu[1], t_enu[2]);
 
-                    state.p_wb_ = t_w_b;
-                    state.Rwb_ = R_w_b;
-//                    state.v_w_[1] = gnss_ins_data.velocity; // gnss velocity
-                    state.v_w_[1] = (gnss_ins_data.wheel_speed[0] + gnss_ins_data.wheel_speed[1]) * average_kmh2Ms; // gnss velocity, /2 /3.6
-                    last_state.p_wb_ = state.p_wb_;
-                    last_state.Rwb_ = state.Rwb_;
-                    last_state.v_w_ = state.v_w_;
-                    gnss_cnt = 0;
+                        state.p_wb_ = t_w_b;
+                        state.Rwb_ = R_w_b;
+                        state.v_w_[1] = gnss_ins_data.velocity; // gnss velocity
+//                        state.v_w_[1] = (gnss_ins_data.wheel_speed[2] + gnss_ins_data.wheel_speed[3]) * average_kmh2Ms; // gnss velocity, /2 /3.6
+                        last_state.p_wb_ = state.p_wb_;
+                        last_state.Rwb_ = state.Rwb_;
+                        last_state.v_w_ = state.v_w_;
+                        gnss_cnt = 0;
+                    }
                 }
-
             }
             if(LocConfig::GNSSupdateDR == 1){
                 gnss_cnt++;
             }
         }
-        else{
-            EZLOG(INFO)<<"CONTROL! NO GNSS!"<<ABS_CURRENT_SOURCE_PATH+"/flag_gnss";
-        }
 
-//
         // DR----->>>>>>TO ENU
         IMURawWheelDataPtr imuWheel_raw (new IMURawWheelData);
         imuWheel_raw->imu_angular_v_body = gnss_ins_data.imu_angular_v_body * 0.017453293; //转弧度值
         imuWheel_raw->imu_linear_acc_body = gnss_ins_data.imu_linear_acc_body;
         imuWheel_raw->timestamp = gnss_ins_data.timestamp;
-//        imuWheel_raw->velocity = gnss_ins_data.velocity;
-        imuWheel_raw->velocity = (gnss_ins_data.wheel_speed[0] + gnss_ins_data.wheel_speed[1]) * average_kmh2Ms;
+        imuWheel_raw->velocity = gnss_ins_data.velocity;
+//        imuWheel_raw->velocity = (gnss_ins_data.wheel_speed[0] + gnss_ins_data.wheel_speed[1]) * average_kmh2Ms;
         Wheel_predict(imuWheel_raw);
 
         OdometryType Odometry_imuPredict_pub;

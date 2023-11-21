@@ -4,7 +4,7 @@ project(seu_lidarloc)
 set(CMAKE_BUILD_TYPE "Release")#Release Debug
 set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -pthread")
+set(CMAKE_CXX_FLAGS "-O0 -Wall -g -pthread")
 
 add_definitions(-w)
 
@@ -69,7 +69,7 @@ include_directories(
         ./ThirdParty/easylog-9.89/src/
         ${YAML_CPP_INCLUDE_DIR}
         ${FLANN_DIRS}
-        ./udp_helper.h
+        udp_helper_h
 )
 
 MESSAGE(STATUS "------------${EIGEN3_INCLUDE_DIR}------------------")
