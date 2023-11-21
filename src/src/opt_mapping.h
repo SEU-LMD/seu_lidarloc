@@ -356,13 +356,13 @@ public:
         mtxloop.lock();
         *copy_cloudKeyPoses3D = *cloudKeyPoses3D;
         *copy_cloudKeyPoses2D = *cloudKeyPoses3D;
-        *copy_cloudKeyPoses6D = *cloudKeyPoses6D;
+        *copy_cloudKeyPoses6D = *cloudKeyPoses6D;// with quaternioan
         mtxloop.unlock();
 
         int loopKeyCur;
         int loopKeyPre;
 
-            if (detectLoopClosureDistance(&loopKeyCur, &loopKeyPre) == false) return;
+        if (detectLoopClosureDistance(&loopKeyCur, &loopKeyPre) == false) return;
 
         pcl::PointCloud<PointType>::Ptr cureKeyframeCloud(
                 new pcl::PointCloud<PointType>());
@@ -379,7 +379,7 @@ public:
 
         }
 
-        static pcl::IterativeClosestPoint<PointType, PointType> icp;
+        static pcl::IterativeClosestPoint<PointType, PointType> icp;//TODO 1118
         icp.setMaxCorrespondenceDistance(MappingConfig::historyKeyframeSearchRadius * 2);
         icp.setMaximumIterations(50);
         icp.setTransformationEpsilon(1e-6);
@@ -446,6 +446,7 @@ public:
      //  EZLOG(INFO)<<"get out of loop "<<endl;
     }
 
+    //int& lastID TODO 1118
     bool detectLoopClosureDistance(int *latestID, int *closestID) {
 
         int loopKeyCur = copy_cloudKeyPoses3D->size() - 1;
@@ -455,12 +456,15 @@ public:
         auto it = loopIndexContainer.find(loopKeyCur);
         if (it != loopIndexContainer.end()) return false;
 
+        //TODO 1118 hack logic remove or change strategy!unnecessary!
         if (abs(lastLoopIndex - loopKeyCur) < 5 && lastLoopIndex != -1)
             return false;
+
 
         for (int i = 0; i < copy_cloudKeyPoses2D->size(); ++i) {
             copy_cloudKeyPoses2D->at(i).z = 0;
         }
+
         std::vector<int> pointSearchIndLoop;
         std::vector<float> pointSearchSqDisLoop;
         kdtreeHistoryKeyPoses->setInputCloud(copy_cloudKeyPoses2D);
@@ -468,6 +472,7 @@ public:
                 copy_cloudKeyPoses2D->back(), MappingConfig::historyKeyframeSearchRadius,
                 pointSearchIndLoop, pointSearchSqDisLoop, 0);
 
+        //TODO 1118!
         for (int i = 0; i < (int) pointSearchIndLoop.size(); ++i) {
             int id = pointSearchIndLoop[i];
             if (abs(copy_cloudKeyPoses6D->points[id].time - timeLaserInfoCur) >
@@ -477,8 +482,9 @@ public:
             }
         }
 
-        if (loopKeyPre == -1 || loopKeyCur == loopKeyPre) return false;
+        if (loopKeyPre == -1 || loopKeyCur == loopKeyPre) return false;//TODO 1118 delete
 
+        //TODO 1118 what is the meaning of below if?
         if (keyframeDistances.size() >= loopKeyCur) {
             double distance = 0.0;
             for (int j = loopKeyPre; j < loopKeyCur; ++j) {
@@ -490,7 +496,7 @@ public:
             }
         }
 
-        if (loopKeyPre == -1 || loopKeyCur == loopKeyPre) return false;
+        if (loopKeyPre == -1 || loopKeyCur == loopKeyPre) return false;//TODO delete backwards
         *latestID = loopKeyCur;
         *closestID = loopKeyPre;
         return true;
@@ -500,7 +506,7 @@ public:
     void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes,
                                const int &key, const int &searchNum) {
 
-        nearKeyframes->clear();
+        nearKeyframes->clear();//TODO delete
         int cloudSize = copy_cloudKeyPoses6D->size();
 
         for (int i = -searchNum; i <= searchNum; ++i) {
@@ -548,7 +554,7 @@ public:
         noise_yaw = cur_ft.cov(5,0);
         EZLOG(INFO)<<"noise_roll"<<noise_roll<<"noise_pitch"<<noise_pitch<<"noise_yaw"<<noise_yaw;
 
-         IsRealiableGnss = cur_ft.pose_reliable;
+        IsRealiableGnss = cur_ft.pose_reliable;
 //
 //         if(IsRealiableGnss == true){
 //             EZLOG(INFO)<<"IsRealiableGnss is good!!"<<endl;
@@ -557,6 +563,7 @@ public:
 //         }
 
     }
+
     void updateInitialGuess(CloudFeature& cur_ft) {
 
         incrementalOdometryAffineFront = trans2Affine3f(current_T_m_l);
@@ -583,6 +590,7 @@ public:
                 }
 
             } else {
+                //TODO delte 1118
                 //DR give lidar first pose
                 current_T_m_l[3] =  t_lidar_cur[0];
                 current_T_m_l[4] =  t_lidar_cur[1];
@@ -694,8 +702,9 @@ public:
             surroundingKeyPoses->push_back(cloudKeyPoses3D->points[id]);
         }
 
+        //TODO 1118 remove
         downSizeFilterSurroundingKeyPoses.setInputCloud(surroundingKeyPoses);
-        downSizeFilterSurroundingKeyPoses.filter(*surroundingKeyPosesDS);
+        downSizeFilterSurroundingKeyPoses.filter(*surroundingKeyPosesDS);//TODO 1118 ?
 
 
         for (auto &pt: surroundingKeyPosesDS->points) {
@@ -722,6 +731,7 @@ public:
 
     }
 
+    //
     void updatePointAssociateToMap() {
         transPointAssociateToMap = trans2Affine3f(current_T_m_l);
     }
@@ -1146,6 +1156,7 @@ public:
 
     }
 
+    //TODO 1118???
     float constraintTransformation(float value, float limit) {
         if (value < -limit) value = -limit;
         if (value > limit) value = limit;
@@ -1168,6 +1179,7 @@ public:
         float x, y, z, roll, pitch, yaw;
         pcl::getTranslationAndEulerAngles(transBetween, x, y, z, roll, pitch, yaw);
 
+        //TODO 1118 judge yaw only!
         if (abs(roll) < MappingConfig::surroundingkeyframeAddingAngleThreshold &&
             abs(pitch) < MappingConfig::surroundingkeyframeAddingAngleThreshold &&
             abs(yaw) < MappingConfig::surroundingkeyframeAddingAngleThreshold &&
@@ -1210,7 +1222,7 @@ public:
                         poseFrom.between(poseTo), odometryNoise));
 
                 initialEstimate.insert(cloudKeyPoses3D->size(), poseTo);
-            isAddOdomKeyFrame = true;
+                 isAddOdomKeyFrame = true;//ODO 1118
             }
 
         }
@@ -1235,6 +1247,7 @@ public:
 //            return;
 //        }
         //static PointType lastGPSPoint;
+        //TODO 1118
         while (1) {
 
             {
@@ -1320,6 +1333,8 @@ public:
         // odom factor
         addOdomFactor();
 
+
+        //useGPS TODO 1118
         if (SensorConfig::useGPS) {
             addGPSFactor();
         }
@@ -1484,7 +1499,7 @@ public:
                   //  timeLastProcessing = timeLaserInfoCur;
 
                     TicToc t0;
-                    dataprecess(cur_ft);
+                    dataprecess(cur_ft);//TODO 1118 dataprocess
                     EZLOG(INFO)<<" dataprecess COST TIME"<<t0.toc()<<endl;
                     TicToc t6;
                     updateInitialGuess(cur_ft);//TODO
@@ -1509,7 +1524,7 @@ public:
 //
                             timer_mutex.lock();
                             timer_cloud.tic();
-                            timer_start = true;
+                            timer_start = true;//TODO 1118 remove
                             timer_mutex.unlock();
 
                         }

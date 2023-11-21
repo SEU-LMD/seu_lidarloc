@@ -163,7 +163,7 @@ public:
         fu_str = odom_out.ToString();
         udp_thread -> SendUdpMSg(fu_str);
     }
-
+    //bool TODO 1118
     bool DRAlignWithLidarAndClear(std::deque<std::shared_ptr<DROdometryType>> &_DR_data_deque,
                                   const double &current_lidar_time,
                                   PoseT &current_DR_pose,
