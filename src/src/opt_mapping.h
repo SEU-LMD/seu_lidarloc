@@ -139,6 +139,8 @@ public:
     int LMfail = 0;
     int OptCornerNum;
     int OptSurfNum;
+    int loopKeyCur;
+    int loopKeyPre;
 
     float current_T_m_l[6]; // roll pitch yaw x y z
     float current_gnss_pose[6];
@@ -361,6 +363,7 @@ public:
         if (MappingConfig::loopClosureEnableFlag == false) return;
 
         while (1) {
+
             performLoopClosure();
             sleep(1);
         }
@@ -376,8 +379,8 @@ public:
         *copy_cloudKeyPoses6D = *cloudKeyPoses6D;// with quaternioan
         mtx.unlock();
 
-        int loopKeyCur;
-        int loopKeyPre;
+//        int loopKeyCur;
+//        int loopKeyPre;
 
         if (detectLoopClosureDistance(loopKeyCur, loopKeyPre) == false) return;
         EZLOG(INFO)<< "Start loop opt" << std::endl;
@@ -460,7 +463,7 @@ public:
         // add loop constriant
         loopIndexContainer[loopKeyCur] = loopKeyPre;
         lastLoopIndex = loopKeyCur;
-     //  EZLOG(INFO)<<"get out of loop "<<endl;
+
     }
 
     //int& lastID TODO 1118
@@ -558,6 +561,135 @@ public:
         *nearKeyframes = *cloud_temp;
 
     }
+
+        void GetloopOptimization(){
+        //1.得到触发回环后当前帧矫正之后的结果；
+        //2.当前帧的最邻近的地图
+        if (cloudKeyPoses3D->points.empty())//TODO remove copy
+            return;
+
+        if(loopKeyPre == -1)
+            return;
+
+        EZLOG(INFO)<<" loop happen!"<<endl;
+
+        if(surfCloudKeyFrames[loopKeyCur]->size() ==0)
+            return;
+
+        std::vector<int> pointSearchInd;
+        std::vector<float> pointSearchSqDis;
+        pcl::KdTreeFLANN<PointType>::Ptr LoopkdtreeKeyFrame(new pcl::KdTreeFLANN<PointType>());
+        pcl::KdTreeFLANN<PointType>::Ptr LoopkdtreeSurfFromMap(new pcl::KdTreeFLANN<PointType>());
+        pcl::PointCloud<PointType>::Ptr LoopsurroundingKeyFrames(new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointType>::Ptr LoopsurroundingMap(new pcl::PointCloud<PointType>());
+        vector <pcl::PointCloud<PointType>::Ptr> surfCloudKeyFramesContainer;
+
+        LoopkdtreeKeyFrame->setInputCloud(
+                cloudKeyPoses3D);//TODO remove copy
+//TODO remove copy
+        LoopkdtreeKeyFrame->radiusSearch(cloudKeyPoses3D->points[loopKeyCur], (double) MappingConfig::surroundingKeyframeSearchRadius,
+                pointSearchInd, pointSearchSqDis);
+
+//        for (int i = 0; i < (int) pointSearchInd.size(); ++i) {
+//                int id = pointSearchInd[i];
+//            LoopsurroundingKeyFrames->push_back(copy_cloudKeyPoses3D->points[id]);
+//        }
+        //3.提取关键帧的点云构建局部地图;
+            //extractCloud(surroundingKeyFrames);
+        LoopsurroundingMap->clear();
+        for (int i = 1; i < pointSearchInd.size(); ++i){
+            int id = pointSearchInd[i];
+            int thisKeyInd = (int)cloudKeyPoses3D->points[id].intensity;//TODO remove copy
+                pcl::PointCloud <PointType> laserCloudSurfTemp =
+                        *transformPointCloud(surfCloudKeyFrames[thisKeyInd],
+                                             &cloudKeyPoses6D->points[thisKeyInd]);
+                *LoopsurroundingMap += laserCloudSurfTemp;
+
+        }
+
+            LoopkdtreeSurfFromMap->setInputCloud(LoopsurroundingMap);
+        //3.构建点面残差
+            float current_loop_pose[6];
+            current_loop_pose[0] = cloudKeyPoses6D->points.at(loopKeyCur).roll;
+            current_loop_pose[1] = cloudKeyPoses6D->points.at(loopKeyCur).pitch;
+            current_loop_pose[2] = cloudKeyPoses6D->points.at(loopKeyCur).yaw;
+            current_loop_pose[3] = cloudKeyPoses6D->points.at(loopKeyCur).x;
+            current_loop_pose[4] = cloudKeyPoses6D->points.at(loopKeyCur).y;
+            current_loop_pose[5] = cloudKeyPoses6D->points.at(loopKeyCur).z;
+           // EZLOG(INFO)<<"Loop current pose is "<<current_loop_pose<<endl;
+            transPointAssociateToMap = trans2Affine3f(current_loop_pose);
+            int loop_cur_num =  surfCloudKeyFrames[loopKeyCur]->size();
+            EZLOG(INFO)<<"Loop current number is "<<loop_cur_num<<endl;
+
+            float total_distance = 0.0f;
+            int vaild_num = 0;
+
+            for (int i = 0; i < loop_cur_num; i++) {
+                PointType pointOri, pointSel, coeff;
+                std::vector<int> pointSearchInd;
+                std::vector<float> pointSearchSqDis;
+
+                pointOri = surfCloudKeyFrames[loopKeyCur]->points[i];
+
+                pointAssociateToMap(&pointOri, &pointSel);
+                LoopkdtreeSurfFromMap->nearestKSearch(pointSel, 5, pointSearchInd,
+                                                  pointSearchSqDis);
+
+                Eigen::Matrix<float, 5, 3> matA0;//5 个点3个未知量，所以是5*3；
+                Eigen::Matrix<float, 5, 1> matB0;
+                Eigen::Vector3f matX0;
+
+                //平方方程 Ax + By + Cz + 1 = 0
+                matA0.setZero();
+                matB0.fill(-1);
+                matX0.setZero();
+
+                if (pointSearchSqDis[4] < 1.0) {
+                    for (int j = 0; j < 5; j++) {
+                        matA0(j, 0) = LoopsurroundingMap->points[pointSearchInd[j]].x;
+                        matA0(j, 1) = LoopsurroundingMap->points[pointSearchInd[j]].y;
+                        matA0(j, 2) = LoopsurroundingMap->points[pointSearchInd[j]].z;
+                    }
+
+                    matX0 = matA0.colPivHouseholderQr().solve(matB0);
+
+                    float pa = matX0(0, 0);
+                    float pb = matX0(1, 0);
+                    float pc = matX0(2, 0);
+                    float pd = 1;
+
+                    float ps = sqrt(pa * pa + pb * pb + pc * pc);
+                    pa /= ps;
+                    pb /= ps;
+                    pc /= ps;
+                    pd /= ps;
+
+                    bool planeValid = true;
+                    for (int j = 0; j < 5; j++) {
+                        if (fabs(pa * LoopsurroundingMap->points[pointSearchInd[j]].x +
+                                 pb * LoopsurroundingMap->points[pointSearchInd[j]].y +
+                                 pc * LoopsurroundingMap->points[pointSearchInd[j]].z +
+                                 pd) > 0.2) {
+                            planeValid = false;
+                            break;
+                        }
+                    }
+
+                    ++vaild_num;
+
+                    if (planeValid) {
+                        float pd2 = pa * pointSel.x + pb * pointSel.y + pc * pointSel.z + pd;
+                        total_distance += abs(pd2);
+                        EZLOG(INFO)<<"loop point to map is "<<pd2<<endl;
+                    }
+                }
+            }
+            EZLOG(INFO)<<"avarage distance error : "<< total_distance / vaild_num <<endl;
+
+    }
+
+
+
 
 //    void dataprocess(CloudFeature& cur_ft){
         //gnss data preprocess
@@ -1300,28 +1432,22 @@ public:
 
         //static PointType lastGPSPoint;
         //TODO 1118
-        while (1) {
 
-            {
-                std::lock_guard<std::mutex> lock(cloud_mutex);
-                if(deque_cloud.empty()){
-                    break;
-                }
-            }
              // EZLOG(INFO)<<"noise x "<<noise_x<<","<<noise_y<<" ,"<<noise_z<<","<<noise_roll<<","<<noise_pitch<<","<<noise_yaw<<","<<endl;
 
-            if (abs(noise_x) > SensorConfig::gpsCovThreshold || abs(noise_y) > SensorConfig::gpsCovThreshold)
-                break;
+        if (abs(noise_x) > SensorConfig::gpsCovThreshold || abs(noise_y) > SensorConfig::gpsCovThreshold)
+            return;
 
-            double gps_x = t_gnss_cur[0];
-            double gps_y = t_gnss_cur[1];
-            const float s = 0.05;
-            double gps_z = s * t_gnss_cur[2] + (1 - s) * current_T_m_l[5];
+        double gps_x = t_gnss_cur[0];
+        double gps_y = t_gnss_cur[1];
+        const float s = 0.05;
+       // double gps_z = s * t_gnss_cur[2] + (1 - s) * current_T_m_l[5];
+        double gps_z = current_T_m_l[5];
 
-            if (!SensorConfig::useGpsElevation) {
-                gps_z = current_T_m_l[5];
-                noise_z = 0.001;
-            }
+        if (!SensorConfig::useGpsElevation) {
+            gps_z = current_T_m_l[5];
+            noise_z = 0.001;
+        }
 
 //            if (abs(gps_x) < 1e-6 && abs(gps_y) < 1e-6)
 //                break;
@@ -1334,26 +1460,25 @@ public:
 //                break;
 //            lastGPSPoint = curGPSPoint;
 
-            gtsam::Vector Vector6(6);
-           // Vector3 << max(noise_x, 1.0), max(noise_y, 1.0), max(noise_z, 1.0);
-           // noise_z = 1e-2;
-            Vector6<< 1e-1,1e-1,1e-1,2e-2 * magic_number,2e-2 * magic_number,2e-2 * magic_number;
-           // Vector6 << 1e-4,1e-4,1e-4,1e-4,1e-4,1e-4;
-            gtsam::noiseModel::Diagonal::shared_ptr priorNoise = gtsam::noiseModel::Diagonal::Variances(Vector6);
+        gtsam::Vector Vector6(6);
+       // Vector3 << max(noise_x, 1.0), max(noise_y, 1.0), max(noise_z, 1.0);
+       //Vector6<<
+        Vector6<< 1e-1,1e-1,1e-1,2e-2 * magic_number,2e-2 * magic_number,2e-2 * magic_number;
+       // Vector6 << 1e-4,1e-4,1e-4,1e-4,1e-4,1e-4;
+        gtsam::noiseModel::Diagonal::shared_ptr priorNoise = gtsam::noiseModel::Diagonal::Variances(Vector6);
 
-            gtsam::Pose3 gnss_pose_gtsam = gtsam::Pose3(
-                    gtsam::Rot3(R_gnss_cur),
-                    gtsam::Point3(t_gnss_cur[0], t_gnss_cur[1], t_gnss_cur[2]));
+        gtsam::Pose3 gnss_pose_gtsam = gtsam::Pose3(
+                gtsam::Rot3(R_gnss_cur),
+                gtsam::Point3(t_gnss_cur[0], t_gnss_cur[1], t_gnss_cur[2]));
 
-            gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(cloudKeyPoses3D->size() , gnss_pose_gtsam,
-                                                        priorNoise));
+        gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(cloudKeyPoses3D->size() , gnss_pose_gtsam,
+                                                    priorNoise));
 
-            //EZLOG(INFO)<<"ADD GPS factor successfully!"<<endl;
-            isAddGnssKeyFrame == true;
+        //EZLOG(INFO)<<"ADD GPS factor successfully!"<<endl;
+        isAddGnssKeyFrame == true;
 
-            magic_number = max( 1.0f , magic_number - 3.0f);
-            break;
-       }
+        magic_number = max( 1.0f , magic_number - 3.0f);
+
     }
 
     void addLoopFactor() {
@@ -1505,6 +1630,7 @@ public:
             if(isAddloopFrame){
                 ++loopNum;
                 if(loopNum > 2){
+                    GetloopOptimization();
                     EZLOG(INFO)<< "MAPPING Finished!"<<endl;
                     exit(1);
                 }
@@ -1567,6 +1693,7 @@ public:
 
     }
 
+
     void DoWork(){
 
         while(1){
@@ -1596,7 +1723,7 @@ public:
               //  timeLastProcessing = timeLaserInfoCur;
 
                 TicToc t0;
-                //dataprocess(cur_ft);//TODO 1118 dataprocess
+                //dataprocess(cur_ft);//TODO 1118 dataprocess work
                 //EZLOG(INFO)<<" dataprecess COST TIME"<<t0.toc()<<endl;
                 TicToc t6;
                 updateInitialGuess(cur_ft);//TODO
@@ -1629,7 +1756,7 @@ public:
 
                     EZLOG(INFO)<<" correctPoses COST TIME"<<t5.toc()<<endl;
                     publishOdometry();
-                  //  publishCloud();
+                    publishCloud();
 
                   //通过建文件夹来判断
 
