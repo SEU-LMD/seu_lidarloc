@@ -42,6 +42,7 @@ int main(int argc, char **argv) {
     Load_Sensor_YAML("./config/sensor.yaml");
     Load_Mapping_YAML("./config/mapping.yaml");
     Load_FrontEnd_YAML("./config/front_end.yaml");
+    SetOptMappingMode();
 
     //TODO 1111 remove !!!!
     //4.启动多个线程

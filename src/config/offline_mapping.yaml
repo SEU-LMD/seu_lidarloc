@@ -1,13 +1,13 @@
 #offline_mapping Setting
 #change name to map_manger.yaml
-map_in_path: "/home/fyy/yuanqu/"
-map_out_path: "/home/mdc/seu_wxq/autodrive_mdc/seu_lidarloc/map/"
+map_in_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/road_loop/"
+map_out_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/road_loop_out/"
 up2down_num: 2    #up_grid_size/down_grid_size，该数值必须为整数倍
 lidar_range: 200 #big grid, small grid = big grid / 2
-frame_sum: 1287    # frame
+frame_sum: 1130    # frame
 up_grid_size: 120
-lasercloud_width: 12 # 2 x
-lasercloud_height: 16 # 2 Y
+lasercloud_width: 18 # 2 x
+lasercloud_height: 8 # 2 Y
 lasercloud_num: 112
 
 T_EPSILION: 0.01 #0.01 #终止条件

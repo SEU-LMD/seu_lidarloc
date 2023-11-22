@@ -75,7 +75,7 @@ public:
             auto add_OdometryType_from_fuse_to_dataPrep =
                     std::bind(&DataPreprocess::AddDrOdomData, &data_prep, std::placeholders::_1);
             //        fuse 2 imageProjection
-            fuse.Function_AddLidarOdometryTypeToImageProjection = add_OdometryType_from_fuse_to_dataPrep;
+            fuse.Function_AddOdometryTypeTodataPreprocess = add_OdometryType_from_fuse_to_dataPrep;
         }
         else{ // use_DR_or_fuse_in_loc = 1 , use DR
             EZLOG(INFO)<<" use DR to imageProj";
@@ -85,8 +85,6 @@ public:
         }
 
 //       to fuse
-        auto add_GNSSOdometryType_from_data_prep_to_fuse =
-                std::bind(&Fuse::AddGNSSToFuse, &fuse,std::placeholders::_1);
         auto add_LidarOdometryType_from_loc_to_fuse =
                 std::bind(&Fuse::AddLidarLocToFuse, &fuse,std::placeholders::_1);
         auto add_DROdometryType_from_DR_to_fuse =
@@ -98,8 +96,6 @@ public:
         data_prep.Function_AddCloudInfoToFeatureExtraction = add_CloudInfo_from_dataPrep_to_ftextr;
 //        ft_extr 2 Loc
         ft_extr.Function_AddCloudFeatureToLOCMapping = add_CloudFeature_from_ftextr_to_loc;
-//        data_prep 2 fuse
-        data_prep.Function_AddGNSSOdometryTypeToFuse = add_GNSSOdometryType_from_data_prep_to_fuse;
 //        Loc 2 fuse
         loc_mapping.Function_AddLidarOdometryTypeToFuse = add_LidarOdometryType_from_loc_to_fuse;
 //        DR 2 fuse

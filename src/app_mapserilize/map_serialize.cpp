@@ -1,6 +1,6 @@
 
 // PCL specific includes
-#define PCL_NO_PRECOMPILE
+#define PCL_NO_PRECOMPILE //TODO 
 #include <iostream>              //标准C++库中的输入输出的头文件
 #include <pcl/io/pcd_io.h>       //PCD读写类相关的头文件
 #include <pcl/point_types.h>     //PCL中支持的点类型的头文件

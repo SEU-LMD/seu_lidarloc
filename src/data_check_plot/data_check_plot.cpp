@@ -3,7 +3,7 @@
 
 int main (int argc, char** argv){
 
-    Plot plot("ABS_CURRENT_SOURCE_PATH/../datacheck");
+    Plot plot(ABS_CURRENT_SOURCE_PATH+"/../datacheck");
     plot.readLidar();
     plot.checkLidar();
     plot.readGNss();

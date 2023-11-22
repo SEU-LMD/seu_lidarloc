@@ -1,6 +1,9 @@
 #include <mutex>
 #ifndef SEU_LIDARLOC_FEATUREEXTRACTION_H
 #define SEU_LIDARLOC_FEATUREEXTRACTION_H
+
+#include "pcl/common/pca.h"
+
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
 #include "utils/timer.h"
@@ -8,9 +11,12 @@
 #include "opt_loc.h"
 #include "data_preprocess.h"
 #include "utils/MapSaver.h"
+#include "front_end/front_end.h"
 
-#include "pcl/common/pca.h"
-
+enum SLAM_MODE{
+    OPT_LOCATION = 0,
+    OPT_MAPPING = 1
+};
 
 struct smoothness_t {
     float value;
@@ -26,8 +32,7 @@ struct by_value {
 class FeatureExtraction  {
 public:
     PubSubInterface* pubsub;
-    std::mutex cloud_mutex;
-    std::mutex work_mutex;
+    std::mutex cloud_mutex1;
     std::deque<CloudInfo> deque_cloud;
     std::thread* do_work_thread;
     std::thread* save_Map_thread;
@@ -36,10 +41,17 @@ public:
     std::function<void(const CloudFeature&)> Function_AddCloudFeatureToOPTMapping;
 
     MapSaver map_saver;
-    int frame_id = -1;
 
     std::string topic_corner_world= "/cloud_corner";
     std::string topic_surf_world = "/cloud_surface";
+
+    std::string topic_ground_world = "/ground_world";
+    std::string topic_unground_world = "/unground_world";
+
+    std::string topic_cloud_pillar_world = "/cloud_pillar_world";
+    std::string topic_cloud_beam_world = "/cloud_beam_world";
+    std::string topic_cloud_facade_world = "/cloud_facade_world";
+    std::string topic_cloud_roof_world = "/cloud_roof_world";
 
     std::vector<float> cloudCurvature;
     std::vector<int> cloudNeighborPicked;// 1:after process; 0:before process
@@ -137,6 +149,10 @@ public:
         pcl::PointCloud<PointType>::Ptr surfaceCloudScan(new pcl::PointCloud<PointType>());
         pcl::PointCloud<PointType>::Ptr surfaceCloudScanDS(new pcl::PointCloud<PointType>());
       //  EZLOG(INFO)<<" ExtractFeatures:: cur_scan: "<<cur_scan.cloud_ptr->points.size();
+        float edgeThreshold;
+        //TODO !!!!!!!!!
+        edgeThreshold = FrontEndConfig::slam_mode_switch == SLAM_MODE::OPT_MAPPING ?
+                MappingConfig::edgeThreshold : LocConfig::edgeThreshold;
 
         for (int i = 0; i < SensorConfig::N_SCAN; i++) {
             surfaceCloudScan->clear();
@@ -166,13 +182,6 @@ public:
                     //point index
                     int ind = cloudSmoothness[k].ind;
                     //if point
-                    float edgeThreshold;
-                    if(MappingConfig::slam_mode_switch == 1){
-                        edgeThreshold = MappingConfig::edgeThreshold;
-                    }
-                    if(LocConfig::slam_mode_on == 1){
-                        edgeThreshold = LocConfig::edgeThreshold;
-                    }
 
                     if (cloudNeighborPicked[ind] == 0 &&
                         cloudCurvature[ind] > edgeThreshold) {
@@ -212,12 +221,10 @@ public:
                     }
                 }// end! traverse by curvature, from small to large
                 float surfThreshold;
-                if(MappingConfig::slam_mode_switch == 1){
-                    surfThreshold = MappingConfig::surfThreshold;
-                }
-                if(LocConfig::slam_mode_on == 1){
-                    surfThreshold = LocConfig::surfThreshold;
-                }
+                //TODO !!!!!!!!!
+                surfThreshold = FrontEndConfig::slam_mode_switch == SLAM_MODE::OPT_MAPPING ?
+                                MappingConfig::surfThreshold : LocConfig::surfThreshold;
+
                 //extract surface point
                 for (int k = sp; k <= ep; k++) {
                     int ind = cloudSmoothness[k].ind;
@@ -259,153 +266,155 @@ public:
                     }
                 }
 
-                //for debug use
-                {
-//                    int n_cor = 0;
-//                    int n_sur = 0;
-//                    int n_pt = 0;
-//                    for (int n_label = 0; n_label <= cur_scan.label.size(); ++n_label) {
-//                        if (cur_scan.label[n_label] == 1) {
-//                            ++n_cor;
-//                        } else if (cur_scan.label[n_label] == -1) {
-//                            ++n_sur;
-//                        } else if (cur_scan.label[n_label] == 0) {
-//                            ++n_pt;
-//                        }
-//                    }
-//                    EZLOG(INFO) << "n_cor = " << n_cor << std::endl;
-//                    EZLOG(INFO) << "n_sur = " << n_sur << std::endl;
-//                    EZLOG(INFO) << "n_pt = " << n_pt << std::endl;
-//                    EZLOG(INFO) << "cornerCloud->size() = " << cornerCloud->size() << std::endl;
-                }
-
-                  // surface point and point doesn't be processed ,regard as surface
-                  ///take too much time
-//                for (int k = sp; k <= ep; k++) {
-//                    if (cloudLabel[k] <= 0) {
-//                        PointType pt_tmp;
-//                        auto& pt_origin = cur_scan.cloud_ptr->points[k];
-//                        pt_tmp.x = pt_origin.x;
-//                        pt_tmp.y = pt_origin.y;
-//                        pt_tmp.z = pt_origin.z;
-//                        pt_tmp.intensity = pt_origin.intensity;
-//                        surfaceCloudScan->push_back(pt_tmp);
-//                    }
-//                }
             }
 
-//            surfaceCloudScanDS->clear();
-//            downSizeFilter.setInputCloud(surfaceCloudScan);
-//            downSizeFilter.filter(*surfaceCloudScanDS);
-//
-//            *surfaceCloud += *surfaceCloudScanDS;
         }
     }//end fucntion ExtractFeatures
 
     void DoWork(){
         while(1){
-           // EZLOG(INFO)<<"featureext_DoWork while "<<std::endl;
-            bool isempty = false;
             {
-                std::lock_guard<std::mutex> lock(work_mutex);
-                isempty = deque_cloud.empty();
+                sleep(0.005);
+                std::lock_guard<std::mutex> lock(cloud_mutex1);
+                if(deque_cloud.empty()){
+                    continue;
+                }
             }
+            {
+                TicToc time_feature_extra;
 
-            if(!isempty){
-              //  EZLOG(INFO)<<"featureext_DoWork  "<<std::endl;
                 CloudInfo cur_cloud;
-                cloud_mutex.lock();
+                cloud_mutex1.lock();
                 cur_cloud = deque_cloud.front();
                 deque_cloud.pop_front();
-                cloud_mutex.unlock();
-                EZLOG(INFO)<<"cur_cloud size:"<<cur_cloud.cloud_ptr->size();
-              //  EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
-          //      EZLOG(INFO)<<"cur_cloud.frame_id = "<<cur_cloud.frame_id<<std::endl;
-//                EZLOG(INFO)<<"cur_cloud.cloud_ptr->size() = "<<cur_cloud.cloud_ptr->size()<<std::endl;
-//                EZLOG(INFO)<<"cur_cloud.frame_id = "<<cur_cloud.frame_id<<std::endl;
+                cloud_mutex1.unlock();
+
+                CloudFeature cloud_feature;
+
+                ///ground filter
+                if(FrontEndConfig::use_ground_filter){
+
+                    TicToc time_gf;
+
+                  //  EZLOG(INFO) << "points size: " << cur_cloud.cloud_ptr->size() << std::endl;
+                    fast_ground_filter(cur_cloud.cloud_ptr,
+                                       cur_cloud.cloud_ground,
+                                       cur_cloud.cloud_ground_down,
+                                       cur_cloud.cloud_unground
+                    );
+                    double time_ground_filter = time_gf.toc();
+
+                   // EZLOG(INFO)<<"time_ground_filter = "<<time_ground_filter<<endl;
+
+                    if(FrontEndConfig::if_debug)
+                    {
+                        CloudTypeXYZICOLRANGE ground_pub,unground_pub;
+                        ground_pub.timestamp = cur_cloud.timestamp;
+                        ground_pub.frame = "map";
+                        pcl::transformPointCloud(*cur_cloud.cloud_ground, ground_pub.cloud, cur_cloud.DRPose.pose.cast<float>());
+                        pubsub->PublishCloud(topic_ground_world, ground_pub);
+                        unground_pub.timestamp = cur_cloud.timestamp;
+                        unground_pub.frame = "map";
+                        pcl::transformPointCloud(*cur_cloud.cloud_unground, unground_pub.cloud, cur_cloud.DRPose.pose.cast<float>());
+                        pubsub->PublishCloud(topic_unground_world, unground_pub);
+                    }
+                }
+
+               // EZLOG(INFO)<<"cloud_ground->points.size() =  "<<cur_cloud.cloud_ground->points.size()<<endl;
+               // EZLOG(INFO)<<"cloud_unground->points.size() =  "<<cur_cloud.cloud_unground->points.size()<<endl;
+
+                if(FrontEndConfig::use_unground_pts_classify){
+
+                    ///classify_nground_pts
+
+                  //  EZLOG(INFO)<<"cloud_unground->points.size() =  "<<cur_cloud.cloud_unground->points.size()<<endl;
+
+                    TicToc time_classify_nground_pts;
+
+                    classify_nground_pts(cur_cloud.cloud_unground,cloud_feature.cloud_pillar,cloud_feature.cloud_beam,cloud_feature.cloud_facade,cloud_feature.cloud_roof,
+                                         cloud_feature.cloud_pillar_down,cloud_feature.cloud_beam_down,cloud_feature.cloud_facade_down,cloud_feature.cloud_roof_down
+                    );
+                 //   EZLOG(INFO)<<"time_classify_nground_pts.toc() =  "<<time_classify_nground_pts.toc()<<endl;
+
+                  //  EZLOG(INFO)<<"cloud_pillar->points.size() =  "<<cloud_feature.cloud_pillar->points.size()<<endl;
+                  //  EZLOG(INFO)<<"cloud_beam->points.size() =  "<<cloud_feature.cloud_beam->points.size()<<endl;
+                  //  EZLOG(INFO)<<"cloud_facade->points.size() =  "<<cloud_feature.cloud_facade->points.size()<<endl;
+                   // EZLOG(INFO)<<"cloud_roof->points.size() =  "<<cloud_feature.cloud_roof->points.size()<<endl;
+
+                    if(FrontEndConfig::if_debug)
+                    {
+
+                        CloudTypeXYZICOLRANGE cloud_pillar_pub,cloud_beam_pub,cloud_facade_pub,cloud_roof_pub;
+                        cloud_pillar_pub.timestamp = cur_cloud.timestamp;
+                        cloud_beam_pub.timestamp = cur_cloud.timestamp;
+                        cloud_facade_pub.timestamp = cur_cloud.timestamp;
+                        cloud_roof_pub.timestamp = cur_cloud.timestamp;
+                        cloud_pillar_pub.frame = "map";
+                        cloud_beam_pub.frame = "map";
+                        cloud_facade_pub.frame = "map";
+                        cloud_roof_pub.frame = "map";
+//                            cloud_pillar_pub.cloud = *cloud_pillar;
+//                            cloud_beam_pub.cloud = *cloud_beam;
+//                            cloud_facade_pub.cloud = *cloud_facade;
+//                            cloud_roof_pub.cloud = *cloud_roof;
+                        pcl::transformPointCloud(*cloud_feature.cloud_pillar, cloud_pillar_pub.cloud, cur_cloud.DRPose.pose.cast<float>());
+                        pcl::transformPointCloud(*cloud_feature.cloud_beam, cloud_beam_pub.cloud, cur_cloud.DRPose.pose.cast<float>());
+                        pcl::transformPointCloud(*cloud_feature.cloud_facade, cloud_facade_pub.cloud, cur_cloud.DRPose.pose.cast<float>());
+                        pcl::transformPointCloud(*cloud_feature.cloud_roof, cloud_roof_pub.cloud, cur_cloud.DRPose.pose.cast<float>());
+                        pubsub->PublishCloud(topic_cloud_pillar_world, cloud_pillar_pub);
+                        pubsub->PublishCloud(topic_cloud_beam_world, cloud_beam_pub);
+                        pubsub->PublishCloud(topic_cloud_facade_world, cloud_facade_pub);
+                        pubsub->PublishCloud(topic_cloud_roof_world, cloud_roof_pub);
+
+                    }
+
+                } // end if(FrontEndConfig::use_unground_pts_classify)
 
                 //do some work
                 TicToc timer;
                 CalculateSmoothness(cur_cloud);
                 MarkOccludedPoints(cur_cloud);
 //                EZLOG(INFO)<<"before feature extraction cost time(ms) = "<<timer.toc()<<std::endl;
-                TicToc timer2;
+                TicToc timer2;//TODO 1118 not used!
                 pcl::PointCloud<PointType>::Ptr cornerCloud(new  pcl::PointCloud<PointType>());
                 pcl::PointCloud<PointType>::Ptr surfaceCloud(new  pcl::PointCloud<PointType>());
                 pcl::PointCloud<PointType>::Ptr rawCloud(new  pcl::PointCloud<PointType>());
                 ExtractFeatures(cur_cloud, cornerCloud, surfaceCloud,rawCloud);
-                EZLOG(INFO)<<"surfaceCloud size:"<<surfaceCloud->size()<<" cornerCloud size:"<<cornerCloud->size();
-//                EZLOG(INFO)<<"feature extraction cost time(ms) = "<<timer2.toc()<<std::endl;
-                TicToc timer1;
+                TicToc timer1;//TODO 1118 not used!
 
-//                int n_cor =0;
-//                int n_sur =0;
-//                for(int k_rawCloud = 0;k_rawCloud <= rawCloud->size();++k_rawCloud){
-//                    if(rawCloud->points[k_rawCloud].intensity == 1){
-//                        ++n_cor;
-//                    }else if(rawCloud->points[k_rawCloud].intensity == -1){
-//                        ++n_sur;
-//                    }
-//                }
-//                EZLOG(INFO)<<"n_cor = "<<n_cor<<std::endl;
-          //      EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size();
-//                EZLOG(INFO)<<"n_sur = "<<n_sur<<std::endl;
-           //     EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size();
-//                int n_cor =0;
-//                int n_sur =0;
-//                for(int k_rawCloud = 0;k_rawCloud <= rawCloud->size();++k_rawCloud){
-//                    if(rawCloud->points[k_rawCloud].intensity == 1){
-//                        ++n_cor;
-//                    }else if(rawCloud->points[k_rawCloud].intensity == -1){
-//                        ++n_sur;
-//                    }
-//                }
-//                EZLOG(INFO)<<"n_cor = "<<n_cor<<std::endl;
-//                EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<std::endl;
-//                EZLOG(INFO)<<"n_sur = "<<n_sur<<std::endl;
-//                EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<std::endl;
 
-//                ///save cloud with label
-//                if(MappingConfig::slam_mode_switch == 0)
-//                {
-//                    CloudInfoFt raw_cloud;
-//                    raw_cloud.raw_Cloud = rawCloud;
-//                    raw_cloud.frame_id = ++frame_id;
-//                    //map_saver.AddCloudToSave(raw_cloud);
-//                    EZLOG(INFO)<<"save cloud with label!"<<std::endl;
-//                }
-//                CloudInfoFt raw_cloud;
-//                raw_cloud.raw_cloud = cur_cloud.cloud_ptr;
-//                raw_cloud.frame_id = ++frame_id;
-//                map_saver.AddCloudToSave(raw_cloud);
-//                EZLOG(INFO)<<"save cloud with label!"<<std::endl;
-
-                CloudFeature cloud_feature;
                 cloud_feature.timestamp = cur_cloud.timestamp;
-                cloud_feature.pose = cur_cloud.pose;
-                cloud_feature.pose_reliable = cur_cloud.pose_reliable;
+                if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
+                    cloud_feature.pose = cur_cloud.pose;
+                    cloud_feature.pose_reliable = cur_cloud.pose_reliable;
+                }
+                else{
+                    //TODO 1118 pose_reliable = false;
+                    EZLOG(INFO)<<"CONTROL! NO GNSS!";
+                }
+//                EZLOG(INFO)<<"cur_cloud.pose_reliable = "<<cur_cloud.pose_reliable<<endl;
+//                EZLOG(INFO)<<"cloud_feature.pose_reliable = "<<cloud_feature.pose_reliable<<endl;
+
+
                 cloud_feature.cov = cur_cloud.cov;
                 cloud_feature.DRPose = cur_cloud.DRPose;
                 cloud_feature.frame_id = cur_cloud.frame_id;
                 cloud_feature.cornerCloud = cornerCloud;
                 cloud_feature.surfaceCloud = surfaceCloud;
 
-//                switch it when you test your code
-//                opt_mapping_ptr->AddCloudData(cloud_feature);
-//                loc_mapping_ptr->AddCloudData(cloud_feature);
+               // EZLOG(INFO)<<"cornerCloud->size() = "<<cornerCloud->size()<<endl;
+               // EZLOG(INFO)<<"surfaceCloud->size() = "<<surfaceCloud->size()<<endl;
 
-                if(MappingConfig::slam_mode_switch == 1 ){
+                if(FrontEndConfig::slam_mode_switch == SLAM_MODE::OPT_MAPPING){
                     Function_AddCloudFeatureToOPTMapping(cloud_feature);
-                    EZLOG(INFO)<<"3 feature_extraction send to Mapping!And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
-                }
-                if(LocConfig::slam_mode_on == 1){
+                  //  EZLOG(INFO)<<"3 feature_extraction send to Mapping!And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
+                }else if(FrontEndConfig::slam_mode_switch == SLAM_MODE::OPT_LOCATION){
                     Function_AddCloudFeatureToLOCMapping(cloud_feature);
-                    EZLOG(INFO)<<"3 feature_extraction send to Loc! And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
+                  //  EZLOG(INFO)<<"3 feature_extraction send to Loc! And current lidar pointCloud surfaceCloud size is: "<<cloud_feature.surfaceCloud->points.size()<<", cornerCloud is: "<<cloud_feature.cornerCloud->points.size();
                 }
-
 
                 //for debug use
-                if(MappingConfig::if_debug)
+                if(FrontEndConfig::if_debug)
                 {
                     CloudTypeXYZI corner_pub,surf_pub;
                     corner_pub.frame = "map";
@@ -417,21 +426,19 @@ public:
                     pubsub->PublishCloud(topic_corner_world, corner_pub);
                     pubsub->PublishCloud(topic_surf_world, surf_pub);
                 }
-//                EZLOG(INFO)<<"send feature extraction to next = "<<timer1.toc()<<std::endl;
+
+               // EZLOG(INFO)<<"time_feature_extra = "<<time_feature_extra.toc()<<endl;
 
             }
 
-            else{
-                sleep(0.01);
-            }
         }
     }
 
     void AddCloudData(const CloudInfo& data){
       //  EZLOG(INFO)<<"featureext_AddCloudData  "<<std::endl;
-        cloud_mutex.lock();
+        cloud_mutex1.lock();
         deque_cloud.push_back(data);
-        cloud_mutex.unlock();
+        cloud_mutex1.unlock();
     }
 
     void Init(PubSubInterface* pubsub_){
@@ -442,6 +449,15 @@ public:
         pubsub = pubsub_;
         pubsub->addPublisher(topic_corner_world, DataType::LIDAR, 10);
         pubsub->addPublisher(topic_surf_world, DataType::LIDAR, 10);
+
+        pubsub->addPublisher(topic_ground_world,DataType::LIDAR,1);
+        pubsub->addPublisher(topic_unground_world,DataType::LIDAR,1);
+
+        pubsub->addPublisher(topic_cloud_pillar_world,DataType::LIDAR,1);
+        pubsub->addPublisher(topic_cloud_beam_world,DataType::LIDAR,1);
+        pubsub->addPublisher(topic_cloud_facade_world,DataType::LIDAR,1);
+        pubsub->addPublisher(topic_cloud_roof_world,DataType::LIDAR,1);
+
         do_work_thread = new std::thread(&FeatureExtraction::DoWork, this);
 
     }
