@@ -55,7 +55,7 @@ maxIters: 30
 
 GNSSupdateDR: 0
 GNSSBetweenOrPrior: 1
-ifRollBack: 0
+ifRollBack: 1
 updateFrequencyFrameCnt: 100
 
 # road_loop
@@ -65,12 +65,12 @@ GNSS_noise_yaw: 1
 GNSS_noise_x: 3e-1
 GNSS_noise_y: 3e-1
 GNSS_noise_z: 100
-LidarOdom_noise_roll: 1e-1
-LidarOdom_noise_pitch: 1e-1
-LidarOdom_noise_yaw: 1.0
-LidarOdom_noise_x: 2e-2
-LidarOdom_noise_y: 2e-2
-LidarOdom_noise_z: 1e-1
+LidarOdom_noise_roll: 1e-3
+LidarOdom_noise_pitch: 1e-3
+LidarOdom_noise_yaw: 1e-3
+LidarOdom_noise_x: 1e-3
+LidarOdom_noise_y: 1e-3
+LidarOdom_noise_z: 1e-3
 DR_noise_roll: 1e-1
 DR_noise_pitch: 1e-1
 DR_noise_yaw: 1e-1

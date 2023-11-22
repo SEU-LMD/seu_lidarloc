@@ -6,6 +6,8 @@
 #define SEU_LIDARLOC_FUSE_INFO_H
 // system
 #include <math.h>
+#include <iostream>
+#include <fstream>
 // 3rdParty
 #include "gtsam/geometry/Pose3.h"
 #include "gtsam/geometry/Rot3.h"
@@ -69,7 +71,6 @@ public:
     PoseT last_pose_fromRollBack;
     PoseT last_DR_pose;
 
-
     bool if_asb_loc_arrived = 0;//TODO :if abs loc arrived
 
     std::string topic_highHz_pose = "/loc_result";
@@ -78,8 +79,6 @@ public:
 
     std::shared_ptr<UDP_THREAD> udp_thread;
 
-
-    //this fucntion needs to be binded by lidar loc node
     void AddLidarLocToFuse(const OdometryType &lidar_loc_res){
         mutex_data.lock();
         std::shared_ptr<BaseType> odometryPtr = std::make_shared<OdometryType>(lidar_loc_res);
@@ -136,12 +135,12 @@ public:
                   OdometryType &_current_pose_align,
                   PoseT &_last_pose_fromRollBack){
 
-                { // for debug use
-                    _current_pose_align.frame = "map";
-                    _current_pose_align.timestamp = roll_back_timestamp;
-                    _current_pose_align.pose = PoseT(_current_pose.pose * poseFrom.between(poseTo));
-                    pubsub->PublishOdometry(topic_testforRollBack_pose, _current_pose_align);
-                }
+//                { // for debug use
+//                    _current_pose_align.frame = "map";
+//                    _current_pose_align.timestamp = roll_back_timestamp;
+//                    _current_pose_align.pose = PoseT(_current_pose.pose * poseFrom.between(poseTo));
+//                    pubsub->PublishOdometry(topic_testforRollBack_pose, _current_pose_align);
+//                }
                 if_asb_loc_arrived = 1;
                 _last_pose_fromRollBack = PoseT(_current_pose.pose * poseFrom.between(poseTo));
 
@@ -163,7 +162,7 @@ public:
         fu_str = odom_out.ToString();
         udp_thread -> SendUdpMSg(fu_str);
     }
-    //bool TODO 1118
+    //bool TODO 1118---Done
     bool DRAlignWithLidarAndClear(std::deque<std::shared_ptr<DROdometryType>> &_DR_data_deque,
                                   const double &current_lidar_time,
                                   PoseT &current_DR_pose,
@@ -203,7 +202,7 @@ public:
                 auto front_data = data_deque.front();
                 data_deque.pop_front();
                 mutex_data.unlock();
-                double time_Li = front_data->timestamp;
+                double current_data_time = front_data->timestamp;
                 TicToc t_fuse;
                 switch (front_data->getType()) {
                     //from lidar
@@ -218,7 +217,7 @@ public:
 
                         gtsam::Pose3 Lidar_T_w_Li_factor(gtsam::Rot3(Odom_Li_temp->pose.GetR()),
                                                          gtsam::Point3(Odom_Li_temp->pose.GetXYZ()));
-
+                        TicToc t1;
                         if(lidar_keyFrame_cnt == 0){
 
                             gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(0, Lidar_T_w_Li_factor,
@@ -229,15 +228,18 @@ public:
                             DR_T_w_bi_1_factor = Lidar_T_w_Li_factor.matrix();
 
                             lidar_keyFrame_cnt++;
-                            EZLOG(INFO)<<"GTSAM Optimization Init Successful!";
+                            Function_AddLidarOdometryTypeToMapManager(*Odom_Li_temp);//TODO 1111 not used anymore
+                            EZLOG(INFO) << "5 Fuse to map_loder, and the loc_result pose :"<<Odom_Li_temp->pose.GetXYZ().transpose();
+//                            EZLOG(INFO)<<"GTSAM Optimization Init Successful!";
                             break;
                         }
                         else{
 //                          ------Li-DRi------DRc- align
 //                          ------Li_1-DRi_1 --------Li-Di-------- add DR between factor
                             static bool flag_last_dr_exist = true;
+                            TicToc t3;
                             if(DRAlignWithLidarAndClear(DR_data_deque,
-                                                           time_Li,
+                                                        current_data_time,
                                                         DR_T_w_bi_rollback,
                                                         DR_T_w_bc_rollback)){
                                 if(flag_last_dr_exist == true){
@@ -250,6 +252,7 @@ public:
                             }else{
                                 flag_last_dr_exist = false;
                             }
+                            EZLOG(INFO)<<"Fuse lidar dr align in ms: "<< t3.toc();
 
 //                          ADD Lidar factor
 //                          ------Li_1-DRi_1 --------Li-Di--------
@@ -261,18 +264,14 @@ public:
 
 //                          ADD GNSS factor
 //                          ------Gi_1 Li_1-DRi_1 --------Gi-Li-Di--------
-                            static float magic_number = 100.0;
-                            if(Odom_Li_temp->GTpose_reliability == true
-                            && IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
-
+                            if(Odom_Li_temp->GTpose_reliability == true){
                                 GNSSNoise = gtsam::noiseModel::Diagonal::Variances(
                                         (gtsam::Vector(6) << LocConfig::GNSS_noise_roll,
                                                 LocConfig::GNSS_noise_pitch,
-                                                LocConfig::GNSS_noise_yaw * magic_number,
-                                                LocConfig::GNSS_noise_x * magic_number,
-                                                LocConfig::GNSS_noise_y * magic_number,
+                                                LocConfig::GNSS_noise_yaw ,
+                                                LocConfig::GNSS_noise_x ,
+                                                LocConfig::GNSS_noise_y ,
                                                 LocConfig::GNSS_noise_z).finished());
-                                magic_number = magic_number >= 6.0 ? magic_number - 5.0 : 1.0;
 
                                 gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(
                                         lidar_keyFrame_cnt,
@@ -281,13 +280,6 @@ public:
                                         GNSSNoise));
 
                             }
-                            else{
-                                magic_number = 100;
-                                EZLOG(INFO)<<"current gnss is not used! reason are here: "<<Odom_Li_temp->GTpose_reliability;
-                                EZLOG(INFO)<<"IsFileDirExist(flag_gnss): "
-                                           <<IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss");
-                                EZLOG(INFO)<<"Odom_Li_temp->GTpose: "<<Odom_Li_temp->GTpose.GetXYZ().transpose();
-                            }
                         }
 
                         EZLOG(INFO) << "****************************************************";
@@ -295,7 +287,7 @@ public:
                         // update iSAM
                         isam->update(gtSAMgraph, initialEstimate);
                         isam->update();
-                        isam->update();
+//                        isam->update();
                         gtSAMgraph.resize(0);
                         initialEstimate.clear();
 
@@ -307,14 +299,12 @@ public:
 
                         PoseT current_pose(latestEstimate.translation(),latestEstimate.rotation().matrix());
                         current_lidar_world.frame = "map";
-                        current_lidar_world.timestamp = time_Li;
+                        current_lidar_world.timestamp = current_data_time;
                         current_lidar_world.pose.pose = current_pose.pose;
                         pubsub->PublishOdometry(topic_current_lidar_pose, current_lidar_world);
 
                         if(LocConfig::ifRollBack == 1){
-                            last_pose_fromRollBack = DR_T_w_bc_rollback;
-                        }
-                        else{
+//                            last_pose_fromRollBack = DR_T_w_bc_rollback;
                             RollBack(current_lidar_world,
                                      DR_T_w_bi_rollback,
                                      DR_T_w_bc_rollback,
@@ -322,18 +312,25 @@ public:
                                      loc_result,
                                      last_pose_fromRollBack);
                         }
+                        else{
+                            last_pose_fromRollBack = DR_T_w_bc_rollback;
+                        }
 
                         Lidar_T_w_Li_1_factor = Lidar_T_w_Li_factor;
                         lidar_keyFrame_cnt++;
+                        Function_AddLidarOdometryTypeToMapManager(current_lidar_world);//TODO 1111 not used anymore
+                        EZLOG(INFO) << "5 Fuse to map_loder, and the loc_result pose :"<<loc_result.pose.GetXYZ().transpose();
 
+                        EZLOG(INFO)<<"Fuse lidar opt in ms : "<< t1.toc();
                         break;
                     }
 
-                    //TODO change name
-                    //TODO 1111 add beteween factor when lidar and gnss arrives!!!!!!!!
+                    //TODO change name ---Done
+                    //TODO 1111 add beteween factor when lidar and gnss arrives!!!!!!!!--Done
                     case DataType::DR:
                     {
                         // 1. wait for first gnss pose
+                        TicToc t2;
                         DROdometryTypePtr  cur_Wheel_odom;
                         cur_Wheel_odom = std::static_pointer_cast<DROdometryType>(std::move(front_data));
                         DR_data_deque.push_back(cur_Wheel_odom);
@@ -348,7 +345,7 @@ public:
 
                         // 3.iteration of DR: update iteration init point when rollback
                         loc_result.frame = "map";
-                        loc_result.timestamp = time_Li;
+                        loc_result.timestamp = current_data_time;
                         if(if_asb_loc_arrived){// predict from last rollback
                             loc_result.pose.pose = last_pose_fromRollBack.pose * delta_pose_DR.pose;
                             last_pose_fromRollBack = loc_result.pose.pose;
@@ -357,18 +354,18 @@ public:
                         }
                         // 4.iteration settings and pub the high frequency loc result
                         pubsub->PublishOdometry(topic_highHz_pose, loc_result);
-                        Function_AddLidarOdometryTypeToMapManager(loc_result);//TODO 1111 not used anymore
-                        EZLOG(INFO) << "5 Fuse to map_loder, and the loc_result pose :"<<loc_result.pose.GetXYZ().transpose();
+
                         if(LocConfig::use_DR_or_fuse_in_loc == 0){
                             Function_AddOdometryTypeTodataPreprocess(loc_result);
                         }
                         // TODO loc_result->>>>>>> is high frequency loc result need UDP
                         Udp_OdomPub(current_DR_pose);
                         last_DR_pose_for_predict = current_DR_pose;
+//                        EZLOG(INFO)<<"Fuse DR Frequency : "<<1.0 / t2.toc();
                         break;
                     }
                 }
-                EZLOG(INFO)<<"Fuse pub Frequency : "<<1.0 / t_fuse.toc();
+//                EZLOG(INFO)<<"Fuse pub Frequency : "<<1.0 / t_fuse.toc();
             }
             else{
                 sleep(0.001);
