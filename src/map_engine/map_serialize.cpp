@@ -128,7 +128,7 @@ FindMinMaxUsePose(const std::string& map_out_path,const int& lidar_range){
     y_max_t=std::prev(tum_sum.end())->ty+lidar_range;
     //输出
     //输出到文本文件
-    std::ofstream file(map_out_path+"index.txt",std::ios_base::app);
+    std::ofstream file(map_out_path+"index.txt");
     file<<x_min_t<<" "<<y_min_t<<" "<<std::endl;
     file.close();
     EZLOG(INFO)<<"xmin:"<<x_min_t<<std::endl;
@@ -143,6 +143,9 @@ CutDownMapCaulate(){
     x_up_num=static_cast<int>(std::ceil((x_max_t-x_min_t)/SerializeConfig::up_grid_size));
     y_up_num=static_cast<int>(std::ceil((y_max_t-y_min_t)/SerializeConfig::up_grid_size));
     up_bloc_count=x_up_num*y_up_num;
+    std::ofstream file(SerializeConfig::map_out_path+"index.txt",std::ios_base::app);
+    file<<x_up_num*SerializeConfig::up2down_num <<" "<<y_up_num*SerializeConfig::up2down_num<<std::endl;
+    file.close();
     EZLOG(INFO)<<  "x分区: " << x_up_num << std::endl;
     EZLOG(INFO)<< "y分区: " << y_up_num << std::endl;
     EZLOG(INFO)<< "分区总数" <<up_bloc_count<<std::endl;

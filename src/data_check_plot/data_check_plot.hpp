@@ -7,6 +7,10 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <algorithm>
+#include "sciplot/sciplot.hpp"
+
+
 
 class Plot{
 
@@ -159,7 +163,7 @@ class Plot{
 
     //public
     void checkGnss(){
-        std::ofstream check_gnss(sav_path+"/check_data.txt",std::ios::app);
+        std::ofstream check_gnss(sav_path+"/check_data.txt");
         checkGnssTimestamp();
         check_gnss << "gnss:" <<std::endl<<"fre:"<< (1/average_gnss_time)<<std::endl
         <<"gnss_wrong_count:" << gnss_time_run_count << std::endl
@@ -167,9 +171,12 @@ class Plot{
         <<"over3std_P:" << over3std_deviation_p*100 << "%" << std::endl;
 
         check_gnss.close();
+        DrawPoint(v_timestamp,"count","timestamp");
+        DrawPoint(diff_gnss_timestamp,"count","diift");
+
     }
 
-private: //TODO 1111
+private:
     void checkLidarTimestamp(){
         double diff;
         lidar_time_run_count=0;
@@ -237,6 +244,52 @@ private: //TODO 1111
         over3std_deviation_p = over_cont_gnss_std_deviation / static_cast<double>(diff_gnss_timestamp.size());
     }
 
+
+    void DrawPoint( std::vector<double> &data_y,const std::string &name_x,const std::string &name_y){
+        std::cout<<"data_y.size"<<data_y.size()<<std::endl;
+        sciplot::Vec x = sciplot::linspace(0,data_y.size()-1,data_y.size());
+
+        sciplot::Vec y(data_y.data(),data_y.size());
+
+        sciplot::Plot2D plot;
+        std::cout<<"4"<<std::endl;
+        plot.xlabel(name_x);
+        plot.ylabel(name_y);
+
+
+
+        auto min = std::min_element(data_y.begin(), data_y.end());
+        double min_=static_cast<double>(*min);
+
+        auto max = std::max_element(data_y.begin(), data_y.end());
+        double max_=static_cast<double>(*max);
+
+
+        // Set the x and y ranges
+        plot.xrange(0.0, data_y.size());
+        plot.yrange(min_, max_);
+
+        // Set the legend to be on the bottom along the horizontal
+        plot.legend()
+            .atOutsideBottom()
+            .displayHorizontal()
+            .displayExpandWidthBy(0.2);
+
+
+        plot.drawBrokenCurveWithPoints(x, y);
+
+        sciplot::Figure fig = {{plot}};
+        sciplot::Canvas canvas = {{fig}};
+        canvas.show();
+        canvas.save(sav_path+"/"+name_y+".pdf");
+
+
+    }
+
+    void DrawPoint(const std::vector<double> &data_y,const std::vector<double> &data_x){
+
+
+    }
 
 
 

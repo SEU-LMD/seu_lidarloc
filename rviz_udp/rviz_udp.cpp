@@ -35,13 +35,10 @@ int main(int argc, char** argv){
     int client_port = 8000;
     udp_client.init(client_port);  //只用来接受只绑定端口
 
-    ros::Rate rate(100);
-    while(ros::ok){
+    while(1){
         udp_client.recvProcess();
         std::cout<<udp_client.rcv_msg<<std::endl;
         PubilshOdometry(udp_client);
-        ros::spinOnce(); // 处理订阅和发布的消息
-        rate.sleep();
     }
 
 }
@@ -61,7 +58,6 @@ void PubilshOdometry(const UDP_CLENT& client){
         gnss_msg.pose.pose.orientation.y = vis_Odometry.q.y();
         gnss_msg.pose.pose.orientation.z = vis_Odometry.q.z();
         gnss_msg.pose.pose.orientation.w = vis_Odometry.q.w();
-
         publish_gnss_odom.publish(gnss_msg);
     }
     //"li" means lio
@@ -76,9 +72,7 @@ void PubilshOdometry(const UDP_CLENT& client){
         lida_msg.pose.pose.orientation.y = vis_Odometry.q.y();
         lida_msg.pose.pose.orientation.z = vis_Odometry.q.z();
         lida_msg.pose.pose.orientation.w = vis_Odometry.q.w();
-
         publish_lidar_odom.publish(lida_msg);
-
     }
     else if(vis_Odometry.type=="dr"){
         nav_msgs::Odometry dr_msg;
@@ -105,7 +99,6 @@ void PubilshOdometry(const UDP_CLENT& client){
         dr_msg.pose.pose.orientation.y = vis_Odometry.q.y();
         dr_msg.pose.pose.orientation.z = vis_Odometry.q.z();
         dr_msg.pose.pose.orientation.w = vis_Odometry.q.w();
-
         publish_fu_odom.publish(dr_msg);
     }
 
