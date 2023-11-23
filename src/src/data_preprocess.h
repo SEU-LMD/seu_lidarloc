@@ -64,6 +64,8 @@ public:
     std::string topic_gnss_odom_world_origin = "/gnss_odom_world_origin";
     std::string topic_deskw_cloud_to_ft_world = "/deskw_cloud_to_ft_world";
     std::string topic_gnss_odom_only42 = "/gnss_odom_only42";
+    std::string topic_gnss_odom_only42_xy = "/gnss_odom_only42_xy";
+    std::string topic_gnss_odom_world_xy = "/gnss_odom_world_xy";
 
     pcl::PointCloud<PointType>::Ptr deskewCloud_body;//去畸变之后的全部点云
     cv::Mat rangeMat;
@@ -633,12 +635,18 @@ public:
             PoseT T_w_b(t_w_b, R_w_b);
             PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
 
-            OdometryType T_w_l_pub;
+            OdometryType T_w_l_pub,T_w_l_pub_xy;
             T_w_l_pub.frame = "map";
             T_w_l_pub.timestamp = data.timestamp;
             T_w_l_pub.pose = T_w_l;
-            pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
 
+            T_w_l_pub_xy.frame = "map";
+            T_w_l_pub_xy.timestamp = T_w_l_pub.timestamp;
+            T_w_l_pub_xy.pose = T_w_l_pub.pose;
+            T_w_l_pub_xy.pose.pose(2,3) = 0;
+
+            pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
+            pubsub->PublishOdometry(topic_gnss_odom_world_xy, T_w_l_pub_xy);
 
             return false;
         }
@@ -708,7 +716,7 @@ public:
         }
 
         PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
-        OdometryType T_w_l_pub;
+        OdometryType T_w_l_pub,T_w_l_pub_xy;
         T_w_l_pub.frame = "map";
         T_w_l_pub.timestamp = data.timestamp;
         T_w_l_pub.pose = T_w_l;
@@ -719,8 +727,16 @@ public:
         T_w_l_pub.cov[4] =  data.rpy_sigma[1];
         T_w_l_pub.cov[5] =  data.rpy_sigma[2];
 
+        T_w_l_pub_xy.frame = "map";
+        T_w_l_pub_xy.timestamp = T_w_l_pub.timestamp;
+        T_w_l_pub_xy.pose = T_w_l_pub.pose;
+        T_w_l_pub_xy.pose.pose(2,3) = 0;
+
         pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
         pubsub->PublishOdometry(topic_gnss_odom_only42, T_w_l_pub);
+        pubsub->PublishOdometry(topic_gnss_odom_world_xy, T_w_l_pub_xy);
+        pubsub->PublishOdometry(topic_gnss_odom_only42_xy, T_w_l_pub_xy);
+
 
         gnss_mutex.lock();
         GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
@@ -748,7 +764,9 @@ public:
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
+        pubsub->addPublisher(topic_gnss_odom_world_xy, DataType::ODOMETRY,2000);
         pubsub->addPublisher(topic_gnss_odom_only42, DataType::ODOMETRY,2000);
+        pubsub->addPublisher(topic_gnss_odom_only42_xy, DataType::ODOMETRY,2000);
         pubsub->addPublisher(topic_gnss_odom_world_origin, DataType::ODOMETRY,2000);
 
         do_work_thread = new std::thread(&DataPreprocess::DoWork, this);

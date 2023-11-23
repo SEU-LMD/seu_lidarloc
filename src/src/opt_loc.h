@@ -852,14 +852,14 @@ public:
 
                 if (LMOptimization(iterCount) == true) {
                     lidarOptSuccessCnt++;
-//                    EZLOG(INFO)<<"LMOptimization Success!!: "
-//                               << " iterCount: "<<iterCount
-//                               <<" optimize_time in ms:"<<optimize_time.toc();
+                    EZLOG(INFO)<<"LMOptimization Success!!: "
+                               << " iterCount: "<<iterCount
+                               <<" optimize_time in ms:"<<optimize_time.toc();
                     break;
                 }
             }
             lidarframeCnt++;
-//            EZLOG(INFO)<<"Lidar Loc OPT successful ratio is: "<<(1.0 * lidarOptSuccessCnt / lidarframeCnt)*100.0 <<" %";
+            EZLOG(INFO)<<"Lidar Loc OPT successful ratio is: "<<(1.0 * lidarOptSuccessCnt / lidarframeCnt)*100.0 <<" %";
             transformUpdate();
         } else {
 //            EZLOG(INFO) <<"Not enough features! : ";
@@ -938,7 +938,6 @@ public:
         { //for debug use
             pubsub->PublishOdometry(topic_lidar_origin_odometry, current_Lidar_pose);
         }
-
 
         // save key poses
         PointType thisPose3D;

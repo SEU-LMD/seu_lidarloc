@@ -5,7 +5,7 @@ slam_mode_on: 1
 
 # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!
-save_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/road_loop_out/"
+save_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/park20_out/"
 # 1 use DR , 0 use fuse
 use_DR_or_fuse_in_loc: 0
 
@@ -58,22 +58,61 @@ GNSSBetweenOrPrior: 1
 ifRollBack: 1
 updateFrequencyFrameCnt: 100
 
-# road_loop
+## road_loop---good in 11-22 16:12
+#GNSS_noise_roll: 1
+#GNSS_noise_pitch: 1
+#GNSS_noise_yaw: 1
+#GNSS_noise_x: 3e-1
+#GNSS_noise_y: 3e-1
+#GNSS_noise_z: 100
+#LidarOdom_noise_roll: 1e-3
+#LidarOdom_noise_pitch: 1e-3
+#LidarOdom_noise_yaw: 1e-3
+#LidarOdom_noise_x: 1e-4
+#LidarOdom_noise_y: 1e-3
+#LidarOdom_noise_z: 1e-3
+#DR_noise_roll: 1e-1
+#DR_noise_pitch: 1e-1
+#DR_noise_yaw: 1e-1
+#DR_noise_x: 0.05
+#DR_noise_y: 0.1
+#DR_noise_z: 1e-1
+
+#yuanqu
+#GNSS_noise_roll: 1
+#GNSS_noise_pitch: 1
+#GNSS_noise_yaw: 1
+#GNSS_noise_x: 3e-2
+#GNSS_noise_y: 3e-2
+#GNSS_noise_z: 1
+#LidarOdom_noise_roll: 1e-6
+#LidarOdom_noise_pitch: 1e-6
+#LidarOdom_noise_yaw: 1e-6
+#LidarOdom_noise_x: 1e-6
+#LidarOdom_noise_y: 1e-6
+#LidarOdom_noise_z: 1e-6
+#DR_noise_roll: 1
+#DR_noise_pitch: 1
+#DR_noise_yaw: 1
+#DR_noise_x: 1
+#DR_noise_y: 1
+#DR_noise_z: 1e-1
+
 GNSS_noise_roll: 1
 GNSS_noise_pitch: 1
 GNSS_noise_yaw: 1
-GNSS_noise_x: 3e-1
-GNSS_noise_y: 3e-1
-GNSS_noise_z: 100
-LidarOdom_noise_roll: 1e-3
-LidarOdom_noise_pitch: 1e-3
-LidarOdom_noise_yaw: 1e-3
-LidarOdom_noise_x: 1e-3
-LidarOdom_noise_y: 1e-3
-LidarOdom_noise_z: 1e-3
-DR_noise_roll: 1e-1
-DR_noise_pitch: 1e-1
-DR_noise_yaw: 1e-1
-DR_noise_x: 0.1
-DR_noise_y: 0.1
+GNSS_noise_x: 3e-2
+GNSS_noise_y: 3e-2
+GNSS_noise_z: 1
+LidarOdom_noise_roll: 1e-6
+LidarOdom_noise_pitch: 1e-6
+LidarOdom_noise_yaw: 1e-6
+LidarOdom_noise_x: 1e-6
+LidarOdom_noise_y: 1e-6
+LidarOdom_noise_z: 1e-6
+DR_noise_roll: 1e-6
+DR_noise_pitch: 1e-6
+DR_noise_yaw: 1e-6
+DR_noise_x: 1e-6
+DR_noise_y: 1e-6
 DR_noise_z: 1e-1

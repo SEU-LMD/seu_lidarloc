@@ -74,8 +74,10 @@ public:
     bool if_asb_loc_arrived = 0;//TODO :if abs loc arrived
 
     std::string topic_highHz_pose = "/loc_result";
+    std::string topic_highHz_pose_xy = "/loc_result_xy";
     std::string topic_testforRollBack_pose = "/loc_result_roll_back";
     std::string topic_current_lidar_pose = "/loc_lidar_result";
+    std::string topic_current_lidar_pose_xy = "/loc_lidar_result_xy";
 
     std::shared_ptr<UDP_THREAD> udp_thread;
 
@@ -188,7 +190,9 @@ public:
 
         //TODO 1111 MDC???
         pubsub->addPublisher(topic_highHz_pose, DataType::ODOMETRY, 10);
+        pubsub->addPublisher(topic_highHz_pose_xy, DataType::ODOMETRY, 10);
         pubsub->addPublisher(topic_current_lidar_pose, DataType::ODOMETRY, 10);
+        pubsub->addPublisher(topic_current_lidar_pose_xy, DataType::ODOMETRY, 10);
         pubsub->addPublisher(topic_testforRollBack_pose, DataType::ODOMETRY, 10);
 
         HighFrequencyLoc_thread = new std::thread(&Fuse::DoWork, this);
@@ -301,7 +305,15 @@ public:
                         current_lidar_world.frame = "map";
                         current_lidar_world.timestamp = current_data_time;
                         current_lidar_world.pose.pose = current_pose.pose;
+
+                        OdometryType current_lidar_world_xy;
+                        current_lidar_world_xy.frame = "map";
+                        current_lidar_world_xy.timestamp = current_data_time;
+                        current_lidar_world_xy.pose.pose = Odom_Li_temp->pose.pose;
+                        current_lidar_world_xy.pose.pose(2,3) = 0;
+
                         pubsub->PublishOdometry(topic_current_lidar_pose, current_lidar_world);
+                        pubsub->PublishOdometry(topic_current_lidar_pose_xy, current_lidar_world_xy);
 
                         if(LocConfig::ifRollBack == 1){
 //                            last_pose_fromRollBack = DR_T_w_bc_rollback;
@@ -353,7 +365,15 @@ public:
                             loc_result.pose.pose = last_DR_pose_for_predict.pose * delta_pose_DR.pose;
                         }
                         // 4.iteration settings and pub the high frequency loc result
+                        OdometryType loc_result_xy;
+                        loc_result_xy.pose = loc_result.pose;
+                        loc_result_xy.timestamp = loc_result.timestamp;
+                        loc_result_xy.frame_cnt = loc_result.frame_cnt;
+                        loc_result_xy.frame = loc_result.frame;
+                        loc_result_xy.pose.pose(2, 3) = 0;
+
                         pubsub->PublishOdometry(topic_highHz_pose, loc_result);
+                        pubsub->PublishOdometry(topic_highHz_pose_xy, loc_result_xy);
 
                         if(LocConfig::use_DR_or_fuse_in_loc == 0){
                             Function_AddOdometryTypeTodataPreprocess(loc_result);
