@@ -488,10 +488,12 @@ public:
             cloudinfo.timestamp = cur_scan->timestamp;
           //  EZLOG(INFO)<<"time_dataprep_1.toc() = "<<time_dataprep_1.toc()<<endl;
 
-            if(cloudinfo.pose_reliable == false || frame_id % 100 == 0){
-                EZLOG(INFO)<<"find gnss pose num = "<<GNSS_frames<<" / "<<frame_id<<" = "<<(float)GNSS_frames/(float)frame_id;
+            if(cloudinfo.pose_reliable == false){
+                ++GNSS_frames;
+                if(GNSS_frames % 10 == 0)
+                    EZLOG(INFO)<<"find bad gnss pose num = "<<GNSS_frames<<" / "<<frame_id<<" = "<<(float)GNSS_frames/(float)frame_id;
             }
-            ++GNSS_frames;
+
 
             /// 1.FindLidarFirstPose
             PoseT T_w_l_lidar_first_pose;
