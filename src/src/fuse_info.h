@@ -225,7 +225,7 @@ public:
                         if(lidar_keyFrame_cnt == 0){
 
                             gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(0, Lidar_T_w_Li_factor,
-                                                                            priorNoise));
+                                                                            DRNoise));
                             initialEstimate.insert(0, Lidar_T_w_Li_factor);
 
                             Lidar_T_w_Li_1_factor = Lidar_T_w_Li_factor;
@@ -260,10 +260,14 @@ public:
 
 //                          ADD Lidar factor
 //                          ------Li_1-DRi_1 --------Li-Di--------
-                            gtSAMgraph.add(gtsam::BetweenFactor<gtsam::Pose3>(
-                                    lidar_keyFrame_cnt - 1, lidar_keyFrame_cnt,
-                                    Lidar_T_w_Li_1_factor.between(Lidar_T_w_Li_factor), odometryNoise));
-                            initialEstimate.insert(lidar_keyFrame_cnt, Lidar_T_w_Li_factor);
+//                            gtSAMgraph.add(gtsam::BetweenFactor<gtsam::Pose3>(
+//                                    lidar_keyFrame_cnt - 1, lidar_keyFrame_cnt,
+//                                    Lidar_T_w_Li_1_factor.between(Lidar_T_w_Li_factor), odometryNoise));
+                            gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(
+                                    lidar_keyFrame_cnt,
+                                    Lidar_T_w_Li_factor, odometryNoise));
+
+                                    initialEstimate.insert(lidar_keyFrame_cnt, Lidar_T_w_Li_factor);
 
 
 //                          ADD GNSS factor

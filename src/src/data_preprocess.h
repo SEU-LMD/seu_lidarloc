@@ -529,28 +529,6 @@ public:
             TicToc time_dataprep_2;
             ///4. send data to feature extraction node
             Function_AddCloudInfoToFeatureExtraction(cloudinfo);
-           // EZLOG(INFO)<<"time_dataprep_2 = "<<time_dataprep_2.toc()<<endl;
-           // EZLOG(INFO)<<"CloudInfo size:"<<cloudinfo.cloud_ptr -> points.size()
-           // <<" "<< cloudinfo.cloud_ground_down -> points.size()
-           // <<" "<< cloudinfo.cloud_ground -> points.size()
-           // <<" "<< cloudinfo.cloud_unground -> points.size()<<endl;
-                    TicToc time_dataprep_2;
-                    ///4. send data to feature extraction node
-                    if(!IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
-                        cloudinfo.pose_reliable = false;
-                    }
-
-                    Function_AddCloudInfoToFeatureExtraction(cloudinfo);
-                   // EZLOG(INFO)<<"time_dataprep_2 = "<<time_dataprep_2.toc()<<endl;
-                   // EZLOG(INFO)<<"CloudInfo size:"<<cloudinfo.cloud_ptr -> points.size()
-                   // <<" "<< cloudinfo.cloud_ground_down -> points.size()
-                   // <<" "<< cloudinfo.cloud_ground -> points.size()
-                   // <<" "<< cloudinfo.cloud_unground -> points.size()<<endl;
-
-//                    EZLOG(INFO)<<"cloudinfo.frame_id"<< cloudinfo.frame_id<<endl;
-//                    EZLOG(INFO)
-//                            << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
-//                            << cloudinfo.cloud_ptr->points.size();
             ///5.pop used odom
             TicToc time_dataprep_3;
             const double thresh = cloud_max_ros_timestamp - 0.05f;
