@@ -57,19 +57,28 @@ public:
                    << p.z() << " " << q.x() << " " << q.y() << " " << q.z() << " "
                    << q.w() << std::endl;
         }
+
     }
 
-    static void SaveCorrectPoses(const std::vector<PoseT>& opt_poses){
-        std::fstream stream(MappingConfig::save_map_path + "correct_opt_poses.txt",std::fstream::out);
-        stream.precision(6);
-        for (int i = 0; i < opt_poses.size(); i++) {
-            Eigen::Vector3d p = opt_poses[i].GetXYZ();
-            Eigen::Quaterniond  q = opt_poses[i].GetQ();
-            stream << i << " " << p.x() << " " << p.y() << " "
-                   << p.z() << " " << q.x() << " " << q.y() << " " << q.z() << " "
-                   << q.w() << std::endl;
+    static void SaveCorrectPoses(const vector<pair<PointType,PointType>>& beforeLoopOpt, const  vector<pair<PointType,PointType>>& afterLoopOpt){
+        std::fstream stream1(MappingConfig::save_map_path + "correct_opt_poses.txt",std::fstream::out);
+        std::fstream stream2(MappingConfig::save_map_path + "before_correct_opt_poses.txt",std::fstream::out);
+        stream1.precision(6);
+        stream2.precision(6);
+        assert(beforeLoopOpt.size() == afterLoopOpt.size());
+        for (int i = 0; i < beforeLoopOpt.size(); i++) {
+            PointType  before = beforeLoopOpt[i].first;
+            PointType  after = afterLoopOpt[i].first;
+            PointType  pre = beforeLoopOpt[i].second;
+            stream2 << before.x << " " <<before.y << " "<< before.z << std::endl;
+            stream1 << after.x << " " <<after.y << " "<< after.z << std::endl;
+            stream1 << pre.x << " " <<pre.y << " "<< pre.z << std::endl;
         }
+        stream1.close();
+        stream2.close();
     }
+
+
 
     void do_work(){
         while(1){

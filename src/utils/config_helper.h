@@ -65,6 +65,7 @@ class SensorConfig{
 class MappingConfig{
     public:
         static int slam_mode_switch;
+        static int if_loop_to_end;
 
         static Eigen::Vector3d origin_gnss;
         static bool use_deskew;
@@ -109,6 +110,20 @@ class MappingConfig{
         static float historyKeyframeSearchTimeDiff;
         static int historyKeyframeSearchNum;
         static float  historyKeyframeFitnessScore;//
+
+
+        static Eigen::Vector3d  GNSS_noise_rpy;
+        static Eigen::Vector3d  GNSS_noise_xyz;
+
+        static Eigen::Vector3d  LidarOdom_noise_rpy;
+        static Eigen::Vector3d  LidarOdom_noise_xyz;
+
+        static Eigen::Vector3d  DR_noise_rpy;
+        static Eigen::Vector3d  DR_noise_xyz;
+
+        static Eigen::Vector3d Loop_noise_rpy;
+        static Eigen::Vector3d Loop_noise_xyz;
+
 
         static double GNSS_noise_roll;
         static double GNSS_noise_pitch;
@@ -313,6 +328,7 @@ bool SensorConfig::use_unground_classify = false;
 int SensorConfig::lidarScanDownSample = 2;
 
 int MappingConfig::slam_mode_switch = 0;
+int MappingConfig::if_loop_to_end = 0;
 std::string MappingConfig::save_map_path = "";
 
 Eigen::Vector3d MappingConfig::origin_gnss = Eigen::Vector3d(0,0,0);
@@ -357,6 +373,19 @@ int MappingConfig::historyKeyframeSearchNum=-1;
 float MappingConfig::historyKeyframeFitnessScore=-1;
 
 //GTSAM
+
+Eigen::Vector3d  MappingConfig::GNSS_noise_rpy;
+Eigen::Vector3d  MappingConfig::GNSS_noise_xyz;
+
+Eigen::Vector3d  MappingConfig::LidarOdom_noise_rpy;
+Eigen::Vector3d  MappingConfig::LidarOdom_noise_xyz;
+
+Eigen::Vector3d  MappingConfig::DR_noise_rpy;
+Eigen::Vector3d  MappingConfig::DR_noise_xyz;
+
+Eigen::Vector3d MappingConfig::Loop_noise_rpy;
+Eigen::Vector3d MappingConfig::Loop_noise_xyz;
+
 double MappingConfig::GNSS_noise_roll=1e-2;
 double MappingConfig::GNSS_noise_pitch =1e-2;
 double MappingConfig::GNSS_noise_yaw = 1e-2;
@@ -498,11 +527,25 @@ std::string UdpConfig::cleint_ip = " ";
 int UdpConfig::clinet_port = -1;
 int UdpConfig::server_port = -1;
 
+void checkpath(std::string &path){
+    if(path.back() != '/')
+        path += "/";
+}
+
+void chechAllPath(){
+    checkpath(MappingConfig::save_map_path);
+    checkpath( LocConfig::save_map_path);
+    checkpath(SerializeConfig::map_in_path);
+    checkpath(SerializeConfig::map_out_path);
+}
+
 void SetOptMappingMode(){
+    chechAllPath();
     FrontEndConfig::slam_mode_switch = 1;
 }
 
 void SetOptLocationMode(){
+    chechAllPath();
     FrontEndConfig::slam_mode_switch = 0;
 }
 
@@ -603,6 +646,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         }
 
         MappingConfig::slam_mode_switch = mappingconfig["slam_mode_switch"].as<int>();
+        MappingConfig::if_loop_to_end = mappingconfig["if_loop_to_end"].as<int>();
 
         MappingConfig::save_map_path = mappingconfig["save_map_path"].as<std::string>();
 
@@ -647,6 +691,44 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::historyKeyframeSearchTimeDiff=mappingconfig["historyKeyframeSearchTimeDiff"].as<float >();
         MappingConfig::historyKeyframeSearchNum=mappingconfig["historyKeyframeSearchNum"].as<int >();
         MappingConfig::historyKeyframeFitnessScore=mappingconfig["historyKeyframeFitnessScore"].as<float >();
+
+        MappingConfig::GNSS_noise_rpy<< mappingconfig["GNSS_noise_rpy"][0].as<double >(),
+                                        mappingconfig["GNSS_noise_rpy"][1].as<double >(),
+                                        mappingconfig["GNSS_noise_rpy"][2].as<double >();
+
+    MappingConfig::GNSS_noise_rpy<< mappingconfig["GNSS_noise_rpy"][0].as<double >(),
+            mappingconfig["GNSS_noise_rpy"][1].as<double >(),
+            mappingconfig["GNSS_noise_rpy"][2].as<double >();
+
+    MappingConfig::GNSS_noise_xyz<< mappingconfig["GNSS_noise_xyz"][0].as<double >(),
+            mappingconfig["GNSS_noise_xyz"][1].as<double >(),
+            mappingconfig["GNSS_noise_xyz"][2].as<double >();
+
+    MappingConfig::LidarOdom_noise_rpy<< mappingconfig["LidarOdom_noise_rpy"][0].as<double >(),
+            mappingconfig["LidarOdom_noise_rpy"][1].as<double >(),
+            mappingconfig["LidarOdom_noise_rpy"][2].as<double >();
+
+    MappingConfig::LidarOdom_noise_xyz<< mappingconfig["LidarOdom_noise_xyz"][0].as<double >(),
+            mappingconfig["LidarOdom_noise_xyz"][1].as<double >(),
+            mappingconfig["LidarOdom_noise_xyz"][2].as<double >();
+
+    MappingConfig::DR_noise_rpy<< mappingconfig["DR_noise_rpy"][0].as<double >(),
+            mappingconfig["DR_noise_rpy"][1].as<double >(),
+            mappingconfig["DR_noise_rpy"][2].as<double >();
+
+    MappingConfig::DR_noise_xyz<< mappingconfig["DR_noise_xyz"][0].as<double >(),
+            mappingconfig["DR_noise_xyz"][1].as<double >(),
+            mappingconfig["DR_noise_xyz"][2].as<double >();
+
+    MappingConfig::Loop_noise_rpy<< mappingconfig["Loop_noise_rpy"][0].as<double >(),
+            mappingconfig["Loop_noise_rpy"][1].as<double >(),
+            mappingconfig["Loop_noise_rpy"][2].as<double >();
+
+    MappingConfig::Loop_noise_xyz<< mappingconfig["Loop_noise_xyz"][0].as<double >(),
+            mappingconfig["Loop_noise_xyz"][1].as<double >(),
+            mappingconfig["Loop_noise_xyz"][2].as<double >();
+
+
 
         MappingConfig::GNSS_noise_roll = mappingconfig["GNSS_noise_roll"].as<double>();
         MappingConfig::GNSS_noise_pitch = mappingconfig["GNSS_noise_pitch"].as<double>();
