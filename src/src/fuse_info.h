@@ -383,7 +383,7 @@ public:
                             Function_AddOdometryTypeTodataPreprocess(loc_result);
                         }
                         // TODO loc_result->>>>>>> is high frequency loc result need UDP
-                        Udp_OdomPub(current_DR_pose);
+                        Udp_OdomPub(loc_result.pose);
                         last_DR_pose_for_predict = current_DR_pose;
 //                        EZLOG(INFO)<<"Fuse DR Frequency : "<<1.0 / t2.toc();
                         break;
