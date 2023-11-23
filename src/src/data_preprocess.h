@@ -63,7 +63,9 @@ public:
     std::string topic_gnss_odom_world = "/gnss_odom_world";
     std::string topic_gnss_odom_world_origin = "/gnss_odom_world_origin";
     std::string topic_deskw_cloud_to_ft_world = "/deskw_cloud_to_ft_world";
-    std::string topic_imuodom_curlidartime_world = "/imuodom_curlidartime_world";
+    std::string topic_gnss_odom_only42 = "/gnss_odom_only42";
+    std::string topic_gnss_odom_only42_xy = "/gnss_odom_only42_xy";
+    std::string topic_gnss_odom_world_xy = "/gnss_odom_world_xy";
 
     pcl::PointCloud<PointType>::Ptr deskewCloud_body;//去畸变之后的全部点云
     cv::Mat rangeMat;
@@ -284,7 +286,7 @@ public:
             //very important function@!!!!!!!!!
             if (SensorConfig::use_drodom_deskew){
                 if(cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp < 0){
-                    EZLOG(INFO)<<"wrong! latency!";
+//                    EZLOG(INFO)<<"wrong! latency!";
                     continue;
                 }
                 thisPoint = DeskewPoint(&thisPoint,
@@ -486,10 +488,12 @@ public:
             cloudinfo.timestamp = cur_scan->timestamp;
           //  EZLOG(INFO)<<"time_dataprep_1.toc() = "<<time_dataprep_1.toc()<<endl;
 
-            if(cloudinfo.pose_reliable == false || frame_id % 100 == 0){
-                EZLOG(INFO)<<"find gnss pose num = "<<GNSS_frames<<" / "<<frame_id<<" = "<<(float)GNSS_frames/(float)frame_id;
+            if(cloudinfo.pose_reliable == false){
+                ++GNSS_frames;
+                if(GNSS_frames % 10 == 0)
+                    EZLOG(INFO)<<"find bad gnss pose num = "<<GNSS_frames<<" / "<<frame_id<<" = "<<(float)GNSS_frames/(float)frame_id;
             }
-            ++GNSS_frames;
+
 
             /// 1.FindLidarFirstPose
             PoseT T_w_l_lidar_first_pose;
@@ -527,16 +531,6 @@ public:
             TicToc time_dataprep_2;
             ///4. send data to feature extraction node
             Function_AddCloudInfoToFeatureExtraction(cloudinfo);
-           // EZLOG(INFO)<<"time_dataprep_2 = "<<time_dataprep_2.toc()<<endl;
-           // EZLOG(INFO)<<"CloudInfo size:"<<cloudinfo.cloud_ptr -> points.size()
-           // <<" "<< cloudinfo.cloud_ground_down -> points.size()
-           // <<" "<< cloudinfo.cloud_ground -> points.size()
-           // <<" "<< cloudinfo.cloud_unground -> points.size()<<endl;
-
-//                    EZLOG(INFO)<<"cloudinfo.frame_id"<< cloudinfo.frame_id<<endl;
-//                    EZLOG(INFO)
-//                            << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
-//                            << cloudinfo.cloud_ptr->points.size();
             ///5.pop used odom
             TicToc time_dataprep_3;
             const double thresh = cloud_max_ros_timestamp - 0.05f;
@@ -587,11 +581,7 @@ public:
     bool GnssQualityCheck(const GNSSINSType& data){
 //        EZLOG(INFO)<<setprecision(14)<<data.timestamp<<" data.gps_status: "<<data.gps_status;
         if(data.lla[0]<0 || data.lla[1]<0 || data.lla[2]<0){
-            //EZLOG(INFO)<<"Bad GNSS in DataPre,drop!";
-            return false;
-        }
-        if(data.gps_status != 42){
-            EZLOG(INFO)<<"Bad GNSS value in DataPre,drop!: "<<data.lla.transpose() ;
+//            EZLOG(INFO)<<"Bad GNSS value in DataPre,drop!: "<<data.lla.transpose() ;
             return false;
         }
         return true;
@@ -651,14 +641,16 @@ public:
         Eigen::Quaterniond q_w_b(R_w_b);//获得局部坐标系的四元数
         PoseT T_w_b(t_w_b, R_w_b);
 
-        OdometryType T_w_b_pub_origin;
-        T_w_b_pub_origin.frame = "map";
-        T_w_b_pub_origin.timestamp = data.timestamp;
-        T_w_b_pub_origin.pose = T_w_b;
+        if(FrontEndConfig::if_debug){
+            OdometryType T_w_b_pub_origin;
+            T_w_b_pub_origin.frame = "map";
+            T_w_b_pub_origin.timestamp = data.timestamp;
+            T_w_b_pub_origin.pose = T_w_b;
+            pubsub->PublishOdometry(topic_gnss_odom_world_origin, T_w_b_pub_origin);
+        }
 
-        pubsub->PublishOdometry(topic_gnss_odom_world_origin, T_w_b_pub_origin);
         PoseT T_w_l = PoseT(T_w_b.pose*(SensorConfig::T_L_B.inverse())); // Pw = Twb * Tbl * Pl
-        OdometryType T_w_l_pub;
+        OdometryType T_w_l_pub,T_w_l_pub_xy;
         T_w_l_pub.frame = "map";
         T_w_l_pub.timestamp = data.timestamp;
         T_w_l_pub.pose = T_w_l;
@@ -670,13 +662,19 @@ public:
         T_w_l_pub.cov[5] =  data.rpy_sigma[2];
         T_w_l_pub.GTpose_reliability = false;
 
-        if(FrontEndConfig::if_debug) {
-            pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
-        }
+        T_w_l_pub_xy.frame = "map";
+        T_w_l_pub_xy.timestamp = T_w_l_pub.timestamp;
+        T_w_l_pub_xy.pose = T_w_l_pub.pose;
+        T_w_l_pub_xy.pose.pose(2,3) = 0;
+
+        pubsub->PublishOdometry(topic_gnss_odom_world, T_w_l_pub);
+        pubsub->PublishOdometry(topic_gnss_odom_world_xy, T_w_l_pub_xy);
 
         if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")) { // if
             if(data.gps_status == 42){
                 T_w_l_pub.GTpose_reliability = true;
+                pubsub->PublishOdometry(topic_gnss_odom_only42_xy, T_w_l_pub_xy);
+                pubsub->PublishOdometry(topic_gnss_odom_only42, T_w_l_pub);
             }
             gnss_mutex.lock();
             GNSSQueue.push_back(T_w_l_pub);//TODO Receive DR     Done--receive gnss to align with lidar
@@ -685,13 +683,6 @@ public:
                 Udp_OdomPub(T_w_l,"gn");
             }
         }
-        else{
-        //TODO
-//            EZLOG(INFO)<<"CONTROL! NO GNSS!"<<ABS_CURRENT_SOURCE_PATH+"/flag_gnss";
-            Udp_OdomPub(T_w_l,"ng");
-//            exit(-1);
-        }
-
     }
 
     void AddDrOdomData(const OdometryType& data){
@@ -711,8 +702,10 @@ public:
         pubsub->addPublisher(topic_deskew_cloud_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_deskw_cloud_to_ft_world,DataType::LIDAR,1);
         pubsub->addPublisher(topic_gnss_odom_world, DataType::ODOMETRY,2000);
+        pubsub->addPublisher(topic_gnss_odom_world_xy, DataType::ODOMETRY,2000);
+        pubsub->addPublisher(topic_gnss_odom_only42, DataType::ODOMETRY,2000);
+        pubsub->addPublisher(topic_gnss_odom_only42_xy, DataType::ODOMETRY,2000);
         pubsub->addPublisher(topic_gnss_odom_world_origin, DataType::ODOMETRY,2000);
-        pubsub->addPublisher(topic_imuodom_curlidartime_world, DataType::ODOMETRY,2000);
 
         do_work_thread = new std::thread(&DataPreprocess::DoWork, this);
         EZLOG(INFO)<<"DataPreprocess init success!"<<std::endl;

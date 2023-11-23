@@ -48,8 +48,6 @@ public:
     std::mutex mtxGraph;
     std::mutex mutex_priorMap;
 
-    std::string topic_priorMap_corner_mapManger = "/Prior_map_corner_MM";
-    std::string topic_priorMap_surf_mapManger = "/Prior_map_surf_MM";
     std::deque<std::shared_ptr<OdometryType>> data_deque;
 
     //是否更新标志位
@@ -114,7 +112,7 @@ public:
                        pcl::PointCloud<PointType>::Ptr &surf_map){
         corner_map = laser_cloud_corner_from_map;
         surf_map  = laser_cloud_surf_from_map;
-        EZLOG(INFO)<<"6 map_loader to Loc, corner map size is: "<<corner_map->points.size()<<" surf_map size is: "<<surf_map->points.size();
+//        EZLOG(INFO)<<"6 map_loader to Loc, corner map size is: "<<corner_map->points.size()<<" surf_map size is: "<<surf_map->points.size();
     }
 
     void MapmanagerInitialized(const std::string& map_read_path){
@@ -123,7 +121,7 @@ public:
         std::getline(file, line); // 读取第一行并存储到line中
         std::istringstream iss(line);
         iss >> x_min_t >> y_min_t; //
-        EZLOG(INFO)<<x_min_t<<"   "<<y_min_t<<std::endl;
+       // EZLOG(INFO)<<x_min_t<<"   "<<y_min_t<<std::endl;
         std::getline(file, line); // 读取第一行并存储到line中
         std::istringstream is(line);
         is >> lasercloud_width >> lasercloud_height; //
@@ -132,7 +130,7 @@ public:
             std::string string_index;
             std::istringstream isss(line);
             isss >> string_feature >> string_index;
-            EZLOG(INFO)<<string_feature<<"   "<<string_index<<std::endl;
+//            EZLOG(INFO)<<string_feature<<"   "<<string_index<<std::endl;
             if(string_feature=="corner")  corner_empty.push_back(string_index);
             else if(string_feature=="surf") surf_empty.push_back(string_index);
         }
@@ -188,8 +186,8 @@ public:
         lasercloud_index[1]=lasercloud_index[0]+1;
         lasercloud_index[2]=lasercloud_index[0]+lasercloud_width;
         lasercloud_index[3]=lasercloud_index[2]+1;
-        EZLOG(INFO)<<"lasercloud_index[0]:"<<lasercloud_index[0]<<std::endl;
-        EZLOG(INFO)<<"lasercloud_index[2]:"<<lasercloud_index[2]<<std::endl;
+//        EZLOG(INFO)<<"lasercloud_index[0]:"<<lasercloud_index[0]<<std::endl;
+//        EZLOG(INFO)<<"lasercloud_index[2]:"<<lasercloud_index[2]<<std::endl;
 
         for(int k=0; k<SerializeConfig::up2down_num*SerializeConfig::up2down_num; ++k){
             if(feature_string=="corner"){
@@ -217,7 +215,7 @@ public:
             return;
         }
         MallocMeomery(index,feature);
-        EZLOG(INFO)<<"begin_loop"<<std::endl;
+//        EZLOG(INFO)<<"begin_loop"<<std::endl;
         for (const MyPointType& point : *loadcloud){
             PointType outpoint;
             outpoint.x=point.x;
@@ -232,7 +230,7 @@ public:
             else if(feature=="surf")
                 laser_cloud_surf_array[point.down_grid_index]->push_back(outpoint);
         }
-        EZLOG(INFO)<<"end_loop"<<std::endl;
+//        EZLOG(INFO)<<"end_loop"<<std::endl;
     }
 
 
@@ -261,7 +259,7 @@ public:
             begin_load_cubeJ = center_cubeJ == 1 ? 0 : lasercloud_height - 5;
         }
         else begin_load_cubeJ=center_cubeJ-2;
-        EZLOG(INFO)<<"loadbegin："<<begin_load_cubeI<<" "<<" "<<begin_load_cubeJ<<std::endl;
+//        EZLOG(INFO)<<"loadbegin："<<begin_load_cubeI<<" "<<" "<<begin_load_cubeJ<<std::endl;
         //需要加载的索引以及寻找是否已经加载
         int k=0;
         for (int i=begin_load_cubeJ; i<begin_load_cubeJ+5; ++i) {
@@ -279,9 +277,9 @@ public:
                 if(!is_in_memeroy){
                     bool isconer_empty= false;
                     bool issurf_empty= false;
-                    EZLOG(INFO)<<"laser_cloud_load_ind[k]: "<<laser_cloud_load_ind[k];
+//                    EZLOG(INFO)<<"laser_cloud_load_ind[k]: "<<laser_cloud_load_ind[k];
                     std::string laod_up_grid_string=int2up_grid_index(laser_cloud_load_ind[k]);
-                    EZLOG(INFO)<<"laod_up_grid_string"<<laod_up_grid_string<<std::endl;
+//                    EZLOG(INFO)<<"laod_up_grid_string"<<laod_up_grid_string<<std::endl;
                     for(const auto& pair : corner_empty){
                         if(pair==laod_up_grid_string){
                             isconer_empty=true;
@@ -372,7 +370,7 @@ public:
 
         int center_cubeI=static_cast<int>(std::floor(gnsspostion.x-x_min_t)/(SerializeConfig::up_grid_size/SerializeConfig::up2down_num));
         int center_cubeJ=static_cast<int>(std::floor(gnsspostion.y-y_min_t)/(SerializeConfig::up_grid_size/SerializeConfig::up2down_num));
-        EZLOG(INFO)<<"center_cubeI："<<center_cubeI<<" "<<"center_cubeJ："<<center_cubeJ<<std::endl;
+//        EZLOG(INFO)<<"center_cubeI："<<center_cubeI<<" "<<"center_cubeJ："<<center_cubeJ<<std::endl;
         //初始化过程
         if(!is_initailed){
             LoadMap(center_cubeI,center_cubeJ);
@@ -454,9 +452,6 @@ public:
         pubsub = pubsub_;
         MapManagerInitialized();
 
-        pubsub->addPublisher(topic_priorMap_corner_mapManger, DataType::LIDAR, 10);
-        pubsub->addPublisher(topic_priorMap_surf_mapManger, DataType::LIDAR, 10);
-
         mapManager_thread = new std::thread(&MapManager::DoWork, this);
     }
 
@@ -478,7 +473,7 @@ public:
                 now_position.y = current_loc_res->pose.GetXYZ().y();
 //                now_position.z = current_loc_res->pose.GetXYZ().z();
                 cur_time = current_loc_res->timestamp;
-                EZLOG(INFO)<<"map_loader: revice data: position: "<< now_position.x<<" ,"<<now_position.y;
+//                EZLOG(INFO)<<"map_loader: revice data: position: "<< now_position.x<<" ,"<<now_position.y;
                 process(now_position);
 
                 mutex_data.lock();
@@ -490,7 +485,7 @@ public:
                 sleep(0.1);
             }
         }
-    }//end fucntion do workt
+    }//end fucntion do work
 
 };
 #endif //SEU_LIDARLOC_MAPMANAGER_H
