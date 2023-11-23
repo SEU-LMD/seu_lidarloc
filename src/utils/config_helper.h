@@ -26,59 +26,24 @@ class SensorConfig{
     public:
     //Topics
     static std::string pointCloudTopic;
-    static std::string imuTopic;
-    static  std::string  odomTopic;
     static  std::string  gpsTopic;
-    static int imuHZ;
     //Frame
-    static std::string  lidarFrame;
-    static std::string  baselinkFrame;
-    static std::string  odometryFrame;
     static std::string  mapFrame;
-
     //GPS Setting
-    static bool  useGPS;
-    static bool  updateOrigin;//没有使用
-    static int  gpsFrequence;//notuse
-    static bool  useImuHeadingInitialization;
     static bool  useGpsElevation;
     static float  gpsCovThreshold;
-    static float   poseCovThreshold;
-    static float  gpsDistance;//not use
-
-    //debu setting
-    static bool debugLidarTimestamp;
-    static bool debugImu;
-    static bool  debugGps;//not use
-
     //Lidar settings
     static std::string sensor; //bug*********sensortype
     static int N_SCAN;
     static int  Horizon_SCAN;
-    static int  downsampleRate;
+
     static float  lidarMinRange;
     static float lidarMaxRange;
     static int lidarMinRing;
     static int lidarMaxRing;
     static int LMOpt_Cnt;
 
-    //IMU Settings
-    static double imuAccNoise;
-    static double imuGyrNoise;
-    static double  imuAccBiasN;
-    static double  imuGyrBiasN;
-    static double  imuGravity;
-    static double imuRPYWeight;
-    static int imuGTSAMReset;
-    static double imuConstBias_acc;
-    static double imuConstBias_gyro;
-    static int imu_angular_v_gain;
-    static int if_use_Wheel_DR;
-    static int if_DR_use_Euler;
-
-
     //Extrinsics (lidar -> IMU)
-    static int imu_type;//meiyong buyiyang********
     static Eigen::Vector3d  extrinsicTrans;//
     static Eigen::Matrix3d extrinsicRot;//
     static Eigen::Vector3d  extrinsicTrans_DR;//
@@ -91,6 +56,8 @@ class SensorConfig{
     static Eigen::Quaterniond q_body_sensor;
 
     static bool use_drodom_deskew;
+    static bool use_unground_classify;
+    static bool use_gnss_deskew;
     static int gtsamGNSSBetweenFactorDistance;
     static int lidarScanDownSample;
 };
@@ -133,8 +100,6 @@ class MappingConfig{
         static double  surroundingkeyframeAddingAngleThreshold;
         static double surroundingKeyframeDensity;
         static double surroundingKeyframeSearchRadius;
-        static int use_DR_or_fuse_in_loc;
-
 
         //Loop closure
         static bool  loopClosureEnableFlag;
@@ -144,6 +109,32 @@ class MappingConfig{
         static float historyKeyframeSearchTimeDiff;
         static int historyKeyframeSearchNum;
         static float  historyKeyframeFitnessScore;//
+
+        static double GNSS_noise_roll;
+        static double GNSS_noise_pitch;
+        static double GNSS_noise_yaw;
+        static double GNSS_noise_x;
+        static double GNSS_noise_y;
+        static double GNSS_noise_z;
+        static double LidarOdom_noise_roll;
+        static double LidarOdom_noise_pitch;
+        static double LidarOdom_noise_yaw;
+        static double LidarOdom_noise_x;
+        static double LidarOdom_noise_y;
+        static double LidarOdom_noise_z;
+        static double DR_noise_roll;
+        static double DR_noise_pitch;
+        static double DR_noise_yaw;
+        static double DR_noise_x;
+        static double DR_noise_y;
+        static double DR_noise_z;
+        static int GNSSupdateDR;
+        static double loop_noise_roll;
+        static double loop_noise_pitch;
+        static double loop_noise_yaw;
+        static double loop_noise_x;
+        static double loop_noise_y;
+        static double loop_noise_z;
 
 };
 
@@ -281,63 +272,30 @@ class UdpConfig{
 };//end UdpConfig
 
 std::string SensorConfig::pointCloudTopic = "";
-std::string SensorConfig::imuTopic = "";
-std::string  SensorConfig::odomTopic = "";
 std::string  SensorConfig::gpsTopic = "";
 
-
 //Frame
-std::string  SensorConfig::lidarFrame="";
-std::string SensorConfig::baselinkFrame="";
-std::string  SensorConfig::odometryFrame="";
+
 std::string  SensorConfig::mapFrame="";
 
 //GPS Setting
 Eigen::Matrix4d SensorConfig::T_L_B = Eigen::Matrix4d::Identity();
 Eigen::Matrix4d SensorConfig::T_L_DR = Eigen::Matrix4d::Identity();
-bool  SensorConfig::useGPS=false;
-bool   SensorConfig::updateOrigin=false;
-int  SensorConfig::gpsFrequence=-1;
-bool  SensorConfig::useImuHeadingInitialization=false;
 bool SensorConfig::useGpsElevation=false;
 float  SensorConfig::gpsCovThreshold=-1;
-float  SensorConfig::poseCovThreshold=-1;
-float  SensorConfig::gpsDistance=-1;
-
-//debu setting
-bool SensorConfig::debugLidarTimestamp=false;
-bool SensorConfig::debugImu=false;
-bool  SensorConfig::debugGps=false;
 
 //Export settings
 std::string SensorConfig::sensor="";
 int SensorConfig::N_SCAN=-1;
 int  SensorConfig::Horizon_SCAN=-1;
-int  SensorConfig::downsampleRate=-1;
 float  SensorConfig::lidarMinRange=-1;
 float SensorConfig::lidarMaxRange=-1;
 int SensorConfig::lidarMinRing=-1;
 int SensorConfig::lidarMaxRing=-1;
 int SensorConfig::LMOpt_Cnt = 10;
 
+//IMU Settings
 
-    //IMU Settings
-double SensorConfig::imuAccNoise=-1;
-double SensorConfig::imuGyrNoise=-1;
-double  SensorConfig::imuAccBiasN=-1;
-double  SensorConfig::imuGyrBiasN=-1;
-double SensorConfig:: imuGravity=-1;
-double SensorConfig::imuRPYWeight=-1;
-double SensorConfig::imuConstBias_acc=-1;
-double SensorConfig::imuConstBias_gyro=-1;
-int  SensorConfig::imuHZ = -1;
-int SensorConfig::imuGTSAMReset = 25;
-int SensorConfig::imu_angular_v_gain = 10;
-int SensorConfig::if_use_Wheel_DR = -1;
-int SensorConfig::if_DR_use_Euler = -1;
-
-
-int SensorConfig::imu_type=-1;
 Eigen::Vector3d SensorConfig::extrinsicTrans;
 Eigen::Matrix3d SensorConfig::extrinsicRot;
 Eigen::Vector3d SensorConfig::extrinsicTrans_DR;
@@ -349,6 +307,9 @@ Eigen::Quaterniond SensorConfig::q_body_sensor;
 int SensorConfig::gtsamGNSSBetweenFactorDistance = 10;
 
 bool SensorConfig::use_drodom_deskew =false;
+bool SensorConfig::use_gnss_deskew = false;
+bool SensorConfig::use_unground_classify = false;
+
 int SensorConfig::lidarScanDownSample = 2;
 
 int MappingConfig::slam_mode_switch = 0;
@@ -395,8 +356,32 @@ float MappingConfig::historyKeyframeSearchTimeDiff=-1;
 int MappingConfig::historyKeyframeSearchNum=-1;
 float MappingConfig::historyKeyframeFitnessScore=-1;
 
-//mapping
-int MappingConfig::use_DR_or_fuse_in_loc = 1;
+//GTSAM
+double MappingConfig::GNSS_noise_roll=1e-2;
+double MappingConfig::GNSS_noise_pitch =1e-2;
+double MappingConfig::GNSS_noise_yaw = 1e-2;
+double MappingConfig::GNSS_noise_x = 1e-6;
+double MappingConfig::GNSS_noise_y = 1e-6;
+double MappingConfig::GNSS_noise_z =  1e-6;
+double MappingConfig::LidarOdom_noise_roll = 1e-2;
+double MappingConfig::LidarOdom_noise_pitch = 1e-2;
+double MappingConfig::LidarOdom_noise_yaw = 1e-2;
+double MappingConfig::LidarOdom_noise_x = 1e-2;
+double MappingConfig::LidarOdom_noise_y = 1e-2;
+double MappingConfig::LidarOdom_noise_z = 1e-2;
+double MappingConfig::DR_noise_roll = 1e-1;
+double MappingConfig::DR_noise_pitch = 1e-1;
+double MappingConfig::DR_noise_yaw = 1e-1;
+double MappingConfig::DR_noise_x = 1e-4;
+double MappingConfig::DR_noise_y = 1e-4;
+double MappingConfig::DR_noise_z = 1e-4;
+int MappingConfig::GNSSupdateDR = 0;
+double MappingConfig::loop_noise_roll = 1e-1;
+double MappingConfig::loop_noise_pitch = 1e-1;
+double MappingConfig::loop_noise_yaw = 1e-1;
+double MappingConfig::loop_noise_x = 1e-4;
+double MappingConfig::loop_noise_y = 1e-4;
+double MappingConfig::loop_noise_z = 1e-4;
 
 int LocConfig::maxIters = 30;
 int LocConfig::slam_mode_on = 0;
@@ -532,68 +517,31 @@ void Load_Sensor_YAML(std::string sensorpath)
     }
 
     SensorConfig::pointCloudTopic = sensorconfig["pointCloudTopic"].as<std::string>();
-    SensorConfig::imuTopic = sensorconfig["imuTopic"].as<std::string>();
-    SensorConfig::odomTopic = sensorconfig["odomTopic"].as<std::string>();
     SensorConfig::gpsTopic = sensorconfig["gpsTopic"].as<std::string>();
-
-//     //Frame
-    SensorConfig::lidarFrame=sensorconfig["lidarFrame"].as<std::string>();
-    SensorConfig::baselinkFrame=sensorconfig["baselinkFrame"].as<std::string>();
-    SensorConfig::odometryFrame=sensorconfig["odometryFrame"].as<std::string>();
     SensorConfig::mapFrame=sensorconfig["mapFrame"].as<std::string>();
-//    std::cout<<SensorConfig:: mapFrame<<std::endl;
 
 //     //GPS Setting
-    SensorConfig::useGPS=sensorconfig["useGPS"].as<bool>();
-    SensorConfig::updateOrigin=sensorconfig["updateOrigin"].as<bool>();
-    SensorConfig::gpsFrequence=sensorconfig["gpsFrequence"].as<int >();
-    SensorConfig::useImuHeadingInitialization=sensorconfig["useImuHeadingInitialization"].as<bool>();
     SensorConfig::useGpsElevation=sensorconfig["useGpsElevation"].as<bool>();
     SensorConfig::gpsCovThreshold=sensorconfig["gpsCovThreshold"].as<float >();
-    SensorConfig::poseCovThreshold=sensorconfig["poseCovThreshold"].as<float >();
-    SensorConfig::gpsDistance=sensorconfig["gpsDistance"].as<float >();
-//    std::cout<<SensorConfig::gpsDistance<<std::endl;
-
-    // //debu setting
-    SensorConfig::debugLidarTimestamp=sensorconfig["debugLidarTimestamp"].as<bool >();
-    SensorConfig::debugImu=sensorconfig["debugImu"].as<bool >();
-    SensorConfig::debugGps=sensorconfig["debugGps"].as<bool >();
-//    std::cout<<SensorConfig::debugGps<<std::endl;
 
     SensorConfig::sensor=sensorconfig["sensor"].as<std::string >();
     SensorConfig::N_SCAN=sensorconfig["N_SCAN"].as<int >();
     SensorConfig::Horizon_SCAN=sensorconfig["Horizon_SCAN"].as<int >();
-    SensorConfig::downsampleRate=sensorconfig["downsampleRate"].as<int >();
     SensorConfig::lidarMinRange=sensorconfig["lidarMinRange"].as<float >();
     SensorConfig::lidarMaxRange=sensorconfig["lidarMaxRange"].as<float >();
     SensorConfig::lidarMinRing=sensorconfig["lidarMinRing"].as<int>();
     SensorConfig::lidarMaxRing=sensorconfig["lidarMaxRing"].as<int>();
     SensorConfig::LMOpt_Cnt=sensorconfig["LMOpt_Cnt"].as<int>();
+    SensorConfig::use_gnss_deskew = sensorconfig["use_drodom_deskew"].as<bool>();
+    SensorConfig::use_unground_classify = sensorconfig["use_drodom_deskew"].as<bool>();
+
+
 //    std::cout<<SensorConfig::lidarMaxRange<<std::endl;
-
-
     //IMU Settings
-    SensorConfig:: imuAccNoise=sensorconfig["imuAccNoise"].as<double>();
-    SensorConfig:: imuGyrNoise=sensorconfig["imuGyrNoise"].as<double>();
-    SensorConfig::  imuAccBiasN=sensorconfig["imuAccBiasN"].as<double>();
-    SensorConfig::  imuGyrBiasN=sensorconfig["imuGyrBiasN"].as<double>();
-    SensorConfig::  imuGravity=sensorconfig["imuGravity"].as<double>();
-    SensorConfig::  imuRPYWeight=sensorconfig["imuRPYWeight"].as<double>();
-    SensorConfig::imuHZ = sensorconfig["imuHZ"].as<int>();
+
     SensorConfig::use_drodom_deskew=sensorconfig["use_drodom_deskew"].as<bool>();
-    SensorConfig::imuGTSAMReset=sensorconfig["imuGTSAMReset"].as<int>();
-    SensorConfig::imuConstBias_acc=sensorconfig["imuConstBias_acc"].as<double>();
-    SensorConfig::imuConstBias_gyro=sensorconfig["imuConstBias_gyro"].as<double>();
-    SensorConfig::imu_angular_v_gain = sensorconfig["imu_angular_v_gain"].as<int>();
-    SensorConfig::if_use_Wheel_DR = sensorconfig["if_use_Wheel_DR"].as<int>();
-    SensorConfig::if_DR_use_Euler = sensorconfig["if_DR_use_Euler"].as<int>();
-
-//    std::cout<<SensorConfig::imuRPYWeight<<std::endl;
-
-
 
     //Extrinsics (lidar -> IMU)
-    SensorConfig::imu_type=sensorconfig["imu_type"].as<int >();
     SensorConfig::extrinsicTrans<<sensorconfig["extrinsicTrans"][0].as<double >(),sensorconfig["extrinsicTrans"][1].as<double >(),sensorconfig["extrinsicTrans"][2].as<double >();
     //construct(Config::extrinsicTrans,config["extrinsicTrans"].as<double >());
     //std::cout<<Config::extrinsicTrans<<std::endl;
@@ -638,11 +586,6 @@ void Load_Sensor_YAML(std::string sensorpath)
     std::cout<<"SensorConfig::lidarMaxRing: "<<SensorConfig::lidarMaxRing<<std::endl;
     std::cout<<"SensorConfig::lidarMinRing: "<<SensorConfig::lidarMinRing<<std::endl;
     std::cout<<"SensorConfig::use_gnss_deskew: "<<SensorConfig::use_drodom_deskew<<std::endl;
-    std::cout<<"SensorConfig::imuConstBias_acc: "<<SensorConfig::imuConstBias_acc<<std::endl;
-    std::cout<<"SensorConfig::imuConstBias_gyro: "<<SensorConfig::imuConstBias_gyro<<std::endl;
-    std::cout<<"SensorConfig::imu_angular_v_gain: "<<SensorConfig::imu_angular_v_gain<<std::endl;
-    std::cout<<"SensorConfig::imu_angular_v_gain: "<<SensorConfig::imu_angular_v_gain<<std::endl;
-    std::cout<<"SensorConfig::if_DR_use_Euler: "<<SensorConfig::if_DR_use_Euler<<std::endl;
     std::cout<<"SensorConfig::T_L_DR : "<<std::endl;
     std::cout<< SensorConfig::T_L_DR << std::endl;
     std::cout<<"SensorConfig::sensorconfig yaml success load"<<std::endl;
@@ -704,7 +647,37 @@ void Load_Mapping_YAML(std::string mappingpath)
         MappingConfig::historyKeyframeSearchTimeDiff=mappingconfig["historyKeyframeSearchTimeDiff"].as<float >();
         MappingConfig::historyKeyframeSearchNum=mappingconfig["historyKeyframeSearchNum"].as<int >();
         MappingConfig::historyKeyframeFitnessScore=mappingconfig["historyKeyframeFitnessScore"].as<float >();
-        MappingConfig::use_DR_or_fuse_in_loc = mappingconfig["use_DR_or_fuse_in_loc"].as<int>();
+
+        MappingConfig::GNSS_noise_roll = mappingconfig["GNSS_noise_roll"].as<double>();
+        MappingConfig::GNSS_noise_pitch = mappingconfig["GNSS_noise_pitch"].as<double>();
+        MappingConfig::GNSS_noise_yaw = mappingconfig["GNSS_noise_yaw"].as<double>();
+        MappingConfig::GNSS_noise_x = mappingconfig["GNSS_noise_x"].as<double>();
+        MappingConfig::GNSS_noise_y = mappingconfig["GNSS_noise_y"].as<double>();
+        MappingConfig::GNSS_noise_z = mappingconfig["GNSS_noise_z"].as<double>();
+
+        MappingConfig::LidarOdom_noise_roll = mappingconfig["LidarOdom_noise_roll"].as<double>();
+        MappingConfig::LidarOdom_noise_pitch = mappingconfig["LidarOdom_noise_pitch"].as<double>();
+        MappingConfig::LidarOdom_noise_yaw = mappingconfig["LidarOdom_noise_yaw"].as<double>();
+        MappingConfig::LidarOdom_noise_x = mappingconfig["LidarOdom_noise_x"].as<double>();
+        MappingConfig::LidarOdom_noise_y = mappingconfig["LidarOdom_noise_y"].as<double>();
+        MappingConfig::LidarOdom_noise_z = mappingconfig["LidarOdom_noise_z"].as<double>();
+
+        MappingConfig::DR_noise_roll = mappingconfig["DR_noise_roll"].as<double>();
+        MappingConfig::DR_noise_pitch = mappingconfig["DR_noise_pitch"].as<double>();
+        MappingConfig::DR_noise_yaw = mappingconfig["DR_noise_yaw"].as<double>();
+        MappingConfig::DR_noise_x = mappingconfig["DR_noise_x"].as<double>();
+        MappingConfig::DR_noise_y = mappingconfig["DR_noise_y"].as<double>();
+        MappingConfig::DR_noise_z = mappingconfig["DR_noise_z"].as<double>();
+
+        MappingConfig::GNSSupdateDR = mappingconfig["GNSSupdateDR"].as<int>();
+
+        MappingConfig::loop_noise_roll = mappingconfig["loop_noise_roll"].as<double>();
+        MappingConfig::loop_noise_pitch = mappingconfig["loop_noise_pitch"].as<double>();
+        MappingConfig::loop_noise_yaw = mappingconfig["loop_noise_yaw"].as<double>();
+        MappingConfig::loop_noise_x = mappingconfig["loop_noise_x"].as<double>();
+        MappingConfig::loop_noise_y = mappingconfig["loop_noise_y"].as<double>();
+        MappingConfig::loop_noise_z = mappingconfig["loop_noise_z"].as<double>();
+
 
         std::cout<<"MappingConfig::mappingProcessInterval"<<MappingConfig::mappingProcessInterval<<std::endl;
         std::cout<<"MappingConfig::DownSampleModeSwitch: "<< MappingConfig::DownSampleModeSwitch<<std::endl;
@@ -713,7 +686,7 @@ void Load_Mapping_YAML(std::string mappingpath)
         std::cout<<"MappingConfig::mappingCornerRadiusSize_US: "<<MappingConfig::mappingCornerRadiusSize_US<<std::endl;
         std::cout<<"MappingConfig::mappingSurfRadiusSize_US: "<< MappingConfig::mappingSurfRadiusSize_US<<std::endl;
         std::cout<<"MappingConfig::surroundingKeyframeDensity_US: "<< MappingConfig::surroundingKeyframeDensity_US<<std::endl;
-        std::cout<<"MappingConfig::use_DR_or_fuse_in_loc: "<<MappingConfig::use_DR_or_fuse_in_loc<<std::endl;
+       // std::cout<<"MappingConfig::use_DR_or_fuse_in_loc: "<<MappingConfig::use_DR_or_fuse_in_loc<<std::endl;
         std::cout<<"mapping yaml success load"<<std::endl;
 
 }//end function Load_Mapping_YAML

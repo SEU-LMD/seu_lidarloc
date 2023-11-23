@@ -81,7 +81,7 @@ public:
                 data_mutex.unlock();
 
                 SaveCloud(cloud_info);
-                EZLOG(INFO)<<"SaveCloud !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<std::endl;
+                //EZLOG(INFO)<<"SaveCloud !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<std::endl;
             }
             sleep(0.05);
         }
@@ -91,8 +91,8 @@ public:
         data_mutex.lock();
         pts_deque.push_back(cloud_info);
         data_mutex.unlock();
-        EZLOG(INFO)<<"receive Cloud !"<<std::endl;
-        EZLOG(INFO)<<"pts_deque.size() = "<<pts_deque.size()<<std::endl;
+        //EZLOG(INFO)<<"receive Cloud !"<<std::endl;
+        //EZLOG(INFO)<<"pts_deque.size() = "<<pts_deque.size()<<std::endl;
     }
 
 };

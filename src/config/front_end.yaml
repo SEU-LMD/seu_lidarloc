@@ -1,9 +1,9 @@
 #mode0: loc mode1: mapping
-slam_mode_switch: 0
+slam_mode_switch: 1
 # 1 for debug (pub to rviz),0 for not debug
 if_debug: 0
 
-gnss_align_threshold: 0.02
+gnss_align_threshold: 0.01
 gnss_pop_threshold: 0.0
 
 # ground filter
