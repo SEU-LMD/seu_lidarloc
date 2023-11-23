@@ -2,6 +2,7 @@
 // Created by slam on 23-10-21.
 //
 #include <ros/ros.h>
+#include <tf/transform_broadcaster.h>
 
 #include <std_msgs/Header.h>
 #include <sensor_msgs/Imu.h>
@@ -9,9 +10,35 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
+#include <sensor_msgs/PointCloud2.h>
+#include  <pcl_conversions/pcl_conversions.h>
 #include "udp_client.h"
 #include "udp_seralize.h"
+#include <pcl/io/pcd_io.h>       //PCD读写类相关的头文件
+#include <pcl/point_types.h>     //PCL中支持的点类型的头文件
+#include <pcl/point_cloud.h>
 
+
+
+struct MyPointType{
+    PCL_ADD_POINT4D;
+
+    PCL_ADD_INTENSITY;
+
+    int down_grid_index;
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+}EIGEN_ALIGN16;
+
+POINT_CLOUD_REGISTER_POINT_STRUCT (MyPointType,
+                                   (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(int, down_grid_index, down_grid_index)
+)
+
+typedef MyPointType PointType;
+
+
+
+ros::Publisher publish_map;
 ros::Publisher publish_gnss_odom;
 ros::Publisher publish_lidar_odom;
 ros::Publisher publish_dr_odom;
@@ -19,11 +46,14 @@ ros::Publisher publish_fu_odom;
 
 
 void PubilshOdometry(const UDP_CLENT& client);
+void PubilshCloud();
+void Pubfixedframe();
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "rviz_udp");
     ros::NodeHandle nh;
 
+     publish_map = nh.advertise<sensor_msgs::PointCloud2>("/cloud",100);
      publish_gnss_odom=nh.advertise<nav_msgs::Odometry>("/gnss",100);
      publish_lidar_odom=nh.advertise<nav_msgs::Odometry>("/lidar",100);
      publish_dr_odom=nh.advertise<nav_msgs::Odometry>("/dr",100);
@@ -34,16 +64,39 @@ int main(int argc, char** argv){
     UDP_CLENT udp_client;
     int client_port = 8000;
     udp_client.init(client_port);  //只用来接受只绑定端口
-
+    PubilshCloud();
     ros::Rate rate(100);
+
     while(ros::ok){
         udp_client.recvProcess();
         std::cout<<udp_client.rcv_msg<<std::endl;
+        //Pubfixedframe();
         PubilshOdometry(udp_client);
         ros::spinOnce(); // 处理订阅和发布的消息
         rate.sleep();
     }
 
+}
+
+void Pubfixedframe(){
+    static tf::TransformBroadcaster br;
+    static tf::Transform transform;
+    transform.setOrigin(tf::Vector3(0, 0, 0));
+    tf::Quaternion q;
+    q.setRPY(0, 0, 0);
+    transform.setRotation(q);
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/map", "map"));
+}
+
+void PubilshCloud(){
+    pcl::PointCloud<PointType>::Ptr in_cloud(new pcl::PointCloud<PointType>);
+    if (pcl::io::loadPCDFile<PointType> ("./map/global_surf.pcd", *in_cloud) == -1){
+        std::cout <<"cann“t find pori map"<<std::endl;
+    }
+    sensor_msgs::PointCloud2 ros_cloud;
+    pcl::toROSMsg(*in_cloud, ros_cloud);
+    ros_cloud.header.frame_id = "map";
+    publish_map.publish(ros_cloud);
 }
 
 void PubilshOdometry(const UDP_CLENT& client){
@@ -53,7 +106,7 @@ void PubilshOdometry(const UDP_CLENT& client){
     if(vis_Odometry.type=="gn"){
         nav_msgs::Odometry gnss_msg;
         gnss_msg.header.stamp =ros::Time::now();
-        gnss_msg.header.frame_id = "/map";
+        gnss_msg.header.frame_id = "map";
         gnss_msg.pose.pose.position.x = vis_Odometry.t[0];
         gnss_msg.pose.pose.position.y = vis_Odometry.t[1];
         gnss_msg.pose.pose.position.z = vis_Odometry.t[2];
@@ -68,7 +121,7 @@ void PubilshOdometry(const UDP_CLENT& client){
     else if(vis_Odometry.type=="li"){
         nav_msgs::Odometry lida_msg;
         lida_msg.header.stamp =ros::Time::now();
-        lida_msg.header.frame_id = "/map";
+        lida_msg.header.frame_id = "map";
         lida_msg.pose.pose.position.x = vis_Odometry.t[0];
         lida_msg.pose.pose.position.y = vis_Odometry.t[1];
         lida_msg.pose.pose.position.z = vis_Odometry.t[2];
@@ -83,7 +136,7 @@ void PubilshOdometry(const UDP_CLENT& client){
     else if(vis_Odometry.type=="dr"){
         nav_msgs::Odometry dr_msg;
         dr_msg.header.stamp =ros::Time::now();
-        dr_msg.header.frame_id = "/map";
+        dr_msg.header.frame_id = "map";
         dr_msg.pose.pose.position.x = vis_Odometry.t[0];
         dr_msg.pose.pose.position.y = vis_Odometry.t[1];
         dr_msg.pose.pose.position.z = vis_Odometry.t[2];
@@ -97,7 +150,7 @@ void PubilshOdometry(const UDP_CLENT& client){
     else if(vis_Odometry.type=="fu"){
         nav_msgs::Odometry dr_msg;
         dr_msg.header.stamp =ros::Time::now();
-        dr_msg.header.frame_id = "/map";
+        dr_msg.header.frame_id = "map";
         dr_msg.pose.pose.position.x = vis_Odometry.t[0];
         dr_msg.pose.pose.position.y = vis_Odometry.t[1];
         dr_msg.pose.pose.position.z = vis_Odometry.t[2];
@@ -107,6 +160,13 @@ void PubilshOdometry(const UDP_CLENT& client){
         dr_msg.pose.pose.orientation.w = vis_Odometry.q.w();
 
         publish_fu_odom.publish(dr_msg);
+        
+         static tf::TransformBroadcaster bf;
+        static tf::Transform transformbf;
+
+        transformbf.setOrigin(tf::Vector3(dr_msg.pose.pose.position.x, dr_msg.pose.pose.position.y, dr_msg.pose.pose.position.z));
+        transformbf.setRotation(tf::Quaternion(dr_msg.pose.pose.orientation.x,dr_msg.pose.pose.orientation.y ,dr_msg.pose.pose.orientation.z, dr_msg.pose.pose.orientation.w));
+        bf.sendTransform(tf::StampedTransform(transformbf, ros::Time::now(), "map", "fu"));
     }
 
 }
