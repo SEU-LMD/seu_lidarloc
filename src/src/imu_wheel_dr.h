@@ -18,7 +18,7 @@
 #include "utils/filesys.h"
 #include "config/abs_current_path.h"
 
-#define average_kmh2Ms 0.1389
+#define average_kmh2Ms 0.138888888
 
 //TODO remove
 //TODO change name to IMUWHEELDR
@@ -145,9 +145,9 @@ public:
 //            if(load_first_gnss_point == true){ return;}
             //gnss bad
             if(gnss_ins_data.lla[0] < 0 || gnss_ins_data.lla[1] < 0 || gnss_ins_data.lla[2] < 0){
-                EZLOG(INFO)<<"DR: GNSS value is bad: "<<gnss_ins_data.lla[0]<<","
-                                                <<gnss_ins_data.lla[1]<<","
-                                                <<gnss_ins_data.lla[2];
+//                EZLOG(INFO)<<"DR: GNSS value is bad: "<<gnss_ins_data.lla[0]<<","
+//                                                <<gnss_ins_data.lla[1]<<","
+//                                                <<gnss_ins_data.lla[2];
                 return;
             }
             if(gnss_ins_data.gps_status != 42 && gnss_ins_data.gps_status != 52 && gnss_ins_data.gps_status != 33){
@@ -188,7 +188,7 @@ public:
 
             init = 1;
 
-            //EZLOG(INFO)<<"RESET DR with GNSS: t_w_b"<<t_w_b.transpose();
+//            EZLOG(INFO)<<"RESET DR with GNSS: t_w_b"<<t_w_b.transpose();
             return;
         }
 
@@ -268,10 +268,13 @@ public:
         DR_pose.pose = lidar_preditct_pose;
 
         //DR draw data
-        Odometry_imuPredict_pub_origin.pose = PoseT(state.p_wb_,state.Rwb_);
-        Odometry_imuPredict_pub_origin.timestamp = currentTime;
-        Odometry_imuPredict_pub_origin.frame = "map";
-        pubsub->PublishOdometry(topic_imu_raw_odom_origin, Odometry_imuPredict_pub_origin);
+        if(FrontEndConfig::if_debug){
+            Odometry_imuPredict_pub_origin.pose = PoseT(state.p_wb_,state.Rwb_);
+            Odometry_imuPredict_pub_origin.timestamp = currentTime;
+            Odometry_imuPredict_pub_origin.frame = "map";
+            pubsub->PublishOdometry(topic_imu_raw_odom_origin, Odometry_imuPredict_pub_origin);
+        }
+
 
         Odometry_imuPredict_pub.timestamp = currentTime;
         Odometry_imuPredict_pub.frame = "map";
@@ -293,7 +296,10 @@ public:
             Udp_OdomPub(Odometry_imuPredict_pub.pose);
         }
        // Udp_OdomPub(Odometry_imuPredict_pub.pose);
-        pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
+       if(FrontEndConfig::if_debug){
+           pubsub->PublishOdometry(topic_imu_raw_odom, Odometry_imuPredict_pub);
+       }
+
     }
 
     void SetIMUPreParamter(){

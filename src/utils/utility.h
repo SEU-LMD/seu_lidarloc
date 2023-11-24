@@ -184,4 +184,21 @@ public:
 
 };
 
+void SaveTrajInTUM(std::string TUM_trajFile_path,double current_time, PoseT current_pose){
+    std::ofstream TUM_trajFile(TUM_trajFile_path,ios::app);
+    if(!TUM_trajFile){
+        EZLOG(INFO)<<"error opening TUM_trajFile in :"<<TUM_trajFile_path;
+        return ;
+    }
+    TUM_trajFile << setprecision(11) << current_time << " "
+                 << setprecision(6) << current_pose.GetXYZ().x()<<" "
+                 << current_pose.GetXYZ().y()<<" "
+                 << current_pose.GetXYZ().z()<<" "
+                 << current_pose.GetQ().x()<<" "
+                 << current_pose.GetQ().y()<<" "
+                 << current_pose.GetQ().z()<<" "
+                 << current_pose.GetQ().w()<<std::endl;
+    TUM_trajFile.close();
+};
+
 #endif

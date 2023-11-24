@@ -347,11 +347,15 @@ public:
         downSizeFilterSurf_US.setInputCloud(_current_surf);
         downSizeFilterSurf_US.filter(*_current_surf_ds);
 
-        CloudTypeXYZI currentlidar_surf_pub;
-        currentlidar_surf_pub.frame = "map";
-        currentlidar_surf_pub.timestamp = timeLaserInfoCur;
-        pcl::transformPointCloud(*_current_surf_ds, currentlidar_surf_pub.cloud, (T_wb_pub).cast<float>());
-        pubsub->PublishCloud(topic_current_lidarPcl, currentlidar_surf_pub);
+        // for debug use
+        {
+            //        CloudTypeXYZI currentlidar_surf_pub;
+//        currentlidar_surf_pub.frame = "map";
+//        currentlidar_surf_pub.timestamp = timeLaserInfoCur;
+//        pcl::transformPointCloud(*_current_surf_ds, currentlidar_surf_pub.cloud, (T_wb_pub).cast<float>());
+//        pubsub->PublishCloud(topic_current_lidarPcl, currentlidar_surf_pub);
+        }
+
 
 
     }
@@ -926,10 +930,11 @@ public:
         current_Lidar_pose.timestamp = timeLaserInfoCur;
         current_Lidar_pose.pose.pose = Lidarodom_2_map.matrix().cast<double>();
         current_Lidar_pose.frame_cnt = _frame_id;
-        if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_gnss")){
+        current_Lidar_pose.GTpose_reliability = _GTpose_reliability;
+        if(_GTpose_reliability ==true){
             current_Lidar_pose.GTpose = _GTpose;
-            current_Lidar_pose.GTpose_reliability = _GTpose_reliability;
         }
+
         Function_AddLidarOdometryTypeToFuse(current_Lidar_pose);
         //EZLOG(INFO)<<"4 Loc send to Fuse! lidar result : "<< current_Lidar_pose.pose.GetXYZ().transpose();
 
@@ -1018,7 +1023,7 @@ public:
 
                 TicToc t_5;
                 ResultsAndPub2Fuse(cur_ft.frame_id,cur_ft.pose,cur_ft.pose_reliable);//TODO 1030 change function name------Done
-                //EZLOG(INFO)<<"ResultsAndPub2Fuse() time : "<<t_5.toc();
+//                EZLOG(INFO)<<"ResultsAndPub2Fuse() time : "<<t_5.toc();
 
                 if(lidarscanNum % 10 == 0){
                     EZLOG(INFO) << "current lidar scan cost time: " << total_time.toc() << "ms" << std::endl;

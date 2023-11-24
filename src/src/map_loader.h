@@ -48,8 +48,6 @@ public:
     std::mutex mtxGraph;
     std::mutex mutex_priorMap;
 
-    std::string topic_priorMap_corner_mapManger = "/Prior_map_corner_MM";
-    std::string topic_priorMap_surf_mapManger = "/Prior_map_surf_MM";
     std::deque<std::shared_ptr<OdometryType>> data_deque;
 
     //是否更新标志位
@@ -104,12 +102,17 @@ public:
 //获得初始变量，对标志位赋值
     Gnsspostion now_position;
 
+//从txt获取整体x方向，y方向大小
+    int lasercloud_width;
+    int lasercloud_height;
+
+
     //TODO finish this Function
     void GetCurMapCloud(pcl::PointCloud<PointType>::Ptr &corner_map,
                        pcl::PointCloud<PointType>::Ptr &surf_map){
         corner_map = laser_cloud_corner_from_map;
         surf_map  = laser_cloud_surf_from_map;
-        EZLOG(INFO)<<"6 map_loader to Loc, corner map size is: "<<corner_map->points.size()<<" surf_map size is: "<<surf_map->points.size();
+//        EZLOG(INFO)<<"6 map_loader to Loc, corner map size is: "<<corner_map->points.size()<<" surf_map size is: "<<surf_map->points.size();
     }
 
     void MapmanagerInitialized(const std::string& map_read_path){
@@ -118,13 +121,16 @@ public:
         std::getline(file, line); // 读取第一行并存储到line中
         std::istringstream iss(line);
         iss >> x_min_t >> y_min_t; //
-        EZLOG(INFO)<<x_min_t<<"   "<<y_min_t<<std::endl;
+       // EZLOG(INFO)<<x_min_t<<"   "<<y_min_t<<std::endl;
+        std::getline(file, line); // 读取第一行并存储到line中
+        std::istringstream is(line);
+        is >> lasercloud_width >> lasercloud_height; //
         while (std::getline(file, line)) {
             std::string string_feature;
             std::string string_index;
             std::istringstream isss(line);
             isss >> string_feature >> string_index;
-            EZLOG(INFO)<<string_feature<<"   "<<string_index<<std::endl;
+//            EZLOG(INFO)<<string_feature<<"   "<<string_index<<std::endl;
             if(string_feature=="corner")  corner_empty.push_back(string_index);
             else if(string_feature=="surf") surf_empty.push_back(string_index);
         }
@@ -143,7 +149,7 @@ public:
         ss.ignore(1, '_'); // 忽略并跳过下划线字符
         ss >> j;
 
-        return i+j*SerializeConfig::lasercloud_width;
+        return i+j*lasercloud_width;
     }
 
 //大格子字符串映射
@@ -152,8 +158,8 @@ public:
     std::string int2up_grid_index(const int& lasercloud_index){
 
         int i,j,I,J;
-        i=lasercloud_index%SerializeConfig::lasercloud_width;
-        j=lasercloud_index/SerializeConfig::lasercloud_width;
+        i=lasercloud_index%lasercloud_width;
+        j=lasercloud_index/lasercloud_width;
 
         I=i/SerializeConfig::up2down_num;
         J=j/SerializeConfig::up2down_num;
@@ -176,12 +182,12 @@ public:
         ss.ignore(1, '_'); // 忽略并跳过下划线字符
         ss >> j;
 
-        lasercloud_index[0]=(i*SerializeConfig::up2down_num)+(j*SerializeConfig::up2down_num*SerializeConfig::lasercloud_width);
+        lasercloud_index[0]=(i*SerializeConfig::up2down_num)+(j*SerializeConfig::up2down_num*lasercloud_width);
         lasercloud_index[1]=lasercloud_index[0]+1;
-        lasercloud_index[2]=lasercloud_index[0]+SerializeConfig::lasercloud_width;
+        lasercloud_index[2]=lasercloud_index[0]+lasercloud_width;
         lasercloud_index[3]=lasercloud_index[2]+1;
-        EZLOG(INFO)<<"lasercloud_index[0]:"<<lasercloud_index[0]<<std::endl;
-        EZLOG(INFO)<<"lasercloud_index[2]:"<<lasercloud_index[2]<<std::endl;
+//        EZLOG(INFO)<<"lasercloud_index[0]:"<<lasercloud_index[0]<<std::endl;
+//        EZLOG(INFO)<<"lasercloud_index[2]:"<<lasercloud_index[2]<<std::endl;
 
         for(int k=0; k<SerializeConfig::up2down_num*SerializeConfig::up2down_num; ++k){
             if(feature_string=="corner"){
@@ -209,7 +215,7 @@ public:
             return;
         }
         MallocMeomery(index,feature);
-        EZLOG(INFO)<<"begin_loop"<<std::endl;
+//        EZLOG(INFO)<<"begin_loop"<<std::endl;
         for (const MyPointType& point : *loadcloud){
             PointType outpoint;
             outpoint.x=point.x;
@@ -224,7 +230,7 @@ public:
             else if(feature=="surf")
                 laser_cloud_surf_array[point.down_grid_index]->push_back(outpoint);
         }
-        EZLOG(INFO)<<"end_loop"<<std::endl;
+//        EZLOG(INFO)<<"end_loop"<<std::endl;
     }
 
 
@@ -238,28 +244,28 @@ public:
         map_center_cubeJ=center_cubeJ;
 
         /*****************************loadmap*************/
-        if(center_cubeI == 0 || center_cubeI == SerializeConfig::lasercloud_width-1){
-            begin_load_cubeI = center_cubeI == 0 ? 0 : SerializeConfig::lasercloud_width - 5;
+        if(center_cubeI == 0 || center_cubeI == lasercloud_width-1){
+            begin_load_cubeI = center_cubeI == 0 ? 0 : lasercloud_width - 5;
         }
-        else if(center_cubeI == 1 || center_cubeI == SerializeConfig::lasercloud_width-2){
-            begin_load_cubeI = center_cubeI == 1 ? 0 : SerializeConfig::lasercloud_width - 5;
+        else if(center_cubeI == 1 || center_cubeI == lasercloud_width-2){
+            begin_load_cubeI = center_cubeI == 1 ? 0 : lasercloud_width - 5;
         }
         else begin_load_cubeI=center_cubeI-2;
         //y方向
-        if(center_cubeJ == 0 || center_cubeJ == SerializeConfig::lasercloud_height-1){
-            begin_load_cubeJ = center_cubeJ == 0 ? 0 : SerializeConfig::lasercloud_height - 5;
+        if(center_cubeJ == 0 || center_cubeJ == lasercloud_height-1){
+            begin_load_cubeJ = center_cubeJ == 0 ? 0 : lasercloud_height - 5;
         }
-        else if(center_cubeJ == 1 || center_cubeJ == SerializeConfig::lasercloud_height-2){
-            begin_load_cubeJ = center_cubeJ == 1 ? 0 : SerializeConfig::lasercloud_height - 5;
+        else if(center_cubeJ == 1 || center_cubeJ == lasercloud_height-2){
+            begin_load_cubeJ = center_cubeJ == 1 ? 0 : lasercloud_height - 5;
         }
         else begin_load_cubeJ=center_cubeJ-2;
-        EZLOG(INFO)<<"loadbegin："<<begin_load_cubeI<<" "<<" "<<begin_load_cubeJ<<std::endl;
+//        EZLOG(INFO)<<"loadbegin："<<begin_load_cubeI<<" "<<" "<<begin_load_cubeJ<<std::endl;
         //需要加载的索引以及寻找是否已经加载
         int k=0;
         for (int i=begin_load_cubeJ; i<begin_load_cubeJ+5; ++i) {
             for(int j=begin_load_cubeI; j<begin_load_cubeI+5; ++j){
                 bool is_in_memeroy= false;
-                laser_cloud_load_ind[k]=j+i*SerializeConfig::lasercloud_width;
+                laser_cloud_load_ind[k]=j+i*lasercloud_width;
                 //寻找地图中有没有当前的点
                 for (const auto& pair : lasercloud_loaded_map) {
                     if(pair==laser_cloud_load_ind[k]) {
@@ -271,9 +277,9 @@ public:
                 if(!is_in_memeroy){
                     bool isconer_empty= false;
                     bool issurf_empty= false;
-                    EZLOG(INFO)<<"laser_cloud_load_ind[k]: "<<laser_cloud_load_ind[k];
+//                    EZLOG(INFO)<<"laser_cloud_load_ind[k]: "<<laser_cloud_load_ind[k];
                     std::string laod_up_grid_string=int2up_grid_index(laser_cloud_load_ind[k]);
-                    EZLOG(INFO)<<"laod_up_grid_string"<<laod_up_grid_string<<std::endl;
+//                    EZLOG(INFO)<<"laod_up_grid_string"<<laod_up_grid_string<<std::endl;
                     for(const auto& pair : corner_empty){
                         if(pair==laod_up_grid_string){
                             isconer_empty=true;
@@ -300,20 +306,20 @@ public:
         //std::cout<<"hello"<<std::endl;
         /***************build tree*********************************/
         //调整需要加载的中心位置 x方向
-        if(center_cubeI == 0 || center_cubeI == SerializeConfig::lasercloud_width-1){
-            begin_bulid_cubeI = center_cubeI == 0 ? 0 : SerializeConfig::lasercloud_width - 3;
+        if(center_cubeI == 0 || center_cubeI == lasercloud_width-1){
+            begin_bulid_cubeI = center_cubeI == 0 ? 0 : lasercloud_width - 3;
         }
         else begin_bulid_cubeI=center_cubeI-1;
         //y方向
-        if(center_cubeJ == 0 || center_cubeJ == SerializeConfig::lasercloud_height-1){
-            begin_bulid_cubeJ = center_cubeJ == 0 ? 0 : SerializeConfig::lasercloud_height - 3;
+        if(center_cubeJ == 0 || center_cubeJ == lasercloud_height-1){
+            begin_bulid_cubeJ = center_cubeJ == 0 ? 0 : lasercloud_height - 3;
         }
         else begin_bulid_cubeJ=center_cubeJ-1;
 
         int k=0;
         for (int i=begin_bulid_cubeJ; i<begin_bulid_cubeJ+3; ++i) {
             for(int j=begin_bulid_cubeI; j<begin_bulid_cubeI+3; ++j){
-                laser_cloud_valid_ind[k]=j+i*SerializeConfig::lasercloud_width;
+                laser_cloud_valid_ind[k]=j+i*lasercloud_width;
 //                EZLOG(INFO)<<laser_cloud_valid_ind[k]<<std::endl;
                 k++;
             }
@@ -364,7 +370,7 @@ public:
 
         int center_cubeI=static_cast<int>(std::floor(gnsspostion.x-x_min_t)/(SerializeConfig::up_grid_size/SerializeConfig::up2down_num));
         int center_cubeJ=static_cast<int>(std::floor(gnsspostion.y-y_min_t)/(SerializeConfig::up_grid_size/SerializeConfig::up2down_num));
-        EZLOG(INFO)<<"center_cubeI："<<center_cubeI<<" "<<"center_cubeJ："<<center_cubeJ<<std::endl;
+//        EZLOG(INFO)<<"center_cubeI："<<center_cubeI<<" "<<"center_cubeJ："<<center_cubeJ<<std::endl;
         //初始化过程
         if(!is_initailed){
             LoadMap(center_cubeI,center_cubeJ);
@@ -446,9 +452,6 @@ public:
         pubsub = pubsub_;
         MapManagerInitialized();
 
-        pubsub->addPublisher(topic_priorMap_corner_mapManger, DataType::LIDAR, 10);
-        pubsub->addPublisher(topic_priorMap_surf_mapManger, DataType::LIDAR, 10);
-
         mapManager_thread = new std::thread(&MapManager::DoWork, this);
     }
 
@@ -470,7 +473,7 @@ public:
                 now_position.y = current_loc_res->pose.GetXYZ().y();
 //                now_position.z = current_loc_res->pose.GetXYZ().z();
                 cur_time = current_loc_res->timestamp;
-                EZLOG(INFO)<<"map_loader: revice data: position: "<< now_position.x<<" ,"<<now_position.y;
+//                EZLOG(INFO)<<"map_loader: revice data: position: "<< now_position.x<<" ,"<<now_position.y;
                 process(now_position);
 
                 mutex_data.lock();
