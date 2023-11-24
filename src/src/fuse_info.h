@@ -127,7 +127,7 @@ public:
                                                  LocConfig::GNSS_noise_z).finished());
         last_pose_fromRollBack = PoseT(Eigen::Matrix4d::Identity());
 
-        EZLOG(INFO)<<" Fuse Init Successful!";
+        //EZLOG(INFO)<<" Fuse Init Successful!";
     }
 
     void RollBack(const OdometryType &_current_pose,
@@ -199,9 +199,12 @@ public:
     }
 
     void DoWork(){
+        TicToc total_time;
+        float last_time = total_time.toc();
+        float queueNum = 0;
         while(1){
             if(data_deque.size()!=0){
-
+                ++queueNum;
                 mutex_data.lock();
                 auto front_data = data_deque.front();
                 data_deque.pop_front();
@@ -233,7 +236,7 @@ public:
 
                             lidar_keyFrame_cnt++;
                             Function_AddLidarOdometryTypeToMapManager(*Odom_Li_temp);//TODO 1111 not used anymore
-                            EZLOG(INFO) << "5 Fuse to map_loder, and the loc_result pose :"<<Odom_Li_temp->pose.GetXYZ().transpose();
+                            //EZLOG(INFO) << "5 Fuse to map_loder, and the loc_result pose :"<<Odom_Li_temp->pose.GetXYZ().transpose();
 //                            EZLOG(INFO)<<"GTSAM Optimization Init Successful!";
                             break;
                         }
@@ -256,7 +259,7 @@ public:
                             }else{
                                 flag_last_dr_exist = false;
                             }
-                            EZLOG(INFO)<<"Fuse lidar dr align in ms: "<< t3.toc();
+                           // EZLOG(INFO)<<"Fuse lidar dr align in ms: "<< t3.toc();
 
 //                          ADD Lidar factor
 //                          ------Li_1-DRi_1 --------Li-Di--------
@@ -290,8 +293,8 @@ public:
                             }
                         }
 
-                        EZLOG(INFO) << "****************************************************";
-                        gtSAMgraph.print("Fuse GTSAM Graph:\n");
+                        //EZLOG(INFO) << "****************************************************";
+                        //gtSAMgraph.print("Fuse GTSAM Graph:\n");
                         // update iSAM
                         isam->update(gtSAMgraph, initialEstimate);
                         isam->update();
@@ -302,7 +305,7 @@ public:
                         gtsam::Pose3 latestEstimate;
                         isamCurrentEstimate = isam->calculateEstimate();
                         latestEstimate = isamCurrentEstimate.at<gtsam::Pose3>(isamCurrentEstimate.size() - 1);
-                        EZLOG(INFO) << "****************************************************";
+                        //EZLOG(INFO) << "****************************************************";
 //                        isamCurrentEstimate.print("Fuse Current estimate: ");
 
                         PoseT current_pose(latestEstimate.translation(),latestEstimate.rotation().matrix());
@@ -335,9 +338,9 @@ public:
                         Lidar_T_w_Li_1_factor = Lidar_T_w_Li_factor;
                         lidar_keyFrame_cnt++;
                         Function_AddLidarOdometryTypeToMapManager(current_lidar_world);//TODO 1111 not used anymore
-                        EZLOG(INFO) << "5 Fuse to map_loder, and the loc_result pose :"<<loc_result.pose.GetXYZ().transpose();
+                       // EZLOG(INFO) << "5 Fuse to map_loder, and the loc_result pose :"<<loc_result.pose.GetXYZ().transpose();
 
-                        EZLOG(INFO)<<"Fuse lidar opt in ms : "<< t1.toc();
+                       // EZLOG(INFO)<<"Fuse lidar opt in ms : "<< t1.toc();
                         break;
                     }
 
@@ -389,7 +392,14 @@ public:
                         break;
                     }
                 }
-//                EZLOG(INFO)<<"Fuse pub Frequency : "<<1.0 / t_fuse.toc();
+                if(queueNum > 50){
+                    float current_time = total_time.toc();
+                    float time = (current_time - last_time) * 0.001 / (float)queueNum;
+                    EZLOG(INFO)<<"fuse fps: "<< 1.0f / time << endl;
+                    last_time = current_time;
+                    queueNum = 0;
+                }
+                //EZLOG(INFO)<<"Fuse pub Frequency : "<<1.0 / t_fuse.toc();
             }
             else{
                 sleep(0.001);

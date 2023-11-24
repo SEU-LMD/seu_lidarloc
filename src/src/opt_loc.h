@@ -179,7 +179,7 @@ public:
         PriorMap_surf_pub.timestamp = timeLaserInfoCur;
         PriorMap_surf_pub.cloud = *_surf_map;
         pubsub->PublishCloud(topic_priorMap_surf, PriorMap_surf_pub);
-//        std::cout << "Pub Surf Map!"<<std::endl;
+        //std::cout << "Pub Surf Map!"<<std::endl;
 
 //      PriorMap Corner
         CloudTypeXYZI PriorMap_corner_pub;
@@ -187,7 +187,7 @@ public:
         PriorMap_corner_pub.timestamp = timeLaserInfoCur;
         PriorMap_corner_pub.cloud = *_corner_map;
         pubsub->PublishCloud(topic_priorMap_corner, PriorMap_corner_pub);
-//        std::cout << "Pub Corner Map!"<<std::endl;
+        //std::cout << "Pub Corner Map!"<<std::endl;
 
     }
 
@@ -303,7 +303,7 @@ public:
         int localMap_surf_ds_num = 0;
 
         //TODO 1030 not used any std::cout, use EZLOG(INFO) << instead-----Done
-//        EZLOG(INFO) <<"Keyframe_Poses3D->points size : "<< Keyframe_Poses3D->points.size();
+        //EZLOG(INFO) <<"Keyframe_Poses3D->points size : "<< Keyframe_Poses3D->points.size();
 
         TicToc extract_from_priorMap;
 
@@ -830,6 +830,7 @@ public:
         static int lidarframeCnt = 0;
         static int lidarOptSuccessCnt = 0;
         const int maxIters = LocConfig::maxIters;
+        lidarframeCnt++;
         if (_current_corner_ds->size() > LocConfig::edgeFeatureMinValidNum &&
             _current_surf_ds->size() > LocConfig::surfFeatureMinValidNum) {
 //            add by prior map
@@ -845,30 +846,31 @@ public:
 
                 combineOptimizationCoeffs(_current_corner_ds->size(),_current_surf_ds->size());
 
-                if(iterCount == LocConfig::maxIters-1 ){
-//                    EZLOG(INFO)<<"LMOptimization FAILED!!"<<endl;
+                if (LMOptimization(iterCount) == true) {
+                    lidarOptSuccessCnt++;
+//                    EZLOG(INFO)<<"LMOptimization Success!!: "
+//                               << " iterCount: "<<iterCount
+//                               <<" optimize_time in ms:"<<optimize_time.toc();
                     break;
                 }
 
-                if (LMOptimization(iterCount) == true) {
-                    lidarOptSuccessCnt++;
-                    EZLOG(INFO)<<"LMOptimization Success!!: "
-                               << " iterCount: "<<iterCount
-                               <<" optimize_time in ms:"<<optimize_time.toc();
+                if(iterCount == LocConfig::maxIters-1 ){
+                    //EZLOG(INFO)<<"LMOptimization FAILED!!"<<endl;
+                    if(lidarOptSuccessCnt % 50 == 0)
+                    EZLOG(INFO)<<"Lidar Loc OPT successful ratio is: "<< lidarOptSuccessCnt <<" / " << lidarframeCnt
+                               << " = " << (float)lidarOptSuccessCnt / (float)lidarframeCnt * 100.0f <<" %";
                     break;
                 }
             }
-            lidarframeCnt++;
-            EZLOG(INFO)<<"Lidar Loc OPT successful ratio is: "<<(1.0 * lidarOptSuccessCnt / lidarframeCnt)*100.0 <<" %";
             transformUpdate();
         } else {
-//            EZLOG(INFO) <<"Not enough features! : ";
+            //EZLOG(INFO) <<"Not enough features! : ";
         }
     }
 
 //    IMU 初值
     void transformUpdate() {
-        std::cout <<"transformUpdate " <<std::endl;
+        //std::cout <<"transformUpdate " <<std::endl;
         current_T_m_l[0] =
                 constraintTransformation(current_T_m_l[0], LocConfig::rotation_tollerance);
         current_T_m_l[1] =
@@ -910,7 +912,7 @@ public:
             return false;
         }
 
-        std::cout << "distance gap: " << sqrt(x * x + y * y) << std::endl;
+        //std::cout << "distance gap: " << sqrt(x * x + y * y) << std::endl;
 
         return true;
     }
@@ -934,10 +936,9 @@ public:
         }
 
         Function_AddLidarOdometryTypeToFuse(current_Lidar_pose);
-//        EZLOG(INFO)<<"4 Loc send to Fuse! lidar result : "<< current_Lidar_pose.pose.GetXYZ().transpose();
-        { //for debug use
-            pubsub->PublishOdometry(topic_lidar_origin_odometry, current_Lidar_pose);
-        }
+        //EZLOG(INFO)<<"4 Loc send to Fuse! lidar result : "<< current_Lidar_pose.pose.GetXYZ().transpose();
+
+        pubsub->PublishOdometry(topic_lidar_origin_odometry, current_Lidar_pose);
 
         // save key poses
         PointType thisPose3D;
@@ -962,9 +963,10 @@ public:
     }
 
     void DoWork(){
-
+        long long int lidarscanNum = 0;
         while(1){
             if(deque_cloud.size()!=0){
+                TicToc total_time;
                 //TODO change position
                 CloudFeature cur_ft;
                 PointType init_point;
@@ -989,20 +991,21 @@ public:
 
                 //2. Keyframe //TOOD 1030 add keyframe selection strategy!!!------Done
                 if (WhetherThisFrameIsKeyFrame() == false) {
-//                    EZLOG(INFO)<<"Loc: this Frame is not KeyFrame, just Drop!";
+                    //EZLOG(INFO)<<"Loc: this Frame is not KeyFrame, just Drop!";
                     continue;
                 }
+                ++lidarscanNum;
 
                 //3.downSample current scan TODO1111
                 TicToc t_3;
                 downsampleCurrentScan(current_corner,current_surf,current_corner_ds,current_surf_ds);
-//                EZLOG(INFO)<<"downsampleCurrentScan() time : "<<t_3.toc();
+                //EZLOG(INFO)<<"downsampleCurrentScan() time : "<<t_3.toc();
 
                 TicToc t_2;
                 //4.load PriorMap
                 map_manager_ptr->SafeLockCloud();
                 map_manager_ptr->GetCurMapCloud(priorMap_corner,priorMap_surf);
-                EZLOG(INFO)<<"GetCurMapCloud() time : "<<t_2.toc();
+                //EZLOG(INFO)<<"GetCurMapCloud() time : "<<t_2.toc();
                 {
                     pub_CornerAndSurfFromMap(priorMap_corner,priorMap_surf); // debug use
                 }
@@ -1010,18 +1013,21 @@ public:
                 //5.extract prior map
                 TicToc t_7;
                 extractFromPriorMap(init_point,priorMap_corner,priorMap_surf,localMap_corner_ds,localMap_surf_ds);
-//                EZLOG(INFO)<<"extractFromPriorMap() time : "<<t_7.toc();
+                //EZLOG(INFO)<<"extractFromPriorMap() time : "<<t_7.toc();
 
                 //6.scan 2 map
                 TicToc t_4;
                 scan2MapOptimization(current_corner,current_surf,localMap_corner_ds,localMap_surf_ds);
-//                EZLOG(INFO)<<"scan2MapOptimization() time : "<<t_4.toc();
+                //EZLOG(INFO)<<"scan2MapOptimization() time : "<<t_4.toc();
                 map_manager_ptr->SafeUnlockCloud();//very important fucniton to protect map manager memory!!!!!!!
 
                 TicToc t_5;
                 ResultsAndPub2Fuse(cur_ft.frame_id,cur_ft.pose,cur_ft.pose_reliable);//TODO 1030 change function name------Done
 //                EZLOG(INFO)<<"ResultsAndPub2Fuse() time : "<<t_5.toc();
 
+                if(lidarscanNum % 10 == 0){
+                    EZLOG(INFO) << "current lidar scan cost time: " << total_time.toc() << "ms" << std::endl;
+                }
             }
             else{
                 sleep(0.01);

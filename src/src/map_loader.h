@@ -48,6 +48,8 @@ public:
     std::mutex mtxGraph;
     std::mutex mutex_priorMap;
 
+    //std::string topic_priorMap_corner_mapManger = "/Prior_map_corner_MM";
+  //  std::string topic_priorMap_surf_mapManger = "/Prior_map_surf_MM";
     std::deque<std::shared_ptr<OdometryType>> data_deque;
 
     //是否更新标志位
@@ -451,6 +453,9 @@ public:
     void Init(PubSubInterface* pubsub_){
         pubsub = pubsub_;
         MapManagerInitialized();
+
+       // pubsub->addPublisher(topic_priorMap_corner_mapManger, DataType::LIDAR, 10);
+       // pubsub->addPublisher(topic_priorMap_surf_mapManger, DataType::LIDAR, 10);
 
         mapManager_thread = new std::thread(&MapManager::DoWork, this);
     }

@@ -2,12 +2,12 @@
 # TODO change yaml name
 #TODO remove not used parmater!!!!
   slam_mode_switch: 1
-
+  if_loop_to_end: 1
 #  if_use_
 
   # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!
-  save_map_path: "/home/wxy/seu/reborn/work/resultnew/test/"
+  save_map_path: "/home/wxy/seu/reborn/work/resultnew/treeroad/"
 #  save_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/park_loop1_out/"
 #  save_map_path: "/home/lsy/map/"
   if_need_first_position: 0
@@ -33,14 +33,14 @@
 
   # robot motion constraint (in case you are using a 2D robot)
   z_tollerance: 2                            # meters
-  rotation_tollerance: 5                     # radians
+  rotation_tollerance: 5                     # radia
 
   # CPU Params
   mappingProcessInterval: 0.09                  # seconds, regulate mapping frequency
 
   # Surrounding map
   surroundingkeyframeAddingDistThreshold: 1.0  # meters, regulate keyframe adding threshold
-  surroundingkeyframeAddingAngleThreshold: 5.0  # radians, regulate keyframe adding threshold
+  surroundingkeyframeAddingAngleThreshold: 10.0  # an, regulate keyframe adding threshold
 
   surroundingKeyframeSearchRadius: 50.0         # meters, within n meters scan-to-map optimization (when loop closure disabled)
 
@@ -48,7 +48,7 @@
   loopClosureEnableFlag: true
   loopClosureFrequency: 1.0                     # Hz, regulate loop closure constraint add frequency
   surroundingKeyframeSize: 30                  # submap size (when loop closure enabled)
-  historyKeyframeSearchRadius: 30.0           # meters, key frame that is within n meters from current pose will be considerd for loop closure
+  historyKeyframeSearchRadius: 10.0          # meters, key frame that is within n meters from current pose will be considerd for loop closure
   historyKeyframeSearchTimeDiff: 150.0          # seconds, key frame that is n seconds older will be considered for loop closure
   historyKeyframeSearchNum: 10                  # number of hostory key frames will be fused into a submap for loop closure
   historyKeyframeFitnessScore: 0.5           # icp threshold, the smaller the better alignment
@@ -57,12 +57,24 @@
   maxIters: 20
 
   #GTSAM noise
-  GNSS_noise_roll: 1e-2
-  GNSS_noise_pitch: 1e-2
-  GNSS_noise_yaw: 1e-2
-  GNSS_noise_x: 1e-6
-  GNSS_noise_y: 1e-6
-  GNSS_noise_z: 1e-6
+  GNSS_noise_rpy: [ 1e-1, 1e-1, 1e-1 ]
+  GNSS_noise_xyz: [ 1e-2, 1e-2, 1e-2 ]
+
+  LidarOdom_noise_rpy: [1e-1, 1e-1, 1e-1 ]
+  LidarOdom_noise_xyz: [1e-1, 1e-1, 1e-1 ]
+
+  DR_noise_rpy: [ 1e-1, 1e-1, 1e-1 ]
+  DR_noise_xyz: [ 1e-1, 1e-1, 8 ]
+
+  Loop_noise_rpy: [ 1e-3, 1e-3, 1e-3 ]
+  Loop_noise_xyz: [ 1e-3, 1e-3, 1e-3 ]
+
+  GNSS_noise_roll: 1e-1
+  GNSS_noise_pitch: 1e-1
+  GNSS_noise_yaw: 1e-1
+  GNSS_noise_x: 1e-1
+  GNSS_noise_y: 1e-1
+  GNSS_noise_z: 1e-1
   LidarOdom_noise_roll: 1e-2
   LidarOdom_noise_pitch: 1e-2
   LidarOdom_noise_yaw: 1e-2

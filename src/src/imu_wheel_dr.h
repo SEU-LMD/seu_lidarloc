@@ -225,8 +225,8 @@ public:
 
                         state.p_wb_ = t_w_b;
                         state.Rwb_ = R_w_b;
-//                        state.v_w_[1] = gnss_ins_data.velocity; // gnss velocity
-                        state.v_w_[1] = (gnss_ins_data.wheel_speed[2] + gnss_ins_data.wheel_speed[3]) * average_kmh2Ms; // gnss velocity, /2 /3.6
+                        state.v_w_[1] = gnss_ins_data.velocity; // gnss velocity
+//                        state.v_w_[1] = (gnss_ins_data.wheel_speed[2] + gnss_ins_data.wheel_speed[3]) * average_kmh2Ms; // gnss velocity, /2 /3.6
                         last_state.p_wb_ = state.p_wb_;
                         last_state.Rwb_ = state.Rwb_;
                         last_state.v_w_ = state.v_w_;
