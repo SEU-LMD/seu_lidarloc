@@ -452,13 +452,8 @@ public:
 
             ///2.
             //use absolutue
-            //TODO 1118 delete and test!
-//                if (!DrOdomQueue.empty() && drqueue_min_ros_time >= cloud_min_ros_timestamp) {
-//                    auto temp = DrOdomQueue.front();
-//                    temp.timestamp = cloud_min_ros_timestamp - 0.01f;
-//                    DrOdomQueue.push_front(temp);//TODO 1118 add lock
-//                    //isGetCurrentCloud = false;
-//                }
+            //TODO 1118 delete and test!--------Done
+
             static int pop_lidar_scan_num = 0; //if time_dr > time_lidar, pop lidar
             if(drqueue_min_ros_time > cloud_min_ros_timestamp){
                 ++pop_lidar_scan_num;
