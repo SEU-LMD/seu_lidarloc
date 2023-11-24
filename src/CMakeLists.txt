@@ -11,7 +11,7 @@ add_definitions(-w)
 find_package(Boost REQUIRED COMPONENTS timer)
 
 #according to different platform to choose communication tool , ros or mdc
-set(COMPILE_MODE "X86" CACHE STRING "choose the platform")# X86 or MDC
+#set(COMPILE_MODE "X86" CACHE STRING "choose the platform")# X86 or MDC
 #set(COMPILE_MODE "MDC" CACHE STRING "choose the platform")# X86 or MDC
 if( ${COMPILE_MODE} STREQUAL "X86")
     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/X86.cmake)

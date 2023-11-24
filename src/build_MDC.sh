@@ -5,7 +5,7 @@ if [ "$1" = "clear" ]; then
     mkdir build
 fi
 cd build
-cmake ..
+cmake -DCOMPILE_MODE=MDC ..
 make -j10
 cd ..
 

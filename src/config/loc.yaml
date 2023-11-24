@@ -55,7 +55,7 @@ maxIters: 30
 
 GNSSupdateDR: 0
 GNSSBetweenOrPrior: 1
-ifRollBack: 0
+ifRollBack: 1
 updateFrequencyFrameCnt: 100
 
 # road_loop

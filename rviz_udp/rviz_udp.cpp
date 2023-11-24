@@ -161,12 +161,6 @@ void PubilshOdometry(const UDP_CLENT& client){
 
         publish_fu_odom.publish(dr_msg);
         
-         static tf::TransformBroadcaster bf;
-        static tf::Transform transformbf;
-
-        transformbf.setOrigin(tf::Vector3(dr_msg.pose.pose.position.x, dr_msg.pose.pose.position.y, dr_msg.pose.pose.position.z));
-        transformbf.setRotation(tf::Quaternion(dr_msg.pose.pose.orientation.x,dr_msg.pose.pose.orientation.y ,dr_msg.pose.pose.orientation.z, dr_msg.pose.pose.orientation.w));
-        bf.sendTransform(tf::StampedTransform(transformbf, ros::Time::now(), "map", "fu"));
     }
 
 }
