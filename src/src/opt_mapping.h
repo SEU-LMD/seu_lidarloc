@@ -1573,20 +1573,37 @@ public:
         current_T_m_l[5] = latestEstimate.translation().z();
 
         // save all the received edge and surf points
-        pcl::PointCloud<PointType>::Ptr thisCornerKeyFrame(new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr thisSurfKeyFrame(new pcl::PointCloud<PointType>());
+        if (!isAddloopFrame){
+            pcl::PointCloud<PointType>::Ptr thisCornerKeyFrame(new pcl::PointCloud<PointType>());
+            pcl::PointCloud<PointType>::Ptr thisSurfKeyFrame(new pcl::PointCloud<PointType>());
 
-        pcl::copyPointCloud(*laserCloudCornerLastDS, *thisCornerKeyFrame);
-        pcl::copyPointCloud(*laserCloudSurfLastDS, *thisSurfKeyFrame);
+            pcl::copyPointCloud(*laserCloudCornerLastDS, *thisCornerKeyFrame);
+            pcl::copyPointCloud(*laserCloudSurfLastDS, *thisSurfKeyFrame);
 
-        cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
-        surfCloudKeyFrames.push_back(thisSurfKeyFrame);
+            cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
+            surfCloudKeyFrames.push_back(thisSurfKeyFrame);
 
-        CloudInfoFt cloud_info;
-        cloud_info.frame_id = ++frame_id;
-        cloud_info.corner_cloud = thisCornerKeyFrame;
-        cloud_info.surf_cloud = thisSurfKeyFrame;
-        map_saver.AddCloudToSave(cloud_info);
+            CloudInfoFt cloud_info;
+            cloud_info.frame_id = ++frame_id;
+            cloud_info.corner_cloud = thisCornerKeyFrame;
+            cloud_info.surf_cloud = thisSurfKeyFrame;
+            map_saver.AddCloudToSave(cloud_info);
+        }
+
+//        pcl::PointCloud<PointType>::Ptr thisCornerKeyFrame(new pcl::PointCloud<PointType>());
+//        pcl::PointCloud<PointType>::Ptr thisSurfKeyFrame(new pcl::PointCloud<PointType>());
+//
+//        pcl::copyPointCloud(*laserCloudCornerLastDS, *thisCornerKeyFrame);
+//        pcl::copyPointCloud(*laserCloudSurfLastDS, *thisSurfKeyFrame);
+//
+//        cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
+//        surfCloudKeyFrames.push_back(thisSurfKeyFrame);
+//
+//        CloudInfoFt cloud_info;
+//        cloud_info.frame_id = ++frame_id;
+//        cloud_info.corner_cloud = thisCornerKeyFrame;
+//        cloud_info.surf_cloud = thisSurfKeyFrame;
+//        map_saver.AddCloudToSave(cloud_info);
 
     }
 
