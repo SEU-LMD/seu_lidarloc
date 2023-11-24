@@ -3,7 +3,6 @@
 #ifndef SEU_LIDARLOC_DATAPREPROCESS_H
 #define SEU_LIDARLOC_DATAPREPROCESS_H
 
-
 #include <mutex>
 #include <thread>
 #include <fstream>
@@ -401,7 +400,7 @@ public:
             ///0.do something
             double drqueue_min_ros_time ;
             double drqueue_max_ros_time ;
-            //TODO 1111
+            //TODO 1111---------Done
             {
                 std::lock_guard<std::mutex> lock(drodom_mutex);
                 if(DrOdomQueue.empty()){
@@ -437,8 +436,10 @@ public:
                     for(int i = 0;i<GNSSQueue.size();++i){
                         if(abs(GNSSQueue[i].timestamp - cur_scan->timestamp) < FrontEndConfig::gnss_align_threshold){
                             cloudinfo.pose = GNSSQueue[i].pose;
+                            if(GNSSQueue[i].GTpose_reliability){
+                                cloudinfo.pose_reliable = true;
+                            }
                             cloudinfo.cov = GNSSQueue[i].cov;
-                            cloudinfo.pose_reliable = true;
                             isGetCorrespondingGNSS = true;
                             break;
                         }

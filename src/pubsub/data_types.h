@@ -222,14 +222,8 @@ public:
         cov = d.cov;
         pose_reliable = d.pose_reliable;
 
-//    std::vector<int> label;
         startRingIndex = d.startRingIndex;
         endRingIndex = d.endRingIndex;
-
-//        cloud_ptr = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
-//        cloud_ground = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
-//        cloud_ground_down = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
-//        cloud_unground = pcl::PointCloud<PointXYZICOLRANGE>::Ptr (new pcl::PointCloud<PointXYZICOLRANGE>);
 
         cloud_ptr = d.cloud_ptr;
         cloud_ground = d.cloud_ground;
