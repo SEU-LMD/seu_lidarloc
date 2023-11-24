@@ -547,6 +547,10 @@ public:
 
     void AddCloudData(const CloudTypeXYZIRT& data){
 
+        if(!IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_alldata")) {
+            return;
+        }
+
         CloudTypeXYZIRTPtr cloud_ptr(new CloudTypeXYZIRT());
         *cloud_ptr = data;//深拷贝
         cloud_mutex.lock();
@@ -583,6 +587,10 @@ public:
     }
     //
     void AddGNSSINSSData(const GNSSINSType& data){
+
+        if(!IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_alldata")) {
+            return;
+        }
 
        if(!GnssQualityCheck(data)){
            return ;

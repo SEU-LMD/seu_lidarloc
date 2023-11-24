@@ -121,6 +121,10 @@ public:
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
 
+        if(!IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_alldata")) {
+            return;
+        }
+
         TicToc time1;
         double currentTime = gnss_ins_data.timestamp;
         static bool init = false;
