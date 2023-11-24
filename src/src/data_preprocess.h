@@ -3,8 +3,6 @@
 #ifndef SEU_LIDARLOC_DATAPREPROCESS_H
 #define SEU_LIDARLOC_DATAPREPROCESS_H
 
-#define DBL_MAX		__DBL_MAX__//1118 what is this? TODO
-
 #include <mutex>
 #include <thread>
 #include <fstream>
@@ -286,7 +284,7 @@ public:
             //very important function@!!!!!!!!!
             if (SensorConfig::use_drodom_deskew){
                 if(cloudinfo.cloud_ptr->cloud.points[i].latency - cloudinfo.min_latency_timestamp < 0){
-//                    EZLOG(INFO)<<"wrong! latency!";
+                    EZLOG(INFO)<<"wrong! latency!";
                     continue;
                 }
                 thisPoint = DeskewPoint(&thisPoint,
@@ -402,7 +400,7 @@ public:
             ///0.do something
             double drqueue_min_ros_time ;
             double drqueue_max_ros_time ;
-            //TODO 1111
+            //TODO 1111---------Done
             {
                 std::lock_guard<std::mutex> lock(drodom_mutex);
                 if(DrOdomQueue.empty()){
@@ -438,8 +436,10 @@ public:
                     for(int i = 0;i<GNSSQueue.size();++i){
                         if(abs(GNSSQueue[i].timestamp - cur_scan->timestamp) < FrontEndConfig::gnss_align_threshold){
                             cloudinfo.pose = GNSSQueue[i].pose;
+                            if(GNSSQueue[i].GTpose_reliability){
+                                cloudinfo.pose_reliable = true;
+                            }
                             cloudinfo.cov = GNSSQueue[i].cov;
-                            cloudinfo.pose_reliable = true;
                             isGetCorrespondingGNSS = true;
                             break;
                         }
@@ -531,6 +531,16 @@ public:
             TicToc time_dataprep_2;
             ///4. send data to feature extraction node
             Function_AddCloudInfoToFeatureExtraction(cloudinfo);
+           // EZLOG(INFO)<<"time_dataprep_2 = "<<time_dataprep_2.toc()<<endl;
+           // EZLOG(INFO)<<"CloudInfo size:"<<cloudinfo.cloud_ptr -> points.size()
+           // <<" "<< cloudinfo.cloud_ground_down -> points.size()
+           // <<" "<< cloudinfo.cloud_ground -> points.size()
+           // <<" "<< cloudinfo.cloud_unground -> points.size()<<endl;
+
+//                    EZLOG(INFO)<<"cloudinfo.frame_id"<< cloudinfo.frame_id<<endl;
+//                    EZLOG(INFO)
+//                            << "2. 1 of 2 data_preprocess send to feature_extraction! current lidar pointCloud size is: "
+//                            << cloudinfo.cloud_ptr->points.size();
             ///5.pop used odom
             TicToc time_dataprep_3;
             const double thresh = cloud_max_ros_timestamp - 0.05f;
