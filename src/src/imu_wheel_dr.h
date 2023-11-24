@@ -151,7 +151,7 @@ public:
                 return;
             }
             if(gnss_ins_data.gps_status != 42 && gnss_ins_data.gps_status != 52 && gnss_ins_data.gps_status != 33){
-                EZLOG(INFO)<<"DR: GNSS status is bad: "<<gnss_ins_data.gps_status;
+//                EZLOG(INFO)<<"DR: GNSS status is bad: "<<gnss_ins_data.gps_status;
                 return;
             }
             // gnss good
@@ -188,7 +188,7 @@ public:
 
             init = 1;
 
-            EZLOG(INFO)<<"RESET DR with GNSS: t_w_b"<<t_w_b.transpose();
+            //EZLOG(INFO)<<"RESET DR with GNSS: t_w_b"<<t_w_b.transpose();
             return;
         }
 

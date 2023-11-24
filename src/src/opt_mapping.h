@@ -107,6 +107,7 @@ public:
     Eigen::Matrix3d R_lidar_cur;
     Eigen::Affine3f lastDRPose;
     Eigen::Affine3f currentDRPose;
+   // PoseT lastDRPose;
     PoseT last_DRPose;
     PoseT current_DRPose;
     PoseT current_GNSSPose;
@@ -526,28 +527,6 @@ public:
         if (loopKeyPre == -1 || loopKeyCur == loopKeyPre)
             return false;//TODO 1118 delete
 
-//        if(loopKeyCur - lastLoopIndex <30){
-//            lastLoopIndex = loopKeyCur;
-//
-//            EZLOG(INFO) << "233333" << std::endl;
-//            return false;
-//        }
-//        //TODO 1118 what is the meaning of below if?
-//        if (keyframeDistances.size() >= loopKeyCur) {
-//            double distance = 0.0;
-//            for (int j = loopKeyPre; j < loopKeyCur; ++j) {
-//                distance += keyframeDistances.at(j);
-//            }
-//            if (distance < 12) {
-//                std::cout << "CLOSE FRAME MUST FILTER OUT " << distance << std::endl;
-//                return false;
-//            }
-//        }
-       // float loopKeyPre_x = copy_cloudKeyPoses2D->at(loopKeyPre).x;
-      //  float loopKeyPre_y = copy_cloudKeyPoses2D->at(loopKeyPre).y;
-       // float detectedDistance = sqrt(copy_cloudKeyPoses2D->at(loopKeyPre).x));
-
-       // if (loopKeyPre == -1 || loopKeyCur == loopKeyPre) return false;//TODO delete backwards
         latestID = loopKeyCur;
         closestID = loopKeyPre;
         return true;
@@ -807,24 +786,28 @@ public:
                 current_T_m_l[1], current_T_m_l[2]);
 
         lastDRPose = currentDRPose;
-    }
 
-//    {
-//        PoseT currentDRPose1 = PoseT(t_lidar_cur, R_lidar_cur);
-//        bool DRInitialized1 = false;
-//        if (DRInitialized1 == false) {
-//            PoseT lastDRPose1 = currentDRPose;
-//            DRInitialized1 = true;
+//        PoseT currentDRPose = PoseT(t_lidar_cur[0], t_lidar_cur[1], t_lidar_cur[2],  q_lidar_rpy[0],  q_lidar_rpy[1],
+//                                       q_lidar_rpy[2]);
+//
+//        if (DRInitialized == false) {
+//            lastDRPose = currentDRPose;
+//            last_DRPose = PoseT(t_lidar_cur,R_lidar_cur);
+//            DRInitialized = true;
 //            return;
 //        }
-//        PoseT transIncre1 = lastDRPose1.inverse() * currentDRPose1;
-//        Eigen::Affine3f transTobe = trans2Affine3f(current_T_m_l);
-//        PoseT transfinal1 =
-//    }
+//        PoseT transIncre =
+//                lastDRPose.inverse() * currentDRPose;
+//        PoseT transTobe = PoseT(current_T_m_l[3], current_T_m_l[4],current_T_m_l[5], current_T_m_l[0],current_T_m_l[1], current_T_m_l[2]);
+//        PoseT transFinal= transTobe * transIncre;
+//        Eigen::Matrix4d& currrentpose;
+//        gettransandEulerAngles(currrentpose,current_T_m_l[3], current_T_m_l[4],current_T_m_l[5], current_T_m_l[0],current_T_m_l[1], current_T_m_l[2]);
+//        //current_T_m_l[3] = transFinal.;
+//
+//        lastDRPose = currentDRPose;
 
 
-
-
+    }
 
 
     void extractCloud(pcl::PointCloud<PointType>::Ptr cloudToExtract) {
@@ -1664,7 +1647,6 @@ public:
 
     }
 
-
     //发布优化后的里程计
     void publishOdometry() {
 
@@ -1772,7 +1754,7 @@ public:
                     TicToc t5;
                     correctPoses();//lock
 
-                    EZLOG(INFO)<<" correctPoses COST TIME"<<t5.toc()<<endl;
+                    //EZLOG(INFO)<<" correctPoses COST TIME"<<t5.toc()<<endl;
                     publishOdometry();
                     publishCloud();
 

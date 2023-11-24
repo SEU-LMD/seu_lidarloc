@@ -104,11 +104,35 @@ Eigen::Vector3d Qua2Euler(const Eigen::Quaterniond& q){
     return rpy;
 }
 
+void gettransandEulerAngles (const Eigen::Matrix4d& pose,
+                                   double &x, double &y, double &z,
+                                   double &roll, double &pitch, double &yaw)
+{
+    x = pose (0, 3);
+    y = pose (1, 3);
+    z = pose (2, 3);
+    roll = std::atan2 (pose (2, 1), pose (2, 2));
+    pitch = asin (-pose (2, 0));
+    yaw = std::atan2 (pose (1, 0), pose (0, 0));
+}
 
 class PoseT{
+
 public:
     Eigen::Matrix4d pose;
     PoseT(){}
+
+    PoseT(const double x,const double y,const double z,const double roll,const double pitch,const double yaw){
+        pose = Eigen::Matrix4d::Identity();
+        double A = std::cos (yaw),  B = sin (yaw),  C  = std::cos (pitch), D  = sin (pitch),
+                E = std::cos (roll), F = sin (roll), DE = D*E,         DF = D*F;
+
+        pose(0,0) = A*C;    pose (0, 1) = A*DF - B*E;  pose (0, 2) = B*F + A*DE;  pose(0, 3) = x;
+        pose (1, 0) = B*C;  pose (1, 1) = A*E + B*DF;  pose (1, 2) = B*DE - A*F;  pose (1, 3) = y;
+        pose (2, 0) = -D;   pose (2, 1) = C*F;         pose (2, 2) = C*E;         pose (2, 3) = z;
+        pose (3, 0) = 0;    pose(3, 1) = 0;            pose (3, 2) = 0;           pose (3, 3) = 1;
+
+    }
     PoseT(const Eigen::Vector3d& t, const Eigen::Matrix3d& R){
         pose = Eigen::Matrix4d::Identity();
         pose.block<3,3>(0,0) = R;
@@ -132,6 +156,16 @@ public:
         Eigen::Quaterniond q (pose.block<3,3>(0,0));
         return q;
     }
+    Eigen::ArrayXXd  GetRPY()const{
+        Eigen::ArrayXXd xyzrpy;
+        xyzrpy(0,0) = pose (0, 3);
+        xyzrpy(0,1) = pose (1, 3);
+        xyzrpy(0,2) = pose (2, 3);
+        xyzrpy(0,3) = std::atan2 (pose (2, 1), pose (2, 2));
+        xyzrpy(0,4) = asin (-pose (2, 0));
+        xyzrpy(0,5) = std::atan2 (pose (1, 0), pose (0, 0));
+        return xyzrpy;
+    }
     PoseT operator*(const PoseT& T) const{
         return PoseT(pose * T.pose);
     }
@@ -146,6 +180,8 @@ public:
     PoseT between(const PoseT& g) const {
         return PoseT(pose.inverse() * g.pose.matrix());
     }
+
+
 };
 
 #endif

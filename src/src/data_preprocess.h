@@ -3,7 +3,6 @@
 #ifndef SEU_LIDARLOC_DATAPREPROCESS_H
 #define SEU_LIDARLOC_DATAPREPROCESS_H
 
-#define DBL_MAX		__DBL_MAX__//1118 what is this? TODO
 
 #include <mutex>
 #include <thread>
@@ -168,36 +167,36 @@ public:
         for(std::deque<OdometryType>::const_iterator it = pose_deque.begin();it!=pose_deque.end();it++){
             if (it->timestamp > pointTime)
             {
+                auto current_iter = it--;
 
-//                double k_time = (pointTime - pose_deque[i-1].timestamp)
-//                                /(pose_deque[i].timestamp - pose_deque[i-1].timestamp);
-//
-//                //平移插值
-//                Eigen::Vector3d t_w_b_lidar_now;
-//                t_w_b_lidar_now = pose_deque[i - 1].pose.GetXYZ() +
-//                                  k_time * (pose_deque[i].pose.GetXYZ() - pose_deque[i - 1].pose.GetXYZ());
-//
-//                //旋转插值
-//                Eigen::Quaterniond q_w_b_lidar_now;
-//                q_w_b_lidar_now = pose_deque[i-1].pose.GetQ().slerp(k_time,pose_deque[i].pose.GetQ());
-//
-//                //插值位姿态矩阵
-//                T_w_b_lidar_now  = PoseT(t_w_b_lidar_now , q_w_b_lidar_now);
+                double k_time = (pointTime - it->timestamp)
+                                /(current_iter->timestamp - it->timestamp);
 
-//              不做插值，直接赋值
+                //平移插值
                 Eigen::Vector3d t_w_b_lidar_now;
-                t_w_b_lidar_now = it->pose.GetXYZ();
+                t_w_b_lidar_now = it->pose.GetXYZ() +
+                                  k_time * (current_iter->pose.GetXYZ() - it->pose.GetXYZ());
 
                 //旋转插值
                 Eigen::Quaterniond q_w_b_lidar_now;
-                q_w_b_lidar_now = it->pose.GetQ();
+                q_w_b_lidar_now = it->pose.GetQ().slerp(k_time,current_iter->pose.GetQ());
+
+                //插值位姿态矩阵
+                T_w_b_lidar_now  = PoseT(t_w_b_lidar_now , q_w_b_lidar_now);
+
+//              不做插值，直接赋值
+//                Eigen::Vector3d t_w_b_lidar_now;
+//                t_w_b_lidar_now = it->pose.GetXYZ();
+//
+//                //旋转插值
+//                Eigen::Quaterniond q_w_b_lidar_now;
+//                q_w_b_lidar_now = it->pose.GetQ();
 
                 //插值位姿态矩阵
                 T_w_b_lidar_now  = PoseT(t_w_b_lidar_now , q_w_b_lidar_now);
 
                 break;
             }
-            continue;
         }
     }
 
@@ -489,7 +488,7 @@ public:
             if(cloudinfo.pose_reliable == false){
                 ++GNSS_frames;
                 if(GNSS_frames % 10 == 0)
-                    EZLOG(INFO)<<"find bad gnss pose num = "<<GNSS_frames<<" / "<<frame_id<<" = "<<(float)GNSS_frames/(float)frame_id;
+                    EZLOG(INFO)<<"cannot find correspond gnss pose num = "<<GNSS_frames<<" / "<<frame_id<<" = "<<(float)GNSS_frames/(float)frame_id;
             }
 
 
