@@ -547,7 +547,7 @@ public:
 
     void AddCloudData(const CloudTypeXYZIRT& data){
 
-        if(!IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_alldata")) {
+        if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_rmAlldata")) {
             return;
         }
 
@@ -588,7 +588,7 @@ public:
     //
     void AddGNSSINSSData(const GNSSINSType& data){
 
-        if(!IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_alldata")) {
+        if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_rmAlldata")) {
             return;
         }
 

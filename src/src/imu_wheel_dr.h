@@ -121,7 +121,7 @@ public:
 
     void AddGNSSINSData(const GNSSINSType& gnss_ins_data){
 
-        if(!IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_alldata")) {
+        if(IsFileDirExist(ABS_CURRENT_SOURCE_PATH+"/flag_rmAlldata")) {
             return;
         }
 
