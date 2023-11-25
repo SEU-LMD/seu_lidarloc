@@ -1,1 +1,1 @@
-rm -rf ./flag_rmAlldata
+mkdir flag_rmAlldata
