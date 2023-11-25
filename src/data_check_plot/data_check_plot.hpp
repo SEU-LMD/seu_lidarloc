@@ -8,6 +8,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <ctime>
 #include "sciplot/sciplot.hpp"
 
 
@@ -87,11 +88,23 @@ class Plot{
     const int point_num = 144000;
     int count_iseuql;
 
+    std::ofstream check_data;
+    std::time_t currentTime ;
+    std::string timeString;
 
     Plot(std::string sav_path_){
         sav_path=sav_path_;
+        // 将时间转换为字符串
+        currentTime = std::time(nullptr);
+        timeString = std::ctime(&currentTime);
+
+        check_data.open(sav_path+"/"+timeString+"check_data.txt");
+
     }
 
+    ~Plot(){
+        check_data.close();
+    }
     //ReadGNSS()
     void readGNss(){
         std::ifstream gnss_file(sav_path+"/gnss_data.txt");
@@ -148,31 +161,33 @@ class Plot{
     }
 
      void checkLidar(){
-        std::ofstream check_lidar(sav_path+"/check_data.txt",std::ios::app);
+         std::time_t currentTime = std::time(nullptr);
+
+         // 将时间转换为字符串
+         std::string timeString = std::ctime(&currentTime);
+
+        std::ofstream check_lidar(sav_path+"/"+timeString+"check_data.txt",std::ios_base::app);
 
          checkLidarTimestamp();
-         check_lidar << "lidar:" <<std::endl<<"fre:"<< (1/average_lidar_time)<<std::endl
+         check_data << "lidar:" <<std::endl<<"fre:"<< (1/average_lidar_time)<<std::endl
          <<"lidar_wrong_count:" << lidar_time_run_count << std::endl
            <<"std_deviation:"<< lidar_std_deviation <<std::endl
            <<"over3std_P:" << lidar_over3std_deviation_p*100 << "%" << std::endl;
 
          checkLidarPoint();
-         check_lidar <<"count is not normal:"<< count_iseuql<<std::endl;
-         check_lidar.close();
+         check_data <<"count is not normal:"<< count_iseuql<<std::endl;
     }
 
     //public
     void checkGnss(){
-        std::ofstream check_gnss(sav_path+"/check_data.txt");
         checkGnssTimestamp();
-        check_gnss << "gnss:" <<std::endl<<"fre:"<< (1/average_gnss_time)<<std::endl
+        check_data << "gnss:" <<std::endl<<"fre:"<< (1/average_gnss_time)<<std::endl
         <<"gnss_wrong_count:" << gnss_time_run_count << std::endl
         <<"std_deviation:"<< gnss_std_deviation <<std::endl
         <<"over3std_P:" << over3std_deviation_p*100 << "%" << std::endl;
 
-        check_gnss.close();
-        DrawPoint(v_timestamp,"count","timestamp");
-        DrawPoint(diff_gnss_timestamp,"count","diift");
+        DrawPoint(v_timestamp,"count","timestamp/s");
+        DrawPoint(diff_gnss_timestamp,"count","dif/s");
 
     }
 
@@ -252,7 +267,6 @@ private:
         sciplot::Vec y(data_y.data(),data_y.size());
 
         sciplot::Plot2D plot;
-        std::cout<<"4"<<std::endl;
         plot.xlabel(name_x);
         plot.ylabel(name_y);
 
@@ -273,11 +287,12 @@ private:
         plot.legend()
             .atOutsideBottom()
             .displayHorizontal()
-            .displayExpandWidthBy(0.2);
+            .displayExpandWidthBy(0.01);
 
 
-        plot.drawBrokenCurveWithPoints(x, y);
+//        plot.drawBrokenCurveWithPoints(x, y);
 
+        plot.drawCurve(x, y).label(name_y);
         sciplot::Figure fig = {{plot}};
         sciplot::Canvas canvas = {{fig}};
         canvas.show();
