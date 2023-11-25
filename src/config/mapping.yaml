@@ -7,9 +7,9 @@
 
   # the path of map save
 #  you must change it to right PATH or it will crush!!!!!!!!
-  save_map_path: "/home/wxy/seu/reborn/work/resultnew/test/"
+#  save_map_path: "/home/wxy/seu/reborn/work/resultnew/test/"
 #  save_map_path: "/media/sy/R/dataSet/ZhongKeXingChi/newbag/park_loop1_out/"
-#  save_map_path: "/home/lsy/map/"
+  save_map_path: "/home/lsy/map/"
   if_need_first_position: 0
 
   # LOAM feature threshold
