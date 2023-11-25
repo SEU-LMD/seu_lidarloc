@@ -1,11 +1,7 @@
 
 #ifndef SEU_LIDARLOC_DATA_CHECK_MANAGER_H
 #define SEU_LIDARLOC_DATA_CHECK_MANAGER_H
-
 #include <mutex>
-
-#include "GeoGraphicLibInclude/LocalCartesian.hpp"
-
 #include "pubsub/pubusb.h"
 #include "pubsub/data_types.h"
 #include "utils/timer.h"
@@ -14,6 +10,7 @@
 #include "data_preprocess.h"
 #include "utils/MapSaver.h"
 #include "config/abs_current_path.h"
+#include "GeoGraphicLibInclude/LocalCartesian.hpp"
 
 
 class DataCheck  {
@@ -24,12 +21,12 @@ public:
     std::mutex cloud_mutex;
 
     std::deque<CloudTypeXYZIRTPtr> deque_cloud;
-    std::deque<GNSSINSType> gnssQueue ;
+    std::deque<GNSSINSType> gnssQueue;
     std::deque<WheelType> drQueue;
 
     std::thread* do_work_thread;
 
-    TicToc timer_gnss;
+    TicToc timer_dr;
 
     bool init = false;
     bool gnsstime_init = false;
@@ -45,6 +42,25 @@ public:
 
     double time_init_lidar;
     double time_init_gnss;
+
+    //data from gnss
+    Eigen::Vector3d lla;
+    Eigen::Vector3d lla_sigma;
+
+    double roll,pitch,yaw;
+    Eigen::Vector3d rpy_sigma;
+
+    Eigen::Vector3d imu_angular_v_raw;
+    Eigen::Vector3d imu_linear_acc_raw;
+
+    Eigen::Vector3d imu_angular_v_body;
+    Eigen::Vector3d imu_linear_acc_body;
+
+    double velocity;
+    double velocity_sigma;
+    Eigen::Vector4d wheel_speed;//RR RL FR FL
+
+    int gps_status;
 
 
     void DoWork(){
@@ -78,7 +94,7 @@ public:
                         auto  wheel_speed= gnssQueue[i]. wheel_speed;
                         auto  gps_status= gnssQueue[i]. gps_status;
 
-                        std::ofstream originStream( save_map_path +"gnss_data.txt", std::ios_base::app);
+                        std::ofstream originStream( save_map_path +"/gnss_data.txt", std::ios_base::app);
                         originStream << std::fixed<<std::setprecision(11)<<timestamp_rel << " " << lla[0] << " " << lla[1] << " " << lla[2] << " " //1-4col time lla
                                      << lla_sigma[0] << " " << lla_sigma[1] << " " << lla_sigma[2] << " " //5-7 col
 
@@ -115,7 +131,7 @@ public:
                     auto  wheel_speed= gnssQueue[i]. wheel_speed;
                     auto  gps_status= gnssQueue[i]. gps_status;
 
-                    std::ofstream originStream( save_map_path +"gnss_data.txt", std::ios_base::app);
+                    std::ofstream originStream( save_map_path +"/gnss_data.txt", std::ios_base::app);
                     originStream << std::fixed<<std::setprecision(11)<<timestamp_rel << " " << lla[0] << " " << lla[1] << " " << lla[2] << " " //1-4col time lla
                                  << lla_sigma[0] << " " << lla_sigma[1] << " " << lla_sigma[2] << " " //5-7 col
 
@@ -151,7 +167,7 @@ public:
                         auto lidar_time_rel = 0;
                         auto lidar_size = deque_cloud[i]->cloud.size();
 
-                        std::ofstream originStream( save_map_path +"lidar_data.txt", std::ios_base::app);
+                        std::ofstream originStream( save_map_path +"/lidar_data.txt", std::ios_base::app);
                         originStream << std::fixed<<std::setprecision(11)<<lidar_time_rel << " " << lidar_size <<  " " << i <<  " " << lidar_time <<std::endl; //1-4col time lla
                         continue;
                     }
@@ -160,7 +176,7 @@ public:
                     auto lidar_time_rel = deque_cloud[i]->timestamp - time_init_lidar;
                     auto lidar_size = deque_cloud[i]->cloud.size();
 
-                    std::ofstream originStream( save_map_path +"lidar_data.txt", std::ios_base::app);
+                    std::ofstream originStream( save_map_path +"/lidar_data.txt", std::ios_base::app);
                     originStream << std::fixed<<std::setprecision(11)<<lidar_time_rel << " " << lidar_size <<  " " << i <<  " " << lidar_time << std::endl; //1-4col time lla
 
                 }
@@ -189,7 +205,7 @@ public:
 
     }
 
-    void AddGNSSINSData(GNSSINSType& data){
+    void AddGNSSINSData(const GNSSINSType& data){
 
         gnss_mutex.lock();
         gnssQueue.push_back(data);
