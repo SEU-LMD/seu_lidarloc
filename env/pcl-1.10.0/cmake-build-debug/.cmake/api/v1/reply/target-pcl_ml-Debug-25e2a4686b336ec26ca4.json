@@ -1,0 +1,503 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "lib/libpcl_ml.so"
+		}
+	],
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"PCL_ADD_LIBRARY",
+			"install",
+			"target_link_libraries",
+			"include_directories",
+			"PCL_SUBSYS_DEPEND",
+			"PCL_ADD_GRABBER_DEPENDENCY",
+			"target_compile_features"
+		],
+		"files" : 
+		[
+			"cmake/pcl_targets.cmake",
+			"ml/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 79,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 222,
+				"parent" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 226,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 228,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 81,
+				"parent" : 0
+			},
+			{
+				"file" : 2
+			},
+			{
+				"command" : 4,
+				"file" : 2,
+				"line" : 479,
+				"parent" : 7
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 7,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 110,
+				"parent" : 9
+			},
+			{
+				"command" : 4,
+				"file" : 1,
+				"line" : 78,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 2,
+				"line" : 304,
+				"parent" : 7
+			},
+			{
+				"command" : 6,
+				"file" : 2,
+				"line" : 327,
+				"parent" : 7
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 823,
+				"parent" : 13
+			},
+			{
+				"command" : 6,
+				"file" : 2,
+				"line" : 328,
+				"parent" : 7
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 823,
+				"parent" : 15
+			},
+			{
+				"command" : 4,
+				"file" : 2,
+				"line" : 342,
+				"parent" : 7
+			},
+			{
+				"command" : 7,
+				"file" : 0,
+				"line" : 224,
+				"parent" : 1
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : " -Wabi=11 -Wall -Wextra -Wno-unknown-pragmas -fno-strict-aliasing -Wno-format-extra-args -Wno-sign-compare -Wno-invalid-offsetof -Wno-conversion -march=native -msse4.2 -mfpmath=sse -fopenmp -g -fPIC -fdiagnostics-color=always"
+				},
+				{
+					"fragment" : "-std=c++14"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"define" : "PCLAPI_EXPORTS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 8,
+					"path" : "/home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/include"
+				},
+				{
+					"backtrace" : 10,
+					"path" : "/home/today/thirtyparty/pcl-1.10.0/common/include"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/today/thirtyparty/pcl-1.10.0/ml/include"
+				},
+				{
+					"backtrace" : 12,
+					"isSystem" : true,
+					"path" : "/home/today/thirtyparty/pcl-1.10.0/cmake/Modules/../../../eigen-3.4.0-install-x86/include/eigen3"
+				},
+				{
+					"backtrace" : 14,
+					"isSystem" : true,
+					"path" : "/usr/include/ni"
+				},
+				{
+					"backtrace" : 16,
+					"isSystem" : true,
+					"path" : "/usr/include/openni2"
+				},
+				{
+					"backtrace" : 17,
+					"isSystem" : true,
+					"path" : "/home/today/thirtyparty/pcl-1.10.0/recognition/include/pcl/recognition/3rdparty"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					18
+				],
+				"standard" : "14"
+			},
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 6,
+			"id" : "pcl_common::@bfc844598bd03e848b3c"
+		}
+	],
+	"folder" : 
+	{
+		"name" : "Libraries"
+	},
+	"id" : "pcl_ml::@8a398cd7c5d1827d9d20",
+	"install" : 
+	{
+		"destinations" : 
+		[
+			{
+				"backtrace" : 3,
+				"path" : "lib"
+			},
+			{
+				"backtrace" : 3,
+				"path" : "lib"
+			}
+		],
+		"prefix" : 
+		{
+			"path" : "/usr/local"
+		}
+	},
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-Wl,--as-needed",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "-Wl,-rpath,/home/today/thirtyparty/pcl-1.10.0/cmake-build-debug/lib:",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/usr/lib/x86_64-linux-gnu/libboost_filesystem.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/usr/lib/x86_64-linux-gnu/libboost_date_time.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/usr/lib/x86_64-linux-gnu/libboost_iostreams.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/usr/lib/x86_64-linux-gnu/libboost_system.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/usr/lib/x86_64-linux-gnu/libboost_regex.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "-lm",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 6,
+				"fragment" : "../lib/libpcl_common.so.1.10.0",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/usr/lib/x86_64-linux-gnu/libboost_filesystem.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/usr/lib/x86_64-linux-gnu/libboost_date_time.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/usr/lib/x86_64-linux-gnu/libboost_iostreams.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/usr/lib/x86_64-linux-gnu/libboost_system.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "/usr/lib/x86_64-linux-gnu/libboost_regex.so",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "-lm",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"name" : "pcl_ml",
+	"nameOnDisk" : "libpcl_ml.so",
+	"paths" : 
+	{
+		"build" : "ml",
+		"source" : "ml"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7
+			]
+		},
+		{
+			"name" : "Header Files",
+			"sourceIndexes" : 
+			[
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "ml/src/point_xy_32i.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "ml/src/point_xy_32f.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "ml/src/densecrf.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "ml/src/pairwise_potential.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "ml/src/permutohedral.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "ml/src/svm_wrapper.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "ml/src/svm.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "ml/src/kmeans.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/branch_estimator.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/feature_handler.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/multi_channel_2d_comparison_feature.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/multi_channel_2d_comparison_feature_handler.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/multi_channel_2d_data_set.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/multiple_data_2d_example_index.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/point_xy_32i.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/point_xy_32f.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/regression_variance_stats_estimator.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/stats_estimator.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/densecrf.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/pairwise_potential.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/permutohedral.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/svm_wrapper.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/svm.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 2,
+			"path" : "ml/include/pcl/ml/kmeans.h",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "SHARED_LIBRARY"
+}

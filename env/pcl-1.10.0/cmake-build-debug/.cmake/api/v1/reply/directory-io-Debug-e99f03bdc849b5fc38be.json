@@ -1,0 +1,340 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install",
+			"PCL_ADD_LIBRARY",
+			"PCL_ADD_INCLUDES",
+			"PCL_MAKE_PKGCONFIG"
+		],
+		"files" : 
+		[
+			"cmake/pcl_targets.cmake",
+			"io/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 207,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 208,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 206,
+				"parent" : 3
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 335,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 245,
+				"parent" : 5
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 399,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 483,
+				"parent" : 7
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 402,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 206,
+				"parent" : 9
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 403,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 206,
+				"parent" : 11
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 404,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 206,
+				"parent" : 13
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 405,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 206,
+				"parent" : 15
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 406,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 206,
+				"parent" : 17
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 2,
+			"component" : "pcl_io",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"lib/libpcl_io_ply.so.1.10.0",
+				"lib/libpcl_io_ply.so.1.10"
+			],
+			"targetId" : "pcl_io_ply::@9998546b0f8df173ae92",
+			"targetIndex" : 24,
+			"targetInstallNamelink" : "skip",
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "pcl_io",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"lib/libpcl_io_ply.so"
+			],
+			"targetId" : "pcl_io_ply::@9998546b0f8df173ae92",
+			"targetIndex" : 24,
+			"targetInstallNamelink" : "only",
+			"type" : "target"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "pcl_io",
+			"destination" : "include/pcl-1.10/pcl/io/ply",
+			"paths" : 
+			[
+				"io/include/pcl/io/ply/byte_order.h",
+				"io/include/pcl/io/ply/io_operators.h",
+				"io/include/pcl/io/ply/ply.h",
+				"io/include/pcl/io/ply/ply_parser.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 6,
+			"component" : "pcl_io",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"lib/libpcl_io.so.1.10.0",
+				"lib/libpcl_io.so.1.10"
+			],
+			"targetId" : "pcl_io::@9998546b0f8df173ae92",
+			"targetIndex" : 23,
+			"targetInstallNamelink" : "skip",
+			"type" : "target"
+		},
+		{
+			"backtrace" : 6,
+			"component" : "pcl_io",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"lib/libpcl_io.so"
+			],
+			"targetId" : "pcl_io::@9998546b0f8df173ae92",
+			"targetIndex" : 23,
+			"targetInstallNamelink" : "only",
+			"type" : "target"
+		},
+		{
+			"backtrace" : 8,
+			"component" : "pcl_io",
+			"destination" : "lib/pkgconfig",
+			"paths" : 
+			[
+				"cmake-build-debug/io/pcl_io-1.10.pc"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 10,
+			"component" : "pcl_io",
+			"destination" : "include/pcl-1.10/pcl/io",
+			"paths" : 
+			[
+				"io/include/pcl/io/boost.h",
+				"io/include/pcl/io/eigen.h",
+				"io/include/pcl/io/debayer.h",
+				"io/include/pcl/io/fotonic_grabber.h",
+				"io/include/pcl/io/file_io.h",
+				"io/include/pcl/io/auto_io.h",
+				"io/include/pcl/io/low_level_io.h",
+				"io/include/pcl/io/lzf.h",
+				"io/include/pcl/io/lzf_image_io.h",
+				"io/include/pcl/io/io.h",
+				"io/include/pcl/io/grabber.h",
+				"io/include/pcl/io/file_grabber.h",
+				"io/include/pcl/io/pcd_grabber.h",
+				"io/include/pcl/io/pcd_io.h",
+				"io/include/pcl/io/vtk_io.h",
+				"io/include/pcl/io/ply_io.h",
+				"io/include/pcl/io/tar.h",
+				"io/include/pcl/io/obj_io.h",
+				"io/include/pcl/io/ascii_io.h",
+				"io/include/pcl/io/ifs_io.h",
+				"io/include/pcl/io/image_grabber.h",
+				"io/include/pcl/io/hdl_grabber.h",
+				"io/include/pcl/io/vlp_grabber.h",
+				"io/include/pcl/io/robot_eye_grabber.h",
+				"io/include/pcl/io/point_cloud_image_extractors.h",
+				"io/include/pcl/io/io_exception.h",
+				"io/include/pcl/io/openni_grabber.h",
+				"io/include/pcl/io/oni_grabber.h",
+				"io/include/pcl/io/openni2_grabber.h",
+				"io/include/pcl/io/image_metadata_wrapper.h",
+				"io/include/pcl/io/image.h",
+				"io/include/pcl/io/image_rgb24.h",
+				"io/include/pcl/io/image_yuv422.h",
+				"io/include/pcl/io/image_ir.h",
+				"io/include/pcl/io/image_depth.h",
+				"io/include/pcl/io/pxc_grabber.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 12,
+			"component" : "pcl_io",
+			"destination" : "include/pcl-1.10/pcl/compression",
+			"paths" : 
+			[
+				"io/include/pcl/compression/octree_pointcloud_compression.h",
+				"io/include/pcl/compression/color_coding.h",
+				"io/include/pcl/compression/compression_profiles.h",
+				"io/include/pcl/compression/entropy_range_coder.h",
+				"io/include/pcl/compression/point_coding.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 14,
+			"component" : "pcl_io",
+			"destination" : "include/pcl-1.10/pcl/io/openni_camera",
+			"paths" : 
+			[
+				"io/include/pcl/io/openni_camera/openni_shift_to_depth_conversion.h",
+				"io/include/pcl/io/openni_camera/openni.h",
+				"io/include/pcl/io/openni_camera/openni_depth_image.h",
+				"io/include/pcl/io/openni_camera/openni_device.h",
+				"io/include/pcl/io/openni_camera/openni_device_kinect.h",
+				"io/include/pcl/io/openni_camera/openni_device_primesense.h",
+				"io/include/pcl/io/openni_camera/openni_device_xtion.h",
+				"io/include/pcl/io/openni_camera/openni_device_oni.h",
+				"io/include/pcl/io/openni_camera/openni_driver.h",
+				"io/include/pcl/io/openni_camera/openni_exception.h",
+				"io/include/pcl/io/openni_camera/openni_image.h",
+				"io/include/pcl/io/openni_camera/openni_image_bayer_grbg.h",
+				"io/include/pcl/io/openni_camera/openni_image_yuv_422.h",
+				"io/include/pcl/io/openni_camera/openni_image_rgb24.h",
+				"io/include/pcl/io/openni_camera/openni_ir_image.h",
+				"io/include/pcl/io/image_metadata_wrapper.h",
+				"io/include/pcl/io/image.h",
+				"io/include/pcl/io/image_rgb24.h",
+				"io/include/pcl/io/image_yuv422.h",
+				"io/include/pcl/io/image_ir.h",
+				"io/include/pcl/io/image_depth.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 16,
+			"component" : "pcl_io",
+			"destination" : "include/pcl-1.10/pcl/io/openni2",
+			"paths" : 
+			[
+				"io/include/pcl/io/openni2/openni.h",
+				"io/include/pcl/io/openni2/openni2_metadata_wrapper.h",
+				"io/include/pcl/io/openni2/openni2_frame_listener.h",
+				"io/include/pcl/io/openni2/openni2_timer_filter.h",
+				"io/include/pcl/io/openni2/openni2_video_mode.h",
+				"io/include/pcl/io/openni2/openni2_convert.h",
+				"io/include/pcl/io/openni2/openni2_device.h",
+				"io/include/pcl/io/openni2/openni2_device_info.h",
+				"io/include/pcl/io/openni2/openni2_device_manager.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 18,
+			"component" : "pcl_io",
+			"destination" : "include/pcl-1.10/pcl/io/impl",
+			"paths" : 
+			[
+				"io/include/pcl/io/impl/ascii_io.hpp",
+				"io/include/pcl/io/impl/pcd_io.hpp",
+				"io/include/pcl/io/impl/auto_io.hpp",
+				"io/include/pcl/io/impl/lzf_image_io.hpp",
+				"io/include/pcl/io/impl/synchronized_queue.hpp",
+				"io/include/pcl/io/impl/point_cloud_image_extractors.hpp",
+				"io/include/pcl/compression/impl/entropy_range_coder.hpp",
+				"io/include/pcl/compression/impl/octree_pointcloud_compression.hpp"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "io",
+		"source" : "io"
+	}
+}
