@@ -23,14 +23,14 @@ public:
     virtual DataType getType() = 0;
 };
 
-struct PointXYZIRT {
+struct PointXYZIRTSEU {
     PCL_ADD_POINT4D
     uint8_t intensity;
     uint16_t ring;
     double latency;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 } EIGEN_ALIGN16;
-POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZIRT,
+POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZIRTSEU,
                                     (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)
                                     (uint16_t, ring, ring)(double, latency, latency))
 
@@ -61,7 +61,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT ( PointXYZIL,
 
 class CloudTypeXYZIRT: public BaseType{
     public:
-        pcl::PointCloud<PointXYZIRT> cloud;
+        pcl::PointCloud<PointXYZIRTSEU> cloud;
         DataType getType(){
             return DataType::LIDAR;
         }

@@ -45,11 +45,11 @@ public:
         pubsub = pubsub_;
         //然后开启各个线程
         data_pre.Init(pubsub);//TODO 1111 read different config file
-        EZLOG(INFO)<< "img_proj success!!"<<endl;
+        //EZLOG(INFO)<< "img_proj success!!"<<endl;
         ft_extr.Init(pubsub);
-        EZLOG(INFO)<< "ft_extr success!!"<<endl;
+        //EZLOG(INFO)<< "ft_extr success!!"<<endl;
         opt_mapping.Init(pubsub);
-        EZLOG(INFO)<< "opt_mapping success!!"<<endl;
+        //EZLOG(INFO)<< "opt_mapping success!!"<<endl;
         imu_wheeldr.Init(pubsub);
 //        EZLOG(INFO)<< "imu_pre success!!"<<endl;
 

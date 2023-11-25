@@ -62,8 +62,8 @@ public:
     std::string topic_gnss_odom_world_origin = "/gnss_odom_world_origin";
     std::string topic_deskw_cloud_to_ft_world = "/deskw_cloud_to_ft_world";
     std::string topic_gnss_odom_only42 = "/gnss_odom_only42";
-    std::string topic_gnss_odom_only42_xy = "/gnss_odom_only42_xy";
-    std::string topic_gnss_odom_world_xy = "/gnss_odom_world_xy";
+    std::string topic_gnss_odom_only42_xy = "/gnss_odom_only42_seu";
+    std::string topic_gnss_odom_world_xy = "/gnss_odom_world_seu";
 
     pcl::PointCloud<PointType>::Ptr deskewCloud_body;//去畸变之后的全部点云
     cv::Mat rangeMat;

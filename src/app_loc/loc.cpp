@@ -9,7 +9,6 @@
 #include "utils/udp_thread.h"
 
 //选择中间件
-#define X86
 #ifdef X86
 #include "pubsub/ros/ros_pubsub.h"
 #else

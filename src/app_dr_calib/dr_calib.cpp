@@ -7,7 +7,6 @@
 #include "./dr_calib_manager.h"
 #include "utils/filesys.h"
 //选择中间件
-#define X86
 #ifdef X86
 #include "pubsub/ros/ros_pubsub.h"
 #else
