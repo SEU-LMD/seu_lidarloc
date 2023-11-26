@@ -259,7 +259,7 @@ GolbalMap(const std::string& feature,const std::string& map_out_path,const std::
             out_cloud->push_back(transformed_point);
         }
     }
-    std::string filename=map_out_path+"global"+feature+".pcd";
+    std::string filename=map_out_path+"global_"+feature+".pcd";
     pcl::io::savePCDFileBinary (filename, *out_cloud);
 }
 
