@@ -62,8 +62,8 @@ public:
     std::string topic_gnss_odom_world_origin = "/gnss_odom_world_origin";
     std::string topic_deskw_cloud_to_ft_world = "/deskw_cloud_to_ft_world";
     std::string topic_gnss_odom_only42 = "/gnss_odom_only42";
-    std::string topic_gnss_odom_only42_xy = "/gnss_odom_only42_xy";
-    std::string topic_gnss_odom_world_xy = "/gnss_odom_world_xy";
+    std::string topic_gnss_odom_only42_xy = "/gnss_odom_only42_seu";
+    std::string topic_gnss_odom_world_xy = "/gnss_odom_world_seu";
 
     pcl::PointCloud<PointType>::Ptr deskewCloud_body;//去畸变之后的全部点云
     cv::Mat rangeMat;
@@ -124,7 +124,12 @@ public:
         //used
         for (int i = 1; i < (int) pose_deque.size(); i++) {  //遍历里程计队列，找到处于当前帧时间之前的第一个里程计数据作为起始位姿
 
+
             if (pose_deque[i].timestamp > cloudinfo.min_ros_timestamp){
+
+//                EZLOG(INFO)<<i<<" pose_deque[i].timestamp - cloudinfo.min_ros_timestamp= "<<pose_deque[i].timestamp - cloudinfo.min_ros_timestamp<<endl;
+//                EZLOG(INFO)<<i<<" pose_deque[i].timestamp - pose_deque[i - 1].timestamp= "<<pose_deque[i].timestamp - pose_deque[i - 1].timestamp<<endl;
+
                 double ktime = (cloudinfo.min_ros_timestamp - pose_deque[i - 1].timestamp) / (pose_deque[i].timestamp - pose_deque[i - 1].timestamp);
                 //平移插值
                 Eigen::Vector3d t_w_b_lidar_start;
@@ -267,6 +272,8 @@ public:
             static float ang_res_x = 360.0 / float(SensorConfig::Horizon_SCAN);//Horizon_SCAN=1800,每格0.2度
 
             columnIdn = -round((horizonAngle - 90.0) / ang_res_x) + SensorConfig::Horizon_SCAN / 2;
+
+//            EZLOG(INFO)<<"ring: "<<rowIdn<<" col: "<<columnIdn<<" reltimestamp: "<<cloudinfo.cloud_ptr->cloud.points[i].latency<<endl;
 
             if (columnIdn >= SensorConfig::Horizon_SCAN)
                 columnIdn -= SensorConfig::Horizon_SCAN;
@@ -422,6 +429,8 @@ public:
                 GetCloudTime(cur_scan, cur_cloud_time);
                 cloud_min_ros_timestamp = cur_cloud_time.min_ros_timestamp;
                 cloud_max_ros_timestamp = cur_cloud_time.max_ros_timestamp;
+
+                EZLOG(INFO)<<"cloud_max_ros_timestamp - cloud_min_ros_timestamp= "<<cloud_max_ros_timestamp - cloud_min_ros_timestamp<<endl;
 //                    time_getin.tic();
                 isGetCurrentCloud = true;
 
@@ -536,7 +545,7 @@ public:
             drodom_mutex.unlock();
             //EZLOG(INFO)<<"time_dataprep_3 = "<<time_dataprep_3.toc()<<endl;
 
-           // EZLOG(INFO)<<"time_dataprep = "<<time_dataprep.toc()<<endl;
+            EZLOG(INFO)<<"time_dataprep = "<<time_dataprep.toc()<<endl;
 
             ResetParameters();
             //end function if

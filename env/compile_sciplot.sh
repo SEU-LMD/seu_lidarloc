@@ -5,7 +5,7 @@ cd sciplot/
 rm -rf ./build/
 mkdir build
 cd build
-cmake      	   -DCMAKE_BUILD_TYPE=Release \
+cmake   -DCMAKE_BUILD_TYPE=Release \
 		   -DCMAKE_PREFIX_PATH=${dir_abs_path}\
 		   -DCMAKE_INSTALL_PREFIX=${dir_abs_path}/sciplot-install \
 		   ..

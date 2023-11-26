@@ -417,7 +417,7 @@ public:
                     pubsub->PublishCloud(topic_surf_world, surf_pub);
                 }
 
-               // EZLOG(INFO)<<"time_feature_extra = "<<time_feature_extra.toc()<<endl;
+                EZLOG(INFO)<<"time_feature_extra = "<<time_feature_extra.toc()<<endl;
 
             }
 

@@ -74,10 +74,10 @@ public:
     bool if_asb_loc_arrived = 0;//TODO :if abs loc arrived
 
     std::string topic_highHz_pose = "/loc_result";
-    std::string topic_highHz_pose_xy = "/loc_result_xy";
+    std::string topic_highHz_pose_xy = "/loc_result_seu";
     std::string topic_testforRollBack_pose = "/loc_result_roll_back";
     std::string topic_current_lidar_pose = "/loc_lidar_result";
-    std::string topic_current_lidar_pose_xy = "/loc_lidar_result_xy";
+    std::string topic_current_lidar_pose_xy = "/loc_lidar_result_seu";
 
     std::shared_ptr<UDP_THREAD> udp_thread;
 
@@ -392,7 +392,7 @@ public:
                         break;
                     }
                 }
-                if(queueNum > 50){
+                if(queueNum > 200){
                     float current_time = total_time.toc();
                     float time = (current_time - last_time) * 0.001 / (float)queueNum;
                     EZLOG(INFO)<<"fuse fps: "<< 1.0f / time << endl;

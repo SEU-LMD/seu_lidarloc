@@ -14,7 +14,7 @@ namespace {
         void INTSigHandler(int32_t num)
         {
             g_stopFlag = 1;
-            std::cout << "  Signal Interactive attention" << num << "received." << std::endl;
+//            std::cout << "  Signal Interactive attention" << num << "received." << std::endl;
         }
  }  // namespace
 
@@ -27,18 +27,17 @@ class MDCPubSub:public PubSubInterface{
 
             void initPubSub(int argc, char** argv, const std::string& node_name){
                         signal(SIGINT, INTSigHandler);
-                        std::cout << "start mdc" << std::endl;
+//                        std::cout << "start mdc" << std::endl;
                         if (!IsSingleton()) {
-                            std::cout << "position already exists!" << std::endl;
+//                            std::cout << "position already exists!" << std::endl;
                             exit(0);
                         }
                        position_ptr = std::make_unique<shineauto::position::Position>("Config.yaml");
                         HafStatus ret = position_ptr->Init();
                         if (ret != HAF_SUCCESS) {
-                            HAF_LOG_ERROR << "position init failed!";
+//                            HAF_LOG_ERROR << "position init failed!";
                             exit(-1);                          
                              }
-                        position_ptr->Process();
             }
 
 
@@ -48,12 +47,16 @@ class MDCPubSub:public PubSubInterface{
                                 position_ptr->LidarFunction = callback ;
                     }
                     else if(type==DataType::GNSS_INS){
+//                            std::cout<<"begin add gnssfunction"<<std::endl;
                             position_ptr->GNSSINSFunction = callback ;
+//                        std::cout<<"end add gnssfunction"<<std::endl;
+
                     }
             }
 
 
             void run(){
+                position_ptr->Process();
                 while ((!g_stopFlag) && !position_ptr->IsStop()) {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
                 }

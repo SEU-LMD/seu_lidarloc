@@ -4,15 +4,12 @@
 
 #include "utils/config_helper.h"
 #include "easylogging++.h"
-#include "./mapping_manager.h"
+#include "./datacheck_manager.h"
 #include "utils/filesys.h"
-#include "utils/udp_thread.h"
 //选择中间件
-#ifdef X86
+//#ifdef X86
 #include "pubsub/ros/ros_pubsub.h"
-#else
-#include "pubsub/mdc/mdc_pubsub.h"
-#endif
+//#endif
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -30,28 +27,25 @@ int main(int argc, char **argv) {
 
     //2.初始化中间件
     PubSubInterface* pubsub;
-    #ifdef X86
+    //#ifdef X86
     pubsub = new ROSPubSub();
-    #else
-    pubsub = new MDCPubSub();
-    #endif
+    //#endif
 
-    pubsub->initPubSub(argc, argv, "mapping");
+    pubsub->initPubSub(argc, argv, "datacheck");
 
     //3.初始化配置参数
     Load_Sensor_YAML("./config/sensor.yaml");
     Load_Mapping_YAML("./config/mapping.yaml");
-    Load_FrontEnd_YAML("./config/front_end.yaml");
-    SetOptMappingMode();
+//    Load_FrontEnd_YAML("./config/front_end.yaml");
+//    CONFIG::slam_mode_switch = 0;//TODO 1029
 
-    //TODO 1111 remove !!!!
     //4.启动多个线程
-    MappingManager mapping_manager;
-    mapping_manager.Init(pubsub);
+    DataCheckManager datacheck_manager;
+    datacheck_manager.Init(pubsub);
 
     //5.设置mapping manager的回调函数
-    auto cloud_callback = std::bind(&MappingManager::CloudCallback, &mapping_manager,std::placeholders::_1);
-    auto gnssins_callback = std::bind(&MappingManager::GNSSINSCallback, &mapping_manager,std::placeholders::_1);
+    auto cloud_callback = std::bind(&DataCheckManager::CloudCallback, &datacheck_manager,std::placeholders::_1);
+    auto gnssins_callback = std::bind(&DataCheckManager::GNSSINSCallback, &datacheck_manager,std::placeholders::_1);
 
 
     pubsub->addSubscriber(SensorConfig::pointCloudTopic, DataType::LIDAR, cloud_callback);

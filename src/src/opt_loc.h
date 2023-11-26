@@ -1025,7 +1025,7 @@ public:
                 ResultsAndPub2Fuse(cur_ft.frame_id,cur_ft.pose,cur_ft.pose_reliable);//TODO 1030 change function name------Done
 //                EZLOG(INFO)<<"ResultsAndPub2Fuse() time : "<<t_5.toc();
 
-                if(lidarscanNum % 10 == 0){
+                if(lidarscanNum % 25 == 0){
                     EZLOG(INFO) << "current lidar scan cost time: " << total_time.toc() << "ms" << std::endl;
                 }
             }
