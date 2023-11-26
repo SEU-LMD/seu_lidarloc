@@ -10,7 +10,7 @@
 #include <algorithm>
 #include "sciplot/sciplot.hpp"
 
-
+#define Divde 10
 
 class Plot{
 
@@ -159,7 +159,13 @@ class Plot{
          checkLidarPoint();
          check_lidar <<"count is not normal:"<< count_iseuql<<std::endl;
          check_lidar.close();
-    }
+         for(int i=0;i<Divde;++i){
+             std::vector<double> subVec(diff_lidar_timestamp.begin()+i*(diff_lidar_timestamp.size()/Divde),diff_lidar_timestamp.begin()+(1+i)*(diff_lidar_timestamp.size()/10));
+             DrawPoint(subVec,"count","gnss_diift");
+         }
+
+
+     }
 
     //public
     void checkGnss(){
@@ -172,7 +178,11 @@ class Plot{
 
         check_gnss.close();
         DrawPoint(v_timestamp,"count","timestamp");
-        DrawPoint(diff_gnss_timestamp,"count","diift");
+
+        for(int i=0;i<Divde;++i){
+            std::vector<double> subVec(diff_gnss_timestamp.begin()+i*(diff_gnss_timestamp.size()/Divde),diff_gnss_timestamp.begin()+(1+i)*(diff_gnss_timestamp.size()/10));
+            DrawPoint(subVec,"count","imu_diift");
+        }
 
     }
 
@@ -245,7 +255,7 @@ private:
     }
 
 
-    void DrawPoint( std::vector<double> &data_y,const std::string &name_x,const std::string &name_y){
+    void DrawPoint( std::vector<double> data_y,const std::string &name_x,const std::string &name_y){
         std::cout<<"data_y.size"<<data_y.size()<<std::endl;
         sciplot::Vec x = sciplot::linspace(0,data_y.size()-1,data_y.size());
 
@@ -286,10 +296,7 @@ private:
 
     }
 
-    void DrawPoint(const std::vector<double> &data_y,const std::vector<double> &data_x){
 
-
-    }
 
 
 
