@@ -163,6 +163,17 @@ PointPoseTrance(const pcl::PointXYZI& piont_in,const Eigen::Isometry3d& trans ){
     return piont_out;
 }
 
+pcl::PointXYZI
+PointPoseTranceGlobal(const pcl::PointXYZI& piont_in,const Eigen::Isometry3d& trans ){
+    Eigen::Vector3d piont_trans(piont_in.x,piont_in.y,piont_in.z);
+    Eigen::Vector3d piont_transformed=trans*piont_trans;
+    pcl::PointXYZI piont_out;
+    piont_out.x=piont_transformed.x();
+    piont_out.y=piont_transformed.y();
+    piont_out.z=piont_transformed.z();
+    piont_out.intensity=piont_in.intensity;
+    return piont_out;
+}
 
 
 void
@@ -232,7 +243,25 @@ CutMap(const std::string& feature,const std::string& map_out_path,const std::str
     }
 };
 
-
+void
+GolbalMap(const std::string& feature,const std::string& map_out_path,const std::string& map_in_path,const int frame_sum){
+    pcl::PointCloud<pcl::PointXYZI>::Ptr out_cloud(new pcl::PointCloud<pcl::PointXYZI>);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr in_cloud(new pcl::PointCloud<pcl::PointXYZI>);
+    for(int k=0;k<frame_sum;k++){                        //循环每一个小pcd
+        if (pcl::io::loadPCDFile<pcl::PointXYZI> (map_in_path+pcd_index[k]+"_"+feature+".pcd", *in_cloud) == -1)
+        {
+//                            PCL_ERROR("Couldn't read file test_pcd.pcd \n");
+//                            continue;
+        }
+        for (const pcl::PointXYZI& point : *in_cloud){//  循环每一个点
+            pcl::PointXYZI transformed_point;
+            transformed_point=PointPoseTranceGlobal(point,pcd_tans[k]);
+            out_cloud->push_back(transformed_point);
+        }
+    }
+    std::string filename=map_out_path+"global"+feature+".pcd";
+    pcl::io::savePCDFileBinary (filename, *out_cloud);
+}
 
 
 int
@@ -244,6 +273,8 @@ main (int argc, char** argv)
     LoadTxt(SerializeConfig::map_in_path,SerializeConfig::frame_sum);
     FindMinMaxUsePose(SerializeConfig::map_out_path,SerializeConfig::lidar_range);
     CutDownMapCaulate();
-    CutMap(pcd_feature[0],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
-    CutMap(pcd_feature[1],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
+//    CutMap(pcd_feature[0],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
+//    CutMap(pcd_feature[1],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
+    GolbalMap(pcd_feature[0],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
+    GolbalMap(pcd_feature[1],SerializeConfig::map_out_path,SerializeConfig::map_in_path,SerializeConfig::frame_sum);
 }
